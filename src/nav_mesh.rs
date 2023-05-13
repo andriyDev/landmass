@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use glam::{swizzles::Vec3Swizzles, Vec3};
 
+use crate::BoundingBox;
+
 // A navigation mesh.
 #[derive(Clone)]
 pub struct NavigationMesh {
@@ -11,11 +13,11 @@ pub struct NavigationMesh {
   // `mesh_bounds` would be the bounds of the actual vertices. This may be None
   // to specify that the `region_bounds` should be automatically computed as
   // the `mesh_bounds`.
-  pub region_bounds: Option<(Vec3, Vec3)>,
+  pub region_bounds: Option<BoundingBox>,
   // The bounds of the mesh data itself. This should be a tight bounding box
   // around the vertices of the navigation mesh. This may be None to
   // automatically compute this from the vertices.
-  pub mesh_bounds: Option<(Vec3, Vec3)>,
+  pub mesh_bounds: Option<BoundingBox>,
   // The vertices that make up the polygons. The Y component is considered up.
   pub vertices: Vec<Vec3>,
   // The polygons of the mesh. Polygons are indices to the `vertices` that make
@@ -49,18 +51,14 @@ impl NavigationMesh {
   ) -> Result<ValidNavigationMesh, ValidationError> {
     if self.mesh_bounds.is_none() {
       if self.vertices.is_empty() {
-        self.mesh_bounds = Some((Vec3::ZERO, Vec3::ZERO));
+        self.mesh_bounds = Some(BoundingBox::new_box(Vec3::ZERO, Vec3::ZERO));
       }
       let first_vertex = *self.vertices.first().unwrap();
-      self.mesh_bounds = Some(
-        self
-          .vertices
-          .iter()
-          .skip(1)
-          .fold((first_vertex, first_vertex), |acc, &vertex| {
-            (acc.0.min(vertex), acc.1.max(vertex))
-          }),
-      );
+      self.mesh_bounds =
+        Some(self.vertices.iter().skip(1).fold(
+          BoundingBox::new_box(Vec3::ZERO, Vec3::ZERO),
+          |acc, &vertex| acc.expand_to_point(vertex),
+        ));
     }
     if self.region_bounds.is_none() {
       self.region_bounds = self.mesh_bounds;
@@ -200,10 +198,10 @@ impl NavigationMesh {
 pub struct ValidNavigationMesh {
   // The bounds of the region that this mesh is responsible for. This is a
   // superset of `mesh_bounds`.
-  pub region_bounds: (Vec3, Vec3),
+  pub region_bounds: BoundingBox,
   // The bounds of the mesh data itself. This is a tight bounding box around
   // the vertices of the navigation mesh.
-  pub mesh_bounds: (Vec3, Vec3),
+  pub mesh_bounds: BoundingBox,
   // The vertices that make up the polygons.
   pub vertices: Vec<Vec3>,
   // The polygons of the mesh. Each polygon is convex and indexes `vertices`.
@@ -259,10 +257,11 @@ impl ValidNavigationMesh {
     const ALIGNED_TO_PLANE_DIRECTION_DEVIATION_EPSILON: f32 = 1e-5;
 
     fn find_plane_index(
-      region_bounds: &(Vec3, Vec3),
+      region_bounds: &BoundingBox,
       edge_vertices: &(Vec3, Vec3),
       linkable_distance_to_region_edge: f32,
     ) -> Option<usize> {
+      let region_bounds = region_bounds.as_box();
       let edge_direction_abs =
         (edge_vertices.1 - edge_vertices.0).normalize_or_zero().abs();
       assert_ne!(edge_direction_abs, Vec3::ZERO);
@@ -328,7 +327,10 @@ impl ValidNavigationMesh {
 mod tests {
   use glam::Vec3;
 
-  use crate::nav_mesh::{Connectivity, MeshEdgeRef};
+  use crate::{
+    nav_mesh::{Connectivity, MeshEdgeRef},
+    util::BoundingBox,
+  };
 
   use super::{NavigationMesh, ValidationError};
 
@@ -352,24 +354,34 @@ mod tests {
       source_mesh.clone().validate().expect("Validation succeeds.");
     assert_eq!(
       valid_mesh.mesh_bounds,
-      (Vec3::new(0.0, -0.25, 0.0), Vec3::new(2.0, 1.0, 4.0))
+      BoundingBox::new_box(
+        Vec3::new(0.0, -0.25, 0.0),
+        Vec3::new(2.0, 1.0, 4.0)
+      )
     );
     assert_eq!(valid_mesh.region_bounds, valid_mesh.mesh_bounds);
 
-    let region_bounds =
-      (Vec3::new(-10.0, -10.0, -10.0), Vec3::new(10.0, 10.0, 10.0));
+    let region_bounds = BoundingBox::new_box(
+      Vec3::new(-10.0, -10.0, -10.0),
+      Vec3::new(10.0, 10.0, 10.0),
+    );
     source_mesh.region_bounds = Some(region_bounds);
 
     let valid_mesh =
       source_mesh.clone().validate().expect("Validation succeeds.");
     assert_eq!(
       valid_mesh.mesh_bounds,
-      (Vec3::new(0.0, -0.25, 0.0), Vec3::new(2.0, 1.0, 4.0))
+      BoundingBox::new_box(
+        Vec3::new(0.0, -0.25, 0.0),
+        Vec3::new(2.0, 1.0, 4.0)
+      )
     );
     assert_eq!(valid_mesh.region_bounds, region_bounds);
 
-    let fake_mesh_bounds =
-      (Vec3::new(-5.0, -5.0, -5.0), Vec3::new(5.0, 5.0, 5.0));
+    let fake_mesh_bounds = BoundingBox::new_box(
+      Vec3::new(-5.0, -5.0, -5.0),
+      Vec3::new(5.0, 5.0, 5.0),
+    );
     source_mesh.mesh_bounds = Some(fake_mesh_bounds);
 
     let valid_mesh =
