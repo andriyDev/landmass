@@ -249,6 +249,79 @@ impl ValidNavigationMesh {
 
     (self.vertices[left_vertex_index], self.vertices[right_vertex_index])
   }
+
+  pub fn find_linkable_edges(
+    &self,
+    linkable_distance_to_region_edge: f32,
+  ) -> [Vec<MeshEdgeRef>; 6] {
+    let region_bounds = self.region_bounds;
+
+    const ALIGNED_TO_PLANE_DIRECTION_DEVIATION_EPSILON: f32 = 1e-5;
+
+    fn find_plane_index(
+      region_bounds: &(Vec3, Vec3),
+      edge_vertices: &(Vec3, Vec3),
+      linkable_distance_to_region_edge: f32,
+    ) -> Option<usize> {
+      let edge_direction_abs =
+        (edge_vertices.1 - edge_vertices.0).normalize_or_zero().abs();
+      assert_ne!(edge_direction_abs, Vec3::ZERO);
+
+      if edge_direction_abs.x < ALIGNED_TO_PLANE_DIRECTION_DEVIATION_EPSILON {
+        if edge_vertices.0.x - region_bounds.0.x
+          < linkable_distance_to_region_edge
+        {
+          return Some(0);
+        } else if region_bounds.1.x - edge_vertices.0.x
+          < linkable_distance_to_region_edge
+        {
+          return Some(1);
+        }
+      }
+
+      if edge_direction_abs.y < ALIGNED_TO_PLANE_DIRECTION_DEVIATION_EPSILON {
+        if edge_vertices.0.y - region_bounds.0.y
+          < linkable_distance_to_region_edge
+        {
+          return Some(2);
+        } else if region_bounds.1.y - edge_vertices.0.y
+          < linkable_distance_to_region_edge
+        {
+          return Some(3);
+        }
+      }
+
+      if edge_direction_abs.z < ALIGNED_TO_PLANE_DIRECTION_DEVIATION_EPSILON {
+        if edge_vertices.0.z - region_bounds.0.z
+          < linkable_distance_to_region_edge
+        {
+          return Some(4);
+        } else if region_bounds.1.z - edge_vertices.0.z
+          < linkable_distance_to_region_edge
+        {
+          return Some(5);
+        }
+      }
+
+      None
+    }
+
+    let mut linkable_edges_by_plane =
+      [Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new()];
+    for boundary_edge in self.boundary_edges.iter() {
+      let edge_vertices = self.get_edge_points(boundary_edge.clone());
+
+      if let Some(index) = find_plane_index(
+        &region_bounds,
+        &edge_vertices,
+        linkable_distance_to_region_edge,
+      ) {
+        linkable_edges_by_plane[index].push(boundary_edge.clone());
+      }
+    }
+
+    linkable_edges_by_plane
+  }
 }
 
 #[cfg(test)]
@@ -522,6 +595,61 @@ mod tests {
         MeshEdgeRef { polygon_index: 3, edge_index: 1 },
         MeshEdgeRef { polygon_index: 3, edge_index: 2 },
         MeshEdgeRef { polygon_index: 3, edge_index: 3 },
+      ]
+    );
+  }
+
+  #[test]
+  fn finds_linkable_edges() {
+    let mesh = NavigationMesh {
+      mesh_bounds: None,
+      region_bounds: None,
+      vertices: vec![
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(2.0, 0.0, 0.0),
+        Vec3::new(4.0, 0.0, 1.0),
+        Vec3::new(4.0, 0.0, 2.0),
+        Vec3::new(2.0, 0.0, 3.0),
+        Vec3::new(1.0, 0.0, 3.0),
+        Vec3::new(0.0, 0.0, 2.0),
+        Vec3::new(0.0, 0.0, 1.0),
+        Vec3::new(1.0, 0.0, 5.0),
+        Vec3::new(2.0, 0.0, 5.0),
+        Vec3::new(2.0, 0.0, 4.0),
+        Vec3::new(3.0, 1.0, 5.0),
+        Vec3::new(3.0, 1.0, 4.0),
+        Vec3::new(3.0, -2.0, 4.0),
+        Vec3::new(3.0, -2.0, 3.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 2, 3, 4, 5, 6, 7],
+        vec![5, 4, 10, 9, 8],
+        vec![9, 10, 12, 11],
+        vec![10, 4, 14, 13],
+      ],
+    }
+    .validate()
+    .expect("Mesh is valid.");
+
+    let mut linkable_edges = mesh.find_linkable_edges(1e-10);
+
+    // Sort the edges so it matches the expected result.
+    linkable_edges.iter_mut().for_each(|edges| {
+      edges.sort_by_key(|edge| edge.polygon_index * 100 + edge.edge_index)
+    });
+
+    assert_eq!(
+      linkable_edges,
+      [
+        &[MeshEdgeRef { polygon_index: 0, edge_index: 6 }] as &[_],
+        &[MeshEdgeRef { polygon_index: 0, edge_index: 2 }] as &[_],
+        &[MeshEdgeRef { polygon_index: 3, edge_index: 2 }] as &[_],
+        &[MeshEdgeRef { polygon_index: 2, edge_index: 2 }] as &[_],
+        &[MeshEdgeRef { polygon_index: 0, edge_index: 0 }] as &[_],
+        &[
+          MeshEdgeRef { polygon_index: 1, edge_index: 3 },
+          MeshEdgeRef { polygon_index: 2, edge_index: 3 },
+        ] as &[_],
       ]
     );
   }
