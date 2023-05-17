@@ -7,13 +7,6 @@ use crate::BoundingBox;
 // A navigation mesh.
 #[derive(Clone)]
 pub struct NavigationMesh {
-  // The bounds of the region that this mesh is responsible for. This should be
-  // a superset of `mesh_bounds`. This differs from `mesh_bounds` as for a
-  // tiled world, `region_bounds` may be the bounds of the tile, while
-  // `mesh_bounds` would be the bounds of the actual vertices. This may be None
-  // to specify that the `region_bounds` should be automatically computed as
-  // the `mesh_bounds`.
-  pub region_bounds: Option<BoundingBox>,
   // The bounds of the mesh data itself. This should be a tight bounding box
   // around the vertices of the navigation mesh. This may be None to
   // automatically compute this from the vertices.
@@ -59,9 +52,6 @@ impl NavigationMesh {
           BoundingBox::new_box(Vec3::ZERO, Vec3::ZERO),
           |acc, &vertex| acc.expand_to_point(vertex),
         ));
-    }
-    if self.region_bounds.is_none() {
-      self.region_bounds = self.mesh_bounds;
     }
 
     enum ConnectivityState {
@@ -182,7 +172,6 @@ impl NavigationMesh {
     }
 
     Ok(ValidNavigationMesh {
-      region_bounds: self.region_bounds.unwrap(),
       mesh_bounds: self.mesh_bounds.unwrap(),
       vertices: self.vertices,
       polygons: self.polygons,
@@ -196,9 +185,6 @@ impl NavigationMesh {
 // computed.
 #[derive(Debug)]
 pub struct ValidNavigationMesh {
-  // The bounds of the region that this mesh is responsible for. This is a
-  // superset of `mesh_bounds`.
-  pub region_bounds: BoundingBox,
   // The bounds of the mesh data itself. This is a tight bounding box around
   // the vertices of the navigation mesh.
   pub mesh_bounds: BoundingBox,
@@ -250,10 +236,9 @@ impl ValidNavigationMesh {
 
   pub fn find_linkable_edges(
     &self,
+    region_bounds: BoundingBox,
     linkable_distance_to_region_edge: f32,
   ) -> [Vec<MeshEdgeRef>; 6] {
-    let region_bounds = self.region_bounds;
-
     const ALIGNED_TO_PLANE_DIRECTION_DEVIATION_EPSILON: f32 = 1e-5;
 
     fn find_plane_index(
@@ -338,7 +323,6 @@ mod tests {
   fn validation_computes_bounds_if_none() {
     let mut source_mesh = NavigationMesh {
       mesh_bounds: None,
-      region_bounds: None,
       vertices: vec![
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(1.0, 1.0, 0.0),
@@ -359,24 +343,6 @@ mod tests {
         Vec3::new(2.0, 1.0, 4.0)
       )
     );
-    assert_eq!(valid_mesh.region_bounds, valid_mesh.mesh_bounds);
-
-    let region_bounds = BoundingBox::new_box(
-      Vec3::new(-10.0, -10.0, -10.0),
-      Vec3::new(10.0, 10.0, 10.0),
-    );
-    source_mesh.region_bounds = Some(region_bounds);
-
-    let valid_mesh =
-      source_mesh.clone().validate().expect("Validation succeeds.");
-    assert_eq!(
-      valid_mesh.mesh_bounds,
-      BoundingBox::new_box(
-        Vec3::new(0.0, -0.25, 0.0),
-        Vec3::new(2.0, 1.0, 4.0)
-      )
-    );
-    assert_eq!(valid_mesh.region_bounds, region_bounds);
 
     let fake_mesh_bounds = BoundingBox::new_box(
       Vec3::new(-5.0, -5.0, -5.0),
@@ -387,14 +353,12 @@ mod tests {
     let valid_mesh =
       source_mesh.clone().validate().expect("Validation succeeds.");
     assert_eq!(valid_mesh.mesh_bounds, fake_mesh_bounds);
-    assert_eq!(valid_mesh.region_bounds, region_bounds);
   }
 
   #[test]
   fn polygons_and_vertices_copied() {
     let source_mesh = NavigationMesh {
       mesh_bounds: None,
-      region_bounds: None,
       vertices: vec![
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(1.0, 1.0, 0.0),
@@ -416,7 +380,6 @@ mod tests {
   fn error_on_concave_polygon() {
     let source_mesh = NavigationMesh {
       mesh_bounds: None,
-      region_bounds: None,
       vertices: vec![
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(1.0, 0.0, 1.0),
@@ -442,7 +405,6 @@ mod tests {
   fn error_on_small_polygon() {
     let source_mesh = NavigationMesh {
       mesh_bounds: None,
-      region_bounds: None,
       vertices: vec![Vec3::new(0.0, 0.0, 0.0), Vec3::new(1.0, 0.0, 1.0)],
       polygons: vec![vec![0, 1]],
     };
@@ -464,7 +426,6 @@ mod tests {
   fn error_on_bad_polygon_index() {
     let source_mesh = NavigationMesh {
       mesh_bounds: None,
-      region_bounds: None,
       vertices: vec![
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(1.0, 0.0, 0.0),
@@ -490,7 +451,6 @@ mod tests {
   fn error_on_degenerate_edge() {
     let source_mesh = NavigationMesh {
       mesh_bounds: None,
-      region_bounds: None,
       vertices: vec![
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(1.0, 0.0, 0.0),
@@ -518,7 +478,6 @@ mod tests {
   fn error_on_doubly_connected_edge() {
     let source_mesh = NavigationMesh {
       mesh_bounds: None,
-      region_bounds: None,
       vertices: vec![
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(1.0, 0.0, 0.0),
@@ -550,7 +509,6 @@ mod tests {
   fn derives_connectivity_and_boundary_edges() {
     let source_mesh = NavigationMesh {
       mesh_bounds: None,
-      region_bounds: None,
       vertices: vec![
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(1.0, 0.0, 0.0),
@@ -615,7 +573,6 @@ mod tests {
   fn finds_linkable_edges() {
     let mesh = NavigationMesh {
       mesh_bounds: None,
-      region_bounds: None,
       vertices: vec![
         Vec3::new(1.0, 0.0, 0.0),
         Vec3::new(2.0, 0.0, 0.0),
@@ -643,7 +600,7 @@ mod tests {
     .validate()
     .expect("Mesh is valid.");
 
-    let mut linkable_edges = mesh.find_linkable_edges(1e-10);
+    let mut linkable_edges = mesh.find_linkable_edges(mesh.mesh_bounds, 1e-10);
 
     // Sort the edges so it matches the expected result.
     linkable_edges.iter_mut().for_each(|edges| {
