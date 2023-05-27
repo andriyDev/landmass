@@ -2,6 +2,8 @@ use glam::Vec3;
 
 use crate::path::Path;
 
+pub type AgentId = u32;
+
 pub struct Agent {
   position: Vec3,
   velocity: Vec3,
