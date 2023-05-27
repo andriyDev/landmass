@@ -219,6 +219,12 @@ pub struct MeshEdgeRef {
   pub edge_index: usize,
 }
 
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct MeshNodeRef {
+  // The index of the polygon in the navigation mesh.
+  pub polygon_index: usize,
+}
+
 impl ValidNavigationMesh {
   // Gets the points that make up the specified edge.
   pub fn get_edge_points(&self, edge_ref: MeshEdgeRef) -> (Vec3, Vec3) {
