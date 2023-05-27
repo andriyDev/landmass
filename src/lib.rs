@@ -1,6 +1,8 @@
+mod agent;
 mod nav_mesh;
+mod path;
 mod pathfinding;
 mod util;
-mod path;
 
+pub use agent::Agent;
 pub use util::BoundingBox;
