@@ -173,8 +173,19 @@ impl NavigationMesh {
 
     Ok(ValidNavigationMesh {
       mesh_bounds: self.mesh_bounds.unwrap(),
+      polygons: self
+        .polygons
+        .drain(..)
+        .map(|polygon_vertices| ValidPolygon {
+          bounds: polygon_vertices
+            .iter()
+            .fold(BoundingBox::Empty, |bounds, vertex| {
+              bounds.expand_to_point(self.vertices[*vertex])
+            }),
+          vertices: polygon_vertices,
+        })
+        .collect(),
       vertices: self.vertices,
-      polygons: self.polygons,
       connectivity,
       boundary_edges,
     })
@@ -187,19 +198,30 @@ impl NavigationMesh {
 pub struct ValidNavigationMesh {
   // The bounds of the mesh data itself. This is a tight bounding box around
   // the vertices of the navigation mesh.
-  pub mesh_bounds: BoundingBox,
+  pub(crate) mesh_bounds: BoundingBox,
   // The vertices that make up the polygons.
-  pub vertices: Vec<Vec3>,
-  // The polygons of the mesh. Each polygon is convex and indexes `vertices`.
-  pub polygons: Vec<Vec<usize>>,
+  pub(crate) vertices: Vec<Vec3>,
+  // The polygons of the mesh.
+  pub(crate) polygons: Vec<ValidPolygon>,
   // The connectivity for each polygon. Each polygon has a Vec of the pairs
   // of (edge index, node index).
-  pub connectivity: Vec<Vec<Connectivity>>,
+  pub(crate) connectivity: Vec<Vec<Connectivity>>,
   // The boundary edges in the navigation mesh. Edges are stored as pairs of
   // vertices in a counter-clockwise direction. That is, moving along an edge
   // (e.0, e.1) from e.0 to e.1 will move counter-clockwise along the boundary.
   // The order of edges is undefined.
-  pub boundary_edges: Vec<MeshEdgeRef>,
+  pub(crate) boundary_edges: Vec<MeshEdgeRef>,
+}
+
+// A valid polygon. This means the polygon is convex and indexes the `vertices`
+// Vec of the corresponding ValidNavigationMesh.
+#[derive(PartialEq, Debug)]
+pub(crate) struct ValidPolygon {
+  // The vertices are indexes to the `vertices` Vec of the corresponding
+  // ValidNavigationMesh.
+  pub(crate) vertices: Vec<usize>,
+  // The bounding box of `vertices`.
+  pub(crate) bounds: BoundingBox,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -229,13 +251,15 @@ impl ValidNavigationMesh {
   // Gets the points that make up the specified edge.
   pub fn get_edge_points(&self, edge_ref: MeshEdgeRef) -> (Vec3, Vec3) {
     let polygon = &self.polygons[edge_ref.polygon_index];
-    let left_vertex_index = polygon[edge_ref.edge_index];
-    let right_vertex_index = polygon[if edge_ref.edge_index == polygon.len() - 1
-    {
-      0
-    } else {
-      edge_ref.edge_index + 1
-    }];
+    let left_vertex_index = polygon.vertices[edge_ref.edge_index];
+
+    let right_vertex_index =
+      if edge_ref.edge_index == polygon.vertices.len() - 1 {
+        0
+      } else {
+        edge_ref.edge_index + 1
+      };
+    let right_vertex_index = polygon.vertices[right_vertex_index];
 
     (self.vertices[left_vertex_index], self.vertices[right_vertex_index])
   }
@@ -319,7 +343,7 @@ mod tests {
   use glam::Vec3;
 
   use crate::{
-    nav_mesh::{Connectivity, MeshEdgeRef},
+    nav_mesh::{Connectivity, MeshEdgeRef, ValidPolygon},
     util::BoundingBox,
   };
 
@@ -362,7 +386,7 @@ mod tests {
   }
 
   #[test]
-  fn polygons_and_vertices_copied() {
+  fn polygons_derived_and_vertices_copied() {
     let source_mesh = NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
@@ -376,10 +400,27 @@ mod tests {
       polygons: vec![vec![0, 1, 2], vec![3, 4, 5]],
     };
 
+    let expected_polygons = vec![
+      ValidPolygon {
+        vertices: source_mesh.polygons[0].clone(),
+        bounds: BoundingBox::new_box(
+          Vec3::new(0.0, 0.0, 0.0),
+          Vec3::new(2.0, 1.0, 1.0),
+        ),
+      },
+      ValidPolygon {
+        vertices: source_mesh.polygons[1].clone(),
+        bounds: BoundingBox::new_box(
+          Vec3::new(0.25, -0.25, 3.0),
+          Vec3::new(0.75, 0.5, 4.0),
+        ),
+      },
+    ];
+
     let valid_mesh =
       source_mesh.clone().validate().expect("Validation succeeds.");
     assert_eq!(valid_mesh.vertices, source_mesh.vertices);
-    assert_eq!(valid_mesh.polygons, source_mesh.polygons);
+    assert_eq!(valid_mesh.polygons, expected_polygons);
   }
 
   #[test]
