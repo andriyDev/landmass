@@ -419,6 +419,15 @@ impl ValidNavigationMesh {
   }
 }
 
+impl ValidPolygon {
+  pub(crate) fn get_edge_indices(&self, edge: usize) -> (usize, usize) {
+    (
+      self.vertices[edge],
+      self.vertices[if edge == self.vertices.len() - 1 { 0 } else { edge + 1 }],
+    )
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use glam::Vec3;
@@ -958,5 +967,17 @@ mod tests {
       ),
       Some((Vec3::new(2.5, 0.5, 5.0), MeshNodeRef { polygon_index: 2 }))
     );
+  }
+
+  #[test]
+  fn valid_polygon_gets_edge_indices() {
+    let polygon = ValidPolygon {
+      bounds: BoundingBox::Empty,
+      vertices: vec![1, 3, 9, 2, 7],
+    };
+
+    assert_eq!(polygon.get_edge_indices(0), (1, 3));
+    assert_eq!(polygon.get_edge_indices(2), (9, 2));
+    assert_eq!(polygon.get_edge_indices(4), (7, 1));
   }
 }
