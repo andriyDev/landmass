@@ -336,6 +336,87 @@ impl ValidNavigationMesh {
 
     linkable_edges_by_plane
   }
+
+  pub(crate) fn sample_point(
+    &self,
+    point: Vec3,
+    distance_to_node: f32,
+  ) -> Option<(Vec3, MeshNodeRef)> {
+    let sample_box = BoundingBox::new_box(point, point)
+      .expand_by_size(Vec3::ONE * distance_to_node);
+
+    fn project_to_triangle(triangle: (Vec3, Vec3, Vec3), point: Vec3) -> Vec3 {
+      let triangle_deltas = (
+        triangle.1 - triangle.0,
+        triangle.2 - triangle.1,
+        triangle.0 - triangle.2,
+      );
+      let triangle_deltas_flat = (
+        triangle_deltas.0.xz(),
+        triangle_deltas.1.xz(),
+        triangle_deltas.2.xz(),
+      );
+
+      if triangle_deltas_flat.0.perp_dot(point.xz() - triangle.0.xz()) < 0.0 {
+        let s = triangle_deltas_flat.0.dot(point.xz() - triangle.0.xz())
+          / triangle_deltas_flat.0.length_squared();
+        return triangle_deltas.0 * s.clamp(0.0, 1.0) + triangle.0;
+      }
+      if triangle_deltas_flat.1.perp_dot(point.xz() - triangle.1.xz()) < 0.0 {
+        let s = triangle_deltas_flat.1.dot(point.xz() - triangle.1.xz())
+          / triangle_deltas_flat.1.length_squared();
+        return triangle_deltas.1 * s.clamp(0.0, 1.0) + triangle.1;
+      }
+      if triangle_deltas_flat.2.perp_dot(point.xz() - triangle.2.xz()) < 0.0 {
+        let s = triangle_deltas_flat.2.dot(point.xz() - triangle.2.xz())
+          / triangle_deltas_flat.2.length_squared();
+        return triangle_deltas.2 * s.clamp(0.0, 1.0) + triangle.2;
+      }
+
+      let normal = -triangle_deltas.0.cross(triangle_deltas.2).normalize();
+      let height = normal.dot(point - triangle.0) / normal.y;
+      Vec3::new(point.x, point.y - height, point.z)
+    }
+
+    let mut best_node = None;
+
+    for (polygon_index, polygon) in self.polygons.iter().enumerate() {
+      if !sample_box.intersects_bounds(&polygon.bounds) {
+        continue;
+      }
+      for i in 2..polygon.vertices.len() {
+        let triangle =
+          (polygon.vertices[0], polygon.vertices[i - 1], polygon.vertices[i]);
+        let triangle = (
+          self.vertices[triangle.0],
+          self.vertices[triangle.1],
+          self.vertices[triangle.2],
+        );
+        let projected_point = project_to_triangle(triangle, point);
+
+        let distance_to_triangle = point.distance_squared(projected_point);
+        if distance_to_triangle < distance_to_node * distance_to_node {
+          let replace = match best_node {
+            None => true,
+            Some((_, _, previous_best_distance))
+              if distance_to_triangle < previous_best_distance =>
+            {
+              true
+            }
+            _ => false,
+          };
+          if replace {
+            best_node =
+              Some((polygon_index, projected_point, distance_to_triangle));
+          }
+        }
+      }
+    }
+
+    best_node.map(|(polygon_index, projected_point, _)| {
+      (projected_point, MeshNodeRef { polygon_index })
+    })
+  }
 }
 
 #[cfg(test)]
@@ -343,7 +424,7 @@ mod tests {
   use glam::Vec3;
 
   use crate::{
-    nav_mesh::{Connectivity, MeshEdgeRef, ValidPolygon},
+    nav_mesh::{Connectivity, MeshEdgeRef, MeshNodeRef, ValidPolygon},
     util::BoundingBox,
   };
 
@@ -667,6 +748,215 @@ mod tests {
           MeshEdgeRef { polygon_index: 2, edge_index: 3 },
         ] as &[_],
       ]
+    );
+  }
+
+  #[test]
+  fn sample_point_returns_none_for_far_point() {
+    let mesh = NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(2.0, 0.0, 0.0),
+        Vec3::new(4.0, 0.0, 1.0),
+        Vec3::new(4.0, 0.0, 2.0),
+        Vec3::new(2.0, 0.0, 3.0),
+        Vec3::new(1.0, 0.0, 3.0),
+        Vec3::new(0.0, 0.0, 2.0),
+        Vec3::new(0.0, 0.0, 1.0),
+        Vec3::new(1.0, 0.0, 5.0),
+        Vec3::new(2.0, 0.0, 5.0),
+        Vec3::new(2.0, 0.0, 4.0),
+        Vec3::new(3.0, 1.0, 5.0),
+        Vec3::new(3.0, 1.0, 4.0),
+        Vec3::new(3.0, -2.0, 4.0),
+        Vec3::new(3.0, -2.0, 3.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 2, 3, 4, 5, 6, 7],
+        vec![5, 4, 10, 9, 8],
+        vec![9, 10, 12, 11],
+        vec![10, 4, 14, 13],
+      ],
+    }
+    .validate()
+    .expect("Mesh is valid.");
+
+    assert_eq!(
+      mesh.sample_point(
+        /* point= */ Vec3::new(-3.0, 0.0, 0.0),
+        /* distance_to_node= */ 0.1
+      ),
+      None
+    );
+
+    assert_eq!(
+      mesh.sample_point(
+        /* point= */ Vec3::new(6.0, 0.0, 0.0),
+        /* distance_to_node= */ 0.1
+      ),
+      None
+    );
+
+    assert_eq!(
+      mesh.sample_point(
+        /* point= */ Vec3::new(0.0, -3.0, 0.0),
+        /* distance_to_node= */ 0.1
+      ),
+      None
+    );
+
+    assert_eq!(
+      mesh.sample_point(
+        /* point= */ Vec3::new(0.0, 2.0, 0.0),
+        /* distance_to_node= */ 0.1
+      ),
+      None
+    );
+  }
+
+  #[test]
+  fn sample_point_in_nodes() {
+    let mesh = NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(2.0, 0.0, 0.0),
+        Vec3::new(4.0, 0.0, 1.0),
+        Vec3::new(4.0, 0.0, 2.0),
+        Vec3::new(2.0, 0.0, 3.0),
+        Vec3::new(1.0, 0.0, 3.0),
+        Vec3::new(0.0, 0.0, 2.0),
+        Vec3::new(0.0, 0.0, 1.0),
+        Vec3::new(1.0, 0.0, 5.0),
+        Vec3::new(2.0, 0.0, 5.0),
+        Vec3::new(2.0, 0.0, 4.0),
+        Vec3::new(3.0, 1.0, 5.0),
+        Vec3::new(3.0, 1.0, 4.0),
+        Vec3::new(3.0, -2.0, 4.0),
+        Vec3::new(3.0, -2.0, 3.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 2, 3, 4, 5, 6, 7],
+        vec![5, 4, 10, 9, 8],
+        vec![9, 10, 12, 11],
+        vec![10, 4, 14, 13],
+      ],
+    }
+    .validate()
+    .expect("Mesh is valid.");
+
+    // Flat nodes
+
+    assert_eq!(
+      mesh.sample_point(
+        /* point= */ Vec3::new(1.5, 0.95, 1.5),
+        /* distance_to_node= */ 1.0,
+      ),
+      Some((Vec3::new(1.5, 0.0, 1.5), MeshNodeRef { polygon_index: 0 }))
+    );
+
+    assert_eq!(
+      mesh.sample_point(
+        /* point= */ Vec3::new(1.5, -0.95, 4.0),
+        /* distance_to_node= */ 1.0,
+      ),
+      Some((Vec3::new(1.5, 0.0, 4.0), MeshNodeRef { polygon_index: 1 }))
+    );
+
+    assert_eq!(
+      mesh.sample_point(
+        /* point= */ Vec3::new(1.5, -0.95, 4.0),
+        /* distance_to_node= */ 1.0,
+      ),
+      Some((Vec3::new(1.5, 0.0, 4.0), MeshNodeRef { polygon_index: 1 }))
+    );
+
+    // Angled nodes
+
+    assert_eq!(
+      mesh.sample_point(
+        /* point= */ Vec3::new(2.5, -0.55, 3.5),
+        /* distance_to_node = */ 5.0
+      ),
+      Some((Vec3::new(2.5, -1.0, 3.5), MeshNodeRef { polygon_index: 3 }))
+    );
+    assert_eq!(
+      mesh
+        .sample_point(
+          /* point= */ Vec3::new(2.5, 0.1, 4.5),
+          /* distance_to_node = */ 5.0
+        )
+        .map(|(point, node)| ((point * 1000.0).round() / 1000.0, node)),
+      Some((Vec3::new(2.5, 0.5, 4.5), MeshNodeRef { polygon_index: 2 }))
+    );
+  }
+
+  #[test]
+  fn sample_point_near_node() {
+    let mesh = NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(2.0, 0.0, 0.0),
+        Vec3::new(4.0, 0.0, 1.0),
+        Vec3::new(4.0, 0.0, 2.0),
+        Vec3::new(2.0, 0.0, 3.0),
+        Vec3::new(1.0, 0.0, 3.0),
+        Vec3::new(0.0, 0.0, 2.0),
+        Vec3::new(0.0, 0.0, 1.0),
+        Vec3::new(1.0, 0.0, 5.0),
+        Vec3::new(2.0, 0.0, 5.0),
+        Vec3::new(2.0, 0.0, 4.0),
+        Vec3::new(3.0, 1.0, 5.0),
+        Vec3::new(3.0, 1.0, 4.0),
+        Vec3::new(3.0, -2.0, 4.0),
+        Vec3::new(3.0, -2.0, 3.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 2, 3, 4, 5, 6, 7],
+        vec![5, 4, 10, 9, 8],
+        vec![9, 10, 12, 11],
+        vec![10, 4, 14, 13],
+      ],
+    }
+    .validate()
+    .expect("Mesh is valid.");
+
+    // Flat nodes
+
+    assert_eq!(
+      mesh.sample_point(
+        /* point= */ Vec3::new(-0.5, 0.25, 1.5),
+        /* distance_to_node= */ 1.0,
+      ),
+      Some((Vec3::new(0.0, 0.0, 1.5), MeshNodeRef { polygon_index: 0 }))
+    );
+
+    assert_eq!(
+      mesh.sample_point(
+        /* point= */ Vec3::new(0.5, -0.25, 5.5),
+        /* distance_to_node= */ 1.0,
+      ),
+      Some((Vec3::new(1.0, 0.0, 5.0), MeshNodeRef { polygon_index: 1 }))
+    );
+
+    assert_eq!(
+      mesh.sample_point(
+        /* point= */ Vec3::new(4.5, -0.25, 1.5),
+        /* distance_to_node= */ 1.0,
+      ),
+      Some((Vec3::new(4.0, 0.0, 1.5), MeshNodeRef { polygon_index: 0 }))
+    );
+
+    // Angled nodes
+
+    assert_eq!(
+      mesh.sample_point(
+        /* point= */ Vec3::new(2.5, 0.5, 5.5),
+        /* distance_to_node = */ 5.0
+      ),
+      Some((Vec3::new(2.5, 0.5, 5.0), MeshNodeRef { polygon_index: 2 }))
     );
   }
 }

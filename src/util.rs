@@ -51,6 +51,21 @@ impl BoundingBox {
     }
   }
 
+  pub fn expand_by_size(&self, size: Vec3) -> BoundingBox {
+    let expanded_box = match self {
+      BoundingBox::Empty => BoundingBox::Empty,
+      &BoundingBox::Box { min, max } => {
+        BoundingBox::Box { min: min - size, max: max + size }
+      }
+    };
+
+    if !expanded_box.is_valid() {
+      return BoundingBox::Empty;
+    }
+
+    expanded_box
+  }
+
   pub fn contains_point(&self, point: Vec3) -> bool {
     match self {
       Self::Empty => false,
