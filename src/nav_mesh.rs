@@ -182,6 +182,11 @@ impl NavigationMesh {
             .fold(BoundingBox::Empty, |bounds, vertex| {
               bounds.expand_to_point(self.vertices[*vertex])
             }),
+          center: polygon_vertices
+            .iter()
+            .map(|i| self.vertices[*i])
+            .sum::<Vec3>()
+            / polygon_vertices.len() as f32,
           vertices: polygon_vertices,
         })
         .collect(),
@@ -222,6 +227,7 @@ pub(crate) struct ValidPolygon {
   pub(crate) vertices: Vec<usize>,
   // The bounding box of `vertices`.
   pub(crate) bounds: BoundingBox,
+  pub(crate) center: Vec3,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -497,6 +503,7 @@ mod tests {
           Vec3::new(0.0, 0.0, 0.0),
           Vec3::new(2.0, 1.0, 1.0),
         ),
+        center: Vec3::new(3.0, 1.0, 1.0) / 3.0,
       },
       ValidPolygon {
         vertices: source_mesh.polygons[1].clone(),
@@ -504,6 +511,7 @@ mod tests {
           Vec3::new(0.25, -0.25, 3.0),
           Vec3::new(0.75, 0.5, 4.0),
         ),
+        center: Vec3::new(1.5, 0.25, 11.0) / 3.0,
       },
     ];
 
@@ -974,6 +982,7 @@ mod tests {
     let polygon = ValidPolygon {
       bounds: BoundingBox::Empty,
       vertices: vec![1, 3, 9, 2, 7],
+      center: Vec3::ZERO,
     };
 
     assert_eq!(polygon.get_edge_indices(0), (1, 3));
