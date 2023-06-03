@@ -2,6 +2,7 @@ use glam::{Vec3, Vec3Swizzles};
 
 use crate::{nav_mesh::MeshNodeRef, Archipelago};
 
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Path {
   pub(crate) corridor: Vec<MeshNodeRef>,
   pub(crate) portal_edge_index: Vec<usize>,
