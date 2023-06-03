@@ -13,15 +13,22 @@ pub use agent::{Agent, AgentId};
 pub use util::BoundingBox;
 
 pub struct Archipelago {
-  nav_mesh: ValidNavigationMesh,
+  nav_data: NavigationData,
   agents: HashMap<AgentId, Agent>,
+}
+
+struct NavigationData {
+  nav_mesh: ValidNavigationMesh,
 }
 
 impl Archipelago {
   pub fn create_from_navigation_mesh(
     navigation_mesh: ValidNavigationMesh,
   ) -> Self {
-    Self { nav_mesh: navigation_mesh, agents: HashMap::new() }
+    Self {
+      nav_data: NavigationData { nav_mesh: navigation_mesh },
+      agents: HashMap::new(),
+    }
   }
 
   pub fn add_agent(&mut self, agent: Agent) -> AgentId {

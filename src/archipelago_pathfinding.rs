@@ -2,11 +2,11 @@ use crate::{
   nav_mesh::MeshNodeRef,
   path::Path,
   pathfinding::{self, AStarProblem, PathStats},
-  Archipelago,
+  NavigationData,
 };
 
 struct ArchipelagoPathProblem<'a> {
-  archipelago: &'a Archipelago,
+  nav_data: &'a NavigationData,
   start_node: MeshNodeRef,
   end_node: MeshNodeRef,
 }
@@ -24,19 +24,18 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
     &self,
     state: &Self::StateType,
   ) -> Vec<(f32, Self::ActionType, Self::StateType)> {
-    let polygon = &self.archipelago.nav_mesh.polygons[state.polygon_index];
+    let polygon = &self.nav_data.nav_mesh.polygons[state.polygon_index];
     let connectivity =
-      &self.archipelago.nav_mesh.connectivity[state.polygon_index];
+      &self.nav_data.nav_mesh.connectivity[state.polygon_index];
 
     connectivity
       .iter()
       .enumerate()
       .map(|(conn_index, conn)| {
-        let next_polygon =
-          &self.archipelago.nav_mesh.polygons[conn.polygon_index];
+        let next_polygon = &self.nav_data.nav_mesh.polygons[conn.polygon_index];
         let edge = polygon.get_edge_indices(conn.edge_index);
-        let edge_point = (self.archipelago.nav_mesh.vertices[edge.0]
-          + self.archipelago.nav_mesh.vertices[edge.1])
+        let edge_point = (self.nav_data.nav_mesh.vertices[edge.0]
+          + self.nav_data.nav_mesh.vertices[edge.1])
           / 2.0;
         let cost = polygon.center.distance(edge_point)
           + next_polygon.center.distance(edge_point);
@@ -47,8 +46,8 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
   }
 
   fn heuristic(&self, state: &Self::StateType) -> f32 {
-    self.archipelago.nav_mesh.polygons[state.polygon_index].center.distance(
-      self.archipelago.nav_mesh.polygons[self.end_node.polygon_index].center,
+    self.nav_data.nav_mesh.polygons[state.polygon_index].center.distance(
+      self.nav_data.nav_mesh.polygons[self.end_node.polygon_index].center,
     )
   }
 
@@ -63,12 +62,12 @@ pub(crate) struct PathResult {
 }
 
 pub(crate) fn find_path(
-  archipelago: &Archipelago,
+  nav_data: &NavigationData,
   start_node: MeshNodeRef,
   end_node: MeshNodeRef,
 ) -> Result<PathResult, PathStats> {
   let path_problem = ArchipelagoPathProblem {
-    archipelago,
+    nav_data,
     start_node: start_node.clone(),
     end_node,
   };
@@ -83,7 +82,7 @@ pub(crate) fn find_path(
         corridor.push(start_node);
 
         for conn_index in path_result.path {
-          let connectivity = &archipelago.nav_mesh.connectivity
+          let connectivity = &nav_data.nav_mesh.connectivity
             [corridor.last().unwrap().polygon_index][conn_index];
           portal_edge_index.push(connectivity.edge_index);
           corridor
@@ -140,9 +139,10 @@ mod tests {
     .expect("Mesh is valid.");
 
     let archipelago = Archipelago::create_from_navigation_mesh(mesh);
+    let nav_data = &archipelago.nav_data;
 
     let path_result = find_path(
-      &archipelago,
+      nav_data,
       MeshNodeRef { polygon_index: 0 },
       MeshNodeRef { polygon_index: 2 },
     )
@@ -161,7 +161,7 @@ mod tests {
     );
 
     let path_result = find_path(
-      &archipelago,
+      nav_data,
       MeshNodeRef { polygon_index: 2 },
       MeshNodeRef { polygon_index: 0 },
     )
@@ -180,7 +180,7 @@ mod tests {
     );
 
     let path_result = find_path(
-      &archipelago,
+      nav_data,
       MeshNodeRef { polygon_index: 3 },
       MeshNodeRef { polygon_index: 0 },
     )

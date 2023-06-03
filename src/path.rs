@@ -1,6 +1,6 @@
 use glam::{Vec3, Vec3Swizzles};
 
-use crate::{nav_mesh::MeshNodeRef, Archipelago};
+use crate::{nav_mesh::MeshNodeRef, NavigationData};
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Path {
@@ -12,23 +12,23 @@ impl Path {
   fn get_portal_endpoints(
     &self,
     portal_index: usize,
-    archipelago: &Archipelago,
+    nav_data: &NavigationData,
   ) -> (Vec3, Vec3) {
     let node = self.corridor[portal_index].polygon_index;
     let edge = self.portal_edge_index[portal_index];
 
     let (left_vertex, right_vertex) =
-      archipelago.nav_mesh.polygons[node].get_edge_indices(edge);
+      nav_data.nav_mesh.polygons[node].get_edge_indices(edge);
 
     (
-      archipelago.nav_mesh.vertices[left_vertex],
-      archipelago.nav_mesh.vertices[right_vertex],
+      nav_data.nav_mesh.vertices[left_vertex],
+      nav_data.nav_mesh.vertices[right_vertex],
     )
   }
 
   pub(crate) fn find_next_point_in_straight_path(
     &self,
-    archipelago: &Archipelago,
+    nav_data: &NavigationData,
     start_index: usize,
     start_point: Vec3,
     end_index: usize,
@@ -38,7 +38,7 @@ impl Path {
     let (mut left_index, mut right_index) = (start_index, start_index);
 
     let (mut current_left, mut current_right) =
-      self.get_portal_endpoints(start_index, archipelago);
+      self.get_portal_endpoints(start_index, nav_data);
 
     fn triangle_area_2(point_0: Vec3, point_1: Vec3, point_2: Vec3) -> f32 {
       return (point_1.xz() - point_0.xz())
@@ -49,7 +49,7 @@ impl Path {
       let (portal_left, portal_right) = if portal_index == end_index {
         (end_point, end_point)
       } else {
-        self.get_portal_endpoints(portal_index, archipelago)
+        self.get_portal_endpoints(portal_index, nav_data)
       };
 
       if triangle_area_2(apex, current_right, portal_right) <= 0.0 {
@@ -118,6 +118,7 @@ mod tests {
     .expect("Mesh is valid.");
 
     let archipelago = Archipelago::create_from_navigation_mesh(mesh);
+    let nav_data = &archipelago.nav_data;
 
     let path = Path {
       corridor: vec![
@@ -134,7 +135,7 @@ mod tests {
     let expected_result = (0, Vec3::new(2.0, 0.0, 3.0));
     assert_eq!(
       path.find_next_point_in_straight_path(
-        &archipelago,
+        nav_data,
         current_index,
         current_point,
         end_index,
@@ -147,7 +148,7 @@ mod tests {
     let expected_result = (1, Vec3::new(2.0, 0.0, 4.0));
     assert_eq!(
       path.find_next_point_in_straight_path(
-        &archipelago,
+        nav_data,
         current_index,
         current_point,
         end_index,
@@ -160,7 +161,7 @@ mod tests {
     let expected_result = (end_index, end_point);
     assert_eq!(
       path.find_next_point_in_straight_path(
-        &archipelago,
+        nav_data,
         current_index,
         current_point,
         end_index,
@@ -226,6 +227,7 @@ mod tests {
     .expect("Mesh is valid.");
 
     let archipelago = Archipelago::create_from_navigation_mesh(mesh);
+    let nav_data = &archipelago.nav_data;
 
     let path = Path {
       corridor: vec![
@@ -261,7 +263,7 @@ mod tests {
     for expected_result in expected_results {
       assert_eq!(
         path.find_next_point_in_straight_path(
-          &archipelago,
+          nav_data,
           current_index,
           current_point,
           end_index,
