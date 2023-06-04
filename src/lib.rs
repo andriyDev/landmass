@@ -42,6 +42,13 @@ impl Archipelago {
     agent_id
   }
 
+  pub fn remove_agent(&mut self, agent_id: AgentId) {
+    self
+      .agents
+      .remove(&agent_id)
+      .expect("Agent should be present in the archipelago");
+  }
+
   pub fn get_agent(&self, agent_id: AgentId) -> &Agent {
     self.agents.get(&agent_id).unwrap()
   }
