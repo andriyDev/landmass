@@ -5,12 +5,13 @@ use crate::path::Path;
 pub type AgentId = u32;
 
 pub struct Agent {
-  position: Vec3,
-  velocity: Vec3,
-  radius: f32,
-  max_velocity: f32,
-  current_target: Option<Vec3>,
-  current_path: Option<Path>,
+  pub(crate) position: Vec3,
+  pub(crate) velocity: Vec3,
+  pub(crate) radius: f32,
+  pub(crate) max_velocity: f32,
+  pub(crate) current_target: Option<Vec3>,
+  pub(crate) current_path: Option<Path>,
+  pub(crate) current_desired_move: Vec3,
 }
 
 impl Agent {
@@ -27,6 +28,7 @@ impl Agent {
       max_velocity,
       current_target: None,
       current_path: None,
+      current_desired_move: Vec3::ZERO,
     }
   }
 
