@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 bevy = "0.10.1"
+landmass = "0.1.0"
