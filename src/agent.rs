@@ -40,6 +40,10 @@ impl Agent {
     self.velocity
   }
 
+  pub fn get_desired_velocity(&self) -> Vec3 {
+    self.current_desired_move
+  }
+
   pub fn set_position(&mut self, position: Vec3) {
     self.position = position;
   }
