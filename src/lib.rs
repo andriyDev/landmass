@@ -1,13 +1,32 @@
 use std::collections::HashMap;
 
-use bevy::prelude::{Component, Entity, Plugin, Query};
+use bevy::prelude::{
+  Component, Entity, IntoSystemConfig, IntoSystemSetConfig, Plugin, Query,
+  SystemSet,
+};
 use landmass::AgentId;
 
 pub struct LandmassPlugin;
 
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub enum LandmassSystemSet {
+  SyncExistence,
+  SyncValues,
+  Update,
+  Output,
+}
+
 impl Plugin for LandmassPlugin {
   fn build(&self, app: &mut bevy::prelude::App) {
-    app.add_system(update_archipelagos).add_system(add_agents_to_archipelagos);
+    app.configure_sets((
+      LandmassSystemSet::SyncExistence.before(LandmassSystemSet::SyncValues),
+      LandmassSystemSet::SyncValues.before(LandmassSystemSet::Update),
+      LandmassSystemSet::Update.before(LandmassSystemSet::Output),
+    ));
+    app.add_system(
+      add_agents_to_archipelagos.in_set(LandmassSystemSet::SyncExistence),
+    );
+    app.add_system(update_archipelagos.in_set(LandmassSystemSet::Update));
   }
 }
 
