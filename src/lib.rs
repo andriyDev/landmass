@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use bevy::prelude::{
-  Component, Entity, GlobalTransform, IntoSystemConfig, IntoSystemSetConfig,
-  Plugin, Query, SystemSet, Vec3, With,
+  Bundle, Component, Entity, GlobalTransform, IntoSystemConfig,
+  IntoSystemSetConfig, Plugin, Query, SystemSet, Vec3, With,
 };
 use landmass::AgentId;
 use util::{bevy_vec3_to_glam_vec3, glam_vec3_to_bevy_vec3};
@@ -10,6 +10,17 @@ use util::{bevy_vec3_to_glam_vec3, glam_vec3_to_bevy_vec3};
 mod util;
 
 pub struct LandmassPlugin;
+
+// A bundle to create agents. This omits the GlobalTransform component, since
+// this is commonly added in other bundles (which is redundant and can override
+// previous bundles).
+#[derive(Bundle)]
+pub struct AgentBundle {
+  pub agent: Agent,
+  pub archipelago_ref: ArchipelagoRef,
+  pub velocity: AgentVelocity,
+  pub desired_velocity: AgentDesiredVelocity,
+}
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 pub enum LandmassSystemSet {
@@ -75,10 +86,10 @@ pub struct Agent {
 #[derive(Component)]
 pub struct ArchipelagoRef(pub Entity);
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct AgentVelocity(pub Vec3);
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct AgentDesiredVelocity(Vec3);
 
 impl AgentDesiredVelocity {
