@@ -58,6 +58,10 @@ impl Archipelago {
     self.agents.get_mut(&agent_id).unwrap()
   }
 
+  pub fn get_agent_ids(&self) -> impl ExactSizeIterator<Item = AgentId> + '_ {
+    self.agents.keys().copied()
+  }
+
   pub fn update(&mut self) {
     const NODE_DISTANCE: f32 = 0.1;
 
