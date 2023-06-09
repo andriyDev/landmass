@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 
 use bevy::prelude::{
-  Component, Entity, IntoSystemConfig, IntoSystemSetConfig, Plugin, Query,
-  SystemSet,
+  Component, Entity, GlobalTransform, IntoSystemConfig, IntoSystemSetConfig,
+  Plugin, Query, SystemSet, Vec3, With,
 };
 use landmass::AgentId;
+use util::bevy_vec3_to_glam_vec3;
+
+mod util;
 
 pub struct LandmassPlugin;
 
@@ -26,6 +29,9 @@ impl Plugin for LandmassPlugin {
     app.add_system(
       add_agents_to_archipelagos.in_set(LandmassSystemSet::SyncExistence),
     );
+    app.add_system(
+      sync_transform_and_velocity.in_set(LandmassSystemSet::SyncValues),
+    );
     app.add_system(update_archipelagos.in_set(LandmassSystemSet::Update));
   }
 }
@@ -42,6 +48,14 @@ impl Archipelago {
       landmass_archipelago.remove_agent(agent_id);
     }
     Self { archipelago: landmass_archipelago, agents: HashMap::new() }
+  }
+
+  fn get_agent(&self, entity: Entity) -> &landmass::Agent {
+    self.archipelago.get_agent(*self.agents.get(&entity).unwrap())
+  }
+
+  fn get_agent_mut(&mut self, entity: Entity) -> &mut landmass::Agent {
+    self.archipelago.get_agent_mut(*self.agents.get(&entity).unwrap())
   }
 }
 
@@ -60,9 +74,12 @@ pub struct Agent {
 #[derive(Component)]
 pub struct ArchipelagoRef(pub Entity);
 
+#[derive(Component)]
+pub struct AgentVelocity(pub Vec3);
+
 fn add_agents_to_archipelagos(
   mut archipelago_query: Query<(Entity, &mut Archipelago)>,
-  agent_query: Query<(Entity, &Agent, &ArchipelagoRef)>,
+  agent_query: Query<(Entity, &Agent, &ArchipelagoRef), With<GlobalTransform>>,
 ) {
   let mut archipelago_to_agents = HashMap::<_, HashMap<_, _>>::new();
   for (entity, agent, archipleago_ref) in agent_query.iter() {
@@ -99,6 +116,29 @@ fn add_agents_to_archipelagos(
           new_agent.max_velocity,
         ));
       archipelago.agents.insert(new_agent_entity, agent_id);
+    }
+  }
+}
+
+fn sync_transform_and_velocity(
+  agent_query: Query<
+    (Entity, &ArchipelagoRef, &GlobalTransform, Option<&AgentVelocity>),
+    With<Agent>,
+  >,
+  mut archipelago_query: Query<&mut Archipelago>,
+) {
+  for (agent_entity, &ArchipelagoRef(arch_entity), transform, velocity) in
+    agent_query.iter()
+  {
+    let mut archipelago = match archipelago_query.get_mut(arch_entity) {
+      Err(_) => continue,
+      Ok(arch) => arch,
+    };
+
+    let agent = archipelago.get_agent_mut(agent_entity);
+    agent.set_position(bevy_vec3_to_glam_vec3(transform.translation()));
+    if let Some(AgentVelocity(velocity)) = velocity {
+      agent.set_velocity(bevy_vec3_to_glam_vec3(*velocity));
     }
   }
 }
