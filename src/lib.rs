@@ -5,7 +5,7 @@ use bevy::prelude::{
   Plugin, Query, SystemSet, Vec3, With,
 };
 use landmass::AgentId;
-use util::bevy_vec3_to_glam_vec3;
+use util::{bevy_vec3_to_glam_vec3, glam_vec3_to_bevy_vec3};
 
 mod util;
 
@@ -33,6 +33,7 @@ impl Plugin for LandmassPlugin {
       sync_transform_and_velocity.in_set(LandmassSystemSet::SyncValues),
     );
     app.add_system(update_archipelagos.in_set(LandmassSystemSet::Update));
+    app.add_system(sync_desired_velocity.in_set(LandmassSystemSet::Output));
   }
 }
 
@@ -76,6 +77,15 @@ pub struct ArchipelagoRef(pub Entity);
 
 #[derive(Component)]
 pub struct AgentVelocity(pub Vec3);
+
+#[derive(Component)]
+pub struct AgentDesiredVelocity(Vec3);
+
+impl AgentDesiredVelocity {
+  pub fn velocity(&self) -> Vec3 {
+    self.0
+  }
+}
 
 fn add_agents_to_archipelagos(
   mut archipelago_query: Query<(Entity, &mut Archipelago)>,
@@ -140,5 +150,26 @@ fn sync_transform_and_velocity(
     if let Some(AgentVelocity(velocity)) = velocity {
       agent.set_velocity(bevy_vec3_to_glam_vec3(*velocity));
     }
+  }
+}
+
+fn sync_desired_velocity(
+  mut agent_query: Query<
+    (Entity, &ArchipelagoRef, &mut AgentDesiredVelocity),
+    With<Agent>,
+  >,
+  archipelago_query: Query<&Archipelago>,
+) {
+  for (agent_entity, &ArchipelagoRef(arch_entity), mut desired_velocity) in
+    agent_query.iter_mut()
+  {
+    let archipelago = match archipelago_query.get(arch_entity).ok() {
+      None => continue,
+      Some(arch) => arch,
+    };
+
+    desired_velocity.0 = glam_vec3_to_bevy_vec3(
+      archipelago.get_agent(agent_entity).get_desired_velocity(),
+    );
   }
 }
