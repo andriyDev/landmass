@@ -39,9 +39,7 @@ pub enum ValidationError {
 }
 
 impl NavigationMesh {
-  pub(crate) fn validate(
-    mut self,
-  ) -> Result<ValidNavigationMesh, ValidationError> {
+  pub fn validate(mut self) -> Result<ValidNavigationMesh, ValidationError> {
     if self.mesh_bounds.is_none() {
       if self.vertices.is_empty() {
         self.mesh_bounds = Some(BoundingBox::new_box(Vec3::ZERO, Vec3::ZERO));

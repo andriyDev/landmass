@@ -9,9 +9,10 @@ use glam::Vec3;
 use rand::Rng;
 use std::collections::HashMap;
 
-use nav_mesh::{MeshNodeRef, ValidNavigationMesh};
+use nav_mesh::MeshNodeRef;
 
 pub use agent::{Agent, AgentId};
+pub use nav_mesh::{NavigationMesh, ValidNavigationMesh};
 pub use util::BoundingBox;
 
 pub struct Archipelago {
