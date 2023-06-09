@@ -13,8 +13,17 @@ impl Plugin for LandmassPlugin {
 
 #[derive(Component)]
 pub struct Archipelago {
-  pub archipelago: landmass::Archipelago,
-  pub agents: HashMap<Entity, AgentId>,
+  archipelago: landmass::Archipelago,
+  agents: HashMap<Entity, AgentId>,
+}
+
+impl Archipelago {
+  pub fn new(mut landmass_archipelago: landmass::Archipelago) -> Self {
+    for agent_id in landmass_archipelago.get_agent_ids().collect::<Vec<_>>() {
+      landmass_archipelago.remove_agent(agent_id);
+    }
+    Self { archipelago: landmass_archipelago, agents: HashMap::new() }
+  }
 }
 
 fn update_archipelagos(mut archipelago_query: Query<&mut Archipelago>) {
