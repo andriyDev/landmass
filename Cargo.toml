@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 bevy = "0.10.1"
+glam = "0.24.0"
 landmass = "0.1.0"
