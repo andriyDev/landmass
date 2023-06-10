@@ -72,27 +72,23 @@ pub(crate) fn find_path(
     end_node,
   };
 
-  match pathfinding::find_path(&path_problem) {
-    Err(stats) => Err(stats),
-    Ok(path_result) => Ok(PathResult {
-      stats: path_result.stats,
-      path: {
-        let mut corridor = Vec::with_capacity(path_result.path.len() + 1);
-        let mut portal_edge_index = Vec::with_capacity(path_result.path.len());
-        corridor.push(start_node);
+  let path_result = pathfinding::find_path(&path_problem)?;
 
-        for conn_index in path_result.path {
-          let connectivity = &nav_data.nav_mesh.connectivity
-            [corridor.last().unwrap().polygon_index][conn_index];
-          portal_edge_index.push(connectivity.edge_index);
-          corridor
-            .push(MeshNodeRef { polygon_index: connectivity.polygon_index });
-        }
+  let mut corridor = Vec::with_capacity(path_result.path.len() + 1);
+  let mut portal_edge_index = Vec::with_capacity(path_result.path.len());
+  corridor.push(start_node);
 
-        Path { corridor, portal_edge_index }
-      },
-    }),
+  for conn_index in path_result.path {
+    let connectivity = &nav_data.nav_mesh.connectivity
+      [corridor.last().unwrap().polygon_index][conn_index];
+    portal_edge_index.push(connectivity.edge_index);
+    corridor.push(MeshNodeRef { polygon_index: connectivity.polygon_index });
   }
+
+  Ok(PathResult {
+    stats: path_result.stats,
+    path: Path { corridor, portal_edge_index },
+  })
 }
 
 #[cfg(test)]
