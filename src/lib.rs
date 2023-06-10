@@ -9,6 +9,8 @@ use util::{bevy_vec3_to_glam_vec3, glam_vec3_to_bevy_vec3};
 
 mod util;
 
+pub mod nav_mesh;
+
 pub struct LandmassPlugin;
 
 // A bundle to create agents. This omits the GlobalTransform component, since
