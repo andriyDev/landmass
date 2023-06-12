@@ -13,6 +13,17 @@ pub mod nav_mesh;
 
 pub struct LandmassPlugin;
 
+pub mod prelude {
+  pub use crate::Agent;
+  pub use crate::AgentBundle;
+  pub use crate::AgentDesiredVelocity;
+  pub use crate::AgentVelocity;
+  pub use crate::Archipelago;
+  pub use crate::ArchipelagoRef;
+  pub use crate::LandmassPlugin;
+  pub use crate::LandmassSystemSet;
+}
+
 // A bundle to create agents. This omits the GlobalTransform component, since
 // this is commonly added in other bundles (which is redundant and can override
 // previous bundles).
