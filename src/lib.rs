@@ -17,6 +17,7 @@ pub mod prelude {
   pub use crate::Agent;
   pub use crate::AgentBundle;
   pub use crate::AgentDesiredVelocity;
+  pub use crate::AgentTarget;
   pub use crate::AgentVelocity;
   pub use crate::Archipelago;
   pub use crate::ArchipelagoRef;
@@ -32,6 +33,7 @@ pub struct AgentBundle {
   pub agent: Agent,
   pub archipelago_ref: ArchipelagoRef,
   pub velocity: AgentVelocity,
+  pub target: AgentTarget,
   pub desired_velocity: AgentDesiredVelocity,
 }
 
@@ -53,9 +55,8 @@ impl Plugin for LandmassPlugin {
     app.add_system(
       add_agents_to_archipelagos.in_set(LandmassSystemSet::SyncExistence),
     );
-    app.add_system(
-      sync_transform_and_velocity.in_set(LandmassSystemSet::SyncValues),
-    );
+    app
+      .add_system(sync_agent_input_state.in_set(LandmassSystemSet::SyncValues));
     app.add_system(update_archipelagos.in_set(LandmassSystemSet::Update));
     app.add_system(sync_desired_velocity.in_set(LandmassSystemSet::Output));
   }
@@ -101,6 +102,9 @@ pub struct ArchipelagoRef(pub Entity);
 
 #[derive(Component, Default)]
 pub struct AgentVelocity(pub Vec3);
+
+#[derive(Component, Default)]
+pub struct AgentTarget(pub Option<Vec3>);
 
 #[derive(Component, Default)]
 pub struct AgentDesiredVelocity(Vec3);
@@ -154,15 +158,26 @@ fn add_agents_to_archipelagos(
   }
 }
 
-fn sync_transform_and_velocity(
+fn sync_agent_input_state(
   agent_query: Query<
-    (Entity, &ArchipelagoRef, &GlobalTransform, Option<&AgentVelocity>),
+    (
+      Entity,
+      &ArchipelagoRef,
+      &GlobalTransform,
+      Option<&AgentVelocity>,
+      Option<&AgentTarget>,
+    ),
     With<Agent>,
   >,
   mut archipelago_query: Query<&mut Archipelago>,
 ) {
-  for (agent_entity, &ArchipelagoRef(arch_entity), transform, velocity) in
-    agent_query.iter()
+  for (
+    agent_entity,
+    &ArchipelagoRef(arch_entity),
+    transform,
+    velocity,
+    target,
+  ) in agent_query.iter()
   {
     let mut archipelago = match archipelago_query.get_mut(arch_entity) {
       Err(_) => continue,
@@ -173,6 +188,9 @@ fn sync_transform_and_velocity(
     agent.set_position(bevy_vec3_to_glam_vec3(transform.translation()));
     if let Some(AgentVelocity(velocity)) = velocity {
       agent.set_velocity(bevy_vec3_to_glam_vec3(*velocity));
+    }
+    if let Some(AgentTarget(target)) = target {
+      agent.set_target(target.map(|v| bevy_vec3_to_glam_vec3(v)));
     }
   }
 }
