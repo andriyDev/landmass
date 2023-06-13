@@ -37,8 +37,11 @@ impl Path {
     let apex = start_point;
     let (mut left_index, mut right_index) = (start_index, start_index);
 
-    let (mut current_left, mut current_right) =
-      self.get_portal_endpoints(start_index, nav_data);
+    let (mut current_left, mut current_right) = if start_index == end_index {
+      (end_point, end_point)
+    } else {
+      self.get_portal_endpoints(start_index, nav_data)
+    };
 
     fn triangle_area_2(point_0: Vec3, point_1: Vec3, point_2: Vec3) -> f32 {
       return (point_1.xz() - point_0.xz())
@@ -277,5 +280,45 @@ mod tests {
 
       (current_index, current_point) = expected_result;
     }
+  }
+
+  #[test]
+  fn starts_at_end_index_goes_to_end_point() {
+    let mesh = NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 1.0),
+        Vec3::new(0.0, 0.0, 1.0),
+        Vec3::new(1.0, 0.0, 2.0),
+        Vec3::new(0.0, 0.0, 2.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
+    }
+    .validate()
+    .expect("Mesh is valid.");
+
+    let archipelago = Archipelago::create_from_navigation_mesh(mesh);
+    let nav_data = &archipelago.nav_data;
+
+    let path = Path {
+      corridor: vec![
+        MeshNodeRef { polygon_index: 0 },
+        MeshNodeRef { polygon_index: 1 },
+      ],
+      portal_edge_index: vec![2],
+    };
+
+    assert_eq!(
+      path.find_next_point_in_straight_path(
+        nav_data,
+        /* start_index= */ 1,
+        /* start_point= */ Vec3::new(0.25, 0.0, 1.1),
+        /* end_index= */ 1,
+        /* end_point= */ Vec3::new(0.75, 0.0, 1.9),
+      ),
+      (1, Vec3::new(0.75, 0.0, 1.9))
+    );
   }
 }
