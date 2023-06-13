@@ -134,7 +134,7 @@ impl Archipelago {
           };
 
           agent_id_to_follow_path_indices
-            .insert(*agent_id, (0, new_path.corridor.len()));
+            .insert(*agent_id, (0, new_path.corridor.len() - 1));
           agent.current_path = Some(new_path);
         }
       }
