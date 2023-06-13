@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 
-use bevy::prelude::{
-  Bundle, Component, Entity, GlobalTransform, IntoSystemConfig,
-  IntoSystemSetConfig, Plugin, Query, SystemSet, Vec3, With,
+use bevy::{
+  prelude::{
+    Bundle, Component, Entity, GlobalTransform, IntoSystemConfig,
+    IntoSystemSetConfig, Plugin, Query, Res, SystemSet, Vec3, With,
+  },
+  time::Time,
 };
 use landmass::AgentId;
 use util::{bevy_vec3_to_glam_vec3, glam_vec3_to_bevy_vec3};
@@ -85,9 +88,12 @@ impl Archipelago {
   }
 }
 
-fn update_archipelagos(mut archipelago_query: Query<&mut Archipelago>) {
+fn update_archipelagos(
+  time: Res<Time>,
+  mut archipelago_query: Query<&mut Archipelago>,
+) {
   for mut archipelago in archipelago_query.iter_mut() {
-    archipelago.archipelago.update();
+    archipelago.archipelago.update(time.delta_seconds());
   }
 }
 
