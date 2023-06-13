@@ -42,14 +42,12 @@ impl NavigationMesh {
   pub fn validate(mut self) -> Result<ValidNavigationMesh, ValidationError> {
     if self.mesh_bounds.is_none() {
       if self.vertices.is_empty() {
-        self.mesh_bounds = Some(BoundingBox::new_box(Vec3::ZERO, Vec3::ZERO));
+        self.mesh_bounds = Some(BoundingBox::Empty);
       }
-      let first_vertex = *self.vertices.first().unwrap();
       self.mesh_bounds =
-        Some(self.vertices.iter().skip(1).fold(
-          BoundingBox::new_box(Vec3::ZERO, Vec3::ZERO),
-          |acc, &vertex| acc.expand_to_point(vertex),
-        ));
+        Some(self.vertices.iter().fold(BoundingBox::Empty, |acc, &vertex| {
+          acc.expand_to_point(vertex)
+        }));
     }
 
     enum ConnectivityState {
@@ -477,6 +475,29 @@ mod tests {
     let valid_mesh =
       source_mesh.clone().validate().expect("Validation succeeds.");
     assert_eq!(valid_mesh.mesh_bounds, fake_mesh_bounds);
+  }
+
+  #[test]
+  fn correctly_computes_bounds_for_small_number_of_points() {
+    let valid_mesh = NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(-1.0, -1.0, -1.0),
+        Vec3::new(1.0, 1.0, 0.0),
+        Vec3::new(2.0, 0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2]],
+    }
+    .validate()
+    .expect("Validation succeeds");
+
+    assert_eq!(
+      valid_mesh.mesh_bounds,
+      BoundingBox::new_box(
+        Vec3::new(-1.0, -1.0, -1.0),
+        Vec3::new(2.0, 1.0, 1.0)
+      )
+    );
   }
 
   #[test]
