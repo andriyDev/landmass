@@ -72,7 +72,7 @@ impl Archipelago {
       let agent_node_and_point = match self
         .nav_data
         .nav_mesh
-        .sample_point(agent.get_position(), NODE_DISTANCE)
+        .sample_point(agent.position, NODE_DISTANCE)
       {
         None => continue,
         Some(node_and_point) => node_and_point,
