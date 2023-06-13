@@ -11,7 +11,7 @@ use std::collections::HashMap;
 
 use nav_mesh::MeshNodeRef;
 
-pub use agent::{Agent, AgentId};
+pub use agent::{Agent, AgentId, TargetReachedCondition};
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh};
 pub use util::BoundingBox;
 
@@ -163,18 +163,26 @@ impl Archipelago {
           "Any agent with a path must have its follow path indices filled out.",
         );
 
-      let waypoint = path
-        .find_next_point_in_straight_path(
-          &self.nav_data,
-          agent_node_index_in_corridor,
-          agent_point,
-          target_node_index_in_corridor,
-          target_point,
-        )
-        .1;
+      let next_waypoint = path.find_next_point_in_straight_path(
+        &self.nav_data,
+        agent_node_index_in_corridor,
+        agent_point,
+        target_node_index_in_corridor,
+        target_point,
+      );
 
-      agent.current_desired_move =
-        (waypoint - agent.position).normalize_or_zero() * agent.max_velocity;
+      if agent.has_reached_target(
+        path,
+        &self.nav_data,
+        next_waypoint,
+        (target_node_index_in_corridor, target_point),
+      ) {
+        agent.current_desired_move = Vec3::ZERO;
+      } else {
+        agent.current_desired_move = (next_waypoint.1 - agent.position)
+          .normalize_or_zero()
+          * agent.max_velocity;
+      }
     }
   }
 }
