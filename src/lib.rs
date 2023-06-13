@@ -104,7 +104,28 @@ pub struct ArchipelagoRef(pub Entity);
 pub struct AgentVelocity(pub Vec3);
 
 #[derive(Component, Default)]
-pub struct AgentTarget(pub Option<Vec3>);
+pub enum AgentTarget {
+  #[default]
+  None,
+  Point(Vec3),
+  Entity(Entity),
+}
+
+impl AgentTarget {
+  fn to_point(
+    &self,
+    global_transform_query: &Query<&GlobalTransform>,
+  ) -> Option<Vec3> {
+    match self {
+      &Self::Point(point) => Some(point),
+      &Self::Entity(entity) => global_transform_query
+        .get(entity)
+        .ok()
+        .map(|transform| transform.translation()),
+      _ => None,
+    }
+  }
+}
 
 #[derive(Component, Default)]
 pub struct AgentDesiredVelocity(Vec3);
@@ -169,6 +190,7 @@ fn sync_agent_input_state(
     ),
     With<Agent>,
   >,
+  global_transform_query: Query<&GlobalTransform>,
   mut archipelago_query: Query<&mut Archipelago>,
 ) {
   for (
@@ -189,9 +211,11 @@ fn sync_agent_input_state(
     if let Some(AgentVelocity(velocity)) = velocity {
       agent.set_velocity(bevy_vec3_to_glam_vec3(*velocity));
     }
-    if let Some(AgentTarget(target)) = target {
-      agent.set_target(target.map(|v| bevy_vec3_to_glam_vec3(v)));
-    }
+    agent.set_target(
+      target
+        .and_then(|target| target.to_point(&global_transform_query))
+        .map(bevy_vec3_to_glam_vec3),
+    );
   }
 }
 
