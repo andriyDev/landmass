@@ -207,15 +207,13 @@ fn sync_agent_input_state(
     };
 
     let agent = archipelago.get_agent_mut(agent_entity);
-    agent.set_position(bevy_vec3_to_glam_vec3(transform.translation()));
+    agent.position = bevy_vec3_to_glam_vec3(transform.translation());
     if let Some(AgentVelocity(velocity)) = velocity {
-      agent.set_velocity(bevy_vec3_to_glam_vec3(*velocity));
+      agent.velocity = bevy_vec3_to_glam_vec3(*velocity);
     }
-    agent.set_target(
-      target
-        .and_then(|target| target.to_point(&global_transform_query))
-        .map(bevy_vec3_to_glam_vec3),
-    );
+    agent.current_target = target
+      .and_then(|target| target.to_point(&global_transform_query))
+      .map(bevy_vec3_to_glam_vec3);
   }
 }
 
