@@ -6,6 +6,7 @@ mod pathfinding;
 mod util;
 
 use glam::Vec3;
+use kdtree::{distance::squared_euclidean, KdTree};
 use rand::Rng;
 use std::collections::HashMap;
 
@@ -16,6 +17,7 @@ pub use nav_mesh::{NavigationMesh, ValidNavigationMesh};
 pub use util::BoundingBox;
 
 pub struct Archipelago {
+  pub agent_options: AgentOptions,
   nav_data: NavigationData,
   agents: HashMap<AgentId, Agent>,
 }
@@ -24,12 +26,34 @@ struct NavigationData {
   nav_mesh: ValidNavigationMesh,
 }
 
+// Options that apply to all agents
+pub struct AgentOptions {
+  // The distance that an agent will consider avoiding another agent.
+  pub neighbourhood: f32,
+  // The time into the future that collisions with other agents should be
+  // avoided.
+  pub avoidance_time_horizon: f32,
+  // The time into the future that collisions with obstacles should be avoided.
+  pub obstacle_avoidance_time_horizon: f32,
+}
+
+impl Default for AgentOptions {
+  fn default() -> Self {
+    Self {
+      neighbourhood: 5.0,
+      avoidance_time_horizon: 1.0,
+      obstacle_avoidance_time_horizon: 0.5,
+    }
+  }
+}
+
 impl Archipelago {
   pub fn create_from_navigation_mesh(
     navigation_mesh: ValidNavigationMesh,
   ) -> Self {
     Self {
       nav_data: NavigationData { nav_mesh: navigation_mesh },
+      agent_options: AgentOptions::default(),
       agents: HashMap::new(),
     }
   }
@@ -62,11 +86,15 @@ impl Archipelago {
     self.agents.keys().copied()
   }
 
-  pub fn update(&mut self) {
+  pub fn update(&mut self, delta_time: f32) {
     const NODE_DISTANCE: f32 = 0.1;
 
     let mut agent_id_to_agent_node = HashMap::new();
     let mut agent_id_to_target_node = HashMap::new();
+
+    let mut agent_id_to_dodgy_agent = HashMap::new();
+    let mut agent_kdtree = KdTree::new(/* dimensions= */ 3);
+    let mut agent_max_radius = 0.0f32;
 
     for (agent_id, agent) in self.agents.iter() {
       let agent_node_and_point = match self
@@ -78,9 +106,34 @@ impl Archipelago {
         Some(node_and_point) => node_and_point,
       };
       let inserted = agent_id_to_agent_node
-        .insert(*agent_id, agent_node_and_point)
+        .insert(*agent_id, agent_node_and_point.clone())
         .is_none();
       debug_assert!(inserted);
+
+      agent_id_to_dodgy_agent.insert(
+        *agent_id,
+        dodgy::Agent {
+          position: glam::Vec2::new(
+            agent_node_and_point.0.x,
+            agent_node_and_point.0.y,
+          ),
+          velocity: glam::Vec2::new(agent.velocity.x, agent.velocity.y),
+          radius: agent.radius,
+          max_velocity: agent.max_velocity,
+          avoidance_responsibility: 1.0,
+        },
+      );
+      agent_kdtree
+        .add(
+          [
+            agent_node_and_point.0.x,
+            agent_node_and_point.0.y,
+            agent_node_and_point.0.z,
+          ],
+          *agent_id,
+        )
+        .expect("Agent point is finite");
+      agent_max_radius = agent_max_radius.max(agent.radius);
 
       if let Some(target) = agent.current_target {
         let target_node_and_point =
@@ -183,6 +236,53 @@ impl Archipelago {
           .normalize_or_zero()
           * agent.max_velocity;
       }
+    }
+
+    for (agent_id, agent) in self.agents.iter_mut() {
+      let agent_point = match agent_id_to_agent_node.get(agent_id) {
+        None => continue,
+        Some(agent_node) => agent_node.0,
+      };
+      let nearby_agents = agent_kdtree
+        .within(
+          &[agent_point.x, agent_point.y, agent_point.z],
+          agent_max_radius + self.agent_options.neighbourhood,
+          &squared_euclidean,
+        )
+        .unwrap();
+
+      let nearby_agents = nearby_agents
+        .iter()
+        .filter_map(|&(distance, neighbour_id)| {
+          if neighbour_id == agent_id {
+            return None;
+          }
+
+          let dodgy_agent = agent_id_to_dodgy_agent.get(neighbour_id).unwrap();
+
+          if distance < self.agent_options.neighbourhood + dodgy_agent.radius {
+            Some(dodgy_agent)
+          } else {
+            None
+          }
+        })
+        .collect::<Vec<_>>();
+
+      let dodgy_agent = agent_id_to_dodgy_agent.get(agent_id).unwrap();
+      let desired_move = dodgy_agent.compute_avoiding_velocity(
+        &nearby_agents,
+        &[],
+        glam::Vec2::new(
+          agent.current_desired_move.x,
+          agent.current_desired_move.z,
+        ),
+        self.agent_options.avoidance_time_horizon,
+        self.agent_options.obstacle_avoidance_time_horizon,
+        delta_time,
+      );
+
+      agent.current_desired_move =
+        glam::Vec3::new(desired_move.x, 0.0, desired_move.y);
     }
   }
 }
