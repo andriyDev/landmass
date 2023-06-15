@@ -214,6 +214,7 @@ impl Archipelago {
     apply_avoidance_to_agents(
       &mut self.agents,
       &agent_id_to_agent_node,
+      &self.nav_data,
       &self.agent_options,
       delta_time,
     );
