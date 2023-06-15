@@ -24,8 +24,8 @@ pub(crate) fn apply_avoidance_to_agents(
     agent_id_to_dodgy_agent.insert(
       *agent_id,
       dodgy::Agent {
-        position: glam::Vec2::new(agent_point.x, agent_point.y),
-        velocity: glam::Vec2::new(agent.velocity.x, agent.velocity.y),
+        position: glam::Vec2::new(agent_point.x, agent_point.z),
+        velocity: glam::Vec2::new(agent.velocity.x, agent.velocity.z),
         radius: agent.radius,
         max_velocity: agent.max_velocity,
         avoidance_responsibility: 1.0,
