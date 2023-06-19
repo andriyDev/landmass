@@ -1,0 +1,15 @@
+coverage:
+  range: 90..100
+  round: down
+  precision: 1
+  status:
+    patch:
+      default:
+        target: 90%
+    project:
+      default:
+        threshold: 1%
+
+comment:
+  layout: "files"
+  require_changes: true
