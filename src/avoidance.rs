@@ -88,7 +88,7 @@ pub(crate) fn apply_avoidance_to_agents(
       ),
       delta_time,
       &dodgy::AvoidanceOptions {
-        obstacle_margin: 0.1,
+        obstacle_margin: agent_options.obstacle_avoidance_margin,
         time_horizon: agent_options.avoidance_time_horizon,
         obstacle_time_horizon: agent_options.obstacle_avoidance_time_horizon,
       },

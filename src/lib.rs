@@ -30,11 +30,15 @@ struct NavigationData {
 
 // Options that apply to all agents
 pub struct AgentOptions {
+  // The distance to use when sampling agent and target points.
+  pub node_sample_distance: f32,
   // The distance that an agent will consider avoiding another agent.
   pub neighbourhood: f32,
   // The time into the future that collisions with other agents should be
   // avoided.
   pub avoidance_time_horizon: f32,
+  // The distance to stay away from the border of the nav mesh.
+  pub obstacle_avoidance_margin: f32,
   // The time into the future that collisions with obstacles should be avoided.
   pub obstacle_avoidance_time_horizon: f32,
 }
@@ -42,7 +46,9 @@ pub struct AgentOptions {
 impl Default for AgentOptions {
   fn default() -> Self {
     Self {
+      node_sample_distance: 0.1,
       neighbourhood: 5.0,
+      obstacle_avoidance_margin: 0.1,
       avoidance_time_horizon: 1.0,
       obstacle_avoidance_time_horizon: 0.5,
     }
@@ -89,8 +95,6 @@ impl Archipelago {
   }
 
   pub fn update(&mut self, delta_time: f32) {
-    const NODE_DISTANCE: f32 = 0.1;
-
     let mut agent_id_to_agent_node = HashMap::new();
     let mut agent_id_to_target_node = HashMap::new();
 
@@ -98,7 +102,7 @@ impl Archipelago {
       let agent_node_and_point = match self
         .nav_data
         .nav_mesh
-        .sample_point(agent.position, NODE_DISTANCE)
+        .sample_point(agent.position, self.agent_options.node_sample_distance)
       {
         None => continue,
         Some(node_and_point) => node_and_point,
@@ -109,11 +113,14 @@ impl Archipelago {
       debug_assert!(inserted);
 
       if let Some(target) = agent.current_target {
-        let target_node_and_point =
-          match self.nav_data.nav_mesh.sample_point(target, NODE_DISTANCE) {
-            None => continue,
-            Some(node_and_point) => node_and_point,
-          };
+        let target_node_and_point = match self
+          .nav_data
+          .nav_mesh
+          .sample_point(target, self.agent_options.node_sample_distance)
+        {
+          None => continue,
+          Some(node_and_point) => node_and_point,
+        };
 
         let inserted = agent_id_to_target_node
           .insert(*agent_id, target_node_and_point)
