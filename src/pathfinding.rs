@@ -1,408 +1,197 @@
-use std::{
-  cmp::Reverse,
-  collections::{BinaryHeap, HashMap},
-  f32::INFINITY,
-  hash::Hash,
+use crate::{
+  astar::{self, AStarProblem, PathStats},
+  nav_mesh::MeshNodeRef,
+  path::Path,
+  NavigationData,
 };
 
-pub trait AStarProblem {
-  type ActionType;
-  type StateType;
+struct ArchipelagoPathProblem<'a> {
+  nav_data: &'a NavigationData,
+  start_node: MeshNodeRef,
+  end_node: MeshNodeRef,
+}
 
-  fn initial_state(&self) -> Self::StateType;
+impl AStarProblem for ArchipelagoPathProblem<'_> {
+  type ActionType = usize;
+
+  type StateType = MeshNodeRef;
+
+  fn initial_state(&self) -> Self::StateType {
+    self.start_node.clone()
+  }
 
   fn successors(
     &self,
     state: &Self::StateType,
-  ) -> Vec<(f32, Self::ActionType, Self::StateType)>;
+  ) -> Vec<(f32, Self::ActionType, Self::StateType)> {
+    let polygon = &self.nav_data.nav_mesh.polygons[state.polygon_index];
+    let connectivity =
+      &self.nav_data.nav_mesh.connectivity[state.polygon_index];
 
-  fn heuristic(&self, state: &Self::StateType) -> f32;
+    connectivity
+      .iter()
+      .enumerate()
+      .map(|(conn_index, conn)| {
+        let next_polygon = &self.nav_data.nav_mesh.polygons[conn.polygon_index];
+        let edge = polygon.get_edge_indices(conn.edge_index);
+        let edge_point = (self.nav_data.nav_mesh.vertices[edge.0]
+          + self.nav_data.nav_mesh.vertices[edge.1])
+          / 2.0;
+        let cost = polygon.center.distance(edge_point)
+          + next_polygon.center.distance(edge_point);
 
-  fn is_goal_state(&self, state: &Self::StateType) -> bool;
-}
+        (cost, conn_index, MeshNodeRef { polygon_index: conn.polygon_index })
+      })
+      .collect()
+  }
 
-struct Node<ProblemType: AStarProblem> {
-  cost: f32,
-  state: ProblemType::StateType,
-  previous_node: Option<(usize, ProblemType::ActionType)>,
-}
+  fn heuristic(&self, state: &Self::StateType) -> f32 {
+    self.nav_data.nav_mesh.polygons[state.polygon_index].center.distance(
+      self.nav_data.nav_mesh.polygons[self.end_node.polygon_index].center,
+    )
+  }
 
-struct NodeRef {
-  cost: f32,
-  estimate: f32,
-  index: usize,
-}
-
-impl PartialEq for NodeRef {
-  fn eq(&self, other: &Self) -> bool {
-    self.estimate == other.estimate
+  fn is_goal_state(&self, state: &Self::StateType) -> bool {
+    *state == self.end_node
   }
 }
 
-impl Eq for NodeRef {}
-
-impl PartialOrd for NodeRef {
-  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-    match self.estimate.partial_cmp(&other.estimate) {
-      Some(std::cmp::Ordering::Equal) => {
-        Reverse(self.cost).partial_cmp(&Reverse(other.estimate))
-      }
-      Some(ord) => Some(ord),
-      None => None,
-    }
-  }
+pub(crate) struct PathResult {
+  pub(crate) stats: PathStats,
+  pub(crate) path: Path,
 }
 
-impl Ord for NodeRef {
-  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-    self.partial_cmp(other).unwrap()
-  }
-}
+pub(crate) fn find_path(
+  nav_data: &NavigationData,
+  start_node: MeshNodeRef,
+  end_node: MeshNodeRef,
+) -> Result<PathResult, PathStats> {
+  let path_problem = ArchipelagoPathProblem {
+    nav_data,
+    start_node: start_node.clone(),
+    end_node,
+  };
 
-fn recover_path_from_node<ProblemType: AStarProblem>(
-  node_ref: &NodeRef,
-  nodes: Vec<Node<ProblemType>>,
-) -> Vec<ProblemType::ActionType>
-where
-  ProblemType::ActionType: Clone,
-{
-  let mut path = Vec::new();
-  let mut node_index = node_ref.index;
-  loop {
-    let node = &nodes[node_index];
-    match &node.previous_node {
-      None => break,
-      Some((next_index, action)) => {
-        path.push(action.clone());
-        node_index = *next_index;
-      }
-    }
+  let path_result = astar::find_path(&path_problem)?;
+
+  let mut corridor = Vec::with_capacity(path_result.path.len() + 1);
+  let mut portal_edge_index = Vec::with_capacity(path_result.path.len());
+  corridor.push(start_node);
+
+  for conn_index in path_result.path {
+    let connectivity = &nav_data.nav_mesh.connectivity
+      [corridor.last().unwrap().polygon_index][conn_index];
+    portal_edge_index.push(connectivity.edge_index);
+    corridor.push(MeshNodeRef { polygon_index: connectivity.polygon_index });
   }
 
-  path.reverse();
-  path
-}
-
-// Stats about the pathfinding process.
-#[derive(Debug)]
-pub struct PathStats {
-  // The number of nodes that were explored. This can exceed the number of
-  // states if there are faster paths than the heuristic "predicts".
-  pub explored_nodes: u32,
-}
-
-// The result of pathfinding.
-#[derive(Debug)]
-pub struct PathResult<ActionType> {
-  // Stats about the pathfinding process.
-  pub stats: PathStats,
-  // The found path.
-  pub path: Vec<ActionType>,
-}
-
-pub fn find_path<ProblemType: AStarProblem>(
-  problem: &ProblemType,
-) -> Result<PathResult<ProblemType::ActionType>, PathStats>
-where
-  ProblemType::StateType: Hash + Eq + Clone,
-  ProblemType::ActionType: Clone,
-{
-  let mut stats = PathStats { explored_nodes: 0 };
-
-  let mut best_estimates = HashMap::new();
-
-  let mut all_nodes = Vec::<Node<ProblemType>>::new();
-  let mut open_nodes = BinaryHeap::new();
-
-  fn try_add_node<ProblemType: AStarProblem>(
-    problem: &ProblemType,
-    node: Node<ProblemType>,
-    all_nodes: &mut Vec<Node<ProblemType>>,
-    open_nodes: &mut BinaryHeap<Reverse<NodeRef>>,
-    best_estimates: &mut HashMap<ProblemType::StateType, f32>,
-  ) where
-    ProblemType::StateType: Hash + Eq + Clone,
-  {
-    let estimate = node.cost + problem.heuristic(&node.state);
-    let best_estimate =
-      best_estimates.entry(node.state.clone()).or_insert(INFINITY);
-    if *best_estimate <= estimate {
-      return;
-    }
-    *best_estimate = estimate;
-    open_nodes.push(Reverse(NodeRef {
-      cost: node.cost,
-      estimate,
-      index: all_nodes.len(),
-    }));
-    all_nodes.push(node);
-  }
-
-  let initial_node =
-    Node { cost: 0.0, state: problem.initial_state(), previous_node: None };
-  try_add_node(
-    problem,
-    initial_node,
-    &mut all_nodes,
-    &mut open_nodes,
-    &mut best_estimates,
-  );
-
-  while let Some(Reverse(current_node_ref)) = open_nodes.pop() {
-    let current_node = &all_nodes[current_node_ref.index];
-    // If this node is not the best path to the state, skip it. This state must
-    // have already been explored ahead of this node.
-    if *best_estimates.get(&current_node.state).unwrap()
-      < current_node_ref.estimate
-    {
-      continue;
-    }
-    stats.explored_nodes += 1;
-
-    if problem.is_goal_state(&current_node.state) {
-      return Ok(PathResult {
-        stats,
-        path: recover_path_from_node(&current_node_ref, all_nodes),
-      });
-    }
-
-    let current_cost = current_node.cost;
-    for (action_cost, action, state) in problem.successors(&current_node.state)
-    {
-      let new_node = Node {
-        cost: current_cost + action_cost,
-        state,
-        previous_node: Some((current_node_ref.index, action)),
-      };
-
-      try_add_node(
-        problem,
-        new_node,
-        &mut all_nodes,
-        &mut open_nodes,
-        &mut best_estimates,
-      );
-    }
-  }
-
-  Err(stats)
+  Ok(PathResult {
+    stats: path_result.stats,
+    path: Path { corridor, portal_edge_index },
+  })
 }
 
 #[cfg(test)]
 mod tests {
-  use super::{find_path, AStarProblem};
+  use glam::Vec3;
 
-  struct AdjacencyListProblemState {
-    adjacency: Vec<(f32, i32, usize)>,
-    heuristic: f32,
-  }
+  use crate::{
+    nav_mesh::{MeshNodeRef, NavigationMesh},
+    path::Path,
+    Archipelago,
+  };
 
-  struct AdjacencyListProblem {
-    states: Vec<AdjacencyListProblemState>,
-    start: usize,
-    end: usize,
-  }
-
-  impl AStarProblem for AdjacencyListProblem {
-    type ActionType = i32;
-    type StateType = usize;
-
-    fn initial_state(&self) -> Self::StateType {
-      self.start
-    }
-
-    fn successors(
-      &self,
-      state: &Self::StateType,
-    ) -> Vec<(f32, Self::ActionType, Self::StateType)> {
-      self.states[*state].adjacency.clone()
-    }
-
-    fn heuristic(&self, state: &Self::StateType) -> f32 {
-      self.states[*state].heuristic
-    }
-
-    fn is_goal_state(&self, state: &Self::StateType) -> bool {
-      *state == self.end
-    }
-  }
+  use super::find_path;
 
   #[test]
-  fn finds_simple_path_no_heuristic() {
-    let problem = AdjacencyListProblem {
-      start: 0,
-      end: 1,
-      states: vec![
-        AdjacencyListProblemState {
-          adjacency: vec![(10.0, 1, 1), (3.0, 2, 2)],
-          heuristic: 0.0,
-        },
-        AdjacencyListProblemState {
-          adjacency: vec![(10.0, 3, 0), (3.0, 4, 2)],
-          heuristic: 0.0,
-        },
-        AdjacencyListProblemState {
-          adjacency: vec![(4.0, 5, 1), (3.0, 6, 0)],
-          heuristic: 0.0,
-        },
+  fn finds_path_in_archipelago() {
+    let mesh = NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(2.0, 0.0, 0.0),
+        Vec3::new(4.0, 0.0, 1.0),
+        Vec3::new(4.0, 0.0, 2.0),
+        Vec3::new(2.0, 0.0, 3.0),
+        Vec3::new(1.0, 0.0, 3.0),
+        Vec3::new(0.0, 0.0, 2.0),
+        Vec3::new(0.0, 0.0, 1.0),
+        Vec3::new(1.0, 0.0, 5.0),
+        Vec3::new(2.0, 0.0, 5.0),
+        Vec3::new(2.0, 0.0, 4.0),
+        Vec3::new(3.0, 1.0, 5.0),
+        Vec3::new(3.0, 1.0, 4.0),
+        Vec3::new(3.0, -2.0, 4.0),
+        Vec3::new(3.0, -2.0, 3.0),
       ],
-    };
-
-    let path = find_path(&problem).expect("Path should be found.");
-    assert_eq!(path.path, [2, 5]);
-    assert_eq!(path.stats.explored_nodes, 3);
-  }
-
-  #[test]
-  fn finds_no_path() {
-    let problem = AdjacencyListProblem {
-      start: 0,
-      // This state doesn't exist, so a path can't be found!
-      end: 3,
-      states: vec![
-        AdjacencyListProblemState {
-          adjacency: vec![(10.0, 1, 1), (3.0, 2, 2)],
-          heuristic: 0.0,
-        },
-        AdjacencyListProblemState {
-          adjacency: vec![(10.0, 3, 0), (3.0, 4, 2)],
-          heuristic: 0.0,
-        },
-        AdjacencyListProblemState {
-          adjacency: vec![(4.0, 5, 1), (3.0, 6, 0)],
-          heuristic: 0.0,
-        },
+      polygons: vec![
+        vec![0, 1, 2, 3, 4, 5, 6, 7],
+        vec![5, 4, 10, 9, 8],
+        vec![9, 10, 12, 11],
+        vec![10, 4, 14, 13],
       ],
-    };
+    }
+    .validate()
+    .expect("Mesh is valid.");
 
-    let stats = find_path(&problem).expect_err("Path cannot be found.");
-    assert_eq!(stats.explored_nodes, 3);
-  }
+    let archipelago = Archipelago::create_from_navigation_mesh(mesh);
+    let nav_data = &archipelago.nav_data;
 
-  #[test]
-  fn grid_no_heuristic() {
-    const WIDTH: usize = 5;
+    let path_result = find_path(
+      nav_data,
+      MeshNodeRef { polygon_index: 0 },
+      MeshNodeRef { polygon_index: 2 },
+    )
+    .expect("found path");
 
-    let mut problem = AdjacencyListProblem {
-      start: 0,
-      end: WIDTH * WIDTH - 1,
-      states: Vec::with_capacity(WIDTH * WIDTH),
-    };
-
-    for y in 0..WIDTH {
-      for x in 0..WIDTH {
-        let mut state = AdjacencyListProblemState {
-          heuristic: 0.0,
-          adjacency: Vec::with_capacity(4),
-        };
-
-        let state_index = problem.states.len();
-        if x > 0 {
-          state.adjacency.push((1.0, 1, state_index - 1));
-        }
-        if x < WIDTH - 1 {
-          state.adjacency.push((1.0, 2, state_index + 1));
-        }
-        if y > 0 {
-          state.adjacency.push((1.0, 3, state_index - WIDTH));
-        }
-        if y < WIDTH - 1 {
-          state.adjacency.push((1.0, 4, state_index + WIDTH));
-        }
-
-        problem.states.push(state);
+    assert_eq!(
+      path_result.path,
+      Path {
+        corridor: vec![
+          MeshNodeRef { polygon_index: 0 },
+          MeshNodeRef { polygon_index: 1 },
+          MeshNodeRef { polygon_index: 2 }
+        ],
+        portal_edge_index: vec![4, 2],
       }
-    }
+    );
 
-    let path = find_path(&problem).expect("Path should be found.");
-    let direction_sums =
-      path.path.iter().fold((0, 0, 0, 0), |mut acc, elem| {
-        match elem {
-          1 => acc.0 += 1,
-          2 => acc.1 += 1,
-          3 => acc.2 += 1,
-          4 => acc.3 += 1,
-          _ => panic!("Invalid direction: {}", elem),
-        };
-        acc
-      });
-    assert_eq!(direction_sums, (0, 4, 0, 4));
-    // All paths look equally good, so all of them must be explored to ensure we
-    // get the optimal path.
-    assert_eq!(path.stats.explored_nodes, (WIDTH * WIDTH) as u32);
-  }
+    let path_result = find_path(
+      nav_data,
+      MeshNodeRef { polygon_index: 2 },
+      MeshNodeRef { polygon_index: 0 },
+    )
+    .expect("found path");
 
-  #[test]
-  fn grid_perfect_heuristic() {
-    const WIDTH: usize = 5;
-
-    let mut problem = AdjacencyListProblem {
-      start: 0,
-      end: WIDTH * WIDTH - 1,
-      states: Vec::with_capacity(WIDTH * WIDTH),
-    };
-
-    for y in 0..WIDTH {
-      for x in 0..WIDTH {
-        let mut state = AdjacencyListProblemState {
-          heuristic: (WIDTH * 2 - (x + y) - 2) as f32,
-          adjacency: Vec::with_capacity(4),
-        };
-
-        let state_index = problem.states.len();
-        if x > 0 {
-          state.adjacency.push((1.0, 1, state_index - 1));
-        }
-        if x < WIDTH - 1 {
-          state.adjacency.push((1.0, 2, state_index + 1));
-        }
-        if y > 0 {
-          state.adjacency.push((1.0, 3, state_index - WIDTH));
-        }
-        if y < WIDTH - 1 {
-          state.adjacency.push((1.0, 4, state_index + WIDTH));
-        }
-
-        problem.states.push(state);
+    assert_eq!(
+      path_result.path,
+      Path {
+        corridor: vec![
+          MeshNodeRef { polygon_index: 2 },
+          MeshNodeRef { polygon_index: 1 },
+          MeshNodeRef { polygon_index: 0 }
+        ],
+        portal_edge_index: vec![0, 0],
       }
-    }
+    );
 
-    let path = find_path(&problem).expect("Path should be found.");
-    assert_eq!(path.path, [4, 4, 4, 4, 2, 2, 2, 2]);
-    // Every step towards the bottom right is the optimal path, so we should
-    // only explore one path.
-    assert_eq!(path.stats.explored_nodes, (WIDTH * 2 - 1) as u32);
-  }
+    let path_result = find_path(
+      nav_data,
+      MeshNodeRef { polygon_index: 3 },
+      MeshNodeRef { polygon_index: 0 },
+    )
+    .expect("found path");
 
-  #[test]
-  fn dead_end_wrong_heuristic() {
-    let problem = AdjacencyListProblem {
-      start: 0,
-      end: 3,
-      states: vec![
-        AdjacencyListProblemState {
-          adjacency: vec![(1.0, 1, 1), (2.0, 3, 2)],
-          heuristic: 3.0,
-        },
-        AdjacencyListProblemState {
-          adjacency: vec![(1.0, 2, 0)],
-          heuristic: 1.0,
-        },
-        AdjacencyListProblemState {
-          adjacency: vec![(1.0, 4, 0), (1.0, 1, 3)],
-          heuristic: 1.0,
-        },
-        AdjacencyListProblemState {
-          adjacency: vec![(1.0, 2, 2)],
-          heuristic: 0.0,
-        },
-      ],
-    };
-
-    let path = find_path(&problem).expect("Path should be found.");
-    assert_eq!(path.path, [3, 1]);
-    // The dead end was explored, found to be a dead end, and then a new path
-    // was found.
-    assert_eq!(path.stats.explored_nodes, 4);
+    assert_eq!(
+      path_result.path,
+      Path {
+        corridor: vec![
+          MeshNodeRef { polygon_index: 3 },
+          MeshNodeRef { polygon_index: 1 },
+          MeshNodeRef { polygon_index: 0 }
+        ],
+        portal_edge_index: vec![0, 0],
+      }
+    );
   }
 }

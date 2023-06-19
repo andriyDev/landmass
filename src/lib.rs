@@ -1,5 +1,5 @@
 mod agent;
-mod archipelago_pathfinding;
+mod astar;
 mod avoidance;
 mod nav_mesh;
 mod path;
@@ -157,13 +157,13 @@ impl Archipelago {
         RepathResult::NeedsRepath => {
           agent.current_path = None;
 
-          let new_path = match archipelago_pathfinding::find_path(
+          let new_path = match pathfinding::find_path(
             &self.nav_data,
             agent_node.unwrap(),
             target_node.unwrap(),
           ) {
             Err(_) => continue,
-            Ok(archipelago_pathfinding::PathResult { path, .. }) => path,
+            Ok(pathfinding::PathResult { path, .. }) => path,
           };
 
           agent_id_to_follow_path_indices
