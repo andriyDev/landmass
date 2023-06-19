@@ -86,9 +86,12 @@ pub(crate) fn apply_avoidance_to_agents(
         agent.current_desired_move.x,
         agent.current_desired_move.z,
       ),
-      agent_options.avoidance_time_horizon,
-      agent_options.obstacle_avoidance_time_horizon,
       delta_time,
+      &dodgy::AvoidanceOptions {
+        obstacle_margin: 0.1,
+        time_horizon: agent_options.avoidance_time_horizon,
+        obstacle_time_horizon: agent_options.obstacle_avoidance_time_horizon,
+      },
     );
 
     agent.current_desired_move =
