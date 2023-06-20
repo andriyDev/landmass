@@ -41,6 +41,8 @@ pub(crate) fn apply_avoidance_to_agents(
     agent_max_radius = agent_max_radius.max(agent.radius);
   }
 
+  let neighbourhood = agent_max_radius + agent_options.neighbourhood;
+  let neighbourhood_squared = neighbourhood * neighbourhood;
   for (agent_id, agent) in agents.iter_mut() {
     let agent_node = match agent_id_to_agent_node.get(agent_id) {
       None => continue,
@@ -50,21 +52,22 @@ pub(crate) fn apply_avoidance_to_agents(
     let nearby_agents = agent_kdtree
       .within(
         &[agent_point.x, agent_point.y, agent_point.z],
-        agent_max_radius + agent_options.neighbourhood,
+        neighbourhood_squared,
         &squared_euclidean,
       )
       .unwrap();
 
     let nearby_agents = nearby_agents
       .iter()
-      .filter_map(|&(distance, neighbour_id)| {
+      .filter_map(|&(distance_squared, neighbour_id)| {
         if neighbour_id == agent_id {
           return None;
         }
 
         let dodgy_agent = agent_id_to_dodgy_agent.get(neighbour_id).unwrap();
 
-        if distance < agent_options.neighbourhood + dodgy_agent.radius {
+        let neighbourhood = agent_options.neighbourhood + dodgy_agent.radius;
+        if distance_squared < neighbourhood * neighbourhood {
           Some(dodgy_agent)
         } else {
           None
@@ -263,9 +266,14 @@ fn nav_mesh_borders_to_dodgy_obstacles(
 
 #[cfg(test)]
 mod tests {
+  use std::collections::HashMap;
+
   use glam::{Vec2, Vec3};
 
-  use crate::{nav_mesh::MeshNodeRef, NavigationData, NavigationMesh};
+  use crate::{
+    avoidance::apply_avoidance_to_agents, nav_mesh::MeshNodeRef, Agent,
+    AgentId, AgentOptions, NavigationData, NavigationMesh,
+  };
 
   use super::nav_mesh_borders_to_dodgy_obstacles;
 
@@ -554,5 +562,179 @@ mod tests {
         }
       ]
     );
+  }
+
+  #[test]
+  fn applies_no_avoidance_for_far_agents() {
+    const AGENT_1: AgentId = 1;
+    const AGENT_2: AgentId = 2;
+    const AGENT_3: AgentId = 3;
+
+    let mut agents = HashMap::new();
+    agents.insert(AGENT_1, {
+      let mut agent = Agent::create(
+        /* position= */ Vec3::new(1.0, 0.0, 1.0),
+        /* velocity= */ Vec3::ZERO,
+        /* radius= */ 0.01,
+        /* max_velocity= */ 1.0,
+      );
+      agent.current_desired_move = Vec3::new(1.0, 0.0, 0.0);
+      agent
+    });
+    agents.insert(AGENT_2, {
+      let mut agent = Agent::create(
+        /* position= */ Vec3::new(11.0, 0.0, 1.0),
+        /* velocity= */ Vec3::ZERO,
+        /* radius= */ 0.01,
+        /* max_velocity= */ 1.0,
+      );
+      agent.current_desired_move = Vec3::new(-1.0, 0.0, 0.0);
+      agent
+    });
+    agents.insert(AGENT_3, {
+      let mut agent = Agent::create(
+        /* position= */ Vec3::new(5.0, 0.0, 4.0),
+        /* velocity= */ Vec3::ZERO,
+        /* radius= */ 0.01,
+        /* max_velocity= */ 1.0,
+      );
+      agent.current_desired_move = Vec3::new(0.0, 0.0, 1.0);
+      agent
+    });
+
+    let mut agent_id_to_agent_node = HashMap::new();
+    agent_id_to_agent_node.insert(
+      AGENT_1,
+      (
+        agents.get(&AGENT_1).unwrap().position,
+        MeshNodeRef { polygon_index: 0 },
+      ),
+    );
+    agent_id_to_agent_node.insert(
+      AGENT_2,
+      (
+        agents.get(&AGENT_2).unwrap().position,
+        MeshNodeRef { polygon_index: 0 },
+      ),
+    );
+    // `AGENT_3` is not on a node.
+
+    let nav_data = NavigationData {
+      nav_mesh: NavigationMesh {
+        mesh_bounds: None,
+        vertices: vec![
+          Vec3::new(-1.0, 0.0, -1.0),
+          Vec3::new(13.0, 0.0, -1.0),
+          Vec3::new(13.0, 0.0, 3.0),
+          Vec3::new(-1.0, 0.0, 3.0),
+        ],
+        polygons: vec![vec![0, 1, 2, 3]],
+      }
+      .validate()
+      .expect("Validation succeeded."),
+    };
+
+    apply_avoidance_to_agents(
+      &mut agents,
+      &agent_id_to_agent_node,
+      &nav_data,
+      &AgentOptions { neighbourhood: 5.0, ..Default::default() },
+      0.01,
+    );
+
+    assert_eq!(
+      agents.get(&AGENT_1).unwrap().get_desired_velocity(),
+      Vec3::new(1.0, 0.0, 0.0)
+    );
+    assert_eq!(
+      agents.get(&AGENT_2).unwrap().get_desired_velocity(),
+      Vec3::new(-1.0, 0.0, 0.0)
+    );
+    assert_eq!(
+      agents.get(&AGENT_3).unwrap().get_desired_velocity(),
+      Vec3::new(0.0, 0.0, 1.0)
+    );
+  }
+
+  #[test]
+  fn applies_avoidance_for_two_agents() {
+    const AGENT_1: AgentId = 1;
+    const AGENT_2: AgentId = 2;
+
+    let mut agents = HashMap::new();
+    agents.insert(AGENT_1, {
+      let mut agent = Agent::create(
+        /* position= */ Vec3::new(1.0, 0.0, 1.0),
+        /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
+        /* radius= */ 0.5,
+        /* max_velocity= */ 1.0,
+      );
+      agent.current_desired_move = Vec3::new(1.0, 0.0, 0.0);
+      agent
+    });
+    agents.insert(AGENT_2, {
+      let mut agent = Agent::create(
+        /* position= */ Vec3::new(11.0, 0.0, 1.01),
+        /* velocity= */ Vec3::new(-1.0, 0.0, 0.0),
+        /* radius= */ 0.5,
+        /* max_velocity= */ 1.0,
+      );
+      agent.current_desired_move = Vec3::new(-1.0, 0.0, 0.0);
+      agent
+    });
+
+    let mut agent_id_to_agent_node = HashMap::new();
+    agent_id_to_agent_node.insert(
+      AGENT_1,
+      (
+        agents.get(&AGENT_1).unwrap().position,
+        MeshNodeRef { polygon_index: 0 },
+      ),
+    );
+    agent_id_to_agent_node.insert(
+      AGENT_2,
+      (
+        agents.get(&AGENT_2).unwrap().position,
+        MeshNodeRef { polygon_index: 0 },
+      ),
+    );
+
+    let nav_data = NavigationData {
+      nav_mesh: NavigationMesh {
+        mesh_bounds: None,
+        vertices: vec![
+          Vec3::new(-1.0, 0.0, -1.0),
+          Vec3::new(13.0, 0.0, -1.0),
+          Vec3::new(13.0, 0.0, 3.0),
+          Vec3::new(-1.0, 0.0, 3.0),
+        ],
+        polygons: vec![vec![0, 1, 2, 3]],
+      }
+      .validate()
+      .expect("Validation succeeded."),
+    };
+
+    apply_avoidance_to_agents(
+      &mut agents,
+      &agent_id_to_agent_node,
+      &nav_data,
+      &AgentOptions {
+        neighbourhood: 15.0,
+        avoidance_time_horizon: 15.0,
+        ..Default::default()
+      },
+      0.01,
+    );
+
+    assert!(agents
+      .get(&AGENT_1)
+      .unwrap()
+      .get_desired_velocity()
+      .abs_diff_eq(Vec3::new(0.98, 0.0, -0.2), 0.05));
+    assert!(agents
+      .get(&AGENT_2)
+      .unwrap()
+      .get_desired_velocity()
+      .abs_diff_eq(Vec3::new(-0.98, 0.0, 0.2), 0.05));
   }
 }
