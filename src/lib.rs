@@ -228,6 +228,7 @@ impl Archipelago {
   }
 }
 
+#[derive(PartialEq, Eq, Debug)]
 enum RepathResult {
   DoNothing,
   FollowPath(usize, usize),
@@ -280,5 +281,138 @@ fn does_agent_need_repath(
       target_node_index_in_corridor,
     ),
     false => RepathResult::NeedsRepath,
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use glam::Vec3;
+
+  use crate::{
+    does_agent_need_repath, nav_mesh::MeshNodeRef, path::Path, Agent,
+    RepathResult,
+  };
+
+  #[test]
+  fn nothing_or_clear_path_for_no_target() {
+    let mut agent = Agent::create(
+      /* position= */ Vec3::ZERO,
+      /* velocity= */ Vec3::ZERO,
+      /* radius= */ 0.0,
+      /* max_velocity= */ 0.0,
+    );
+
+    assert_eq!(
+      does_agent_need_repath(&agent, None, None),
+      RepathResult::DoNothing
+    );
+
+    agent.current_path =
+      Some(Path { corridor: vec![], portal_edge_index: vec![] });
+
+    assert_eq!(
+      does_agent_need_repath(&agent, None, None),
+      RepathResult::ClearPath,
+    );
+  }
+
+  #[test]
+  fn clears_path_for_missing_nodes() {
+    let mut agent = Agent::create(
+      /* position= */ Vec3::ZERO,
+      /* velocity= */ Vec3::ZERO,
+      /* radius= */ 0.0,
+      /* max_velocity= */ 0.0,
+    );
+    agent.current_target = Some(Vec3::ZERO);
+
+    assert_eq!(
+      does_agent_need_repath(
+        &agent,
+        None,
+        Some(MeshNodeRef { polygon_index: 0 }),
+      ),
+      RepathResult::ClearPath,
+    );
+
+    assert_eq!(
+      does_agent_need_repath(
+        &agent,
+        Some(MeshNodeRef { polygon_index: 0 }),
+        None
+      ),
+      RepathResult::ClearPath,
+    );
+  }
+
+  #[test]
+  fn repaths_for_invalid_path_or_nodes_off_path() {
+    let mut agent = Agent::create(
+      /* position= */ Vec3::ZERO,
+      /* velocity= */ Vec3::ZERO,
+      /* radius= */ 0.0,
+      /* max_velocity= */ 0.0,
+    );
+    agent.current_target = Some(Vec3::ZERO);
+
+    assert_eq!(
+      does_agent_need_repath(
+        &agent,
+        Some(MeshNodeRef { polygon_index: 1 }),
+        Some(MeshNodeRef { polygon_index: 3 }),
+      ),
+      RepathResult::NeedsRepath,
+    );
+
+    agent.current_path = Some(Path {
+      corridor: vec![
+        MeshNodeRef { polygon_index: 2 },
+        MeshNodeRef { polygon_index: 3 },
+        MeshNodeRef { polygon_index: 4 },
+        MeshNodeRef { polygon_index: 1 },
+        MeshNodeRef { polygon_index: 0 },
+      ],
+      portal_edge_index: vec![],
+    });
+
+    // Missing agent node.
+    assert_eq!(
+      does_agent_need_repath(
+        &agent,
+        Some(MeshNodeRef { polygon_index: 5 }),
+        Some(MeshNodeRef { polygon_index: 1 }),
+      ),
+      RepathResult::NeedsRepath,
+    );
+
+    // Missing target node.
+    assert_eq!(
+      does_agent_need_repath(
+        &agent,
+        Some(MeshNodeRef { polygon_index: 3 }),
+        Some(MeshNodeRef { polygon_index: 6 }),
+      ),
+      RepathResult::NeedsRepath,
+    );
+
+    // Agent and target are in the wrong order.
+    assert_eq!(
+      does_agent_need_repath(
+        &agent,
+        Some(MeshNodeRef { polygon_index: 1 }),
+        Some(MeshNodeRef { polygon_index: 3 }),
+      ),
+      RepathResult::NeedsRepath,
+    );
+
+    // Following is now fine.
+    assert_eq!(
+      does_agent_need_repath(
+        &agent,
+        Some(MeshNodeRef { polygon_index: 3 }),
+        Some(MeshNodeRef { polygon_index: 1 }),
+      ),
+      RepathResult::FollowPath(1, 3),
+    );
   }
 }
