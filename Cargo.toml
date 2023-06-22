@@ -3,12 +3,18 @@ edition = "2021"
 name = "landmass"
 version = "0.1.0"
 
+description = "A navigation system for video game characters to walk around levels."
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 license = "MIT"
 readme = "README.md"
+repository = "https://github.com/andriyDev/landmass"
+
+categories = ["game-development"]
+keywords = ["navigation", "system", "pathfinding", "avoidance"]
 
 [dependencies]
-dodgy = "1.2.0"
+dodgy = "1.2.1"
 glam = "0.24.0"
 kdtree = "0.7.0"
 rand = "0.8.5"
