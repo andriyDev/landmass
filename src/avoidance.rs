@@ -8,113 +8,97 @@ use crate::{
   nav_mesh::MeshNodeRef, Agent, AgentId, AgentOptions, NavigationData,
 };
 
-pub(crate) trait LocalCollisionAvoidance {
-  fn apply_avoidance_to_agents(
-    &mut self,
-    agents: &mut HashMap<AgentId, Agent>,
-    agent_id_to_agent_node: &HashMap<AgentId, (Vec3, MeshNodeRef)>,
-    nav_data: &NavigationData,
-    agent_options: &AgentOptions,
-    delta_time: f32,
-  );
-}
+pub(crate) fn apply_avoidance_to_agents(
+  agents: &mut HashMap<AgentId, Agent>,
+  agent_id_to_agent_node: &HashMap<AgentId, (Vec3, MeshNodeRef)>,
+  nav_data: &NavigationData,
+  agent_options: &AgentOptions,
+  delta_time: f32,
+) {
+  let mut agent_id_to_dodgy_agent = HashMap::new();
+  let mut agent_kdtree = KdTree::new(/* dimensions= */ 3);
+  let mut agent_max_radius = 0.0f32;
 
-pub(crate) struct DodgyAvoidance;
+  for (agent_id, agent) in agents.iter() {
+    let agent_point = match agent_id_to_agent_node.get(agent_id) {
+      None => continue,
+      Some(agent_point_and_node) => agent_point_and_node.0,
+    };
 
-impl LocalCollisionAvoidance for DodgyAvoidance {
-  fn apply_avoidance_to_agents(
-    &mut self,
-    agents: &mut HashMap<AgentId, Agent>,
-    agent_id_to_agent_node: &HashMap<AgentId, (Vec3, MeshNodeRef)>,
-    nav_data: &NavigationData,
-    agent_options: &AgentOptions,
-    delta_time: f32,
-  ) {
-    let mut agent_id_to_dodgy_agent = HashMap::new();
-    let mut agent_kdtree = KdTree::new(/* dimensions= */ 3);
-    let mut agent_max_radius = 0.0f32;
+    agent_id_to_dodgy_agent.insert(
+      *agent_id,
+      dodgy::Agent {
+        position: glam::Vec2::new(agent_point.x, agent_point.z),
+        velocity: glam::Vec2::new(agent.velocity.x, agent.velocity.z),
+        radius: agent.radius,
+        max_velocity: agent.max_velocity,
+        avoidance_responsibility: 1.0,
+      },
+    );
+    agent_kdtree
+      .add([agent_point.x, agent_point.y, agent_point.z], *agent_id)
+      .expect("Agent point is finite");
+    agent_max_radius = agent_max_radius.max(agent.radius);
+  }
 
-    for (agent_id, agent) in agents.iter() {
-      let agent_point = match agent_id_to_agent_node.get(agent_id) {
-        None => continue,
-        Some(agent_point_and_node) => agent_point_and_node.0,
-      };
+  let neighbourhood = agent_max_radius + agent_options.neighbourhood;
+  let neighbourhood_squared = neighbourhood * neighbourhood;
+  for (agent_id, agent) in agents.iter_mut() {
+    let agent_node = match agent_id_to_agent_node.get(agent_id) {
+      None => continue,
+      Some(agent_node) => agent_node,
+    };
+    let agent_point = agent_node.0;
+    let nearby_agents = agent_kdtree
+      .within(
+        &[agent_point.x, agent_point.y, agent_point.z],
+        neighbourhood_squared,
+        &squared_euclidean,
+      )
+      .unwrap();
 
-      agent_id_to_dodgy_agent.insert(
-        *agent_id,
-        dodgy::Agent {
-          position: glam::Vec2::new(agent_point.x, agent_point.z),
-          velocity: glam::Vec2::new(agent.velocity.x, agent.velocity.z),
-          radius: agent.radius,
-          max_velocity: agent.max_velocity,
-          avoidance_responsibility: 1.0,
-        },
-      );
-      agent_kdtree
-        .add([agent_point.x, agent_point.y, agent_point.z], *agent_id)
-        .expect("Agent point is finite");
-      agent_max_radius = agent_max_radius.max(agent.radius);
-    }
+    let nearby_agents = nearby_agents
+      .iter()
+      .filter_map(|&(distance_squared, neighbour_id)| {
+        if neighbour_id == agent_id {
+          return None;
+        }
 
-    let neighbourhood = agent_max_radius + agent_options.neighbourhood;
-    let neighbourhood_squared = neighbourhood * neighbourhood;
-    for (agent_id, agent) in agents.iter_mut() {
-      let agent_node = match agent_id_to_agent_node.get(agent_id) {
-        None => continue,
-        Some(agent_node) => agent_node,
-      };
-      let agent_point = agent_node.0;
-      let nearby_agents = agent_kdtree
-        .within(
-          &[agent_point.x, agent_point.y, agent_point.z],
-          neighbourhood_squared,
-          &squared_euclidean,
-        )
-        .unwrap();
+        let dodgy_agent = agent_id_to_dodgy_agent.get(neighbour_id).unwrap();
 
-      let nearby_agents = nearby_agents
-        .iter()
-        .filter_map(|&(distance_squared, neighbour_id)| {
-          if neighbour_id == agent_id {
-            return None;
-          }
+        let neighbourhood = agent_options.neighbourhood + dodgy_agent.radius;
+        if distance_squared < neighbourhood * neighbourhood {
+          Some(dodgy_agent)
+        } else {
+          None
+        }
+      })
+      .collect::<Vec<_>>();
 
-          let dodgy_agent = agent_id_to_dodgy_agent.get(neighbour_id).unwrap();
+    let nearby_obstacles = nav_mesh_borders_to_dodgy_obstacles(
+      agent_node.clone(),
+      nav_data,
+      agent_options.neighbourhood,
+    );
 
-          let neighbourhood = agent_options.neighbourhood + dodgy_agent.radius;
-          if distance_squared < neighbourhood * neighbourhood {
-            Some(dodgy_agent)
-          } else {
-            None
-          }
-        })
-        .collect::<Vec<_>>();
+    let dodgy_agent = agent_id_to_dodgy_agent.get(agent_id).unwrap();
+    let desired_move = dodgy_agent.compute_avoiding_velocity(
+      &nearby_agents,
+      &nearby_obstacles.iter().map(|obstacle| obstacle).collect::<Vec<_>>(),
+      glam::Vec2::new(
+        agent.current_desired_move.x,
+        agent.current_desired_move.z,
+      ),
+      delta_time,
+      &dodgy::AvoidanceOptions {
+        obstacle_margin: agent_options.obstacle_avoidance_margin,
+        time_horizon: agent_options.avoidance_time_horizon,
+        obstacle_time_horizon: agent_options.obstacle_avoidance_time_horizon,
+      },
+    );
 
-      let nearby_obstacles = nav_mesh_borders_to_dodgy_obstacles(
-        agent_node.clone(),
-        nav_data,
-        agent_options.neighbourhood,
-      );
-
-      let dodgy_agent = agent_id_to_dodgy_agent.get(agent_id).unwrap();
-      let desired_move = dodgy_agent.compute_avoiding_velocity(
-        &nearby_agents,
-        &nearby_obstacles.iter().map(|obstacle| obstacle).collect::<Vec<_>>(),
-        glam::Vec2::new(
-          agent.current_desired_move.x,
-          agent.current_desired_move.z,
-        ),
-        delta_time,
-        &dodgy::AvoidanceOptions {
-          obstacle_margin: agent_options.obstacle_avoidance_margin,
-          time_horizon: agent_options.avoidance_time_horizon,
-          obstacle_time_horizon: agent_options.obstacle_avoidance_time_horizon,
-        },
-      );
-
-      agent.current_desired_move =
-        glam::Vec3::new(desired_move.x, 0.0, desired_move.y);
-    }
+    agent.current_desired_move =
+      glam::Vec3::new(desired_move.x, 0.0, desired_move.y);
   }
 }
 
@@ -287,11 +271,11 @@ mod tests {
   use glam::{Vec2, Vec3};
 
   use crate::{
-    avoidance::LocalCollisionAvoidance, nav_mesh::MeshNodeRef, Agent, AgentId,
-    AgentOptions, NavigationData, NavigationMesh,
+    avoidance::apply_avoidance_to_agents, nav_mesh::MeshNodeRef, Agent,
+    AgentId, AgentOptions, NavigationData, NavigationMesh,
   };
 
-  use super::{nav_mesh_borders_to_dodgy_obstacles, DodgyAvoidance};
+  use super::nav_mesh_borders_to_dodgy_obstacles;
 
   fn obstacle_matches(left: &dodgy::Obstacle, right: &dodgy::Obstacle) -> bool {
     match (left, right) {
@@ -650,7 +634,7 @@ mod tests {
       .expect("Validation succeeded."),
     };
 
-    DodgyAvoidance.apply_avoidance_to_agents(
+    apply_avoidance_to_agents(
       &mut agents,
       &agent_id_to_agent_node,
       &nav_data,
@@ -730,7 +714,7 @@ mod tests {
       .expect("Validation succeeded."),
     };
 
-    DodgyAvoidance.apply_avoidance_to_agents(
+    apply_avoidance_to_agents(
       &mut agents,
       &agent_id_to_agent_node,
       &nav_data,
