@@ -288,11 +288,14 @@ fn does_agent_need_repath(
 
 #[cfg(test)]
 mod tests {
+  use std::{cell::Cell, collections::HashMap, rc::Rc};
+
   use glam::Vec3;
 
   use crate::{
-    does_agent_need_repath, nav_mesh::MeshNodeRef, path::Path, Agent, AgentId,
-    Archipelago, NavigationMesh, RepathResult,
+    avoidance::LocalCollisionAvoidance, does_agent_need_repath,
+    nav_mesh::MeshNodeRef, path::Path, Agent, AgentId, AgentOptions,
+    Archipelago, NavigationData, NavigationMesh, RepathResult,
   };
 
   #[test]
@@ -490,5 +493,182 @@ mod tests {
     archipelago.remove_agent(agent_1);
 
     assert_eq!(archipelago.get_agent_ids().collect::<Vec<_>>(), []);
+  }
+
+  #[test]
+  fn computes_and_follows_path() {
+    let mut archipelago = Archipelago::create_from_navigation_mesh(
+      NavigationMesh {
+        mesh_bounds: None,
+        vertices: vec![
+          Vec3::new(1.0, 1.0, 1.0),
+          Vec3::new(2.0, 1.0, 1.0),
+          Vec3::new(3.0, 1.0, 1.0),
+          Vec3::new(4.0, 1.0, 1.0),
+          Vec3::new(4.0, 1.0, 2.0),
+          Vec3::new(4.0, 1.0, 3.0),
+          Vec3::new(4.0, 1.0, 4.0),
+          Vec3::new(3.0, 1.0, 4.0),
+          Vec3::new(3.0, 1.0, 3.0),
+          Vec3::new(3.0, 1.0, 2.0),
+          Vec3::new(2.0, 1.0, 2.0),
+          Vec3::new(1.0, 1.0, 2.0),
+        ],
+        polygons: vec![
+          vec![0, 1, 10, 11],
+          vec![1, 2, 9, 10],
+          vec![2, 3, 4, 9],
+          vec![4, 5, 8, 9],
+          vec![5, 6, 7, 8],
+        ],
+      }
+      .validate()
+      .expect("is valid"),
+    );
+
+    struct MockAvoidance(Rc<Cell<u32>>);
+    impl LocalCollisionAvoidance for MockAvoidance {
+      fn apply_avoidance_to_agents(
+        &mut self,
+        _agents: &mut HashMap<AgentId, Agent>,
+        _agent_id_to_agent_node: &HashMap<AgentId, (Vec3, MeshNodeRef)>,
+        _nav_data: &NavigationData,
+        _agent_options: &AgentOptions,
+        _delta_time: f32,
+      ) {
+        // Do nothing, just count the call.
+        self.0.set(self.0.get() + 1);
+      }
+    }
+
+    let avoidance_called = Rc::new(Cell::new(0));
+    let avoidance = Box::new(MockAvoidance(avoidance_called.clone()));
+    archipelago.local_collision_avoidance = avoidance;
+
+    archipelago.update(/* delta_time= */ 0.01);
+    // Updating does nothing other than calling the avoidance with no agents.
+    assert_eq!(avoidance_called.get(), 1);
+
+    let agent_1 = archipelago.add_agent(Agent::create(
+      /* position= */ Vec3::new(1.5, 1.09, 1.5),
+      /* velocity= */ Vec3::ZERO,
+      /* radius= */ 0.5,
+      /* max_velocity= */ 2.0,
+    ));
+    let agent_2 = archipelago.add_agent(Agent::create(
+      /* position= */ Vec3::new(3.5, 0.95, 3.5),
+      /* velocity= */ Vec3::ZERO,
+      /* radius= */ 0.5,
+      /* max_velocity= */ 2.0,
+    ));
+    let agent_off_mesh = archipelago.add_agent(Agent::create(
+      /* position= */ Vec3::new(1.5, 1.0, 2.5),
+      /* velocity= */ Vec3::ZERO,
+      /* radius= */ 0.5,
+      /* max_velocity= */ 2.0,
+    ));
+    let agent_too_high_above_mesh = archipelago.add_agent(Agent::create(
+      /* position= */ Vec3::new(1.5, 1.11, 1.5),
+      /* velocity= */ Vec3::ZERO,
+      /* radius= */ 0.5,
+      /* max_velocity= */ 2.0,
+    ));
+
+    archipelago.get_agent_mut(agent_1).current_target =
+      Some(Vec3::new(3.5, 0.95, 3.5));
+    archipelago.get_agent_mut(agent_off_mesh).current_target =
+      Some(Vec3::new(3.5, 0.95, 3.5));
+    archipelago.get_agent_mut(agent_too_high_above_mesh).current_target =
+      Some(Vec3::new(3.5, 0.95, 3.5));
+    archipelago.get_agent_mut(agent_2).current_target =
+      Some(Vec3::new(1.5, 1.09, 1.5));
+
+    // Nothing has happened yet.
+    assert_eq!(
+      archipelago.get_agent(agent_1).get_desired_velocity(),
+      Vec3::ZERO
+    );
+    assert_eq!(
+      archipelago.get_agent(agent_2).get_desired_velocity(),
+      Vec3::ZERO
+    );
+    assert_eq!(
+      archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
+      Vec3::ZERO
+    );
+    assert_eq!(
+      archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
+      Vec3::ZERO
+    );
+    assert_eq!(avoidance_called.get(), 1);
+
+    archipelago.update(/* delta_time= */ 0.01);
+
+    // These agents found a path and started following it.
+    assert!(archipelago
+      .get_agent(agent_1)
+      .get_desired_velocity()
+      .abs_diff_eq(Vec3::new(1.5, -0.09, 0.5).normalize() * 2.0, 1e-7));
+    assert!(archipelago
+      .get_agent(agent_2)
+      .get_desired_velocity()
+      .abs_diff_eq(Vec3::new(-0.5, 0.05, -1.5).normalize() * 2.0, 1e-7));
+    // These agents are not on the nav mesh, so they don't do anything.
+    assert_eq!(
+      archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
+      Vec3::ZERO
+    );
+    assert_eq!(
+      archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
+      Vec3::ZERO
+    );
+    assert_eq!(avoidance_called.get(), 2);
+
+    // Move agent_1 forward.
+    archipelago.get_agent_mut(agent_1).position = Vec3::new(2.5, 1.0, 1.5);
+    archipelago.update(/* delta_time= */ 0.01);
+
+    assert!(archipelago
+      .get_agent(agent_1)
+      .get_desired_velocity()
+      .abs_diff_eq(Vec3::new(0.5, 0.0, 0.5).normalize() * 2.0, 1e-7));
+    // These agents don't change.
+    assert!(archipelago
+      .get_agent(agent_2)
+      .get_desired_velocity()
+      .abs_diff_eq(Vec3::new(-0.5, 0.05, -1.5).normalize() * 2.0, 1e-7));
+    assert_eq!(
+      archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
+      Vec3::ZERO
+    );
+    assert_eq!(
+      archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
+      Vec3::ZERO
+    );
+    assert_eq!(avoidance_called.get(), 3);
+
+    // Move agent_1 close enough to destination and agent_2 forward.
+    archipelago.get_agent_mut(agent_1).position = Vec3::new(3.4, 1.0, 3.4);
+    archipelago.get_agent_mut(agent_2).position = Vec3::new(3.5, 1.0, 2.5);
+    archipelago.update(/* delta_time= */ 0.01);
+
+    assert_eq!(
+      archipelago.get_agent(agent_1).get_desired_velocity(),
+      Vec3::ZERO
+    );
+    assert!(archipelago
+      .get_agent(agent_2)
+      .get_desired_velocity()
+      .abs_diff_eq(Vec3::new(-0.5, 0.0, -0.5).normalize() * 2.0, 1e-7));
+    // These agents don't change.
+    assert_eq!(
+      archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
+      Vec3::ZERO
+    );
+    assert_eq!(
+      archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
+      Vec3::ZERO
+    );
+    assert_eq!(avoidance_called.get(), 4);
   }
 }
