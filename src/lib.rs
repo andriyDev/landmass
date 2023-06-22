@@ -16,12 +16,13 @@ pub use agent::{Agent, AgentId, TargetReachedCondition};
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh};
 pub use util::BoundingBox;
 
-use crate::avoidance::apply_avoidance_to_agents;
+use crate::avoidance::{DodgyAvoidance, LocalCollisionAvoidance};
 
 pub struct Archipelago {
   pub agent_options: AgentOptions,
   nav_data: NavigationData,
   agents: HashMap<AgentId, Agent>,
+  local_collision_avoidance: Box<dyn LocalCollisionAvoidance>,
 }
 
 struct NavigationData {
@@ -63,6 +64,7 @@ impl Archipelago {
       nav_data: NavigationData { nav_mesh: navigation_mesh },
       agent_options: AgentOptions::default(),
       agents: HashMap::new(),
+      local_collision_avoidance: Box::new(DodgyAvoidance),
     }
   }
 
@@ -218,7 +220,7 @@ impl Archipelago {
       }
     }
 
-    apply_avoidance_to_agents(
+    self.local_collision_avoidance.apply_avoidance_to_agents(
       &mut self.agents,
       &agent_id_to_agent_node,
       &self.nav_data,
