@@ -289,8 +289,8 @@ mod tests {
   use glam::Vec3;
 
   use crate::{
-    does_agent_need_repath, nav_mesh::MeshNodeRef, path::Path, Agent,
-    RepathResult,
+    does_agent_need_repath, nav_mesh::MeshNodeRef, path::Path, Agent, AgentId,
+    Archipelago, NavigationMesh, RepathResult,
   };
 
   #[test]
@@ -414,5 +414,79 @@ mod tests {
       ),
       RepathResult::FollowPath(1, 3),
     );
+  }
+
+  #[test]
+  fn add_and_remove_agents() {
+    let mut archipelago = Archipelago::create_from_navigation_mesh(
+      NavigationMesh { mesh_bounds: None, vertices: vec![], polygons: vec![] }
+        .validate()
+        .unwrap(),
+    );
+
+    let agent_1 = archipelago.add_agent(Agent::create(
+      /* position= */ Vec3::ZERO,
+      /* velocity= */ Vec3::ZERO,
+      /* radius= */ 1.0,
+      /* max_velocity= */ 0.0,
+    ));
+
+    let agent_2 = archipelago.add_agent(Agent::create(
+      /* position= */ Vec3::ZERO,
+      /* velocity= */ Vec3::ZERO,
+      /* radius= */ 2.0,
+      /* max_velocity= */ 0.0,
+    ));
+
+    let agent_3 = archipelago.add_agent(Agent::create(
+      /* position= */ Vec3::ZERO,
+      /* velocity= */ Vec3::ZERO,
+      /* radius= */ 3.0,
+      /* max_velocity= */ 0.0,
+    ));
+
+    fn sorted(mut v: Vec<AgentId>) -> Vec<AgentId> {
+      v.sort();
+      v
+    }
+
+    assert_eq!(
+      sorted(archipelago.get_agent_ids().collect::<Vec<_>>()),
+      sorted(vec![agent_1, agent_2, agent_3]),
+    );
+    assert_eq!(
+      [
+        archipelago.get_agent(agent_1).radius,
+        archipelago.get_agent(agent_2).radius,
+        archipelago.get_agent(agent_3).radius,
+      ],
+      [1.0, 2.0, 3.0],
+    );
+
+    archipelago.remove_agent(agent_2);
+
+    assert_eq!(
+      sorted(archipelago.get_agent_ids().collect::<Vec<_>>()),
+      sorted(vec![agent_1, agent_3]),
+    );
+    assert_eq!(
+      [
+        archipelago.get_agent(agent_1).radius,
+        archipelago.get_agent(agent_3).radius,
+      ],
+      [1.0, 3.0],
+    );
+
+    archipelago.remove_agent(agent_3);
+
+    assert_eq!(
+      sorted(archipelago.get_agent_ids().collect::<Vec<_>>()),
+      sorted(vec![agent_1]),
+    );
+    assert_eq!([archipelago.get_agent(agent_1).radius], [1.0]);
+
+    archipelago.remove_agent(agent_1);
+
+    assert_eq!(archipelago.get_agent_ids().collect::<Vec<_>>(), []);
   }
 }
