@@ -6,6 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = "0.10.1"
+bevy = {version = "0.10.1", default-features = false}
 glam = "0.24.0"
 landmass = "0.1.1"
+
+[features]
+mesh-utils = ["bevy/bevy_render"]

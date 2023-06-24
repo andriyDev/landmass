@@ -12,6 +12,7 @@ use util::{bevy_vec3_to_glam_vec3, glam_vec3_to_bevy_vec3};
 
 mod util;
 
+#[cfg(feature = "mesh-utils")]
 pub mod nav_mesh;
 
 pub struct LandmassPlugin;
