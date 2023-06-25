@@ -1,10 +1,7 @@
 use bevy::{
   prelude::Mesh,
   render::{
-    mesh::{
-      Indices,
-      VertexAttributeValues::{Float32x3, Float32x4},
-    },
+    mesh::{Indices, VertexAttributeValues::Float32x3},
     render_resource::PrimitiveTopology,
   },
 };
@@ -14,7 +11,7 @@ use landmass::NavigationMesh;
 pub enum ConvertMeshError {
   InvalidTopology,
   MissingVertexPositions,
-  WrongTypeForVertexPositions,
+  WrongTypeForIndices,
 }
 
 // Converts a Bevy Mesh to a landmass NavigationMesh. This is done naively -
@@ -34,26 +31,14 @@ pub fn bevy_mesh_to_landmass_nav_mesh(
   };
 
   let vertices: Vec<glam::Vec3> = match values {
-    Float32x4(vertices) => vertices
-      .iter()
-      .map(|vert| glam::Vec3::new(vert[0], vert[1], vert[2]))
-      .collect(),
     Float32x3(vertices) => vertices
       .iter()
       .map(|vert| glam::Vec3::new(vert[0], vert[1], vert[2]))
       .collect(),
-    _ => return Err(ConvertMeshError::WrongTypeForVertexPositions),
+    _ => panic!("Mesh POSITION must be Float32x3"),
   };
 
   let polygons = match mesh.indices() {
-    None => {
-      assert!(vertices.len() % 3 == 0);
-      let mut polygons = Vec::with_capacity(vertices.len() / 3);
-      for i in (0..vertices.len()).step_by(3) {
-        polygons.push(vec![i, i + 2, i + 1]);
-      }
-      polygons
-    }
     Some(Indices::U16(indices)) => {
       assert!(indices.len() % 3 == 0);
       let mut polygons = Vec::with_capacity(indices.len() / 3);
@@ -78,6 +63,7 @@ pub fn bevy_mesh_to_landmass_nav_mesh(
       }
       polygons
     }
+    _ => return Err(ConvertMeshError::WrongTypeForIndices),
   };
 
   Ok(NavigationMesh { mesh_bounds: None, vertices, polygons })
