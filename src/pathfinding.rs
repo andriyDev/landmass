@@ -24,31 +24,40 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
     &self,
     state: &Self::StateType,
   ) -> Vec<(f32, Self::ActionType, Self::StateType)> {
-    let polygon = &self.nav_data.nav_mesh.polygons[state.polygon_index];
-    let connectivity =
-      &self.nav_data.nav_mesh.connectivity[state.polygon_index];
+    let island = self.nav_data.islands.get(&state.island_id).unwrap();
+    let nav_mesh = &island.nav_data.as_ref().unwrap().nav_mesh;
+    let polygon = &nav_mesh.polygons[state.polygon_index];
+    let connectivity = &nav_mesh.connectivity[state.polygon_index];
 
     connectivity
       .iter()
       .enumerate()
       .map(|(conn_index, conn)| {
-        let next_polygon = &self.nav_data.nav_mesh.polygons[conn.polygon_index];
+        let next_polygon = &nav_mesh.polygons[conn.polygon_index];
         let edge = polygon.get_edge_indices(conn.edge_index);
-        let edge_point = (self.nav_data.nav_mesh.vertices[edge.0]
-          + self.nav_data.nav_mesh.vertices[edge.1])
-          / 2.0;
+        let edge_point =
+          (nav_mesh.vertices[edge.0] + nav_mesh.vertices[edge.1]) / 2.0;
         let cost = polygon.center.distance(edge_point)
           + next_polygon.center.distance(edge_point);
 
-        (cost, conn_index, NodeRef { polygon_index: conn.polygon_index })
+        (
+          cost,
+          conn_index,
+          NodeRef {
+            island_id: state.island_id,
+            polygon_index: conn.polygon_index,
+          },
+        )
       })
       .collect()
   }
 
   fn heuristic(&self, state: &Self::StateType) -> f32 {
-    self.nav_data.nav_mesh.polygons[state.polygon_index].center.distance(
-      self.nav_data.nav_mesh.polygons[self.end_node.polygon_index].center,
-    )
+    let island = self.nav_data.islands.get(&state.island_id).unwrap();
+    let nav_mesh = &island.nav_data.as_ref().unwrap().nav_mesh;
+    nav_mesh.polygons[state.polygon_index]
+      .center
+      .distance(nav_mesh.polygons[self.end_node.polygon_index].center)
   }
 
   fn is_goal_state(&self, state: &Self::StateType) -> bool {
@@ -79,10 +88,22 @@ pub(crate) fn find_path(
   corridor.push(start_node);
 
   for conn_index in path_result.path {
-    let connectivity = &nav_data.nav_mesh.connectivity
-      [corridor.last().unwrap().polygon_index][conn_index];
+    let previous_node = corridor.last().unwrap();
+    let nav_mesh = &nav_data
+      .islands
+      .get(&previous_node.island_id)
+      .unwrap()
+      .nav_data
+      .as_ref()
+      .unwrap()
+      .nav_mesh;
+    let connectivity =
+      &nav_mesh.connectivity[previous_node.polygon_index][conn_index];
     portal_edge_index.push(connectivity.edge_index);
-    corridor.push(NodeRef { polygon_index: connectivity.polygon_index });
+    corridor.push(NodeRef {
+      island_id: previous_node.island_id,
+      polygon_index: connectivity.polygon_index,
+    });
   }
 
   Ok(PathResult {
@@ -97,13 +118,14 @@ mod tests {
 
   use crate::{
     nav_data::NodeRef, nav_mesh::NavigationMesh, path::Path, Archipelago,
+    Transform,
   };
 
   use super::find_path;
 
   #[test]
   fn finds_path_in_archipelago() {
-    let mesh = NavigationMesh {
+    let nav_mesh = NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
         Vec3::new(1.0, 0.0, 0.0),
@@ -132,13 +154,20 @@ mod tests {
     .validate()
     .expect("Mesh is valid.");
 
-    let archipelago = Archipelago::create_from_navigation_mesh(mesh);
+    let mut archipelago = Archipelago::new();
+    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
+    archipelago.get_island_mut(island_id).set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      nav_mesh,
+      /* linkable_distance_to_region_edge= */ 0.01,
+    );
+
     let nav_data = &archipelago.nav_data;
 
     let path_result = find_path(
       nav_data,
-      NodeRef { polygon_index: 0 },
-      NodeRef { polygon_index: 2 },
+      NodeRef { island_id, polygon_index: 0 },
+      NodeRef { island_id, polygon_index: 2 },
     )
     .expect("found path");
 
@@ -146,9 +175,9 @@ mod tests {
       path_result.path,
       Path {
         corridor: vec![
-          NodeRef { polygon_index: 0 },
-          NodeRef { polygon_index: 1 },
-          NodeRef { polygon_index: 2 }
+          NodeRef { island_id, polygon_index: 0 },
+          NodeRef { island_id, polygon_index: 1 },
+          NodeRef { island_id, polygon_index: 2 }
         ],
         portal_edge_index: vec![4, 2],
       }
@@ -156,8 +185,8 @@ mod tests {
 
     let path_result = find_path(
       nav_data,
-      NodeRef { polygon_index: 2 },
-      NodeRef { polygon_index: 0 },
+      NodeRef { island_id, polygon_index: 2 },
+      NodeRef { island_id, polygon_index: 0 },
     )
     .expect("found path");
 
@@ -165,9 +194,9 @@ mod tests {
       path_result.path,
       Path {
         corridor: vec![
-          NodeRef { polygon_index: 2 },
-          NodeRef { polygon_index: 1 },
-          NodeRef { polygon_index: 0 }
+          NodeRef { island_id, polygon_index: 2 },
+          NodeRef { island_id, polygon_index: 1 },
+          NodeRef { island_id, polygon_index: 0 }
         ],
         portal_edge_index: vec![0, 0],
       }
@@ -175,8 +204,8 @@ mod tests {
 
     let path_result = find_path(
       nav_data,
-      NodeRef { polygon_index: 3 },
-      NodeRef { polygon_index: 0 },
+      NodeRef { island_id, polygon_index: 3 },
+      NodeRef { island_id, polygon_index: 0 },
     )
     .expect("found path");
 
@@ -184,9 +213,9 @@ mod tests {
       path_result.path,
       Path {
         corridor: vec![
-          NodeRef { polygon_index: 3 },
-          NodeRef { polygon_index: 1 },
-          NodeRef { polygon_index: 0 }
+          NodeRef { island_id, polygon_index: 3 },
+          NodeRef { island_id, polygon_index: 1 },
+          NodeRef { island_id, polygon_index: 0 }
         ],
         portal_edge_index: vec![0, 0],
       }

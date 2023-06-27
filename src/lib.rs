@@ -51,6 +51,8 @@ be confusing.
 use glam::Vec3;
 use landmass::*;
 
+let mut archipelago = Archipelago::new();
+
 let nav_mesh = NavigationMesh {
   mesh_bounds: None,
   vertices: vec![
@@ -64,7 +66,15 @@ let nav_mesh = NavigationMesh {
 
 let valid_nav_mesh = nav_mesh.validate().expect("Validation succeeds");
 
-let mut archipelago = Archipelago::create_from_navigation_mesh(valid_nav_mesh);
+let island_id = archipelago.add_island(valid_nav_mesh.get_bounds());
+archipelago
+  .get_island_mut(island_id)
+  .set_nav_mesh(
+    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    valid_nav_mesh,
+    /* linkable_distance_to_region_edge= */ 0.01
+  );
+
 let agent_1 = archipelago.add_agent({
   let mut agent = Agent::create(
     /* position= */ Vec3::new(1.0, 0.0, 1.0),
@@ -113,6 +123,7 @@ assert!(archipelago
 mod agent;
 mod astar;
 mod avoidance;
+mod island;
 mod nav_data;
 mod nav_mesh;
 mod path;
@@ -120,6 +131,7 @@ mod pathfinding;
 mod util;
 
 use glam::Vec3;
+use island::{Island, IslandId};
 use rand::Rng;
 use std::collections::HashMap;
 
@@ -127,7 +139,7 @@ use nav_data::{NavigationData, NodeRef};
 
 pub use agent::{Agent, AgentId, TargetReachedCondition};
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh};
-pub use util::BoundingBox;
+pub use util::{BoundingBox, Transform};
 
 use crate::avoidance::apply_avoidance_to_agents;
 
@@ -165,11 +177,9 @@ impl Default for AgentOptions {
 }
 
 impl Archipelago {
-  pub fn create_from_navigation_mesh(
-    navigation_mesh: ValidNavigationMesh,
-  ) -> Self {
+  pub fn new() -> Self {
     Self {
-      nav_data: NavigationData { nav_mesh: navigation_mesh },
+      nav_data: NavigationData { islands: HashMap::new() },
       agent_options: AgentOptions::default(),
       agents: HashMap::new(),
     }
@@ -201,6 +211,35 @@ impl Archipelago {
 
   pub fn get_agent_ids(&self) -> impl ExactSizeIterator<Item = AgentId> + '_ {
     self.agents.keys().copied()
+  }
+
+  pub fn add_island(&mut self, region_bounds: BoundingBox) -> IslandId {
+    let mut rng = rand::thread_rng();
+
+    let island_id: IslandId = rng.gen();
+    assert!(self
+      .nav_data
+      .islands
+      .insert(island_id, Island::new(region_bounds))
+      .is_none());
+
+    island_id
+  }
+
+  pub fn remove_island(&mut self, island_id: IslandId) {
+    self
+      .nav_data
+      .islands
+      .remove(&island_id)
+      .expect("Island should be present in the Archipelago");
+  }
+
+  pub fn get_island(&self, island_id: IslandId) -> &Island {
+    self.nav_data.islands.get(&island_id).unwrap()
+  }
+
+  pub fn get_island_mut(&mut self, island_id: IslandId) -> &mut Island {
+    self.nav_data.islands.get_mut(&island_id).unwrap()
   }
 
   pub fn update(&mut self, delta_time: f32) {
@@ -397,7 +436,7 @@ mod tests {
 
   use crate::{
     does_agent_need_repath, nav_data::NodeRef, path::Path, Agent, AgentId,
-    Archipelago, NavigationMesh, RepathResult,
+    Archipelago, NavigationMesh, RepathResult, Transform,
   };
 
   #[test]
@@ -434,12 +473,20 @@ mod tests {
     agent.current_target = Some(Vec3::ZERO);
 
     assert_eq!(
-      does_agent_need_repath(&agent, None, Some(NodeRef { polygon_index: 0 }),),
+      does_agent_need_repath(
+        &agent,
+        None,
+        Some(NodeRef { island_id: 0, polygon_index: 0 }),
+      ),
       RepathResult::ClearPath,
     );
 
     assert_eq!(
-      does_agent_need_repath(&agent, Some(NodeRef { polygon_index: 0 }), None),
+      does_agent_need_repath(
+        &agent,
+        Some(NodeRef { island_id: 0, polygon_index: 0 }),
+        None
+      ),
       RepathResult::ClearPath,
     );
   }
@@ -457,19 +504,19 @@ mod tests {
     assert_eq!(
       does_agent_need_repath(
         &agent,
-        Some(NodeRef { polygon_index: 1 }),
-        Some(NodeRef { polygon_index: 3 }),
+        Some(NodeRef { island_id: 0, polygon_index: 1 }),
+        Some(NodeRef { island_id: 0, polygon_index: 3 }),
       ),
       RepathResult::NeedsRepath,
     );
 
     agent.current_path = Some(Path {
       corridor: vec![
-        NodeRef { polygon_index: 2 },
-        NodeRef { polygon_index: 3 },
-        NodeRef { polygon_index: 4 },
-        NodeRef { polygon_index: 1 },
-        NodeRef { polygon_index: 0 },
+        NodeRef { island_id: 0, polygon_index: 2 },
+        NodeRef { island_id: 0, polygon_index: 3 },
+        NodeRef { island_id: 0, polygon_index: 4 },
+        NodeRef { island_id: 0, polygon_index: 1 },
+        NodeRef { island_id: 0, polygon_index: 0 },
       ],
       portal_edge_index: vec![],
     });
@@ -478,8 +525,8 @@ mod tests {
     assert_eq!(
       does_agent_need_repath(
         &agent,
-        Some(NodeRef { polygon_index: 5 }),
-        Some(NodeRef { polygon_index: 1 }),
+        Some(NodeRef { island_id: 0, polygon_index: 5 }),
+        Some(NodeRef { island_id: 0, polygon_index: 1 }),
       ),
       RepathResult::NeedsRepath,
     );
@@ -488,8 +535,8 @@ mod tests {
     assert_eq!(
       does_agent_need_repath(
         &agent,
-        Some(NodeRef { polygon_index: 3 }),
-        Some(NodeRef { polygon_index: 6 }),
+        Some(NodeRef { island_id: 0, polygon_index: 3 }),
+        Some(NodeRef { island_id: 0, polygon_index: 6 }),
       ),
       RepathResult::NeedsRepath,
     );
@@ -498,8 +545,8 @@ mod tests {
     assert_eq!(
       does_agent_need_repath(
         &agent,
-        Some(NodeRef { polygon_index: 1 }),
-        Some(NodeRef { polygon_index: 3 }),
+        Some(NodeRef { island_id: 0, polygon_index: 1 }),
+        Some(NodeRef { island_id: 0, polygon_index: 3 }),
       ),
       RepathResult::NeedsRepath,
     );
@@ -508,8 +555,8 @@ mod tests {
     assert_eq!(
       does_agent_need_repath(
         &agent,
-        Some(NodeRef { polygon_index: 3 }),
-        Some(NodeRef { polygon_index: 1 }),
+        Some(NodeRef { island_id: 0, polygon_index: 3 }),
+        Some(NodeRef { island_id: 0, polygon_index: 1 }),
       ),
       RepathResult::FollowPath(1, 3),
     );
@@ -517,11 +564,7 @@ mod tests {
 
   #[test]
   fn add_and_remove_agents() {
-    let mut archipelago = Archipelago::create_from_navigation_mesh(
-      NavigationMesh { mesh_bounds: None, vertices: vec![], polygons: vec![] }
-        .validate()
-        .unwrap(),
-    );
+    let mut archipelago = Archipelago::new();
 
     let agent_1 = archipelago.add_agent(Agent::create(
       /* position= */ Vec3::ZERO,
@@ -591,34 +634,41 @@ mod tests {
 
   #[test]
   fn computes_and_follows_path() {
-    let mut archipelago = Archipelago::create_from_navigation_mesh(
-      NavigationMesh {
-        mesh_bounds: None,
-        vertices: vec![
-          Vec3::new(1.0, 1.0, 1.0),
-          Vec3::new(2.0, 1.0, 1.0),
-          Vec3::new(3.0, 1.0, 1.0),
-          Vec3::new(4.0, 1.0, 1.0),
-          Vec3::new(4.0, 1.0, 2.0),
-          Vec3::new(4.0, 1.0, 3.0),
-          Vec3::new(4.0, 1.0, 4.0),
-          Vec3::new(3.0, 1.0, 4.0),
-          Vec3::new(3.0, 1.0, 3.0),
-          Vec3::new(3.0, 1.0, 2.0),
-          Vec3::new(2.0, 1.0, 2.0),
-          Vec3::new(1.0, 1.0, 2.0),
-        ],
-        polygons: vec![
-          vec![0, 1, 10, 11],
-          vec![1, 2, 9, 10],
-          vec![2, 3, 4, 9],
-          vec![4, 5, 8, 9],
-          vec![5, 6, 7, 8],
-        ],
-      }
-      .validate()
-      .expect("is valid"),
+    let mut archipelago = Archipelago::new();
+    let nav_mesh = NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(1.0, 1.0, 1.0),
+        Vec3::new(2.0, 1.0, 1.0),
+        Vec3::new(3.0, 1.0, 1.0),
+        Vec3::new(4.0, 1.0, 1.0),
+        Vec3::new(4.0, 1.0, 2.0),
+        Vec3::new(4.0, 1.0, 3.0),
+        Vec3::new(4.0, 1.0, 4.0),
+        Vec3::new(3.0, 1.0, 4.0),
+        Vec3::new(3.0, 1.0, 3.0),
+        Vec3::new(3.0, 1.0, 2.0),
+        Vec3::new(2.0, 1.0, 2.0),
+        Vec3::new(1.0, 1.0, 2.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 10, 11],
+        vec![1, 2, 9, 10],
+        vec![2, 3, 4, 9],
+        vec![4, 5, 8, 9],
+        vec![5, 6, 7, 8],
+      ],
+    }
+    .validate()
+    .expect("is valid");
+
+    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
+    archipelago.get_island_mut(island_id).set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      nav_mesh,
+      /* linkable_distance_to_region_edge= */ 0.01,
     );
+
     archipelago.agent_options.neighbourhood = 0.0;
     archipelago.agent_options.obstacle_avoidance_time_horizon = 0.01;
     archipelago.agent_options.obstacle_avoidance_margin = 0.0;

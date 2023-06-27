@@ -1,4 +1,4 @@
-use glam::Vec3;
+use glam::{Quat, Vec3};
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum BoundingBox {
@@ -114,6 +114,25 @@ impl BoundingBox {
           && other_min.z <= max.z
       }
     }
+  }
+}
+
+// A transform that can be applied to Vec3's.
+#[derive(PartialEq, Clone, Copy, Debug)]
+pub struct Transform {
+  // The translation to apply.
+  pub translation: Vec3,
+  // The rotation to apply.
+  pub rotation: f32,
+}
+
+impl Transform {
+  pub(crate) fn apply(&self, point: Vec3) -> Vec3 {
+    Quat::from_rotation_y(self.rotation) * point + self.translation
+  }
+
+  pub(crate) fn apply_inverse(&self, point: Vec3) -> Vec3 {
+    Quat::from_rotation_y(-self.rotation) * (point - self.translation)
   }
 }
 

@@ -126,7 +126,7 @@ mod tests {
 
   use crate::{
     nav_data::NodeRef, path::Path, Agent, Archipelago, NavigationMesh,
-    TargetReachedCondition,
+    TargetReachedCondition, Transform,
   };
 
   #[test]
@@ -135,7 +135,13 @@ mod tests {
       NavigationMesh { mesh_bounds: None, vertices: vec![], polygons: vec![] }
         .validate()
         .expect("nav mesh is valid");
-    let archipelago = Archipelago::create_from_navigation_mesh(nav_mesh);
+    let mut archipelago = Archipelago::new();
+    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
+    archipelago.get_island_mut(island_id).set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      nav_mesh,
+      /* linkable_distance_to_region_edge= */ 0.01,
+    );
     let mut agent = Agent::create(
       /* position= */ Vec3::new(1.0, 0.0, 1.0),
       /* velocity= */ Vec3::ZERO,
@@ -144,7 +150,7 @@ mod tests {
     );
 
     let path = Path {
-      corridor: vec![NodeRef { polygon_index: 0 }],
+      corridor: vec![NodeRef { island_id, polygon_index: 0 }],
       portal_edge_index: vec![],
     };
 
@@ -198,7 +204,15 @@ mod tests {
     }
     .validate()
     .expect("nav mesh is valid");
-    let archipelago = Archipelago::create_from_navigation_mesh(nav_mesh);
+
+    let mut archipelago = Archipelago::new();
+    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
+    archipelago.get_island_mut(island_id).set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      nav_mesh,
+      /* linkable_distance_to_region_edge= */ 0.01,
+    );
+
     let mut agent = Agent::create(
       /* position= */ Vec3::ZERO,
       /* velocity= */ Vec3::ZERO,
@@ -208,9 +222,9 @@ mod tests {
 
     let path = Path {
       corridor: vec![
-        NodeRef { polygon_index: 0 },
-        NodeRef { polygon_index: 1 },
-        NodeRef { polygon_index: 2 },
+        NodeRef { island_id, polygon_index: 0 },
+        NodeRef { island_id, polygon_index: 1 },
+        NodeRef { island_id, polygon_index: 2 },
       ],
       portal_edge_index: vec![1, 2],
     };
