@@ -135,6 +135,14 @@ fn nav_mesh_borders_to_dodgy_obstacles(
   let mut next_nodes = BinaryHeap::new();
   next_nodes.push(ExploreNode { node: agent_node.1.polygon_index, score: 0.0 });
 
+  let island_data = nav_data
+    .islands
+    .get(&agent_node.1.island_id)
+    .unwrap()
+    .nav_data
+    .as_ref()
+    .unwrap();
+
   while !next_nodes.is_empty() {
     let node = next_nodes.pop().unwrap().node;
     if !explored_nodes.insert(node) {
@@ -142,8 +150,8 @@ fn nav_mesh_borders_to_dodgy_obstacles(
       continue;
     }
 
-    let polygon = &nav_data.nav_mesh.polygons[node];
-    let connectivity = &nav_data.nav_mesh.connectivity[node];
+    let polygon = &island_data.nav_mesh.polygons[node];
+    let connectivity = &island_data.nav_mesh.connectivity[node];
 
     let mut remaining_edges: HashSet<usize> =
       HashSet::from_iter(0..polygon.vertices.len());
@@ -153,8 +161,8 @@ fn nav_mesh_borders_to_dodgy_obstacles(
       let (vertex_1, vertex_2) =
         polygon.get_edge_indices(connectivity.edge_index);
       let (vertex_1, vertex_2) = (
-        nav_data.nav_mesh.vertices[vertex_1].xz(),
-        nav_data.nav_mesh.vertices[vertex_2].xz(),
+        island_data.nav_mesh.vertices[vertex_1].xz(),
+        island_data.nav_mesh.vertices[vertex_2].xz(),
       );
       let (vertex_1, vertex_2) =
         (vertex_1 - agent_node.0.xz(), vertex_2 - agent_node.0.xz());
@@ -177,8 +185,8 @@ fn nav_mesh_borders_to_dodgy_obstacles(
       let (border_vertex_1, border_vertex_2) =
         polygon.get_edge_indices(border_edge);
       let (vertex_1, vertex_2) = (
-        nav_data.nav_mesh.vertices[border_vertex_1].xz(),
-        nav_data.nav_mesh.vertices[border_vertex_2].xz(),
+        island_data.nav_mesh.vertices[border_vertex_1].xz(),
+        island_data.nav_mesh.vertices[border_vertex_2].xz(),
       );
       let (vertex_1, vertex_2) =
         (vertex_1 - agent_node.0.xz(), vertex_2 - agent_node.0.xz());
@@ -247,7 +255,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
       vertices: looop
         .iter()
         .rev()
-        .map(|vert| nav_data.nav_mesh.vertices[*vert].xz())
+        .map(|vert| island_data.nav_mesh.vertices[*vert].xz())
         .collect(),
     })
     .chain(unfinished_loops.drain(..).map(|looop| {
@@ -255,7 +263,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
         vertices: looop
           .iter()
           .rev()
-          .map(|vert| nav_data.nav_mesh.vertices[*vert].xz())
+          .map(|vert| island_data.nav_mesh.vertices[*vert].xz())
           .collect(),
       }
     }))
@@ -269,8 +277,8 @@ mod tests {
   use glam::{Vec2, Vec3};
 
   use crate::{
-    avoidance::apply_avoidance_to_agents, nav_data::NodeRef, Agent, AgentId,
-    AgentOptions, NavigationData, NavigationMesh,
+    avoidance::apply_avoidance_to_agents, island::Island, nav_data::NodeRef,
+    Agent, AgentId, AgentOptions, NavigationData, NavigationMesh, Transform,
   };
 
   use super::nav_mesh_borders_to_dodgy_obstacles;
@@ -326,24 +334,33 @@ mod tests {
 
   #[test]
   fn computes_obstacle_for_box() {
-    let nav_data = NavigationData {
-      nav_mesh: NavigationMesh {
-        mesh_bounds: None,
-        vertices: vec![
-          Vec3::new(1.0, 0.0, 1.0),
-          Vec3::new(2.0, 0.0, 1.0),
-          Vec3::new(2.0, 0.0, 2.0),
-          Vec3::new(1.0, 0.0, 2.0),
-        ],
-        polygons: vec![vec![0, 1, 2, 3]],
-      }
-      .validate()
-      .expect("Validation succeeds"),
-    };
+    let nav_mesh = NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(1.0, 0.0, 1.0),
+        Vec3::new(2.0, 0.0, 1.0),
+        Vec3::new(2.0, 0.0, 2.0),
+        Vec3::new(1.0, 0.0, 2.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+    }
+    .validate()
+    .expect("Validation succeeds");
+
+    let mut nav_data = NavigationData { islands: HashMap::new() };
+    nav_data.islands.insert(1, {
+      let mut island = Island::new(nav_mesh.mesh_bounds);
+      island.set_nav_mesh(
+        Transform { translation: Vec3::ZERO, rotation: 0.0 },
+        nav_mesh,
+        /* linkable_distance_to_region_edge= */ 0.01,
+      );
+      island
+    });
 
     assert_obstacles_match!(
       nav_mesh_borders_to_dodgy_obstacles(
-        (Vec3::new(1.5, 0.0, 1.5), NodeRef { polygon_index: 0 }),
+        (Vec3::new(1.5, 0.0, 1.5), NodeRef { island_id: 1, polygon_index: 0 }),
         &nav_data,
         /* distance_limit= */ 10.0,
       ),
@@ -360,38 +377,47 @@ mod tests {
 
   #[test]
   fn dead_end_makes_open_obstacle() {
-    let nav_data = NavigationData {
-      nav_mesh: NavigationMesh {
-        mesh_bounds: None,
-        vertices: vec![
-          Vec3::new(1.0, 0.0, 1.0),
-          Vec3::new(2.0, 0.0, 1.0),
-          Vec3::new(2.0, 0.0, 2.0),
-          Vec3::new(1.0, 0.0, 2.0),
-          Vec3::new(3.0, 0.0, 1.0),
-          Vec3::new(3.0, 0.0, 2.0),
-          Vec3::new(4.0, 0.0, 1.0),
-          Vec3::new(4.0, 0.0, 2.0),
-          Vec3::new(4.0, 0.0, 3.0),
-          Vec3::new(3.0, 0.0, 3.0),
-          Vec3::new(4.0, 0.0, 4.0),
-          Vec3::new(3.0, 0.0, 4.0),
-        ],
-        polygons: vec![
-          vec![0, 1, 2, 3],
-          vec![2, 1, 4, 5],
-          vec![5, 4, 6, 7],
-          vec![5, 7, 8, 9],
-          vec![9, 8, 10, 11],
-        ],
-      }
-      .validate()
-      .expect("Validation succeeds"),
-    };
+    let nav_mesh = NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(1.0, 0.0, 1.0),
+        Vec3::new(2.0, 0.0, 1.0),
+        Vec3::new(2.0, 0.0, 2.0),
+        Vec3::new(1.0, 0.0, 2.0),
+        Vec3::new(3.0, 0.0, 1.0),
+        Vec3::new(3.0, 0.0, 2.0),
+        Vec3::new(4.0, 0.0, 1.0),
+        Vec3::new(4.0, 0.0, 2.0),
+        Vec3::new(4.0, 0.0, 3.0),
+        Vec3::new(3.0, 0.0, 3.0),
+        Vec3::new(4.0, 0.0, 4.0),
+        Vec3::new(3.0, 0.0, 4.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 2, 3],
+        vec![2, 1, 4, 5],
+        vec![5, 4, 6, 7],
+        vec![5, 7, 8, 9],
+        vec![9, 8, 10, 11],
+      ],
+    }
+    .validate()
+    .expect("Validation succeeds");
+
+    let mut nav_data = NavigationData { islands: HashMap::new() };
+    nav_data.islands.insert(1, {
+      let mut island = Island::new(nav_mesh.mesh_bounds);
+      island.set_nav_mesh(
+        Transform { translation: Vec3::ZERO, rotation: 0.0 },
+        nav_mesh,
+        /* linkable_distance_to_region_edge= */ 0.01,
+      );
+      island
+    });
 
     assert_obstacles_match!(
       nav_mesh_borders_to_dodgy_obstacles(
-        (Vec3::new(1.5, 0.0, 1.5), NodeRef { polygon_index: 0 }),
+        (Vec3::new(1.5, 0.0, 1.5), NodeRef { island_id: 1, polygon_index: 0 }),
         &nav_data,
         /* distance_limit= */ 10.0,
       ),
@@ -412,7 +438,7 @@ mod tests {
 
     assert_obstacles_match!(
       nav_mesh_borders_to_dodgy_obstacles(
-        (Vec3::new(3.5, 0.0, 3.5), NodeRef { polygon_index: 4 }),
+        (Vec3::new(3.5, 0.0, 3.5), NodeRef { island_id: 1, polygon_index: 4 }),
         &nav_data,
         /* distance_limit= */ 10.0,
       ),
@@ -434,7 +460,7 @@ mod tests {
     // Decrease the distance limit to limit the size of the open obstacle.
     assert_obstacles_match!(
       nav_mesh_borders_to_dodgy_obstacles(
-        (Vec3::new(3.5, 0.0, 3.5), NodeRef { polygon_index: 4 }),
+        (Vec3::new(3.5, 0.0, 3.5), NodeRef { island_id: 1, polygon_index: 4 }),
         &nav_data,
         /* distance_limit= */ 1.0,
       ),
@@ -452,7 +478,7 @@ mod tests {
 
     assert_obstacles_match!(
       nav_mesh_borders_to_dodgy_obstacles(
-        (Vec3::new(3.5, 0.0, 1.5), NodeRef { polygon_index: 2 }),
+        (Vec3::new(3.5, 0.0, 1.5), NodeRef { island_id: 1, polygon_index: 2 }),
         &nav_data,
         /* distance_limit= */ 10.0,
       ),
@@ -477,59 +503,68 @@ mod tests {
 
   #[test]
   fn split_borders() {
-    let nav_data = NavigationData {
-      nav_mesh: NavigationMesh {
-        mesh_bounds: None,
-        vertices: vec![
-          Vec3::new(1.0, 0.0, 1.0),
-          Vec3::new(2.0, 0.0, 1.0),
-          Vec3::new(3.0, 0.0, 1.0),
-          Vec3::new(4.0, 0.0, 1.0),
-          Vec3::new(5.0, 0.0, 1.0),
-          Vec3::new(5.0, 0.0, 2.0),
-          Vec3::new(5.0, 0.0, 3.0),
-          Vec3::new(5.0, 0.0, 4.0),
-          Vec3::new(6.0, 0.0, 4.0),
-          Vec3::new(6.0, 0.0, 3.0),
-          Vec3::new(6.0, 0.0, 2.0),
-          Vec3::new(6.0, 0.0, 1.0),
-          Vec3::new(6.0, 0.0, 0.0),
-          Vec3::new(5.0, 0.0, 0.0),
-          Vec3::new(4.0, 0.0, 0.0),
-          Vec3::new(3.0, 0.0, 0.0),
-          Vec3::new(2.0, 0.0, 0.0),
-          Vec3::new(1.0, 0.0, 0.0),
-          Vec3::new(0.0, 0.0, 0.0),
-          Vec3::new(0.0, 0.0, 1.0),
-          Vec3::new(0.0, 0.0, 2.0),
-          Vec3::new(0.0, 0.0, 3.0),
-          Vec3::new(0.0, 0.0, 4.0),
-          Vec3::new(1.0, 0.0, 4.0),
-          Vec3::new(1.0, 0.0, 3.0),
-          Vec3::new(1.0, 0.0, 2.0),
-        ],
-        polygons: vec![
-          vec![0, 17, 16, 1],
-          vec![1, 16, 15, 2],
-          vec![2, 15, 14, 3],
-          vec![3, 14, 13, 4],
-          vec![4, 13, 12, 11],
-          vec![4, 11, 10, 5],
-          vec![5, 10, 9, 6],
-          vec![6, 9, 8, 7],
-          vec![0, 19, 18, 17],
-          vec![25, 20, 19, 0],
-          vec![24, 21, 20, 25],
-          vec![23, 22, 21, 24],
-        ],
-      }
-      .validate()
-      .expect("Validation succeeds"),
-    };
+    let nav_mesh = NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(1.0, 0.0, 1.0),
+        Vec3::new(2.0, 0.0, 1.0),
+        Vec3::new(3.0, 0.0, 1.0),
+        Vec3::new(4.0, 0.0, 1.0),
+        Vec3::new(5.0, 0.0, 1.0),
+        Vec3::new(5.0, 0.0, 2.0),
+        Vec3::new(5.0, 0.0, 3.0),
+        Vec3::new(5.0, 0.0, 4.0),
+        Vec3::new(6.0, 0.0, 4.0),
+        Vec3::new(6.0, 0.0, 3.0),
+        Vec3::new(6.0, 0.0, 2.0),
+        Vec3::new(6.0, 0.0, 1.0),
+        Vec3::new(6.0, 0.0, 0.0),
+        Vec3::new(5.0, 0.0, 0.0),
+        Vec3::new(4.0, 0.0, 0.0),
+        Vec3::new(3.0, 0.0, 0.0),
+        Vec3::new(2.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 1.0),
+        Vec3::new(0.0, 0.0, 2.0),
+        Vec3::new(0.0, 0.0, 3.0),
+        Vec3::new(0.0, 0.0, 4.0),
+        Vec3::new(1.0, 0.0, 4.0),
+        Vec3::new(1.0, 0.0, 3.0),
+        Vec3::new(1.0, 0.0, 2.0),
+      ],
+      polygons: vec![
+        vec![0, 17, 16, 1],
+        vec![1, 16, 15, 2],
+        vec![2, 15, 14, 3],
+        vec![3, 14, 13, 4],
+        vec![4, 13, 12, 11],
+        vec![4, 11, 10, 5],
+        vec![5, 10, 9, 6],
+        vec![6, 9, 8, 7],
+        vec![0, 19, 18, 17],
+        vec![25, 20, 19, 0],
+        vec![24, 21, 20, 25],
+        vec![23, 22, 21, 24],
+      ],
+    }
+    .validate()
+    .expect("Validation succeeds");
+
+    let mut nav_data = NavigationData { islands: HashMap::new() };
+    nav_data.islands.insert(1, {
+      let mut island = Island::new(nav_mesh.mesh_bounds);
+      island.set_nav_mesh(
+        Transform { translation: Vec3::ZERO, rotation: 0.0 },
+        nav_mesh,
+        /* linkable_distance_to_region_edge= */ 0.01,
+      );
+      island
+    });
 
     assert_obstacles_match!(
       nav_mesh_borders_to_dodgy_obstacles(
-        (Vec3::new(3.0, 0.0, 0.9), NodeRef { polygon_index: 0 }),
+        (Vec3::new(3.0, 0.0, 0.9), NodeRef { island_id: 1, polygon_index: 0 }),
         &nav_data,
         /* distance_limit= */ 10.0,
       ),
@@ -603,28 +638,43 @@ mod tests {
     let mut agent_id_to_agent_node = HashMap::new();
     agent_id_to_agent_node.insert(
       AGENT_1,
-      (agents.get(&AGENT_1).unwrap().position, NodeRef { polygon_index: 0 }),
+      (
+        agents.get(&AGENT_1).unwrap().position,
+        NodeRef { island_id: 1, polygon_index: 0 },
+      ),
     );
     agent_id_to_agent_node.insert(
       AGENT_2,
-      (agents.get(&AGENT_2).unwrap().position, NodeRef { polygon_index: 0 }),
+      (
+        agents.get(&AGENT_2).unwrap().position,
+        NodeRef { island_id: 1, polygon_index: 0 },
+      ),
     );
     // `AGENT_3` is not on a node.
 
-    let nav_data = NavigationData {
-      nav_mesh: NavigationMesh {
-        mesh_bounds: None,
-        vertices: vec![
-          Vec3::new(-1.0, 0.0, -1.0),
-          Vec3::new(13.0, 0.0, -1.0),
-          Vec3::new(13.0, 0.0, 3.0),
-          Vec3::new(-1.0, 0.0, 3.0),
-        ],
-        polygons: vec![vec![0, 1, 2, 3]],
-      }
-      .validate()
-      .expect("Validation succeeded."),
-    };
+    let nav_mesh = NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(-1.0, 0.0, -1.0),
+        Vec3::new(13.0, 0.0, -1.0),
+        Vec3::new(13.0, 0.0, 3.0),
+        Vec3::new(-1.0, 0.0, 3.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+    }
+    .validate()
+    .expect("Validation succeeded.");
+
+    let mut nav_data = NavigationData { islands: HashMap::new() };
+    nav_data.islands.insert(1, {
+      let mut island = Island::new(nav_mesh.mesh_bounds);
+      island.set_nav_mesh(
+        Transform { translation: Vec3::ZERO, rotation: 0.0 },
+        nav_mesh,
+        /* linkable_distance_to_region_edge= */ 0.01,
+      );
+      island
+    });
 
     apply_avoidance_to_agents(
       &mut agents,
@@ -678,27 +728,42 @@ mod tests {
     let mut agent_id_to_agent_node = HashMap::new();
     agent_id_to_agent_node.insert(
       AGENT_1,
-      (agents.get(&AGENT_1).unwrap().position, NodeRef { polygon_index: 0 }),
+      (
+        agents.get(&AGENT_1).unwrap().position,
+        NodeRef { island_id: 1, polygon_index: 0 },
+      ),
     );
     agent_id_to_agent_node.insert(
       AGENT_2,
-      (agents.get(&AGENT_2).unwrap().position, NodeRef { polygon_index: 0 }),
+      (
+        agents.get(&AGENT_2).unwrap().position,
+        NodeRef { island_id: 1, polygon_index: 0 },
+      ),
     );
 
-    let nav_data = NavigationData {
-      nav_mesh: NavigationMesh {
-        mesh_bounds: None,
-        vertices: vec![
-          Vec3::new(-1.0, 0.0, -1.0),
-          Vec3::new(13.0, 0.0, -1.0),
-          Vec3::new(13.0, 0.0, 3.0),
-          Vec3::new(-1.0, 0.0, 3.0),
-        ],
-        polygons: vec![vec![0, 1, 2, 3]],
-      }
-      .validate()
-      .expect("Validation succeeded."),
-    };
+    let nav_mesh = NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(-1.0, 0.0, -1.0),
+        Vec3::new(13.0, 0.0, -1.0),
+        Vec3::new(13.0, 0.0, 3.0),
+        Vec3::new(-1.0, 0.0, 3.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+    }
+    .validate()
+    .expect("Validation succeeded.");
+
+    let mut nav_data = NavigationData { islands: HashMap::new() };
+    nav_data.islands.insert(1, {
+      let mut island = Island::new(nav_mesh.mesh_bounds);
+      island.set_nav_mesh(
+        Transform { translation: Vec3::ZERO, rotation: 0.0 },
+        nav_mesh,
+        /* linkable_distance_to_region_edge= */ 0.01,
+      );
+      island
+    });
 
     apply_avoidance_to_agents(
       &mut agents,

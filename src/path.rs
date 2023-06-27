@@ -14,15 +14,23 @@ impl Path {
     portal_index: usize,
     nav_data: &NavigationData,
   ) -> (Vec3, Vec3) {
-    let node = self.corridor[portal_index].polygon_index;
+    let node_ref = self.corridor[portal_index].clone();
     let edge = self.portal_edge_index[portal_index];
 
-    let (left_vertex, right_vertex) =
-      nav_data.nav_mesh.polygons[node].get_edge_indices(edge);
+    let island_data = nav_data
+      .islands
+      .get(&node_ref.island_id)
+      .expect("only called if path is still valid")
+      .nav_data
+      .as_ref()
+      .expect("only called if path is still valid");
+    let (left_vertex, right_vertex) = island_data.nav_mesh.polygons
+      [node_ref.polygon_index]
+      .get_edge_indices(edge);
 
     (
-      nav_data.nav_mesh.vertices[left_vertex],
-      nav_data.nav_mesh.vertices[right_vertex],
+      island_data.transform.apply(island_data.nav_mesh.vertices[left_vertex]),
+      island_data.transform.apply(island_data.nav_mesh.vertices[right_vertex]),
     )
   }
 
@@ -82,13 +90,15 @@ impl Path {
 mod tests {
   use glam::Vec3;
 
-  use crate::{nav_data::NodeRef, nav_mesh::NavigationMesh, Archipelago};
+  use crate::{
+    nav_data::NodeRef, nav_mesh::NavigationMesh, Archipelago, Transform,
+  };
 
   use super::Path;
 
   #[test]
   fn finds_next_point_for_organic_map() {
-    let mesh = NavigationMesh {
+    let nav_mesh = NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
         Vec3::new(1.0, 0.0, 0.0),
@@ -117,14 +127,21 @@ mod tests {
     .validate()
     .expect("Mesh is valid.");
 
-    let archipelago = Archipelago::create_from_navigation_mesh(mesh);
+    let mut archipelago = Archipelago::new();
+    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
+    archipelago.get_island_mut(island_id).set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      nav_mesh,
+      /* linkable_distance_to_region_edge= */ 0.01,
+    );
+
     let nav_data = &archipelago.nav_data;
 
     let path = Path {
       corridor: vec![
-        NodeRef { polygon_index: 0 },
-        NodeRef { polygon_index: 1 },
-        NodeRef { polygon_index: 2 },
+        NodeRef { island_id, polygon_index: 0 },
+        NodeRef { island_id, polygon_index: 1 },
+        NodeRef { island_id, polygon_index: 2 },
       ],
       portal_edge_index: vec![4, 2],
     };
@@ -173,7 +190,7 @@ mod tests {
 
   #[test]
   fn finds_next_point_in_zig_zag() {
-    let mesh = NavigationMesh {
+    let nav_mesh = NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
         Vec3::new(0.0, 0.0, 0.0),
@@ -226,26 +243,33 @@ mod tests {
     .validate()
     .expect("Mesh is valid.");
 
-    let archipelago = Archipelago::create_from_navigation_mesh(mesh);
+    let mut archipelago = Archipelago::new();
+    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
+    archipelago.get_island_mut(island_id).set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      nav_mesh,
+      /* linkable_distance_to_region_edge= */ 0.01,
+    );
+
     let nav_data = &archipelago.nav_data;
 
     let path = Path {
       corridor: vec![
-        NodeRef { polygon_index: 0 },
-        NodeRef { polygon_index: 1 },
-        NodeRef { polygon_index: 2 },
-        NodeRef { polygon_index: 3 },
-        NodeRef { polygon_index: 4 },
-        NodeRef { polygon_index: 5 },
-        NodeRef { polygon_index: 6 },
-        NodeRef { polygon_index: 7 },
-        NodeRef { polygon_index: 8 },
-        NodeRef { polygon_index: 9 },
-        NodeRef { polygon_index: 10 },
-        NodeRef { polygon_index: 11 },
-        NodeRef { polygon_index: 12 },
-        NodeRef { polygon_index: 13 },
-        NodeRef { polygon_index: 14 },
+        NodeRef { island_id, polygon_index: 0 },
+        NodeRef { island_id, polygon_index: 1 },
+        NodeRef { island_id, polygon_index: 2 },
+        NodeRef { island_id, polygon_index: 3 },
+        NodeRef { island_id, polygon_index: 4 },
+        NodeRef { island_id, polygon_index: 5 },
+        NodeRef { island_id, polygon_index: 6 },
+        NodeRef { island_id, polygon_index: 7 },
+        NodeRef { island_id, polygon_index: 8 },
+        NodeRef { island_id, polygon_index: 9 },
+        NodeRef { island_id, polygon_index: 10 },
+        NodeRef { island_id, polygon_index: 11 },
+        NodeRef { island_id, polygon_index: 12 },
+        NodeRef { island_id, polygon_index: 13 },
+        NodeRef { island_id, polygon_index: 14 },
       ],
       portal_edge_index: vec![2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
     };
@@ -281,7 +305,7 @@ mod tests {
 
   #[test]
   fn starts_at_end_index_goes_to_end_point() {
-    let mesh = NavigationMesh {
+    let nav_mesh = NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
         Vec3::new(0.0, 0.0, 0.0),
@@ -296,13 +320,20 @@ mod tests {
     .validate()
     .expect("Mesh is valid.");
 
-    let archipelago = Archipelago::create_from_navigation_mesh(mesh);
+    let mut archipelago = Archipelago::new();
+    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
+    archipelago.get_island_mut(island_id).set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      nav_mesh,
+      /* linkable_distance_to_region_edge= */ 0.01,
+    );
+
     let nav_data = &archipelago.nav_data;
 
     let path = Path {
       corridor: vec![
-        NodeRef { polygon_index: 0 },
-        NodeRef { polygon_index: 1 },
+        NodeRef { island_id, polygon_index: 0 },
+        NodeRef { island_id, polygon_index: 1 },
       ],
       portal_edge_index: vec![2],
     };

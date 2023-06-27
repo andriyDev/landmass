@@ -244,6 +244,10 @@ pub struct MeshEdgeRef {
 }
 
 impl ValidNavigationMesh {
+  pub fn get_bounds(&self) -> BoundingBox {
+    self.mesh_bounds
+  }
+
   // Gets the points that make up the specified edge.
   pub fn get_edge_points(&self, edge_ref: MeshEdgeRef) -> (Vec3, Vec3) {
     let polygon = &self.polygons[edge_ref.polygon_index];
