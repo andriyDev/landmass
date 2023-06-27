@@ -113,6 +113,7 @@ assert!(archipelago
 mod agent;
 mod astar;
 mod avoidance;
+mod nav_data;
 mod nav_mesh;
 mod path;
 mod pathfinding;
@@ -122,6 +123,7 @@ use glam::Vec3;
 use rand::Rng;
 use std::collections::HashMap;
 
+use nav_data::NavigationData;
 use nav_mesh::MeshNodeRef;
 
 pub use agent::{Agent, AgentId, TargetReachedCondition};
@@ -134,10 +136,6 @@ pub struct Archipelago {
   pub agent_options: AgentOptions,
   nav_data: NavigationData,
   agents: HashMap<AgentId, Agent>,
-}
-
-struct NavigationData {
-  nav_mesh: ValidNavigationMesh,
 }
 
 // Options that apply to all agents
