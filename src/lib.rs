@@ -211,7 +211,6 @@ impl Archipelago {
     for (agent_id, agent) in self.agents.iter() {
       let agent_node_and_point = match self
         .nav_data
-        .nav_mesh
         .sample_point(agent.position, self.agent_options.node_sample_distance)
       {
         None => continue,
@@ -225,7 +224,6 @@ impl Archipelago {
       if let Some(target) = agent.current_target {
         let target_node_and_point = match self
           .nav_data
-          .nav_mesh
           .sample_point(target, self.agent_options.node_sample_distance)
         {
           None => continue,
