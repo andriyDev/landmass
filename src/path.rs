@@ -1,10 +1,10 @@
 use glam::{Vec3, Vec3Swizzles};
 
-use crate::{nav_mesh::MeshNodeRef, NavigationData};
+use crate::{nav_data::NodeRef, NavigationData};
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Path {
-  pub(crate) corridor: Vec<MeshNodeRef>,
+  pub(crate) corridor: Vec<NodeRef>,
   pub(crate) portal_edge_index: Vec<usize>,
 }
 
@@ -82,10 +82,7 @@ impl Path {
 mod tests {
   use glam::Vec3;
 
-  use crate::{
-    nav_mesh::{MeshNodeRef, NavigationMesh},
-    Archipelago,
-  };
+  use crate::{nav_data::NodeRef, nav_mesh::NavigationMesh, Archipelago};
 
   use super::Path;
 
@@ -125,9 +122,9 @@ mod tests {
 
     let path = Path {
       corridor: vec![
-        MeshNodeRef { polygon_index: 0 },
-        MeshNodeRef { polygon_index: 1 },
-        MeshNodeRef { polygon_index: 2 },
+        NodeRef { polygon_index: 0 },
+        NodeRef { polygon_index: 1 },
+        NodeRef { polygon_index: 2 },
       ],
       portal_edge_index: vec![4, 2],
     };
@@ -234,21 +231,21 @@ mod tests {
 
     let path = Path {
       corridor: vec![
-        MeshNodeRef { polygon_index: 0 },
-        MeshNodeRef { polygon_index: 1 },
-        MeshNodeRef { polygon_index: 2 },
-        MeshNodeRef { polygon_index: 3 },
-        MeshNodeRef { polygon_index: 4 },
-        MeshNodeRef { polygon_index: 5 },
-        MeshNodeRef { polygon_index: 6 },
-        MeshNodeRef { polygon_index: 7 },
-        MeshNodeRef { polygon_index: 8 },
-        MeshNodeRef { polygon_index: 9 },
-        MeshNodeRef { polygon_index: 10 },
-        MeshNodeRef { polygon_index: 11 },
-        MeshNodeRef { polygon_index: 12 },
-        MeshNodeRef { polygon_index: 13 },
-        MeshNodeRef { polygon_index: 14 },
+        NodeRef { polygon_index: 0 },
+        NodeRef { polygon_index: 1 },
+        NodeRef { polygon_index: 2 },
+        NodeRef { polygon_index: 3 },
+        NodeRef { polygon_index: 4 },
+        NodeRef { polygon_index: 5 },
+        NodeRef { polygon_index: 6 },
+        NodeRef { polygon_index: 7 },
+        NodeRef { polygon_index: 8 },
+        NodeRef { polygon_index: 9 },
+        NodeRef { polygon_index: 10 },
+        NodeRef { polygon_index: 11 },
+        NodeRef { polygon_index: 12 },
+        NodeRef { polygon_index: 13 },
+        NodeRef { polygon_index: 14 },
       ],
       portal_edge_index: vec![2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
     };
@@ -304,8 +301,8 @@ mod tests {
 
     let path = Path {
       corridor: vec![
-        MeshNodeRef { polygon_index: 0 },
-        MeshNodeRef { polygon_index: 1 },
+        NodeRef { polygon_index: 0 },
+        NodeRef { polygon_index: 1 },
       ],
       portal_edge_index: vec![2],
     };

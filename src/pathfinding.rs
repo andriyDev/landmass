@@ -1,20 +1,20 @@
 use crate::{
   astar::{self, AStarProblem, PathStats},
-  nav_mesh::MeshNodeRef,
+  nav_data::NodeRef,
   path::Path,
   NavigationData,
 };
 
 struct ArchipelagoPathProblem<'a> {
   nav_data: &'a NavigationData,
-  start_node: MeshNodeRef,
-  end_node: MeshNodeRef,
+  start_node: NodeRef,
+  end_node: NodeRef,
 }
 
 impl AStarProblem for ArchipelagoPathProblem<'_> {
   type ActionType = usize;
 
-  type StateType = MeshNodeRef;
+  type StateType = NodeRef;
 
   fn initial_state(&self) -> Self::StateType {
     self.start_node.clone()
@@ -40,7 +40,7 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
         let cost = polygon.center.distance(edge_point)
           + next_polygon.center.distance(edge_point);
 
-        (cost, conn_index, MeshNodeRef { polygon_index: conn.polygon_index })
+        (cost, conn_index, NodeRef { polygon_index: conn.polygon_index })
       })
       .collect()
   }
@@ -63,8 +63,8 @@ pub(crate) struct PathResult {
 
 pub(crate) fn find_path(
   nav_data: &NavigationData,
-  start_node: MeshNodeRef,
-  end_node: MeshNodeRef,
+  start_node: NodeRef,
+  end_node: NodeRef,
 ) -> Result<PathResult, PathStats> {
   let path_problem = ArchipelagoPathProblem {
     nav_data,
@@ -82,7 +82,7 @@ pub(crate) fn find_path(
     let connectivity = &nav_data.nav_mesh.connectivity
       [corridor.last().unwrap().polygon_index][conn_index];
     portal_edge_index.push(connectivity.edge_index);
-    corridor.push(MeshNodeRef { polygon_index: connectivity.polygon_index });
+    corridor.push(NodeRef { polygon_index: connectivity.polygon_index });
   }
 
   Ok(PathResult {
@@ -96,9 +96,7 @@ mod tests {
   use glam::Vec3;
 
   use crate::{
-    nav_mesh::{MeshNodeRef, NavigationMesh},
-    path::Path,
-    Archipelago,
+    nav_data::NodeRef, nav_mesh::NavigationMesh, path::Path, Archipelago,
   };
 
   use super::find_path;
@@ -139,8 +137,8 @@ mod tests {
 
     let path_result = find_path(
       nav_data,
-      MeshNodeRef { polygon_index: 0 },
-      MeshNodeRef { polygon_index: 2 },
+      NodeRef { polygon_index: 0 },
+      NodeRef { polygon_index: 2 },
     )
     .expect("found path");
 
@@ -148,9 +146,9 @@ mod tests {
       path_result.path,
       Path {
         corridor: vec![
-          MeshNodeRef { polygon_index: 0 },
-          MeshNodeRef { polygon_index: 1 },
-          MeshNodeRef { polygon_index: 2 }
+          NodeRef { polygon_index: 0 },
+          NodeRef { polygon_index: 1 },
+          NodeRef { polygon_index: 2 }
         ],
         portal_edge_index: vec![4, 2],
       }
@@ -158,8 +156,8 @@ mod tests {
 
     let path_result = find_path(
       nav_data,
-      MeshNodeRef { polygon_index: 2 },
-      MeshNodeRef { polygon_index: 0 },
+      NodeRef { polygon_index: 2 },
+      NodeRef { polygon_index: 0 },
     )
     .expect("found path");
 
@@ -167,9 +165,9 @@ mod tests {
       path_result.path,
       Path {
         corridor: vec![
-          MeshNodeRef { polygon_index: 2 },
-          MeshNodeRef { polygon_index: 1 },
-          MeshNodeRef { polygon_index: 0 }
+          NodeRef { polygon_index: 2 },
+          NodeRef { polygon_index: 1 },
+          NodeRef { polygon_index: 0 }
         ],
         portal_edge_index: vec![0, 0],
       }
@@ -177,8 +175,8 @@ mod tests {
 
     let path_result = find_path(
       nav_data,
-      MeshNodeRef { polygon_index: 3 },
-      MeshNodeRef { polygon_index: 0 },
+      NodeRef { polygon_index: 3 },
+      NodeRef { polygon_index: 0 },
     )
     .expect("found path");
 
@@ -186,9 +184,9 @@ mod tests {
       path_result.path,
       Path {
         corridor: vec![
-          MeshNodeRef { polygon_index: 3 },
-          MeshNodeRef { polygon_index: 1 },
-          MeshNodeRef { polygon_index: 0 }
+          NodeRef { polygon_index: 3 },
+          NodeRef { polygon_index: 1 },
+          NodeRef { polygon_index: 0 }
         ],
         portal_edge_index: vec![0, 0],
       }
