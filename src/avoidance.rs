@@ -4,13 +4,11 @@ use dodgy::VisibilitySet;
 use glam::{Vec3, Vec3Swizzles};
 use kdtree::{distance::squared_euclidean, KdTree};
 
-use crate::{
-  nav_mesh::MeshNodeRef, Agent, AgentId, AgentOptions, NavigationData,
-};
+use crate::{nav_data::NodeRef, Agent, AgentId, AgentOptions, NavigationData};
 
 pub(crate) fn apply_avoidance_to_agents(
   agents: &mut HashMap<AgentId, Agent>,
-  agent_id_to_agent_node: &HashMap<AgentId, (Vec3, MeshNodeRef)>,
+  agent_id_to_agent_node: &HashMap<AgentId, (Vec3, NodeRef)>,
   nav_data: &NavigationData,
   agent_options: &AgentOptions,
   delta_time: f32,
@@ -103,7 +101,7 @@ pub(crate) fn apply_avoidance_to_agents(
 }
 
 fn nav_mesh_borders_to_dodgy_obstacles(
-  agent_node: (Vec3, MeshNodeRef),
+  agent_node: (Vec3, NodeRef),
   nav_data: &NavigationData,
   distance_limit: f32,
 ) -> Vec<dodgy::Obstacle> {
@@ -271,8 +269,8 @@ mod tests {
   use glam::{Vec2, Vec3};
 
   use crate::{
-    avoidance::apply_avoidance_to_agents, nav_mesh::MeshNodeRef, Agent,
-    AgentId, AgentOptions, NavigationData, NavigationMesh,
+    avoidance::apply_avoidance_to_agents, nav_data::NodeRef, Agent, AgentId,
+    AgentOptions, NavigationData, NavigationMesh,
   };
 
   use super::nav_mesh_borders_to_dodgy_obstacles;
@@ -345,7 +343,7 @@ mod tests {
 
     assert_obstacles_match!(
       nav_mesh_borders_to_dodgy_obstacles(
-        (Vec3::new(1.5, 0.0, 1.5), MeshNodeRef { polygon_index: 0 }),
+        (Vec3::new(1.5, 0.0, 1.5), NodeRef { polygon_index: 0 }),
         &nav_data,
         /* distance_limit= */ 10.0,
       ),
@@ -393,7 +391,7 @@ mod tests {
 
     assert_obstacles_match!(
       nav_mesh_borders_to_dodgy_obstacles(
-        (Vec3::new(1.5, 0.0, 1.5), MeshNodeRef { polygon_index: 0 }),
+        (Vec3::new(1.5, 0.0, 1.5), NodeRef { polygon_index: 0 }),
         &nav_data,
         /* distance_limit= */ 10.0,
       ),
@@ -414,7 +412,7 @@ mod tests {
 
     assert_obstacles_match!(
       nav_mesh_borders_to_dodgy_obstacles(
-        (Vec3::new(3.5, 0.0, 3.5), MeshNodeRef { polygon_index: 4 }),
+        (Vec3::new(3.5, 0.0, 3.5), NodeRef { polygon_index: 4 }),
         &nav_data,
         /* distance_limit= */ 10.0,
       ),
@@ -436,7 +434,7 @@ mod tests {
     // Decrease the distance limit to limit the size of the open obstacle.
     assert_obstacles_match!(
       nav_mesh_borders_to_dodgy_obstacles(
-        (Vec3::new(3.5, 0.0, 3.5), MeshNodeRef { polygon_index: 4 }),
+        (Vec3::new(3.5, 0.0, 3.5), NodeRef { polygon_index: 4 }),
         &nav_data,
         /* distance_limit= */ 1.0,
       ),
@@ -454,7 +452,7 @@ mod tests {
 
     assert_obstacles_match!(
       nav_mesh_borders_to_dodgy_obstacles(
-        (Vec3::new(3.5, 0.0, 1.5), MeshNodeRef { polygon_index: 2 }),
+        (Vec3::new(3.5, 0.0, 1.5), NodeRef { polygon_index: 2 }),
         &nav_data,
         /* distance_limit= */ 10.0,
       ),
@@ -531,7 +529,7 @@ mod tests {
 
     assert_obstacles_match!(
       nav_mesh_borders_to_dodgy_obstacles(
-        (Vec3::new(3.0, 0.0, 0.9), MeshNodeRef { polygon_index: 0 }),
+        (Vec3::new(3.0, 0.0, 0.9), NodeRef { polygon_index: 0 }),
         &nav_data,
         /* distance_limit= */ 10.0,
       ),
@@ -605,17 +603,11 @@ mod tests {
     let mut agent_id_to_agent_node = HashMap::new();
     agent_id_to_agent_node.insert(
       AGENT_1,
-      (
-        agents.get(&AGENT_1).unwrap().position,
-        MeshNodeRef { polygon_index: 0 },
-      ),
+      (agents.get(&AGENT_1).unwrap().position, NodeRef { polygon_index: 0 }),
     );
     agent_id_to_agent_node.insert(
       AGENT_2,
-      (
-        agents.get(&AGENT_2).unwrap().position,
-        MeshNodeRef { polygon_index: 0 },
-      ),
+      (agents.get(&AGENT_2).unwrap().position, NodeRef { polygon_index: 0 }),
     );
     // `AGENT_3` is not on a node.
 
@@ -686,17 +678,11 @@ mod tests {
     let mut agent_id_to_agent_node = HashMap::new();
     agent_id_to_agent_node.insert(
       AGENT_1,
-      (
-        agents.get(&AGENT_1).unwrap().position,
-        MeshNodeRef { polygon_index: 0 },
-      ),
+      (agents.get(&AGENT_1).unwrap().position, NodeRef { polygon_index: 0 }),
     );
     agent_id_to_agent_node.insert(
       AGENT_2,
-      (
-        agents.get(&AGENT_2).unwrap().position,
-        MeshNodeRef { polygon_index: 0 },
-      ),
+      (agents.get(&AGENT_2).unwrap().position, NodeRef { polygon_index: 0 }),
     );
 
     let nav_data = NavigationData {

@@ -1,9 +1,15 @@
 use glam::Vec3;
 
-use crate::{nav_mesh::MeshNodeRef, ValidNavigationMesh};
+use crate::ValidNavigationMesh;
 
 pub struct NavigationData {
   pub nav_mesh: ValidNavigationMesh,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
+pub struct NodeRef {
+  // The index of the polygon in the navigation mesh.
+  pub polygon_index: usize,
 }
 
 impl NavigationData {
@@ -11,7 +17,10 @@ impl NavigationData {
     &self,
     point: Vec3,
     distance_to_node: f32,
-  ) -> Option<(Vec3, MeshNodeRef)> {
-    self.nav_mesh.sample_point(point, distance_to_node)
+  ) -> Option<(Vec3, NodeRef)> {
+    self
+      .nav_mesh
+      .sample_point(point, distance_to_node)
+      .map(|(point, polygon_index)| (point, NodeRef { polygon_index }))
   }
 }

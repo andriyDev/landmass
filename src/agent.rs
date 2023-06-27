@@ -125,7 +125,7 @@ mod tests {
   use glam::Vec3;
 
   use crate::{
-    nav_mesh::MeshNodeRef, path::Path, Agent, Archipelago, NavigationMesh,
+    nav_data::NodeRef, path::Path, Agent, Archipelago, NavigationMesh,
     TargetReachedCondition,
   };
 
@@ -144,7 +144,7 @@ mod tests {
     );
 
     let path = Path {
-      corridor: vec![MeshNodeRef { polygon_index: 0 }],
+      corridor: vec![NodeRef { polygon_index: 0 }],
       portal_edge_index: vec![],
     };
 
@@ -208,9 +208,9 @@ mod tests {
 
     let path = Path {
       corridor: vec![
-        MeshNodeRef { polygon_index: 0 },
-        MeshNodeRef { polygon_index: 1 },
-        MeshNodeRef { polygon_index: 2 },
+        NodeRef { polygon_index: 0 },
+        NodeRef { polygon_index: 1 },
+        NodeRef { polygon_index: 2 },
       ],
       portal_edge_index: vec![1, 2],
     };

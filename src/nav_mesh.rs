@@ -243,12 +243,6 @@ pub struct MeshEdgeRef {
   pub edge_index: usize,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Hash)]
-pub struct MeshNodeRef {
-  // The index of the polygon in the navigation mesh.
-  pub polygon_index: usize,
-}
-
 impl ValidNavigationMesh {
   // Gets the points that make up the specified edge.
   pub fn get_edge_points(&self, edge_ref: MeshEdgeRef) -> (Vec3, Vec3) {
@@ -343,7 +337,7 @@ impl ValidNavigationMesh {
     &self,
     point: Vec3,
     distance_to_node: f32,
-  ) -> Option<(Vec3, MeshNodeRef)> {
+  ) -> Option<(Vec3, usize)> {
     let sample_box = BoundingBox::new_box(point, point)
       .expand_by_size(Vec3::ONE * distance_to_node);
 
@@ -416,7 +410,7 @@ impl ValidNavigationMesh {
     }
 
     best_node.map(|(polygon_index, projected_point, _)| {
-      (projected_point, MeshNodeRef { polygon_index })
+      (projected_point, polygon_index)
     })
   }
 }
@@ -435,7 +429,7 @@ mod tests {
   use glam::Vec3;
 
   use crate::{
-    nav_mesh::{Connectivity, MeshEdgeRef, MeshNodeRef, ValidPolygon},
+    nav_mesh::{Connectivity, MeshEdgeRef, ValidPolygon},
     util::BoundingBox,
   };
 
@@ -889,7 +883,7 @@ mod tests {
         /* point= */ Vec3::new(1.5, 0.95, 1.5),
         /* distance_to_node= */ 1.0,
       ),
-      Some((Vec3::new(1.5, 0.0, 1.5), MeshNodeRef { polygon_index: 0 }))
+      Some((Vec3::new(1.5, 0.0, 1.5), 0))
     );
 
     assert_eq!(
@@ -897,7 +891,7 @@ mod tests {
         /* point= */ Vec3::new(1.5, -0.95, 4.0),
         /* distance_to_node= */ 1.0,
       ),
-      Some((Vec3::new(1.5, 0.0, 4.0), MeshNodeRef { polygon_index: 1 }))
+      Some((Vec3::new(1.5, 0.0, 4.0), 1))
     );
 
     assert_eq!(
@@ -905,7 +899,7 @@ mod tests {
         /* point= */ Vec3::new(1.5, -0.95, 4.0),
         /* distance_to_node= */ 1.0,
       ),
-      Some((Vec3::new(1.5, 0.0, 4.0), MeshNodeRef { polygon_index: 1 }))
+      Some((Vec3::new(1.5, 0.0, 4.0), 1))
     );
 
     // Angled nodes
@@ -915,7 +909,7 @@ mod tests {
         /* point= */ Vec3::new(2.5, -0.55, 3.5),
         /* distance_to_node = */ 5.0
       ),
-      Some((Vec3::new(2.5, -1.0, 3.5), MeshNodeRef { polygon_index: 3 }))
+      Some((Vec3::new(2.5, -1.0, 3.5), 3))
     );
     assert_eq!(
       mesh
@@ -924,7 +918,7 @@ mod tests {
           /* distance_to_node = */ 5.0
         )
         .map(|(point, node)| ((point * 1000.0).round() / 1000.0, node)),
-      Some((Vec3::new(2.5, 0.5, 4.5), MeshNodeRef { polygon_index: 2 }))
+      Some((Vec3::new(2.5, 0.5, 4.5), 2))
     );
   }
 
@@ -966,7 +960,7 @@ mod tests {
         /* point= */ Vec3::new(-0.5, 0.25, 1.5),
         /* distance_to_node= */ 1.0,
       ),
-      Some((Vec3::new(0.0, 0.0, 1.5), MeshNodeRef { polygon_index: 0 }))
+      Some((Vec3::new(0.0, 0.0, 1.5), 0))
     );
 
     assert_eq!(
@@ -974,7 +968,7 @@ mod tests {
         /* point= */ Vec3::new(0.5, -0.25, 5.5),
         /* distance_to_node= */ 1.0,
       ),
-      Some((Vec3::new(1.0, 0.0, 5.0), MeshNodeRef { polygon_index: 1 }))
+      Some((Vec3::new(1.0, 0.0, 5.0), 1))
     );
 
     assert_eq!(
@@ -982,7 +976,7 @@ mod tests {
         /* point= */ Vec3::new(4.5, -0.25, 1.5),
         /* distance_to_node= */ 1.0,
       ),
-      Some((Vec3::new(4.0, 0.0, 1.5), MeshNodeRef { polygon_index: 0 }))
+      Some((Vec3::new(4.0, 0.0, 1.5), 0))
     );
 
     // Angled nodes
@@ -992,7 +986,7 @@ mod tests {
         /* point= */ Vec3::new(2.5, 0.5, 5.5),
         /* distance_to_node = */ 5.0
       ),
-      Some((Vec3::new(2.5, 0.5, 5.0), MeshNodeRef { polygon_index: 2 }))
+      Some((Vec3::new(2.5, 0.5, 5.0), 2))
     );
   }
 

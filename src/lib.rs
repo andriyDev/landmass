@@ -123,8 +123,7 @@ use glam::Vec3;
 use rand::Rng;
 use std::collections::HashMap;
 
-use nav_data::NavigationData;
-use nav_mesh::MeshNodeRef;
+use nav_data::{NavigationData, NodeRef};
 
 pub use agent::{Agent, AgentId, TargetReachedCondition};
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh};
@@ -346,8 +345,8 @@ enum RepathResult {
 
 fn does_agent_need_repath(
   agent: &Agent,
-  agent_node: Option<MeshNodeRef>,
-  target_node: Option<MeshNodeRef>,
+  agent_node: Option<NodeRef>,
+  target_node: Option<NodeRef>,
 ) -> RepathResult {
   if let None = agent.current_target {
     if agent.current_path.is_some() {
@@ -397,7 +396,7 @@ mod tests {
   use glam::Vec3;
 
   use crate::{
-    does_agent_need_repath, nav_mesh::MeshNodeRef, path::Path, Agent, AgentId,
+    does_agent_need_repath, nav_data::NodeRef, path::Path, Agent, AgentId,
     Archipelago, NavigationMesh, RepathResult,
   };
 
@@ -435,20 +434,12 @@ mod tests {
     agent.current_target = Some(Vec3::ZERO);
 
     assert_eq!(
-      does_agent_need_repath(
-        &agent,
-        None,
-        Some(MeshNodeRef { polygon_index: 0 }),
-      ),
+      does_agent_need_repath(&agent, None, Some(NodeRef { polygon_index: 0 }),),
       RepathResult::ClearPath,
     );
 
     assert_eq!(
-      does_agent_need_repath(
-        &agent,
-        Some(MeshNodeRef { polygon_index: 0 }),
-        None
-      ),
+      does_agent_need_repath(&agent, Some(NodeRef { polygon_index: 0 }), None),
       RepathResult::ClearPath,
     );
   }
@@ -466,19 +457,19 @@ mod tests {
     assert_eq!(
       does_agent_need_repath(
         &agent,
-        Some(MeshNodeRef { polygon_index: 1 }),
-        Some(MeshNodeRef { polygon_index: 3 }),
+        Some(NodeRef { polygon_index: 1 }),
+        Some(NodeRef { polygon_index: 3 }),
       ),
       RepathResult::NeedsRepath,
     );
 
     agent.current_path = Some(Path {
       corridor: vec![
-        MeshNodeRef { polygon_index: 2 },
-        MeshNodeRef { polygon_index: 3 },
-        MeshNodeRef { polygon_index: 4 },
-        MeshNodeRef { polygon_index: 1 },
-        MeshNodeRef { polygon_index: 0 },
+        NodeRef { polygon_index: 2 },
+        NodeRef { polygon_index: 3 },
+        NodeRef { polygon_index: 4 },
+        NodeRef { polygon_index: 1 },
+        NodeRef { polygon_index: 0 },
       ],
       portal_edge_index: vec![],
     });
@@ -487,8 +478,8 @@ mod tests {
     assert_eq!(
       does_agent_need_repath(
         &agent,
-        Some(MeshNodeRef { polygon_index: 5 }),
-        Some(MeshNodeRef { polygon_index: 1 }),
+        Some(NodeRef { polygon_index: 5 }),
+        Some(NodeRef { polygon_index: 1 }),
       ),
       RepathResult::NeedsRepath,
     );
@@ -497,8 +488,8 @@ mod tests {
     assert_eq!(
       does_agent_need_repath(
         &agent,
-        Some(MeshNodeRef { polygon_index: 3 }),
-        Some(MeshNodeRef { polygon_index: 6 }),
+        Some(NodeRef { polygon_index: 3 }),
+        Some(NodeRef { polygon_index: 6 }),
       ),
       RepathResult::NeedsRepath,
     );
@@ -507,8 +498,8 @@ mod tests {
     assert_eq!(
       does_agent_need_repath(
         &agent,
-        Some(MeshNodeRef { polygon_index: 1 }),
-        Some(MeshNodeRef { polygon_index: 3 }),
+        Some(NodeRef { polygon_index: 1 }),
+        Some(NodeRef { polygon_index: 3 }),
       ),
       RepathResult::NeedsRepath,
     );
@@ -517,8 +508,8 @@ mod tests {
     assert_eq!(
       does_agent_need_repath(
         &agent,
-        Some(MeshNodeRef { polygon_index: 3 }),
-        Some(MeshNodeRef { polygon_index: 1 }),
+        Some(NodeRef { polygon_index: 3 }),
+        Some(NodeRef { polygon_index: 1 }),
       ),
       RepathResult::FollowPath(1, 3),
     );
