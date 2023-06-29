@@ -91,10 +91,34 @@ mod tests {
   use glam::Vec3;
 
   use crate::{
-    nav_data::NodeRef, nav_mesh::NavigationMesh, Archipelago, Transform,
+    nav_data::{NavigationData, NodeRef},
+    nav_mesh::NavigationMesh,
+    Archipelago, Transform,
   };
 
   use super::Path;
+
+  fn collect_straight_path(
+    path: &Path,
+    nav_data: &NavigationData,
+    start: (usize, Vec3),
+    end: (usize, Vec3),
+    iteration_limit: u32,
+  ) -> Vec<(usize, Vec3)> {
+    let mut straight_path = Vec::with_capacity(iteration_limit as usize);
+
+    let mut current = start;
+    let mut iterations = 0;
+    while current.0 != end.0 && iterations < iteration_limit {
+      iterations += 1;
+      current = path.find_next_point_in_straight_path(
+        nav_data, current.0, current.1, end.0, end.1,
+      );
+      straight_path.push(current);
+    }
+
+    straight_path
+  }
 
   #[test]
   fn finds_next_point_for_organic_map() {
@@ -135,8 +159,6 @@ mod tests {
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 
-    let nav_data = &archipelago.nav_data;
-
     let path = Path {
       corridor: vec![
         NodeRef { island_id, polygon_index: 0 },
@@ -146,45 +168,19 @@ mod tests {
       portal_edge_index: vec![4, 2],
     };
 
-    let (current_index, current_point) = (0, Vec3::new(3.0, 0.0, 1.5));
-    let (end_index, end_point) = (2, Vec3::new(2.5, 0.5, 4.5));
-
-    let expected_result = (0, Vec3::new(2.0, 0.0, 3.0));
     assert_eq!(
-      path.find_next_point_in_straight_path(
-        nav_data,
-        current_index,
-        current_point,
-        end_index,
-        end_point,
+      collect_straight_path(
+        &path,
+        &archipelago.nav_data,
+        /* start= */ (0, Vec3::new(3.0, 0.0, 1.5)),
+        /* end= */ (2, Vec3::new(2.5, 0.5, 4.5)),
+        /* iteration_limit= */ 3,
       ),
-      expected_result
-    );
-
-    let (current_index, current_point) = expected_result;
-    let expected_result = (1, Vec3::new(2.0, 0.0, 4.0));
-    assert_eq!(
-      path.find_next_point_in_straight_path(
-        nav_data,
-        current_index,
-        current_point,
-        end_index,
-        end_point,
-      ),
-      expected_result
-    );
-
-    let (current_index, current_point) = expected_result;
-    let expected_result = (end_index, end_point);
-    assert_eq!(
-      path.find_next_point_in_straight_path(
-        nav_data,
-        current_index,
-        current_point,
-        end_index,
-        end_point,
-      ),
-      expected_result
+      [
+        (0, Vec3::new(2.0, 0.0, 3.0)),
+        (1, Vec3::new(2.0, 0.0, 4.0)),
+        (2, Vec3::new(2.5, 0.5, 4.5)),
+      ]
     );
   }
 
@@ -251,8 +247,6 @@ mod tests {
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 
-    let nav_data = &archipelago.nav_data;
-
     let path = Path {
       corridor: vec![
         NodeRef { island_id, polygon_index: 0 },
@@ -274,33 +268,22 @@ mod tests {
       portal_edge_index: vec![2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
     };
 
-    let (mut current_index, mut current_point) = (0, Vec3::new(0.5, 0.0, 0.5));
-    let (end_index, end_point) = (14, Vec3::new(-3.5, 0.0, 14.0));
-
-    let expected_results = [
-      (4, Vec3::new(1.0, 0.0, 4.0)),
-      (8, Vec3::new(4.0, 0.0, 5.0)),
-      (11, Vec3::new(4.0, 0.0, 7.0)),
-      (13, Vec3::new(-3.0, 0.0, 8.0)),
-      (14, Vec3::new(-3.5, 0.0, 14.0)),
-    ];
-    for expected_result in expected_results {
-      assert_eq!(
-        path.find_next_point_in_straight_path(
-          nav_data,
-          current_index,
-          current_point,
-          end_index,
-          end_point
-        ),
-        expected_result,
-        "Current=({}, {})",
-        current_index,
-        current_point
-      );
-
-      (current_index, current_point) = expected_result;
-    }
+    assert_eq!(
+      collect_straight_path(
+        &path,
+        &archipelago.nav_data,
+        /* start= */ (0, Vec3::new(0.5, 0.0, 0.5)),
+        /* end= */ (14, Vec3::new(-3.5, 0.0, 14.0)),
+        /* iteration_limit= */ 5,
+      ),
+      [
+        (4, Vec3::new(1.0, 0.0, 4.0)),
+        (8, Vec3::new(4.0, 0.0, 5.0)),
+        (11, Vec3::new(4.0, 0.0, 7.0)),
+        (13, Vec3::new(-3.0, 0.0, 8.0)),
+        (14, Vec3::new(-3.5, 0.0, 14.0)),
+      ]
+    );
   }
 
   #[test]
@@ -328,8 +311,6 @@ mod tests {
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 
-    let nav_data = &archipelago.nav_data;
-
     let path = Path {
       corridor: vec![
         NodeRef { island_id, polygon_index: 0 },
@@ -340,7 +321,7 @@ mod tests {
 
     assert_eq!(
       path.find_next_point_in_straight_path(
-        nav_data,
+        &archipelago.nav_data,
         /* start_index= */ 1,
         /* start_point= */ Vec3::new(0.25, 0.0, 1.1),
         /* end_index= */ 1,
