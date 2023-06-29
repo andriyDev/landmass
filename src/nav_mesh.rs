@@ -195,7 +195,7 @@ impl NavigationMesh {
 
 // A navigation mesh which has been validated and derived data has been
 // computed.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ValidNavigationMesh {
   // The bounds of the mesh data itself. This is a tight bounding box around
   // the vertices of the navigation mesh.
@@ -216,7 +216,7 @@ pub struct ValidNavigationMesh {
 
 // A valid polygon. This means the polygon is convex and indexes the `vertices`
 // Vec of the corresponding ValidNavigationMesh.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub(crate) struct ValidPolygon {
   // The vertices are indexes to the `vertices` Vec of the corresponding
   // ValidNavigationMesh.
