@@ -88,6 +88,8 @@ impl Path {
 
 #[cfg(test)]
 mod tests {
+  use std::f32::consts::PI;
+
   use glam::Vec3;
 
   use crate::{
@@ -151,12 +153,12 @@ mod tests {
     .validate()
     .expect("Mesh is valid.");
 
+    let transform =
+      Transform { translation: Vec3::new(5.0, 7.0, 9.0), rotation: PI * 0.35 };
     let mut archipelago = Archipelago::new();
     let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
     archipelago.get_island_mut(island_id).set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      nav_mesh,
-      /* linkable_distance_to_region_edge= */ 0.01,
+      transform, nav_mesh, /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let path = Path {
@@ -172,14 +174,14 @@ mod tests {
       collect_straight_path(
         &path,
         &archipelago.nav_data,
-        /* start= */ (0, Vec3::new(3.0, 0.0, 1.5)),
-        /* end= */ (2, Vec3::new(2.5, 0.5, 4.5)),
+        /* start= */ (0, transform.apply(Vec3::new(3.0, 0.0, 1.5))),
+        /* end= */ (2, transform.apply(Vec3::new(2.5, 0.5, 4.5))),
         /* iteration_limit= */ 3,
       ),
       [
-        (0, Vec3::new(2.0, 0.0, 3.0)),
-        (1, Vec3::new(2.0, 0.0, 4.0)),
-        (2, Vec3::new(2.5, 0.5, 4.5)),
+        (0, transform.apply(Vec3::new(2.0, 0.0, 3.0))),
+        (1, transform.apply(Vec3::new(2.0, 0.0, 4.0))),
+        (2, transform.apply(Vec3::new(2.5, 0.5, 4.5))),
       ]
     );
   }
@@ -239,12 +241,14 @@ mod tests {
     .validate()
     .expect("Mesh is valid.");
 
+    let transform = Transform {
+      translation: Vec3::new(-1.0, -10.0, -3.0),
+      rotation: PI * 1.8,
+    };
     let mut archipelago = Archipelago::new();
     let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
     archipelago.get_island_mut(island_id).set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      nav_mesh,
-      /* linkable_distance_to_region_edge= */ 0.01,
+      transform, nav_mesh, /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let path = Path {
@@ -272,16 +276,16 @@ mod tests {
       collect_straight_path(
         &path,
         &archipelago.nav_data,
-        /* start= */ (0, Vec3::new(0.5, 0.0, 0.5)),
-        /* end= */ (14, Vec3::new(-3.5, 0.0, 14.0)),
+        /* start= */ (0, transform.apply(Vec3::new(0.5, 0.0, 0.5))),
+        /* end= */ (14, transform.apply(Vec3::new(-3.5, 0.0, 14.0))),
         /* iteration_limit= */ 5,
       ),
       [
-        (4, Vec3::new(1.0, 0.0, 4.0)),
-        (8, Vec3::new(4.0, 0.0, 5.0)),
-        (11, Vec3::new(4.0, 0.0, 7.0)),
-        (13, Vec3::new(-3.0, 0.0, 8.0)),
-        (14, Vec3::new(-3.5, 0.0, 14.0)),
+        (4, transform.apply(Vec3::new(1.0, 0.0, 4.0))),
+        (8, transform.apply(Vec3::new(4.0, 0.0, 5.0))),
+        (11, transform.apply(Vec3::new(4.0, 0.0, 7.0))),
+        (13, transform.apply(Vec3::new(-3.0, 0.0, 8.0))),
+        (14, transform.apply(Vec3::new(-3.5, 0.0, 14.0))),
       ]
     );
   }
