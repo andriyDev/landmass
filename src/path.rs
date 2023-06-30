@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use glam::{Vec3, Vec3Swizzles};
 
 use crate::{nav_data::NodeRef, NavigationData};
@@ -84,18 +86,34 @@ impl Path {
 
     (end_index, end_point)
   }
+
+  pub(crate) fn is_valid(&self, nav_data: &NavigationData) -> bool {
+    let islands_in_path =
+      self.corridor.iter().map(|n| n.island_id).collect::<HashSet<u32>>();
+
+    for island_id in islands_in_path {
+      match nav_data.islands.get(&island_id) {
+        None => return false,
+        Some(island) if island.dirty => return false,
+        _ => {}
+      }
+    }
+
+    true
+  }
 }
 
 #[cfg(test)]
 mod tests {
-  use std::f32::consts::PI;
+  use std::{collections::HashMap, f32::consts::PI};
 
   use glam::Vec3;
 
   use crate::{
+    island::Island,
     nav_data::{NavigationData, NodeRef},
     nav_mesh::NavigationMesh,
-    Archipelago, Transform,
+    Archipelago, BoundingBox, Transform, ValidNavigationMesh,
   };
 
   use super::Path;
@@ -333,5 +351,70 @@ mod tests {
       ),
       (1, Vec3::new(0.75, 0.0, 1.9))
     );
+  }
+
+  #[test]
+  fn path_not_valid_for_missing_islands_or_dirty_islands() {
+    let path = Path {
+      corridor: vec![
+        NodeRef { island_id: 1, polygon_index: 0 },
+        NodeRef { island_id: 2, polygon_index: 0 },
+        NodeRef { island_id: 2, polygon_index: 1 },
+        NodeRef { island_id: 3, polygon_index: 0 },
+      ],
+      portal_edge_index: vec![0, 1, 2],
+    };
+
+    let nav_mesh = ValidNavigationMesh {
+      mesh_bounds: BoundingBox::Empty,
+      boundary_edges: vec![],
+      connectivity: vec![],
+      polygons: vec![],
+      vertices: vec![],
+    };
+
+    let mut island_1 = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
+    island_1.set_nav_mesh(
+      Transform::default(),
+      nav_mesh.clone(),
+      /* linkable_distance_to_region_edge= */ 0.01,
+    );
+
+    let mut island_3 = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
+    island_3.set_nav_mesh(
+      Transform::default(),
+      nav_mesh.clone(),
+      /* linkable_distance_to_region_edge= */ 0.01,
+    );
+
+    // Pretend we updated the islands so they aren't dirty.
+    island_1.dirty = false;
+    island_3.dirty = false;
+
+    let mut islands = HashMap::new();
+    islands.insert(1, island_1);
+    islands.insert(3, island_3);
+
+    let mut nav_data = NavigationData { islands };
+    assert!(!path.is_valid(&nav_data));
+
+    let mut island_2 = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
+    island_2.set_nav_mesh(
+      Transform::default(),
+      nav_mesh,
+      /* linkable_distance_to_region_edge= */ 0.01,
+    );
+
+    nav_data.islands.insert(2, island_2);
+    assert!(!path.is_valid(&nav_data));
+
+    // Pretend we updated island_2.
+    nav_data.islands.get_mut(&2).unwrap().dirty = false;
+    assert!(path.is_valid(&nav_data));
+
+    // Clear one of the islands of its nav mesh which should make the path
+    // invalid again.
+    nav_data.islands.get_mut(&1).unwrap().clear_nav_mesh();
+    assert!(!path.is_valid(&nav_data));
   }
 }

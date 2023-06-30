@@ -118,7 +118,7 @@ impl BoundingBox {
 }
 
 // A transform that can be applied to Vec3's.
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug, Default)]
 pub struct Transform {
   // The translation to apply.
   pub translation: Vec3,
