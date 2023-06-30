@@ -857,4 +857,40 @@ mod tests {
       Vec3::ZERO
     );
   }
+
+  #[test]
+  fn add_and_remove_islands() {
+    let mut archipelago = Archipelago::new();
+
+    let island_id_1 =
+      archipelago.add_island(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
+    let island_id_2 =
+      archipelago.add_island(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE * 2.0));
+    let island_id_3 =
+      archipelago.add_island(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE * 3.0));
+
+    assert_eq!(
+      archipelago.get_island(island_id_1).region_bounds.as_box().1.x,
+      1.0
+    );
+    assert_eq!(
+      archipelago.get_island(island_id_2).region_bounds.as_box().1.x,
+      2.0
+    );
+    assert_eq!(
+      archipelago.get_island(island_id_3).region_bounds.as_box().1.x,
+      3.0
+    );
+
+    archipelago.remove_island(island_id_2);
+
+    assert_eq!(
+      archipelago.get_island(island_id_1).region_bounds.as_box().1.x,
+      1.0
+    );
+    assert_eq!(
+      archipelago.get_island(island_id_3).region_bounds.as_box().1.x,
+      3.0
+    );
+  }
 }
