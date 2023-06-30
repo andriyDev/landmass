@@ -288,6 +288,7 @@ impl Archipelago {
         agent,
         agent_node.clone(),
         target_node.clone(),
+        &self.nav_data,
       ) {
         RepathResult::DoNothing => {}
         RepathResult::FollowPath(
@@ -386,6 +387,7 @@ fn does_agent_need_repath(
   agent: &Agent,
   agent_node: Option<NodeRef>,
   target_node: Option<NodeRef>,
+  nav_data: &NavigationData,
 ) -> RepathResult {
   if let None = agent.current_target {
     if agent.current_path.is_some() {
@@ -408,6 +410,10 @@ fn does_agent_need_repath(
     None => return RepathResult::NeedsRepath,
     Some(current_path) => current_path,
   };
+
+  if !current_path.is_valid(nav_data) {
+    return RepathResult::NeedsRepath;
+  }
 
   let agent_node_index_in_corridor =
     match current_path.corridor.iter().position(|x| x == &agent_node) {
@@ -432,11 +438,17 @@ fn does_agent_need_repath(
 
 #[cfg(test)]
 mod tests {
+  use std::collections::HashMap;
+
   use glam::Vec3;
 
   use crate::{
-    does_agent_need_repath, nav_data::NodeRef, path::Path, Agent, AgentId,
-    Archipelago, NavigationMesh, RepathResult, Transform,
+    does_agent_need_repath,
+    island::Island,
+    nav_data::{NavigationData, NodeRef},
+    path::Path,
+    Agent, AgentId, Archipelago, BoundingBox, NavigationMesh, RepathResult,
+    Transform,
   };
 
   #[test]
@@ -448,8 +460,10 @@ mod tests {
       /* max_velocity= */ 0.0,
     );
 
+    let nav_data = NavigationData { islands: HashMap::new() };
+
     assert_eq!(
-      does_agent_need_repath(&agent, None, None),
+      does_agent_need_repath(&agent, None, None, &nav_data),
       RepathResult::DoNothing
     );
 
@@ -457,7 +471,7 @@ mod tests {
       Some(Path { corridor: vec![], portal_edge_index: vec![] });
 
     assert_eq!(
-      does_agent_need_repath(&agent, None, None),
+      does_agent_need_repath(&agent, None, None, &nav_data),
       RepathResult::ClearPath,
     );
   }
@@ -472,11 +486,14 @@ mod tests {
     );
     agent.current_target = Some(Vec3::ZERO);
 
+    let nav_data = NavigationData { islands: HashMap::new() };
+
     assert_eq!(
       does_agent_need_repath(
         &agent,
         None,
         Some(NodeRef { island_id: 0, polygon_index: 0 }),
+        &nav_data,
       ),
       RepathResult::ClearPath,
     );
@@ -485,7 +502,8 @@ mod tests {
       does_agent_need_repath(
         &agent,
         Some(NodeRef { island_id: 0, polygon_index: 0 }),
-        None
+        None,
+        &nav_data,
       ),
       RepathResult::ClearPath,
     );
@@ -501,11 +519,15 @@ mod tests {
     );
     agent.current_target = Some(Vec3::ZERO);
 
+    let mut nav_data = NavigationData { islands: HashMap::new() };
+
+    // No path.
     assert_eq!(
       does_agent_need_repath(
         &agent,
         Some(NodeRef { island_id: 0, polygon_index: 1 }),
         Some(NodeRef { island_id: 0, polygon_index: 3 }),
+        &nav_data,
       ),
       RepathResult::NeedsRepath,
     );
@@ -521,12 +543,53 @@ mod tests {
       portal_edge_index: vec![],
     });
 
+    // Missing island.
+    assert_eq!(
+      does_agent_need_repath(
+        &agent,
+        Some(NodeRef { island_id: 0, polygon_index: 3 }),
+        Some(NodeRef { island_id: 0, polygon_index: 1 }),
+        &nav_data,
+      ),
+      RepathResult::NeedsRepath
+    );
+
+    nav_data.islands.insert(0, {
+      let mut island = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
+      island.set_nav_mesh(
+        Transform::default(),
+        NavigationMesh {
+          mesh_bounds: None,
+          vertices: vec![],
+          polygons: vec![],
+        }
+        .validate()
+        .expect("is valid"),
+        /* linkable_distance_to_region_edge= */ 0.01,
+      );
+      island
+    });
+
+    // Dirty island.
+    assert_eq!(
+      does_agent_need_repath(
+        &agent,
+        Some(NodeRef { island_id: 0, polygon_index: 3 }),
+        Some(NodeRef { island_id: 0, polygon_index: 1 }),
+        &nav_data,
+      ),
+      RepathResult::NeedsRepath
+    );
+
+    nav_data.islands.get_mut(&0).unwrap().dirty = false;
+
     // Missing agent node.
     assert_eq!(
       does_agent_need_repath(
         &agent,
         Some(NodeRef { island_id: 0, polygon_index: 5 }),
         Some(NodeRef { island_id: 0, polygon_index: 1 }),
+        &nav_data,
       ),
       RepathResult::NeedsRepath,
     );
@@ -537,6 +600,7 @@ mod tests {
         &agent,
         Some(NodeRef { island_id: 0, polygon_index: 3 }),
         Some(NodeRef { island_id: 0, polygon_index: 6 }),
+        &nav_data,
       ),
       RepathResult::NeedsRepath,
     );
@@ -547,6 +611,7 @@ mod tests {
         &agent,
         Some(NodeRef { island_id: 0, polygon_index: 1 }),
         Some(NodeRef { island_id: 0, polygon_index: 3 }),
+        &nav_data,
       ),
       RepathResult::NeedsRepath,
     );
@@ -557,6 +622,7 @@ mod tests {
         &agent,
         Some(NodeRef { island_id: 0, polygon_index: 3 }),
         Some(NodeRef { island_id: 0, polygon_index: 1 }),
+        &nav_data,
       ),
       RepathResult::FollowPath(1, 3),
     );
