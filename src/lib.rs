@@ -131,13 +131,13 @@ mod pathfinding;
 mod util;
 
 use glam::Vec3;
-use island::{Island, IslandId};
 use rand::Rng;
 use std::collections::HashMap;
 
 use nav_data::{NavigationData, NodeRef};
 
 pub use agent::{Agent, AgentId, TargetReachedCondition};
+pub use island::{Island, IslandId};
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh};
 pub use util::{BoundingBox, Transform};
 
