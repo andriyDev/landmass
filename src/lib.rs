@@ -50,6 +50,7 @@ be confusing.
 ```
 use glam::Vec3;
 use landmass::*;
+use std::sync::Arc;
 
 let mut archipelago = Archipelago::new();
 
@@ -64,7 +65,9 @@ let nav_mesh = NavigationMesh {
   polygons: vec![vec![0, 1, 2, 3]],
 };
 
-let valid_nav_mesh = nav_mesh.validate().expect("Validation succeeds");
+let valid_nav_mesh = Arc::new(
+  nav_mesh.validate().expect("Validation succeeds")
+);
 
 let island_id = archipelago.add_island(valid_nav_mesh.get_bounds());
 archipelago
@@ -438,7 +441,7 @@ fn does_agent_need_repath(
 
 #[cfg(test)]
 mod tests {
-  use std::collections::HashMap;
+  use std::{collections::HashMap, sync::Arc};
 
   use glam::Vec3;
 
@@ -558,13 +561,15 @@ mod tests {
       let mut island = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
       island.set_nav_mesh(
         Transform::default(),
-        NavigationMesh {
-          mesh_bounds: None,
-          vertices: vec![],
-          polygons: vec![],
-        }
-        .validate()
-        .expect("is valid"),
+        Arc::new(
+          NavigationMesh {
+            mesh_bounds: None,
+            vertices: vec![],
+            polygons: vec![],
+          }
+          .validate()
+          .expect("is valid"),
+        ),
         /* linkable_distance_to_region_edge= */ 0.01,
       );
       island
@@ -731,7 +736,7 @@ mod tests {
     let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
     archipelago.get_island_mut(island_id).set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      nav_mesh,
+      Arc::new(nav_mesh),
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 

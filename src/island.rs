@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
   nav_mesh::MeshEdgeRef, util::Transform, BoundingBox, ValidNavigationMesh,
 };
@@ -22,7 +24,7 @@ pub(crate) struct IslandNavigationData {
   // The transform from the Island's frame to the Archipelago's frame.
   pub transform: Transform,
   // The navigation mesh for the island.
-  pub nav_mesh: ValidNavigationMesh,
+  pub nav_mesh: Arc<ValidNavigationMesh>,
   // The edges in `nav_mesh` that can be linked with other adjacent islands.
   pub linkable_edges: [Vec<MeshEdgeRef>; 6],
 }
@@ -37,10 +39,18 @@ impl Island {
     }
   }
 
+  pub fn get_transform(&self) -> Option<Transform> {
+    self.nav_data.as_ref().map(|d| d.transform)
+  }
+
+  pub fn get_nav_mesh(&self) -> Option<Arc<ValidNavigationMesh>> {
+    self.nav_data.as_ref().map(|d| Arc::clone(&d.nav_mesh))
+  }
+
   pub fn set_nav_mesh(
     &mut self,
     transform: Transform,
-    nav_mesh: ValidNavigationMesh,
+    nav_mesh: Arc<ValidNavigationMesh>,
     linkable_distance_to_region_edge: f32,
   ) {
     self.nav_data = Some(IslandNavigationData {

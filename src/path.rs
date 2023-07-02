@@ -105,7 +105,7 @@ impl Path {
 
 #[cfg(test)]
 mod tests {
-  use std::{collections::HashMap, f32::consts::PI};
+  use std::{collections::HashMap, f32::consts::PI, sync::Arc};
 
   use glam::Vec3;
 
@@ -176,7 +176,9 @@ mod tests {
     let mut archipelago = Archipelago::new();
     let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
     archipelago.get_island_mut(island_id).set_nav_mesh(
-      transform, nav_mesh, /* linkable_distance_to_region_edge= */ 0.01,
+      transform,
+      Arc::new(nav_mesh),
+      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let path = Path {
@@ -266,7 +268,9 @@ mod tests {
     let mut archipelago = Archipelago::new();
     let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
     archipelago.get_island_mut(island_id).set_nav_mesh(
-      transform, nav_mesh, /* linkable_distance_to_region_edge= */ 0.01,
+      transform,
+      Arc::new(nav_mesh),
+      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let path = Path {
@@ -329,7 +333,7 @@ mod tests {
     let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
     archipelago.get_island_mut(island_id).set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      nav_mesh,
+      Arc::new(nav_mesh),
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 
@@ -372,18 +376,19 @@ mod tests {
       polygons: vec![],
       vertices: vec![],
     };
+    let nav_mesh = Arc::new(nav_mesh);
 
     let mut island_1 = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
     island_1.set_nav_mesh(
       Transform::default(),
-      nav_mesh.clone(),
+      Arc::clone(&nav_mesh),
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let mut island_3 = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
     island_3.set_nav_mesh(
       Transform::default(),
-      nav_mesh.clone(),
+      Arc::clone(&nav_mesh),
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 

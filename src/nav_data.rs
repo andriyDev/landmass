@@ -67,7 +67,7 @@ impl NavigationData {
 
 #[cfg(test)]
 mod tests {
-  use std::{collections::HashMap, f32::consts::PI};
+  use std::{collections::HashMap, f32::consts::PI, sync::Arc};
 
   use glam::Vec3;
 
@@ -96,20 +96,21 @@ mod tests {
     }
     .validate()
     .expect("is valid");
+    let nav_mesh = Arc::new(nav_mesh);
 
     let mut islands = HashMap::new();
 
     let mut island_1 = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
     island_1.set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      nav_mesh.clone(),
+      Arc::clone(&nav_mesh),
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let mut island_2 = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
     island_2.set_nav_mesh(
       Transform { translation: Vec3::new(5.0, 0.1, 0.0), rotation: PI * -0.5 },
-      nav_mesh.clone(),
+      Arc::clone(&nav_mesh),
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 
