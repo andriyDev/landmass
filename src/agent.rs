@@ -122,7 +122,7 @@ impl Agent {
 
 #[cfg(test)]
 mod tests {
-  use std::f32::consts::PI;
+  use std::{f32::consts::PI, sync::Arc};
 
   use glam::Vec3;
 
@@ -142,7 +142,9 @@ mod tests {
     let mut archipelago = Archipelago::new();
     let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
     archipelago.get_island_mut(island_id).set_nav_mesh(
-      transform, nav_mesh, /* linkable_distance_to_region_edge= */ 0.01,
+      transform,
+      Arc::new(nav_mesh),
+      /* linkable_distance_to_region_edge= */ 0.01,
     );
     let mut agent = Agent::create(
       /* position= */ transform.apply(Vec3::new(1.0, 0.0, 1.0)),
@@ -212,7 +214,9 @@ mod tests {
     let mut archipelago = Archipelago::new();
     let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
     archipelago.get_island_mut(island_id).set_nav_mesh(
-      transform, nav_mesh, /* linkable_distance_to_region_edge= */ 0.01,
+      transform,
+      Arc::new(nav_mesh),
+      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let mut agent = Agent::create(

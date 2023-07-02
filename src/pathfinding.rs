@@ -114,7 +114,7 @@ pub(crate) fn find_path(
 
 #[cfg(test)]
 mod tests {
-  use std::f32::consts::PI;
+  use std::{f32::consts::PI, sync::Arc};
 
   use glam::Vec3;
 
@@ -160,7 +160,7 @@ mod tests {
     let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
     archipelago.get_island_mut(island_id).set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      nav_mesh,
+      Arc::new(nav_mesh),
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 
@@ -254,19 +254,20 @@ mod tests {
     }
     .validate()
     .expect("Mesh is valid.");
+    let nav_mesh = Arc::new(nav_mesh);
 
     let mut archipelago = Archipelago::new();
     let island_id_1 = archipelago.add_island(nav_mesh.mesh_bounds);
     archipelago.get_island_mut(island_id_1).set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      nav_mesh.clone(),
+      Arc::clone(&nav_mesh),
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let island_id_2 = archipelago.add_island(nav_mesh.mesh_bounds);
     archipelago.get_island_mut(island_id_2).set_nav_mesh(
       Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * 0.5 },
-      nav_mesh,
+      Arc::clone(&nav_mesh),
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 
@@ -341,19 +342,20 @@ mod tests {
     }
     .validate()
     .expect("Mesh is valid.");
+    let nav_mesh = Arc::new(nav_mesh);
 
     let mut archipelago = Archipelago::new();
     let island_id_1 = archipelago.add_island(nav_mesh.mesh_bounds);
     archipelago.get_island_mut(island_id_1).set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      nav_mesh.clone(),
+      Arc::clone(&nav_mesh),
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let island_id_2 = archipelago.add_island(nav_mesh.mesh_bounds);
     archipelago.get_island_mut(island_id_2).set_nav_mesh(
       Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * 0.5 },
-      nav_mesh,
+      Arc::clone(&nav_mesh),
       /* linkable_distance_to_region_edge= */ 0.01,
     );
 

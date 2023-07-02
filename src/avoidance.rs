@@ -272,7 +272,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
 
 #[cfg(test)]
 mod tests {
-  use std::collections::HashMap;
+  use std::{collections::HashMap, sync::Arc};
 
   use glam::{Vec2, Vec3};
 
@@ -352,7 +352,7 @@ mod tests {
       let mut island = Island::new(nav_mesh.mesh_bounds);
       island.set_nav_mesh(
         Transform { translation: Vec3::ZERO, rotation: 0.0 },
-        nav_mesh,
+        Arc::new(nav_mesh),
         /* linkable_distance_to_region_edge= */ 0.01,
       );
       island
@@ -409,7 +409,7 @@ mod tests {
       let mut island = Island::new(nav_mesh.mesh_bounds);
       island.set_nav_mesh(
         Transform { translation: Vec3::ZERO, rotation: 0.0 },
-        nav_mesh,
+        Arc::new(nav_mesh),
         /* linkable_distance_to_region_edge= */ 0.01,
       );
       island
@@ -556,7 +556,7 @@ mod tests {
       let mut island = Island::new(nav_mesh.mesh_bounds);
       island.set_nav_mesh(
         Transform { translation: Vec3::ZERO, rotation: 0.0 },
-        nav_mesh,
+        Arc::new(nav_mesh),
         /* linkable_distance_to_region_edge= */ 0.01,
       );
       island
@@ -670,7 +670,7 @@ mod tests {
       let mut island = Island::new(nav_mesh.mesh_bounds);
       island.set_nav_mesh(
         Transform { translation: Vec3::ZERO, rotation: 0.0 },
-        nav_mesh,
+        Arc::new(nav_mesh),
         /* linkable_distance_to_region_edge= */ 0.01,
       );
       island
@@ -759,7 +759,7 @@ mod tests {
       let mut island = Island::new(nav_mesh.mesh_bounds);
       island.set_nav_mesh(
         Transform { translation: Vec3::ZERO, rotation: 0.0 },
-        nav_mesh,
+        Arc::new(nav_mesh),
         /* linkable_distance_to_region_edge= */ 0.01,
       );
       island
