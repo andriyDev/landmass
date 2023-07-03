@@ -17,6 +17,10 @@ pub struct NodeRef {
 }
 
 impl NavigationData {
+  pub fn new() -> Self {
+    Self { islands: HashMap::new() }
+  }
+
   pub fn sample_point(
     &self,
     point: Vec3,
@@ -117,7 +121,8 @@ mod tests {
     islands.insert(1, island_1);
     islands.insert(2, island_2);
 
-    let nav_data = NavigationData { islands };
+    let mut nav_data = NavigationData::new();
+    nav_data.islands = islands;
     // Just above island 1 node.
     assert_eq!(
       nav_data.sample_point(

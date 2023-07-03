@@ -400,7 +400,8 @@ mod tests {
     islands.insert(1, island_1);
     islands.insert(3, island_3);
 
-    let mut nav_data = NavigationData { islands };
+    let mut nav_data = NavigationData::new();
+    nav_data.islands = islands;
     assert!(!path.is_valid(&nav_data));
 
     let mut island_2 = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
