@@ -323,6 +323,10 @@ impl Archipelago {
       }
     }
 
+    for island in self.nav_data.islands.values_mut() {
+      island.dirty = false;
+    }
+
     for (agent_id, agent) in self.agents.iter_mut() {
       let path = match &agent.current_path {
         None => {
@@ -451,7 +455,7 @@ mod tests {
     nav_data::{NavigationData, NodeRef},
     path::Path,
     Agent, AgentId, Archipelago, BoundingBox, NavigationMesh, RepathResult,
-    Transform,
+    Transform, ValidNavigationMesh,
   };
 
   #[test]
@@ -897,5 +901,37 @@ mod tests {
       archipelago.get_island(island_id_3).region_bounds.as_box().1.x,
       3.0
     );
+  }
+
+  #[test]
+  fn new_or_changed_island_is_not_dirty_after_update() {
+    let mut archipelago = Archipelago::new();
+
+    let island_id =
+      archipelago.add_island(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
+
+    assert!(archipelago.get_island(island_id).dirty);
+
+    archipelago.update(/* delta_time= */ 0.01);
+
+    assert!(!archipelago.get_island(island_id).dirty);
+
+    archipelago.get_island_mut(island_id).set_nav_mesh(
+      Transform::default(),
+      Arc::new(ValidNavigationMesh {
+        mesh_bounds: BoundingBox::Empty,
+        boundary_edges: vec![],
+        connectivity: vec![],
+        polygons: vec![],
+        vertices: vec![],
+      }),
+      /* linkable_distance_to_region_edge= */ 0.01,
+    );
+
+    assert!(archipelago.get_island(island_id).dirty);
+
+    archipelago.update(/* delta_time= */ 0.01);
+
+    assert!(!archipelago.get_island(island_id).dirty);
   }
 }
