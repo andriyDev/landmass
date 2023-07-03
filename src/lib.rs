@@ -628,14 +628,15 @@ mod tests {
     let archipelago =
       app.world.get::<Archipelago>(archipelago_id).expect("archipelago exists");
 
-    let mut agent_entities =
-      archipelago.agents.keys().copied().collect::<Vec<_>>();
-    agent_entities.sort();
-    assert_eq!(agent_entities, {
-      let mut expected = [agent_id_1, agent_id_2];
-      expected.sort();
-      expected
-    });
+    fn sorted(mut v: Vec<Entity>) -> Vec<Entity> {
+      v.sort();
+      v
+    }
+
+    assert_eq!(
+      sorted(archipelago.agents.keys().copied().collect()),
+      sorted(vec![agent_id_1, agent_id_2]),
+    );
     assert_eq!(archipelago.archipelago.get_agent_ids().len(), 2);
 
     let agent_id_3 = app
@@ -655,14 +656,10 @@ mod tests {
     let archipelago =
       app.world.get::<Archipelago>(archipelago_id).expect("archipelago exists");
 
-    let mut agent_entities =
-      archipelago.agents.keys().copied().collect::<Vec<_>>();
-    agent_entities.sort();
-    assert_eq!(agent_entities, {
-      let mut expected = [agent_id_1, agent_id_2, agent_id_3];
-      expected.sort();
-      expected
-    });
+    assert_eq!(
+      sorted(archipelago.agents.keys().copied().collect()),
+      sorted(vec![agent_id_1, agent_id_2, agent_id_3]),
+    );
     assert_eq!(archipelago.archipelago.get_agent_ids().len(), 3);
 
     app.world.despawn(agent_id_2);
@@ -672,18 +669,101 @@ mod tests {
     let archipelago =
       app.world.get::<Archipelago>(archipelago_id).expect("archipelago exists");
 
-    let mut agent_entities =
-      archipelago.agents.keys().copied().collect::<Vec<_>>();
-    agent_entities.sort();
-    assert_eq!(agent_entities, {
-      let mut expected = [agent_id_1, agent_id_3];
-      expected.sort();
-      expected
-    });
+    assert_eq!(
+      sorted(archipelago.agents.keys().copied().collect()),
+      sorted(vec![agent_id_1, agent_id_3]),
+    );
     assert_eq!(archipelago.archipelago.get_agent_ids().len(), 2);
 
     app.world.despawn(agent_id_1);
     app.world.despawn(agent_id_3);
+
+    app.update();
+
+    let archipelago =
+      app.world.get::<Archipelago>(archipelago_id).expect("archipelago exists");
+
+    assert_eq!(archipelago.agents.keys().copied().collect::<Vec<_>>(), []);
+    assert_eq!(archipelago.archipelago.get_agent_ids().len(), 0);
+  }
+
+  #[test]
+  fn adds_and_removes_islands() {
+    let mut app = App::new();
+
+    app.add_plugins(MinimalPlugins).add_plugins(LandmassPlugin);
+
+    let archipelago_id = app.world.spawn(Archipelago::new()).id();
+
+    let island_id_1 = app
+      .world
+      .spawn(TransformBundle::default())
+      .insert(IslandBundle {
+        island: Island,
+        archipelago_ref: ArchipelagoRef(archipelago_id),
+      })
+      .id();
+
+    let island_id_2 = app
+      .world
+      .spawn(TransformBundle::default())
+      .insert(IslandBundle {
+        island: Island,
+        archipelago_ref: ArchipelagoRef(archipelago_id),
+      })
+      .id();
+
+    app.update();
+
+    let archipelago =
+      app.world.get::<Archipelago>(archipelago_id).expect("archipelago exists");
+
+    fn sorted(mut v: Vec<Entity>) -> Vec<Entity> {
+      v.sort();
+      v
+    }
+
+    assert_eq!(
+      sorted(archipelago.islands.keys().copied().collect()),
+      sorted(vec![island_id_1, island_id_2]),
+    );
+    assert_eq!(archipelago.archipelago.get_island_ids().len(), 2);
+
+    let island_id_3 = app
+      .world
+      .spawn(TransformBundle::default())
+      .insert(IslandBundle {
+        island: Island,
+        archipelago_ref: ArchipelagoRef(archipelago_id),
+      })
+      .id();
+
+    app.update();
+
+    let archipelago =
+      app.world.get::<Archipelago>(archipelago_id).expect("archipelago exists");
+
+    assert_eq!(
+      sorted(archipelago.islands.keys().copied().collect()),
+      sorted(vec![island_id_1, island_id_2, island_id_3])
+    );
+    assert_eq!(archipelago.archipelago.get_island_ids().len(), 3);
+
+    app.world.despawn(island_id_2);
+
+    app.update();
+
+    let archipelago =
+      app.world.get::<Archipelago>(archipelago_id).expect("archipelago exists");
+
+    assert_eq!(
+      sorted(archipelago.islands.keys().copied().collect()),
+      sorted(vec![island_id_1, island_id_3])
+    );
+    assert_eq!(archipelago.archipelago.get_island_ids().len(), 2);
+
+    app.world.despawn(island_id_1);
+    app.world.despawn(island_id_3);
 
     app.update();
 
