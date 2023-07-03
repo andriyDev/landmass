@@ -19,6 +19,8 @@ Note the `Archipelago` can be created later, even if the agents already have an
 `ArchipelagoRef` to it. Agents will be added once the `Archipelago` exists.
 
 ```rust
+use std::sync::Arc;
+
 use bevy::{app::AppExit, prelude::*};
 use bevy_landmass::prelude::*;
 
@@ -34,27 +36,32 @@ fn main() {
 }
 
 fn set_up_scene(mut commands: Commands) {
-  let archipelago_id = commands.spawn(Archipelago::new(
-    landmass::Archipelago::create_from_navigation_mesh(
-      landmass::NavigationMesh {
-        mesh_bounds: None,
-        vertices: vec![
-          glam::Vec3::new(1.0, 0.0, 1.0),
-          glam::Vec3::new(2.0, 0.0, 1.0),
-          glam::Vec3::new(2.0, 0.0, 2.0),
-          glam::Vec3::new(1.0, 0.0, 2.0),
-          glam::Vec3::new(2.0, 0.0, 3.0),
-          glam::Vec3::new(1.0, 0.0, 3.0),
-          glam::Vec3::new(2.0, 0.0, 4.0),
-          glam::Vec3::new(1.0, 0.0, 4.0),
-        ],
-        polygons: vec![
-          vec![0, 1, 2, 3],
-          vec![3, 2, 4, 5],
-          vec![5, 4, 6, 7],
-        ],
-      }.validate().expect("is valid")
-    ))).id();
+  let archipelago_id = commands.spawn(Archipelago::new()).id();
+
+  let nav_mesh = Arc::new(landmass::NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        glam::Vec3::new(1.0, 0.0, 1.0),
+        glam::Vec3::new(2.0, 0.0, 1.0),
+        glam::Vec3::new(2.0, 0.0, 2.0),
+        glam::Vec3::new(1.0, 0.0, 2.0),
+        glam::Vec3::new(2.0, 0.0, 3.0),
+        glam::Vec3::new(1.0, 0.0, 3.0),
+        glam::Vec3::new(2.0, 0.0, 4.0),
+        glam::Vec3::new(1.0, 0.0, 4.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 2, 3],
+        vec![3, 2, 4, 5],
+        vec![5, 4, 6, 7],
+      ],
+    }.validate().expect("is valid"));
+
+  commands
+    .spawn(TransformBundle::default())
+    .insert(Island)
+    .insert(ArchipelagoRef(archipelago_id))
+    .insert(IslandNavMesh(nav_mesh));
 
   commands.spawn(TransformBundle {
     local: Transform::from_translation(Vec3::new(1.5, 0.0, 1.5)),
@@ -87,16 +94,19 @@ fn quit(mut exit: EventWriter<AppExit>) {
 ```
 */
 
-use std::collections::HashMap;
+use std::{
+  collections::{HashMap, HashSet},
+  sync::Arc,
+};
 
 use bevy::{
   prelude::{
-    Bundle, Component, Entity, GlobalTransform, IntoSystemConfigs,
+    Bundle, Component, Entity, EulerRot, GlobalTransform, IntoSystemConfigs,
     IntoSystemSetConfig, Plugin, Query, Res, SystemSet, Update, Vec3, With,
   },
   time::Time,
 };
-use landmass::AgentId;
+use landmass::{AgentId, IslandId};
 use util::{bevy_vec3_to_glam_vec3, glam_vec3_to_bevy_vec3};
 
 mod util;
@@ -114,6 +124,8 @@ pub mod prelude {
   pub use crate::AgentVelocity;
   pub use crate::Archipelago;
   pub use crate::ArchipelagoRef;
+  pub use crate::Island;
+  pub use crate::IslandNavMesh;
   pub use crate::LandmassPlugin;
   pub use crate::LandmassSystemSet;
 }
@@ -150,11 +162,13 @@ impl Plugin for LandmassPlugin {
     );
     app.add_systems(
       Update,
-      add_agents_to_archipelagos.in_set(LandmassSystemSet::SyncExistence),
+      (add_agents_to_archipelagos, add_islands_to_archipelago)
+        .in_set(LandmassSystemSet::SyncExistence),
     );
     app.add_systems(
       Update,
-      sync_agent_input_state.in_set(LandmassSystemSet::SyncValues),
+      (sync_agent_input_state, sync_island_nav_mesh)
+        .in_set(LandmassSystemSet::SyncValues),
     );
     app.add_systems(
       Update,
@@ -170,15 +184,25 @@ impl Plugin for LandmassPlugin {
 #[derive(Component)]
 pub struct Archipelago {
   archipelago: landmass::Archipelago,
+  islands: HashMap<Entity, IslandId>,
   agents: HashMap<Entity, AgentId>,
 }
 
 impl Archipelago {
-  pub fn new(mut landmass_archipelago: landmass::Archipelago) -> Self {
-    for agent_id in landmass_archipelago.get_agent_ids().collect::<Vec<_>>() {
-      landmass_archipelago.remove_agent(agent_id);
+  pub fn new() -> Self {
+    Self {
+      archipelago: landmass::Archipelago::new(),
+      islands: HashMap::new(),
+      agents: HashMap::new(),
     }
-    Self { archipelago: landmass_archipelago, agents: HashMap::new() }
+  }
+
+  pub fn get_agent_options(&self) -> &landmass::AgentOptions {
+    &self.archipelago.agent_options
+  }
+
+  pub fn get_agent_options_mut(&mut self) -> &mut landmass::AgentOptions {
+    &mut self.archipelago.agent_options
   }
 
   fn get_agent(&self, entity: Entity) -> &landmass::Agent {
@@ -187,6 +211,16 @@ impl Archipelago {
 
   fn get_agent_mut(&mut self, entity: Entity) -> &mut landmass::Agent {
     self.archipelago.get_agent_mut(*self.agents.get(&entity).unwrap())
+  }
+
+  fn get_island_mut(
+    &mut self,
+    entity: Entity,
+  ) -> Option<&mut landmass::Island> {
+    self
+      .islands
+      .get(&entity)
+      .map(|island_id| self.archipelago.get_island_mut(*island_id))
   }
 }
 
@@ -199,6 +233,110 @@ fn update_archipelagos(
   }
   for mut archipelago in archipelago_query.iter_mut() {
     archipelago.archipelago.update(time.delta_seconds());
+  }
+}
+
+#[derive(Component)]
+pub struct Island;
+
+#[derive(Component)]
+pub struct IslandNavMesh(pub Arc<landmass::ValidNavigationMesh>);
+
+fn add_islands_to_archipelago(
+  mut archipelago_query: Query<(Entity, &mut Archipelago)>,
+  island_query: Query<(Entity, &ArchipelagoRef), With<Island>>,
+) {
+  let mut archipelago_to_islands = HashMap::<_, HashSet<_>>::new();
+  for (entity, archipleago_ref) in island_query.iter() {
+    archipelago_to_islands.entry(archipleago_ref.0).or_default().insert(entity);
+  }
+
+  for (archipelago_entity, mut archipelago) in archipelago_query.iter_mut() {
+    let mut new_islands = archipelago_to_islands
+      .remove(&archipelago_entity)
+      .unwrap_or_else(|| HashSet::new());
+    let archipelago = archipelago.as_mut();
+
+    // Remove any islands that aren't in the `new_islands`. Also remove any
+    // islands from the `new_islands` that are in the archipelago.
+    archipelago.islands.retain(|island_entity, island_id| {
+      match new_islands.remove(&island_entity) {
+        false => {
+          archipelago.archipelago.remove_island(*island_id);
+          false
+        }
+        true => true,
+      }
+    });
+
+    for new_island_entity in new_islands.drain() {
+      let island_id = archipelago.archipelago.add_island();
+      archipelago.islands.insert(new_island_entity, island_id);
+    }
+  }
+}
+
+fn sync_island_nav_mesh(
+  mut archipelago_query: Query<&mut Archipelago>,
+  island_query: Query<
+    (Entity, Option<&IslandNavMesh>, Option<&GlobalTransform>, &ArchipelagoRef),
+    With<Island>,
+  >,
+) {
+  for (island_entity, island_nav_mesh, island_transform, archipelago_ref) in
+    island_query.iter()
+  {
+    let mut archipelago = match archipelago_query.get_mut(archipelago_ref.0) {
+      Err(_) => continue,
+      Ok(arch) => arch,
+    };
+
+    let landmass_island = match archipelago.get_island_mut(island_entity) {
+      None => continue,
+      Some(island) => island,
+    };
+
+    let island_nav_mesh = match island_nav_mesh {
+      None => {
+        if landmass_island.get_nav_mesh().is_some() {
+          landmass_island.clear_nav_mesh();
+        }
+        continue;
+      }
+      Some(nav_mesh) => nav_mesh,
+    };
+
+    let island_transform = match island_transform {
+      None => {
+        if landmass_island.get_nav_mesh().is_some() {
+          landmass_island.clear_nav_mesh();
+        }
+        continue;
+      }
+      Some(transform) => {
+        let transform = transform.compute_transform();
+        landmass::Transform {
+          translation: bevy_vec3_to_glam_vec3(transform.translation),
+          rotation: transform.rotation.to_euler(EulerRot::YXZ).0,
+        }
+      }
+    };
+
+    let set_nav_mesh = match landmass_island
+      .get_transform()
+      .map(|transform| (transform, landmass_island.get_nav_mesh().unwrap()))
+    {
+      None => true,
+      Some((current_transform, current_nav_mesh)) => {
+        current_transform != island_transform
+          || Arc::ptr_eq(&current_nav_mesh, &island_nav_mesh.0)
+      }
+    };
+
+    if set_nav_mesh {
+      landmass_island
+        .set_nav_mesh(island_transform, Arc::clone(&island_nav_mesh.0));
+    }
   }
 }
 
@@ -351,12 +489,14 @@ fn sync_desired_velocity(
 
 #[cfg(test)]
 mod tests {
+  use std::sync::Arc;
+
   use bevy::prelude::*;
   use landmass::NavigationMesh;
 
   use crate::{
     Agent, AgentBundle, AgentDesiredVelocity, AgentTarget, Archipelago,
-    ArchipelagoRef, LandmassPlugin,
+    ArchipelagoRef, Island, IslandNavMesh, LandmassPlugin,
   };
 
   #[test]
@@ -370,39 +510,50 @@ mod tests {
 
     let archipelago_id = app
       .world
-      .spawn(Archipelago::new({
-        let mut archipelago =
-          landmass::Archipelago::create_from_navigation_mesh(
-            NavigationMesh {
-              mesh_bounds: None,
-              vertices: vec![
-                glam::Vec3::new(1.0, 0.0, 1.0),
-                glam::Vec3::new(4.0, 0.0, 1.0),
-                glam::Vec3::new(4.0, 0.0, 4.0),
-                glam::Vec3::new(3.0, 0.0, 4.0),
-                glam::Vec3::new(3.0, 0.0, 2.0),
-                glam::Vec3::new(1.0, 0.0, 2.0),
-              ],
-              polygons: vec![vec![0, 1, 4, 5], vec![1, 2, 3, 4]],
-            }
-            .validate()
-            .expect("is valid"),
-          );
-        archipelago.agent_options.obstacle_avoidance_margin = 0.0;
+      .spawn({
+        let mut archipelago = Archipelago::new();
+        archipelago.get_agent_options_mut().obstacle_avoidance_margin = 0.0;
         archipelago
-      }))
+      })
       .id();
+
+    let nav_mesh = Arc::new(
+      NavigationMesh {
+        mesh_bounds: None,
+        vertices: vec![
+          glam::Vec3::new(1.0, 0.0, 1.0),
+          glam::Vec3::new(4.0, 0.0, 1.0),
+          glam::Vec3::new(4.0, 0.0, 4.0),
+          glam::Vec3::new(3.0, 0.0, 4.0),
+          glam::Vec3::new(3.0, 0.0, 2.0),
+          glam::Vec3::new(1.0, 0.0, 2.0),
+        ],
+        polygons: vec![vec![0, 1, 4, 5], vec![1, 2, 3, 4]],
+      }
+      .validate()
+      .expect("is valid"),
+    );
+
+    app
+      .world
+      .spawn(TransformBundle {
+        local: Transform::from_translation(Vec3::new(1.0, 1.0, 1.0)),
+        ..Default::default()
+      })
+      .insert(Island)
+      .insert(ArchipelagoRef(archipelago_id))
+      .insert(IslandNavMesh(nav_mesh));
 
     let agent_id = app
       .world
       .spawn(TransformBundle {
-        local: Transform::from_translation(Vec3::new(1.5, 0.0, 1.5)),
+        local: Transform::from_translation(Vec3::new(2.5, 1.0, 2.5)),
         ..Default::default()
       })
       .insert(AgentBundle {
         agent: Agent { radius: 0.5, max_velocity: 1.0 },
         archipelago_ref: ArchipelagoRef(archipelago_id),
-        target: AgentTarget::Point(Vec3::new(3.5, 0.0, 3.5)),
+        target: AgentTarget::Point(Vec3::new(4.5, 1.0, 4.5)),
         velocity: Default::default(),
         desired_velocity: Default::default(),
       })
@@ -430,20 +581,7 @@ mod tests {
 
     app.add_plugins(MinimalPlugins).add_plugins(LandmassPlugin);
 
-    let archipelago_id = app
-      .world
-      .spawn(Archipelago::new(
-        landmass::Archipelago::create_from_navigation_mesh(
-          NavigationMesh {
-            mesh_bounds: None,
-            vertices: vec![],
-            polygons: vec![],
-          }
-          .validate()
-          .expect("is valid"),
-        ),
-      ))
-      .id();
+    let archipelago_id = app.world.spawn(Archipelago::new()).id();
 
     let agent_id_1 = app
       .world
