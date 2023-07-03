@@ -245,6 +245,10 @@ impl Archipelago {
     self.nav_data.islands.get_mut(&island_id).unwrap()
   }
 
+  pub fn get_island_ids(&self) -> impl ExactSizeIterator<Item = IslandId> + '_ {
+    self.nav_data.islands.keys().copied()
+  }
+
   pub fn update(&mut self, delta_time: f32) {
     let mut agent_id_to_agent_node = HashMap::new();
     let mut agent_id_to_target_node = HashMap::new();
@@ -454,8 +458,8 @@ mod tests {
     island::Island,
     nav_data::{NavigationData, NodeRef},
     path::Path,
-    Agent, AgentId, Archipelago, BoundingBox, NavigationMesh, RepathResult,
-    Transform, ValidNavigationMesh,
+    Agent, AgentId, Archipelago, BoundingBox, IslandId, NavigationMesh,
+    RepathResult, Transform, ValidNavigationMesh,
   };
 
   #[test]
@@ -891,6 +895,16 @@ mod tests {
       3.0
     );
 
+    fn sorted(mut v: Vec<IslandId>) -> Vec<IslandId> {
+      v.sort();
+      v
+    }
+
+    assert_eq!(
+      sorted(archipelago.get_island_ids().collect()),
+      sorted(vec![island_id_1, island_id_2, island_id_3])
+    );
+
     archipelago.remove_island(island_id_2);
 
     assert_eq!(
@@ -900,6 +914,11 @@ mod tests {
     assert_eq!(
       archipelago.get_island(island_id_3).region_bounds.as_box().1.x,
       3.0
+    );
+
+    assert_eq!(
+      sorted(archipelago.get_island_ids().collect()),
+      sorted(vec![island_id_1, island_id_3])
     );
   }
 
