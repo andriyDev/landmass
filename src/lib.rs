@@ -59,8 +59,10 @@ fn set_up_scene(mut commands: Commands) {
 
   commands
     .spawn(TransformBundle::default())
-    .insert(Island)
-    .insert(ArchipelagoRef(archipelago_id))
+    .insert(IslandBundle {
+      island: Island,
+      archipelago_ref: ArchipelagoRef(archipelago_id),
+    })
     .insert(IslandNavMesh(nav_mesh));
 
   commands.spawn(TransformBundle {
@@ -125,6 +127,7 @@ pub mod prelude {
   pub use crate::Archipelago;
   pub use crate::ArchipelagoRef;
   pub use crate::Island;
+  pub use crate::IslandBundle;
   pub use crate::IslandNavMesh;
   pub use crate::LandmassPlugin;
   pub use crate::LandmassSystemSet;
@@ -140,6 +143,17 @@ pub struct AgentBundle {
   pub velocity: AgentVelocity,
   pub target: AgentTarget,
   pub desired_velocity: AgentDesiredVelocity,
+}
+
+// A bundle to create islands. This omits the IslandNavMesh component, as it is
+// only required for islands that have nav meshes assigned (so should be
+// inserted separately). The GlobalTransform component is also omitted, since
+// this is commonly added in other bundles (which is redundant and can override
+// previous bundles).
+#[derive(Bundle)]
+pub struct IslandBundle {
+  pub island: Island,
+  pub archipelago_ref: ArchipelagoRef,
 }
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
@@ -496,7 +510,7 @@ mod tests {
 
   use crate::{
     Agent, AgentBundle, AgentDesiredVelocity, AgentTarget, Archipelago,
-    ArchipelagoRef, Island, IslandNavMesh, LandmassPlugin,
+    ArchipelagoRef, Island, IslandBundle, IslandNavMesh, LandmassPlugin,
   };
 
   #[test]
@@ -540,8 +554,10 @@ mod tests {
         local: Transform::from_translation(Vec3::new(1.0, 1.0, 1.0)),
         ..Default::default()
       })
-      .insert(Island)
-      .insert(ArchipelagoRef(archipelago_id))
+      .insert(IslandBundle {
+        island: Island,
+        archipelago_ref: ArchipelagoRef(archipelago_id),
+      })
       .insert(IslandNavMesh(nav_mesh));
 
     let agent_id = app
