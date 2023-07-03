@@ -184,7 +184,7 @@ impl Default for AgentOptions {
 impl Archipelago {
   pub fn new() -> Self {
     Self {
-      nav_data: NavigationData { islands: HashMap::new() },
+      nav_data: NavigationData::new(),
       agent_options: AgentOptions::default(),
       agents: HashMap::new(),
     }
@@ -451,7 +451,7 @@ fn does_agent_need_repath(
 
 #[cfg(test)]
 mod tests {
-  use std::{collections::HashMap, sync::Arc};
+  use std::sync::Arc;
 
   use glam::Vec3;
 
@@ -473,7 +473,7 @@ mod tests {
       /* max_velocity= */ 0.0,
     );
 
-    let nav_data = NavigationData { islands: HashMap::new() };
+    let nav_data = NavigationData::new();
 
     assert_eq!(
       does_agent_need_repath(&agent, None, None, &nav_data),
@@ -499,7 +499,7 @@ mod tests {
     );
     agent.current_target = Some(Vec3::ZERO);
 
-    let nav_data = NavigationData { islands: HashMap::new() };
+    let nav_data = NavigationData::new();
 
     assert_eq!(
       does_agent_need_repath(
@@ -532,7 +532,7 @@ mod tests {
     );
     agent.current_target = Some(Vec3::ZERO);
 
-    let mut nav_data = NavigationData { islands: HashMap::new() };
+    let mut nav_data = NavigationData::new();
 
     // No path.
     assert_eq!(

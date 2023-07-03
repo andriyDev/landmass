@@ -347,7 +347,7 @@ mod tests {
     .validate()
     .expect("Validation succeeds");
 
-    let mut nav_data = NavigationData { islands: HashMap::new() };
+    let mut nav_data = NavigationData::new();
     nav_data.islands.insert(1, {
       let mut island = Island::new(nav_mesh.mesh_bounds);
       island.set_nav_mesh(
@@ -404,7 +404,7 @@ mod tests {
     .validate()
     .expect("Validation succeeds");
 
-    let mut nav_data = NavigationData { islands: HashMap::new() };
+    let mut nav_data = NavigationData::new();
     nav_data.islands.insert(1, {
       let mut island = Island::new(nav_mesh.mesh_bounds);
       island.set_nav_mesh(
@@ -551,7 +551,7 @@ mod tests {
     .validate()
     .expect("Validation succeeds");
 
-    let mut nav_data = NavigationData { islands: HashMap::new() };
+    let mut nav_data = NavigationData::new();
     nav_data.islands.insert(1, {
       let mut island = Island::new(nav_mesh.mesh_bounds);
       island.set_nav_mesh(
@@ -665,7 +665,7 @@ mod tests {
     .validate()
     .expect("Validation succeeded.");
 
-    let mut nav_data = NavigationData { islands: HashMap::new() };
+    let mut nav_data = NavigationData::new();
     nav_data.islands.insert(1, {
       let mut island = Island::new(nav_mesh.mesh_bounds);
       island.set_nav_mesh(
@@ -754,7 +754,7 @@ mod tests {
     .validate()
     .expect("Validation succeeded.");
 
-    let mut nav_data = NavigationData { islands: HashMap::new() };
+    let mut nav_data = NavigationData::new();
     nav_data.islands.insert(1, {
       let mut island = Island::new(nav_mesh.mesh_bounds);
       island.set_nav_mesh(
