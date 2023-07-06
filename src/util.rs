@@ -115,6 +115,50 @@ impl BoundingBox {
       }
     }
   }
+
+  pub fn transform(&self, transform: Transform) -> Self {
+    let (min, max) = match self {
+      BoundingBox::Empty => return BoundingBox::Empty,
+      BoundingBox::Box { min, max } => (min, max),
+    };
+    let flat_max = Vec3::new(max.x, min.y, max.z);
+
+    let points = [
+      transform.apply(*min),
+      transform.apply(flat_max),
+      transform.apply(Vec3::new(min.x, min.y, max.z)),
+      transform.apply(Vec3::new(max.x, min.y, min.z)),
+    ];
+
+    BoundingBox::Box {
+      min: Vec3::new(
+        points
+          .iter()
+          .map(|p| p.x)
+          .min_by(|a, b| a.partial_cmp(b).unwrap())
+          .unwrap(),
+        points[0].y,
+        points
+          .iter()
+          .map(|p| p.z)
+          .min_by(|a, b| a.partial_cmp(b).unwrap())
+          .unwrap(),
+      ),
+      max: Vec3::new(
+        points
+          .iter()
+          .map(|p| p.x)
+          .max_by(|a, b| a.partial_cmp(b).unwrap())
+          .unwrap(),
+        points[0].y + (max.y - min.y),
+        points
+          .iter()
+          .map(|p| p.z)
+          .max_by(|a, b| a.partial_cmp(b).unwrap())
+          .unwrap(),
+      ),
+    }
+  }
 }
 
 // A transform that can be applied to Vec3's.
@@ -138,9 +182,11 @@ impl Transform {
 
 #[cfg(test)]
 mod tests {
+  use std::f32::consts::PI;
+
   use glam::Vec3;
 
-  use crate::BoundingBox;
+  use crate::{BoundingBox, Transform};
 
   #[test]
   fn bounding_box_expands_to_points() {
@@ -314,5 +360,36 @@ mod tests {
       Vec3::new(-6.0, -6.0, -6.0),
       Vec3::new(0.0, 0.0, -5.9),
     )));
+  }
+
+  #[test]
+  fn transform_empty_does_nothing() {
+    assert_eq!(
+      BoundingBox::Empty.transform(Transform {
+        translation: Vec3::new(1.0, 2.0, 3.0),
+        rotation: 0.75
+      }),
+      BoundingBox::Empty
+    );
+  }
+
+  #[test]
+  fn transforms_bounds() {
+    let root_2 = 2.0f32.sqrt();
+    let (actual_min, actual_max) =
+      BoundingBox::new_box(Vec3::new(1.0, 2.0, 3.0), Vec3::new(6.0, 5.0, 4.0))
+        .transform(Transform {
+          translation: Vec3::new(-4.0, -3.0, 1.0),
+          rotation: PI * 0.75,
+        })
+        .as_box();
+    assert!(actual_min.abs_diff_eq(
+      Vec3::new(-3.0 / root_2 - 4.0, -1.0, -10.0 / root_2 + 1.0),
+      1e-6
+    ));
+    assert!(actual_max.abs_diff_eq(
+      Vec3::new(3.0 / root_2 - 4.0, 2.0, -4.0 / root_2 + 1.0),
+      1e-6
+    ));
   }
 }
