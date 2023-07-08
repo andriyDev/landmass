@@ -1,4 +1,7 @@
+use std::mem::swap;
+
 use glam::{Quat, Vec3};
+use ord_subset::OrdVar;
 
 /// A bounding box.
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -27,6 +30,13 @@ impl BoundingBox {
     match self {
       Self::Empty => panic!("BoundingBox is not a box."),
       &Self::Box { min, max } => (min, max),
+    }
+  }
+
+  pub fn center(&self) -> Option<Vec3> {
+    match self {
+      Self::Empty => None,
+      &Self::Box { min, max } => Some((min + max) * 0.5),
     }
   }
 
@@ -206,6 +216,94 @@ impl Transform {
   }
 }
 
+#[derive(Clone)]
+pub enum BoundingBoxHierarchy<ValueType> {
+  Leaf {
+    bounds: BoundingBox,
+    value: ValueType,
+  },
+  Branch {
+    bounds: BoundingBox,
+    children:
+      Box<(BoundingBoxHierarchy<ValueType>, BoundingBoxHierarchy<ValueType>)>,
+  },
+}
+
+impl<ValueType> BoundingBoxHierarchy<ValueType> {
+  pub fn new(values: &mut [(BoundingBox, ValueType)]) -> Self
+  where
+    ValueType: Default,
+  {
+    assert!(!values.is_empty());
+    if values.len() == 1 {
+      let mut value = (BoundingBox::Empty, ValueType::default());
+      swap(&mut values[0], &mut value);
+      return Self::Leaf { bounds: value.0, value: value.1 };
+    }
+
+    let bounding_box = values
+      .iter()
+      .map(|v| &v.0)
+      .fold(BoundingBox::Empty, |acc, b| acc.expand_to_bounds(b));
+    let bounds_size = bounding_box.size();
+    if bounds_size.x > bounds_size.y && bounds_size.x > bounds_size.z {
+      values.sort_by_key(|v| OrdVar::new_unchecked(v.0.center().unwrap().x))
+    } else if bounds_size.y > bounds_size.z {
+      values.sort_by_key(|v| OrdVar::new_unchecked(v.0.center().unwrap().y))
+    } else {
+      values.sort_by_key(|v| OrdVar::new_unchecked(v.0.center().unwrap().z))
+    }
+
+    let split_index = values.len() / 2;
+
+    Self::Branch {
+      bounds: bounding_box,
+      children: Box::new((
+        Self::new(&mut values[..split_index]),
+        Self::new(&mut values[split_index..]),
+      )),
+    }
+  }
+
+  #[cfg(test)]
+  fn depth(&self) -> u32 {
+    match self {
+      BoundingBoxHierarchy::Leaf { .. } => 1,
+      BoundingBoxHierarchy::Branch { children, .. } => {
+        1 + children.0.depth().max(children.1.depth())
+      }
+    }
+  }
+
+  pub fn query_box(&self, query: BoundingBox) -> Vec<&ValueType> {
+    let mut result = Vec::new();
+    if let BoundingBox::Box { .. } = &query {
+      self.query_box_recursive(&query, &mut result);
+    }
+    result
+  }
+
+  fn query_box_recursive<'a, 'b>(
+    &'a self,
+    query: &'b BoundingBox,
+    result: &'b mut Vec<&'a ValueType>,
+  ) {
+    match self {
+      Self::Leaf { bounds, value } => {
+        if query.intersects_bounds(bounds) {
+          result.push(value);
+        }
+      }
+      Self::Branch { bounds, children } => {
+        if query.intersects_bounds(bounds) {
+          children.0.query_box_recursive(query, result);
+          children.1.query_box_recursive(query, result);
+        }
+      }
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use std::f32::consts::PI;
@@ -213,6 +311,8 @@ mod tests {
   use glam::Vec3;
 
   use crate::{BoundingBox, Transform};
+
+  use super::BoundingBoxHierarchy;
 
   #[test]
   fn bounding_box_expands_to_points() {
@@ -417,5 +517,123 @@ mod tests {
       Vec3::new(3.0 / root_2 - 4.0, 2.0, -4.0 / root_2 + 1.0),
       1e-6
     ));
+  }
+
+  #[test]
+  fn octant_bounding_box_hierarchy() {
+    let mut values = vec![
+      (
+        BoundingBox::new_box(
+          Vec3::new(1.0, 1.0, 1.0),
+          Vec3::new(4.0, 4.0, 4.0),
+        ),
+        0,
+      ),
+      (
+        BoundingBox::new_box(
+          Vec3::new(5.0, 1.0, 1.0),
+          Vec3::new(8.0, 4.0, 4.0),
+        ),
+        1,
+      ),
+      (
+        BoundingBox::new_box(
+          Vec3::new(1.0, 5.0, 1.0),
+          Vec3::new(4.0, 8.0, 4.0),
+        ),
+        2,
+      ),
+      (
+        BoundingBox::new_box(
+          Vec3::new(5.0, 5.0, 1.0),
+          Vec3::new(8.0, 8.0, 4.0),
+        ),
+        3,
+      ),
+      (
+        BoundingBox::new_box(
+          Vec3::new(1.0, 1.0, 5.0),
+          Vec3::new(4.0, 4.0, 8.0),
+        ),
+        4,
+      ),
+      (
+        BoundingBox::new_box(
+          Vec3::new(5.0, 1.0, 5.0),
+          Vec3::new(8.0, 4.0, 8.0),
+        ),
+        5,
+      ),
+      (
+        BoundingBox::new_box(
+          Vec3::new(1.0, 5.0, 5.0),
+          Vec3::new(4.0, 8.0, 8.0),
+        ),
+        6,
+      ),
+      (
+        BoundingBox::new_box(
+          Vec3::new(5.0, 5.0, 5.0),
+          Vec3::new(8.0, 8.0, 8.0),
+        ),
+        7,
+      ),
+    ];
+
+    let bbh = BoundingBoxHierarchy::new(&mut values);
+
+    assert_eq!(bbh.depth(), 4);
+
+    assert!(bbh.query_box(BoundingBox::Empty).is_empty());
+    assert_eq!(
+      bbh.query_box(BoundingBox::new_box(
+        Vec3::new(1.0, 5.0, 1.0),
+        Vec3::new(4.0, 8.0, 4.0),
+      )),
+      [&2]
+    );
+    assert_eq!(
+      bbh.query_box(BoundingBox::new_box(
+        Vec3::new(1.0, 5.0, 1.0),
+        Vec3::new(6.0, 8.0, 4.0),
+      )),
+      [&2, &3]
+    );
+    assert_eq!(
+      bbh.query_box(BoundingBox::new_box(
+        Vec3::new(2.0, 2.0, 2.0),
+        Vec3::new(7.0, 7.0, 7.0),
+      )),
+      [&0, &1, &2, &3, &4, &5, &6, &7]
+    );
+  }
+
+  #[test]
+  fn bounding_box_hierarchy_with_same_big_dimension() {
+    let mut values = vec![
+      (
+        BoundingBox::new_box(
+          Vec3::new(1.0, 1.0, 1.0),
+          Vec3::new(2.0, 2.0, 11.0),
+        ),
+        0,
+      ),
+      (
+        BoundingBox::new_box(
+          Vec3::new(4.0, 1.0, 1.0),
+          Vec3::new(5.0, 2.0, 11.0),
+        ),
+        1,
+      ),
+    ];
+
+    let bbh = BoundingBoxHierarchy::new(&mut values);
+    assert_eq!(
+      bbh.query_box(BoundingBox::new_box(
+        Vec3::new(1.5, 1.5, 1.5),
+        Vec3::new(1.5, 1.5, 1.5)
+      )),
+      [&0],
+    );
   }
 }
