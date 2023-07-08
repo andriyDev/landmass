@@ -54,11 +54,12 @@ impl Island {
     linkable_distance_to_region_edge: f32,
   ) {
     self.nav_data = Some(IslandNavigationData {
-      transform,
       linkable_edges: nav_mesh.find_linkable_edges(
         self.region_bounds,
+        transform,
         linkable_distance_to_region_edge,
       ),
+      transform,
       nav_mesh,
     });
     self.dirty = true;
