@@ -17,4 +17,5 @@ keywords = ["navigation", "system", "pathfinding", "avoidance"]
 dodgy = "0.3.0"
 glam = "0.25.0"
 kdtree = "0.7.0"
+ord_subset = "3.1.1"
 rand = "0.8.5"
