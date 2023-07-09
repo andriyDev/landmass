@@ -157,11 +157,10 @@ mod tests {
     .expect("Mesh is valid.");
 
     let mut archipelago = Archipelago::new();
-    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
+    let island_id = archipelago.add_island();
     archipelago.get_island_mut(island_id).set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::new(nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let nav_data = &archipelago.nav_data;
@@ -257,18 +256,16 @@ mod tests {
     let nav_mesh = Arc::new(nav_mesh);
 
     let mut archipelago = Archipelago::new();
-    let island_id_1 = archipelago.add_island(nav_mesh.mesh_bounds);
+    let island_id_1 = archipelago.add_island();
     archipelago.get_island_mut(island_id_1).set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::clone(&nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
-    let island_id_2 = archipelago.add_island(nav_mesh.mesh_bounds);
+    let island_id_2 = archipelago.add_island();
     archipelago.get_island_mut(island_id_2).set_nav_mesh(
       Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * 0.5 },
       Arc::clone(&nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let nav_data = &archipelago.nav_data;
@@ -345,18 +342,16 @@ mod tests {
     let nav_mesh = Arc::new(nav_mesh);
 
     let mut archipelago = Archipelago::new();
-    let island_id_1 = archipelago.add_island(nav_mesh.mesh_bounds);
+    let island_id_1 = archipelago.add_island();
     archipelago.get_island_mut(island_id_1).set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::clone(&nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
-    let island_id_2 = archipelago.add_island(nav_mesh.mesh_bounds);
+    let island_id_2 = archipelago.add_island();
     archipelago.get_island_mut(island_id_2).set_nav_mesh(
       Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * 0.5 },
       Arc::clone(&nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let nav_data = &archipelago.nav_data;

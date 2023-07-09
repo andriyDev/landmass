@@ -69,13 +69,12 @@ let valid_nav_mesh = Arc::new(
   nav_mesh.validate().expect("Validation succeeds")
 );
 
-let island_id = archipelago.add_island(valid_nav_mesh.get_bounds());
+let island_id = archipelago.add_island();
 archipelago
   .get_island_mut(island_id)
   .set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     valid_nav_mesh,
-    /* linkable_distance_to_region_edge= */ 0.01
   );
 
 let agent_1 = archipelago.add_agent({
@@ -218,15 +217,11 @@ impl Archipelago {
     self.agents.keys().copied()
   }
 
-  pub fn add_island(&mut self, region_bounds: BoundingBox) -> IslandId {
+  pub fn add_island(&mut self) -> IslandId {
     let mut rng = rand::thread_rng();
 
     let island_id: IslandId = rng.gen();
-    assert!(self
-      .nav_data
-      .islands
-      .insert(island_id, Island::new(region_bounds))
-      .is_none());
+    assert!(self.nav_data.islands.insert(island_id, Island::new()).is_none());
 
     island_id
   }
@@ -568,7 +563,7 @@ mod tests {
     );
 
     nav_data.islands.insert(0, {
-      let mut island = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
+      let mut island = Island::new();
       island.set_nav_mesh(
         Transform::default(),
         Arc::new(
@@ -580,7 +575,6 @@ mod tests {
           .validate()
           .expect("is valid"),
         ),
-        /* linkable_distance_to_region_edge= */ 0.01,
       );
       island
     });
@@ -743,11 +737,10 @@ mod tests {
     .validate()
     .expect("is valid");
 
-    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
+    let island_id = archipelago.add_island();
     archipelago.get_island_mut(island_id).set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::new(nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     archipelago.agent_options.neighbourhood = 0.0;
@@ -877,25 +870,9 @@ mod tests {
   fn add_and_remove_islands() {
     let mut archipelago = Archipelago::new();
 
-    let island_id_1 =
-      archipelago.add_island(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
-    let island_id_2 =
-      archipelago.add_island(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE * 2.0));
-    let island_id_3 =
-      archipelago.add_island(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE * 3.0));
-
-    assert_eq!(
-      archipelago.get_island(island_id_1).region_bounds.as_box().1.x,
-      1.0
-    );
-    assert_eq!(
-      archipelago.get_island(island_id_2).region_bounds.as_box().1.x,
-      2.0
-    );
-    assert_eq!(
-      archipelago.get_island(island_id_3).region_bounds.as_box().1.x,
-      3.0
-    );
+    let island_id_1 = archipelago.add_island();
+    let island_id_2 = archipelago.add_island();
+    let island_id_3 = archipelago.add_island();
 
     fn sorted(mut v: Vec<IslandId>) -> Vec<IslandId> {
       v.sort();
@@ -910,15 +887,6 @@ mod tests {
     archipelago.remove_island(island_id_2);
 
     assert_eq!(
-      archipelago.get_island(island_id_1).region_bounds.as_box().1.x,
-      1.0
-    );
-    assert_eq!(
-      archipelago.get_island(island_id_3).region_bounds.as_box().1.x,
-      3.0
-    );
-
-    assert_eq!(
       sorted(archipelago.get_island_ids().collect()),
       sorted(vec![island_id_1, island_id_3])
     );
@@ -928,8 +896,7 @@ mod tests {
   fn new_or_changed_island_is_not_dirty_after_update() {
     let mut archipelago = Archipelago::new();
 
-    let island_id =
-      archipelago.add_island(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
+    let island_id = archipelago.add_island();
 
     assert!(archipelago.get_island(island_id).dirty);
 
@@ -946,7 +913,6 @@ mod tests {
         polygons: vec![],
         vertices: vec![],
       }),
-      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     assert!(archipelago.get_island(island_id).dirty);

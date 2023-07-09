@@ -140,12 +140,10 @@ mod tests {
     let transform =
       Transform { translation: Vec3::new(2.0, 3.0, 4.0), rotation: PI * 0.85 };
     let mut archipelago = Archipelago::new();
-    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
-    archipelago.get_island_mut(island_id).set_nav_mesh(
-      transform,
-      Arc::new(nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
-    );
+    let island_id = archipelago.add_island();
+    archipelago
+      .get_island_mut(island_id)
+      .set_nav_mesh(transform, Arc::new(nav_mesh));
     let mut agent = Agent::create(
       /* position= */ transform.apply(Vec3::new(1.0, 0.0, 1.0)),
       /* velocity= */ Vec3::ZERO,
@@ -212,12 +210,10 @@ mod tests {
     let transform =
       Transform { translation: Vec3::new(2.0, 3.0, 4.0), rotation: PI * 0.85 };
     let mut archipelago = Archipelago::new();
-    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
-    archipelago.get_island_mut(island_id).set_nav_mesh(
-      transform,
-      Arc::new(nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
-    );
+    let island_id = archipelago.add_island();
+    archipelago
+      .get_island_mut(island_id)
+      .set_nav_mesh(transform, Arc::new(nav_mesh));
 
     let mut agent = Agent::create(
       /* position= */ Vec3::ZERO,

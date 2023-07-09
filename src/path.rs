@@ -174,12 +174,10 @@ mod tests {
     let transform =
       Transform { translation: Vec3::new(5.0, 7.0, 9.0), rotation: PI * 0.35 };
     let mut archipelago = Archipelago::new();
-    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
-    archipelago.get_island_mut(island_id).set_nav_mesh(
-      transform,
-      Arc::new(nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
-    );
+    let island_id = archipelago.add_island();
+    archipelago
+      .get_island_mut(island_id)
+      .set_nav_mesh(transform, Arc::new(nav_mesh));
 
     let path = Path {
       corridor: vec![
@@ -266,12 +264,10 @@ mod tests {
       rotation: PI * 1.8,
     };
     let mut archipelago = Archipelago::new();
-    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
-    archipelago.get_island_mut(island_id).set_nav_mesh(
-      transform,
-      Arc::new(nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
-    );
+    let island_id = archipelago.add_island();
+    archipelago
+      .get_island_mut(island_id)
+      .set_nav_mesh(transform, Arc::new(nav_mesh));
 
     let path = Path {
       corridor: vec![
@@ -330,11 +326,10 @@ mod tests {
     .expect("Mesh is valid.");
 
     let mut archipelago = Archipelago::new();
-    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
+    let island_id = archipelago.add_island();
     archipelago.get_island_mut(island_id).set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::new(nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let path = Path {
@@ -378,19 +373,11 @@ mod tests {
     };
     let nav_mesh = Arc::new(nav_mesh);
 
-    let mut island_1 = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
-    island_1.set_nav_mesh(
-      Transform::default(),
-      Arc::clone(&nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
-    );
+    let mut island_1 = Island::new();
+    island_1.set_nav_mesh(Transform::default(), Arc::clone(&nav_mesh));
 
-    let mut island_3 = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
-    island_3.set_nav_mesh(
-      Transform::default(),
-      Arc::clone(&nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
-    );
+    let mut island_3 = Island::new();
+    island_3.set_nav_mesh(Transform::default(), Arc::clone(&nav_mesh));
 
     // Pretend we updated the islands so they aren't dirty.
     island_1.dirty = false;
@@ -404,12 +391,8 @@ mod tests {
     nav_data.islands = islands;
     assert!(!path.is_valid(&nav_data));
 
-    let mut island_2 = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
-    island_2.set_nav_mesh(
-      Transform::default(),
-      nav_mesh,
-      /* linkable_distance_to_region_edge= */ 0.01,
-    );
+    let mut island_2 = Island::new();
+    island_2.set_nav_mesh(Transform::default(), nav_mesh);
 
     nav_data.islands.insert(2, island_2);
     assert!(!path.is_valid(&nav_data));
