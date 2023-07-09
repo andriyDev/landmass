@@ -349,11 +349,10 @@ mod tests {
 
     let mut nav_data = NavigationData::new();
     nav_data.islands.insert(1, {
-      let mut island = Island::new(nav_mesh.mesh_bounds);
+      let mut island = Island::new();
       island.set_nav_mesh(
         Transform { translation: Vec3::ZERO, rotation: 0.0 },
         Arc::new(nav_mesh),
-        /* linkable_distance_to_region_edge= */ 0.01,
       );
       island
     });
@@ -406,11 +405,10 @@ mod tests {
 
     let mut nav_data = NavigationData::new();
     nav_data.islands.insert(1, {
-      let mut island = Island::new(nav_mesh.mesh_bounds);
+      let mut island = Island::new();
       island.set_nav_mesh(
         Transform { translation: Vec3::ZERO, rotation: 0.0 },
         Arc::new(nav_mesh),
-        /* linkable_distance_to_region_edge= */ 0.01,
       );
       island
     });
@@ -553,11 +551,10 @@ mod tests {
 
     let mut nav_data = NavigationData::new();
     nav_data.islands.insert(1, {
-      let mut island = Island::new(nav_mesh.mesh_bounds);
+      let mut island = Island::new();
       island.set_nav_mesh(
         Transform { translation: Vec3::ZERO, rotation: 0.0 },
         Arc::new(nav_mesh),
-        /* linkable_distance_to_region_edge= */ 0.01,
       );
       island
     });
@@ -667,11 +664,10 @@ mod tests {
 
     let mut nav_data = NavigationData::new();
     nav_data.islands.insert(1, {
-      let mut island = Island::new(nav_mesh.mesh_bounds);
+      let mut island = Island::new();
       island.set_nav_mesh(
         Transform { translation: Vec3::ZERO, rotation: 0.0 },
         Arc::new(nav_mesh),
-        /* linkable_distance_to_region_edge= */ 0.01,
       );
       island
     });
@@ -756,11 +752,10 @@ mod tests {
 
     let mut nav_data = NavigationData::new();
     nav_data.islands.insert(1, {
-      let mut island = Island::new(nav_mesh.mesh_bounds);
+      let mut island = Island::new();
       island.set_nav_mesh(
         Transform { translation: Vec3::ZERO, rotation: 0.0 },
         Arc::new(nav_mesh),
-        /* linkable_distance_to_region_edge= */ 0.01,
       );
       island
     });

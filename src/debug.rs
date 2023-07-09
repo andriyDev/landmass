@@ -298,12 +298,11 @@ mod tests {
     .expect("Mesh is valid.");
 
     let mut archipelago = Archipelago::new();
-    let island_id = archipelago.add_island(nav_mesh.mesh_bounds);
+    let island_id = archipelago.add_island();
     const TRANSLATION: Vec3 = Vec3::ONE;
     archipelago.get_island_mut(island_id).set_nav_mesh(
       Transform { translation: TRANSLATION, rotation: 0.0 },
       Arc::new(nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     let agent_id = archipelago.add_agent(Agent::create(

@@ -76,8 +76,7 @@ mod tests {
   use glam::Vec3;
 
   use crate::{
-    island::Island, nav_data::NodeRef, nav_mesh::NavigationMesh, BoundingBox,
-    Transform,
+    island::Island, nav_data::NodeRef, nav_mesh::NavigationMesh, Transform,
   };
 
   use super::NavigationData;
@@ -104,18 +103,16 @@ mod tests {
 
     let mut islands = HashMap::new();
 
-    let mut island_1 = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
+    let mut island_1 = Island::new();
     island_1.set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::clone(&nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
-    let mut island_2 = Island::new(BoundingBox::new_box(Vec3::ZERO, Vec3::ONE));
+    let mut island_2 = Island::new();
     island_2.set_nav_mesh(
       Transform { translation: Vec3::new(5.0, 0.1, 0.0), rotation: PI * -0.5 },
       Arc::clone(&nav_mesh),
-      /* linkable_distance_to_region_edge= */ 0.01,
     );
 
     islands.insert(1, island_1);
