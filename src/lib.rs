@@ -3,6 +3,7 @@
 mod agent;
 mod astar;
 mod avoidance;
+mod geometry;
 mod island;
 mod nav_data;
 mod nav_mesh;
