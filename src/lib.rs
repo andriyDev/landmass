@@ -113,6 +113,7 @@ impl Archipelago {
       .islands
       .remove(&island_id)
       .expect("Island should be present in the Archipelago");
+    self.nav_data.deleted_islands.insert(island_id);
   }
 
   pub fn get_island(&self, island_id: IslandId) -> &Island {
@@ -219,9 +220,7 @@ impl Archipelago {
       }
     }
 
-    for island in self.nav_data.islands.values_mut() {
-      island.dirty = false;
-    }
+    self.nav_data.update(/* edge_link_distance= */ 0.01);
 
     for (agent_id, agent) in self.agents.iter_mut() {
       let path = match &agent.current_path {

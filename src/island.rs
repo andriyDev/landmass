@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{util::Transform, ValidNavigationMesh};
+use crate::{util::Transform, BoundingBox, ValidNavigationMesh};
 
 /// The ID of an island.
 pub type IslandId = u32;
@@ -21,6 +21,9 @@ pub(crate) struct IslandNavigationData {
   pub transform: Transform,
   /// The navigation mesh for the island.
   pub nav_mesh: Arc<ValidNavigationMesh>,
+
+  // The bounds of `nav_mesh` after being transformed by `transform`.
+  pub transformed_bounds: BoundingBox,
 }
 
 impl Island {
@@ -49,7 +52,11 @@ impl Island {
     transform: Transform,
     nav_mesh: Arc<ValidNavigationMesh>,
   ) {
-    self.nav_data = Some(IslandNavigationData { transform, nav_mesh });
+    self.nav_data = Some(IslandNavigationData {
+      transformed_bounds: nav_mesh.get_bounds().transform(transform),
+      transform,
+      nav_mesh,
+    });
     self.dirty = true;
   }
 
