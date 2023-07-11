@@ -239,7 +239,7 @@ pub struct Connectivity {
 }
 
 /// A reference to an edge on a navigation mesh.
-#[derive(PartialEq, Eq, Debug, Clone, Hash)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash, Default)]
 pub struct MeshEdgeRef {
   /// The index of the polygon that this edge belongs to.
   pub polygon_index: usize,
