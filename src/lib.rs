@@ -91,8 +91,8 @@ use std::collections::HashMap;
 
 use bevy::{
   prelude::{
-    Bundle, Component, Entity, GlobalTransform, IntoSystemConfig,
-    IntoSystemSetConfig, Plugin, Query, Res, SystemSet, Vec3, With,
+    Bundle, Component, Entity, GlobalTransform, IntoSystemConfigs,
+    IntoSystemSetConfig, Plugin, Query, Res, SystemSet, Update, Vec3, With,
   },
   time::Time,
 };
@@ -140,18 +140,30 @@ pub enum LandmassSystemSet {
 
 impl Plugin for LandmassPlugin {
   fn build(&self, app: &mut bevy::prelude::App) {
-    app.configure_sets((
-      LandmassSystemSet::SyncExistence.before(LandmassSystemSet::SyncValues),
-      LandmassSystemSet::SyncValues.before(LandmassSystemSet::Update),
-      LandmassSystemSet::Update.before(LandmassSystemSet::Output),
-    ));
-    app.add_system(
+    app.configure_sets(
+      Update,
+      (
+        LandmassSystemSet::SyncExistence.before(LandmassSystemSet::SyncValues),
+        LandmassSystemSet::SyncValues.before(LandmassSystemSet::Update),
+        LandmassSystemSet::Update.before(LandmassSystemSet::Output),
+      ),
+    );
+    app.add_systems(
+      Update,
       add_agents_to_archipelagos.in_set(LandmassSystemSet::SyncExistence),
     );
-    app
-      .add_system(sync_agent_input_state.in_set(LandmassSystemSet::SyncValues));
-    app.add_system(update_archipelagos.in_set(LandmassSystemSet::Update));
-    app.add_system(sync_desired_velocity.in_set(LandmassSystemSet::Output));
+    app.add_systems(
+      Update,
+      sync_agent_input_state.in_set(LandmassSystemSet::SyncValues),
+    );
+    app.add_systems(
+      Update,
+      update_archipelagos.in_set(LandmassSystemSet::Update),
+    );
+    app.add_systems(
+      Update,
+      sync_desired_velocity.in_set(LandmassSystemSet::Output),
+    );
   }
 }
 
@@ -353,8 +365,8 @@ mod tests {
 
     app
       .add_plugins(MinimalPlugins)
-      .add_plugin(TransformPlugin)
-      .add_plugin(LandmassPlugin);
+      .add_plugins(TransformPlugin)
+      .add_plugins(LandmassPlugin);
 
     let archipelago_id = app
       .world
@@ -416,7 +428,7 @@ mod tests {
   fn adds_and_removes_agents() {
     let mut app = App::new();
 
-    app.add_plugins(MinimalPlugins).add_plugin(LandmassPlugin);
+    app.add_plugins(MinimalPlugins).add_plugins(LandmassPlugin);
 
     let archipelago_id = app
       .world

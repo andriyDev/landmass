@@ -14,7 +14,7 @@ categories = ["game-development"]
 keywords = ["navigation", "pathfinding", "avoidance", "landmass", "bevy"]
 
 [dependencies]
-bevy = {version = "0.10.1", default-features = false}
+bevy = {version = "0.11.0", default-features = false}
 glam = "0.24.0"
 landmass = "0.1.1"
 
