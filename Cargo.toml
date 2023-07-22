@@ -1,6 +1,6 @@
 [package]
 name = "bevy_landmass"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 description = "A plugin for Bevy to handle navigation of AI characters."
