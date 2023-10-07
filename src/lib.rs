@@ -139,6 +139,8 @@ use std::collections::HashMap;
 
 use nav_data::{NavigationData, NodeRef};
 
+pub mod debug;
+
 pub use agent::{Agent, AgentId, TargetReachedCondition};
 pub use island::{Island, IslandId};
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh};
