@@ -1,6 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+  collections::{HashMap, HashSet},
+  mem::swap,
+};
 
-use glam::Vec3;
+use geo::{BooleanOps, Coord, LineString, LinesIter, MultiPolygon, Polygon};
+use glam::{Vec2, Vec3, Vec3Swizzles};
 
 use crate::{
   geometry::edge_intersection,
@@ -16,11 +20,12 @@ pub struct NavigationData {
   /// The islands in the [`crate::Archipelago`].
   pub islands: HashMap<IslandId, Island>,
   pub boundary_links: HashMap<NodeRef, Vec<BoundaryLink>>,
+  pub modified_nodes: HashMap<NodeRef, ModifiedNode>,
   pub deleted_islands: HashSet<IslandId>,
 }
 
 /// A reference to a node in the navigation data.
-#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
 pub struct NodeRef {
   /// The island of the node.
   pub island_id: IslandId,
@@ -38,12 +43,20 @@ pub struct BoundaryLink {
   pub portal: (Vec3, Vec3),
 }
 
+#[derive(PartialEq, Debug, Clone)]
+pub struct ModifiedNode {
+  // The new (2D) edges that make up the boundary of this node. These are used
+  // for local collision avoidance, which already assumes "flatness".
+  pub new_boundary: Vec<(Vec2, Vec2)>,
+}
+
 impl NavigationData {
   /// Creates new navigation data.
   pub fn new() -> Self {
     Self {
       islands: HashMap::new(),
       boundary_links: HashMap::new(),
+      modified_nodes: HashMap::new(),
       deleted_islands: HashSet::new(),
     }
   }
@@ -98,24 +111,39 @@ impl NavigationData {
     best_point.map(|(_, b)| b)
   }
 
-  pub fn update(&mut self, edge_link_distance: f32) {
+  fn update_islands(
+    &mut self,
+    edge_link_distance: f32,
+  ) -> (HashSet<IslandId>, HashSet<NodeRef>) {
     let mut dirty_islands = HashSet::new();
     for (&island_id, island) in self.islands.iter_mut() {
-      island.dirty = false;
-      dirty_islands.insert(island_id);
+      if island.dirty {
+        island.dirty = false;
+        dirty_islands.insert(island_id);
+      }
     }
 
+    let mut modified_node_refs_to_update = HashSet::new();
     if !self.deleted_islands.is_empty() || !dirty_islands.is_empty() {
       let changed_islands =
         self.deleted_islands.union(&dirty_islands).collect::<HashSet<_>>();
       self.boundary_links.retain(|node_ref, links| {
         if changed_islands.contains(&node_ref.island_id) {
+          modified_node_refs_to_update.insert(*node_ref);
           return false;
         }
+
+        let links_before = links.len();
 
         links.retain(|link| {
           !changed_islands.contains(&link.destination_node.island_id)
         });
+
+        if links_before != links.len() {
+          // If a node has a different set of boundary links, we need to
+          // recompute that node.
+          modified_node_refs_to_update.insert(*node_ref);
+        }
 
         !links.is_empty()
       });
@@ -125,7 +153,7 @@ impl NavigationData {
 
     if dirty_islands.is_empty() {
       // No new or changed islands, so no need to check for new links.
-      return;
+      return (dirty_islands, modified_node_refs_to_update);
     }
 
     let mut island_bounds = self
@@ -141,7 +169,7 @@ impl NavigationData {
     // There are no islands with nav data, so no islands to link and prevents a
     // panic.
     if island_bounds.is_empty() {
-      return;
+      return (dirty_islands, modified_node_refs_to_update);
     }
     let island_bbh = BoundingBoxHierarchy::new(&mut island_bounds);
 
@@ -183,9 +211,146 @@ impl NavigationData {
           &dirty_island_edge_bbh,
           edge_link_distance,
           &mut self.boundary_links,
+          &mut modified_node_refs_to_update,
         );
       }
     }
+
+    (dirty_islands, modified_node_refs_to_update)
+  }
+
+  fn update_modified_node(
+    &mut self,
+    node_ref: NodeRef,
+    edge_link_distance: f32,
+  ) {
+    // Any node from an island that doesn't exist (deleted), or one without nav
+    // data (the nav mesh was removed), should be removed.
+    let Some(island_nav_data) = self
+      .islands
+      .get(&node_ref.island_id)
+      .and_then(|island| island.nav_data.as_ref())
+    else {
+      self.modified_nodes.remove(&node_ref);
+      return;
+    };
+    // Any nodes without boundary links don't need to be modified.
+    let Some(boundary_links) = self.boundary_links.get(&node_ref) else {
+      self.modified_nodes.remove(&node_ref);
+      return;
+    };
+
+    let polygon = &island_nav_data.nav_mesh.polygons[node_ref.polygon_index];
+    let connectivity =
+      &island_nav_data.nav_mesh.connectivity[node_ref.polygon_index];
+
+    let connected_edges = connectivity
+      .iter()
+      .map(|connectivity| connectivity.edge_index)
+      .collect::<HashSet<usize>>();
+
+    fn vec2_to_coord(v: Vec2) -> Coord<f32> {
+      Coord::from((v.x, v.y))
+    }
+
+    fn coord_to_vec2(c: Coord<f32>) -> Vec2 {
+      Vec2::new(c.x, c.y)
+    }
+
+    fn push_vertex(
+      vertex: usize,
+      nav_data: &IslandNavigationData,
+      line_string: &mut Vec<Coord<f32>>,
+    ) {
+      let vertex = nav_data.transform.apply(nav_data.nav_mesh.vertices[vertex]);
+      line_string.push(vec2_to_coord(vertex.xz()));
+    }
+
+    let mut multi_line_string = vec![];
+    let mut current_line_string = vec![];
+
+    for (i, vertex) in polygon.vertices.iter().copied().enumerate() {
+      if connected_edges.contains(&i) {
+        if !current_line_string.is_empty() {
+          let mut line_string = vec![];
+          swap(&mut current_line_string, &mut line_string);
+
+          // Add the right vertex of the previous edge (the current vertex).
+          push_vertex(vertex, island_nav_data, &mut line_string);
+
+          multi_line_string.push(LineString(line_string));
+        }
+        continue;
+      }
+
+      // Add the left vertex. The right vertex will be added when we finish the line string.
+      push_vertex(vertex, island_nav_data, &mut current_line_string);
+    }
+
+    if !current_line_string.is_empty() {
+      // The last "closing" edge must not be connected, so add the first vertex
+      // to finish that edge and push it into the `multi_line_string`.
+      push_vertex(
+        polygon.vertices[0],
+        island_nav_data,
+        &mut current_line_string,
+      );
+
+      multi_line_string.push(LineString(current_line_string));
+    }
+
+    let boundary_edges = geo::MultiLineString(multi_line_string);
+
+    fn boundary_link_to_clip_polygon(
+      link: &BoundaryLink,
+      edge_link_distance: f32,
+    ) -> MultiPolygon<f32> {
+      let flat_portal = (link.portal.0.xz(), link.portal.1.xz());
+      let portal_forward =
+        (flat_portal.1 - flat_portal.0).normalize().perp() * edge_link_distance;
+      MultiPolygon::new(vec![Polygon::new(
+        LineString(vec![
+          vec2_to_coord(flat_portal.0 + portal_forward),
+          vec2_to_coord(flat_portal.0 - portal_forward),
+          vec2_to_coord(flat_portal.1 - portal_forward),
+          vec2_to_coord(flat_portal.1 + portal_forward),
+        ]),
+        vec![],
+      )])
+    }
+
+    let link_clip = boundary_links.iter().skip(1).fold(
+      boundary_link_to_clip_polygon(&boundary_links[0], edge_link_distance),
+      |sum_clip, link| {
+        let new_clip = boundary_link_to_clip_polygon(link, edge_link_distance);
+        sum_clip.union(&new_clip)
+      },
+    );
+
+    let clipped_boundary_edges =
+      link_clip.clip(&boundary_edges, /*invert=*/ true);
+
+    let modified_node = self
+      .modified_nodes
+      .entry(node_ref)
+      .or_insert_with(|| ModifiedNode { new_boundary: Vec::new() });
+
+    for line_string in clipped_boundary_edges.iter() {
+      for edge in line_string.lines_iter() {
+        modified_node
+          .new_boundary
+          .push((coord_to_vec2(edge.start), coord_to_vec2(edge.end)));
+      }
+    }
+  }
+
+  pub fn update(&mut self, edge_link_distance: f32) -> HashSet<u32> {
+    let (dirty_islands, modified_node_refs_to_update) =
+      self.update_islands(edge_link_distance);
+    for node_ref in modified_node_refs_to_update {
+      self.update_modified_node(node_ref, edge_link_distance);
+    }
+    dirty_islands
   }
 }
 
@@ -224,6 +389,7 @@ fn link_edges_between_islands(
   island_1_edge_bbh: &BoundingBoxHierarchy<MeshEdgeRef>,
   edge_link_distance: f32,
   boundary_links: &mut HashMap<NodeRef, Vec<BoundaryLink>>,
+  modified_node_refs_to_update: &mut HashSet<NodeRef>,
 ) {
   let island_1_nav_data = island_1.1.nav_data.as_ref().unwrap();
   let island_2_nav_data = island_2.1.nav_data.as_ref().unwrap();
@@ -265,6 +431,8 @@ fn link_edges_between_islands(
           destination_node: node_1,
           portal: (portal.1, portal.0),
         });
+        modified_node_refs_to_update.insert(node_1);
+        modified_node_refs_to_update.insert(node_2);
       }
     }
   }
@@ -272,9 +440,14 @@ fn link_edges_between_islands(
 
 #[cfg(test)]
 mod tests {
-  use std::{collections::HashMap, f32::consts::PI, sync::Arc};
+  use std::{
+    cmp::Ordering,
+    collections::{HashMap, HashSet},
+    f32::consts::PI,
+    sync::Arc,
+  };
 
-  use glam::Vec3;
+  use glam::{Vec2, Vec3};
 
   use crate::{
     island::Island,
@@ -283,7 +456,9 @@ mod tests {
     Transform,
   };
 
-  use super::{island_edges_bbh, link_edges_between_islands, NavigationData};
+  use super::{
+    island_edges_bbh, link_edges_between_islands, ModifiedNode, NavigationData,
+  };
 
   #[test]
   fn samples_points() {
@@ -374,6 +549,7 @@ mod tests {
 
   fn clone_sort_round_links(
     boundary_links: &HashMap<NodeRef, Vec<BoundaryLink>>,
+    round_amount: f32,
   ) -> Vec<(NodeRef, Vec<BoundaryLink>)> {
     fn node_ref_to_num(node_ref: &NodeRef) -> u32 {
       node_ref.island_id as u32 * 100 + node_ref.polygon_index as u32
@@ -388,8 +564,8 @@ mod tests {
             .map(|link| BoundaryLink {
               destination_node: link.destination_node,
               portal: (
-                (link.portal.0 * 1e6).round() * 1e-6,
-                (link.portal.1 * 1e6).round() * 1e-6,
+                (link.portal.0 / round_amount).round() * round_amount,
+                (link.portal.1 / round_amount).round() * round_amount,
               ),
             })
             .collect::<Vec<_>>();
@@ -481,6 +657,7 @@ mod tests {
       island_edges_bbh(island_2.nav_data.as_ref().unwrap());
 
     let mut boundary_links = HashMap::new();
+    let mut modified_node_refs_to_update = HashSet::new();
 
     link_edges_between_islands(
       (island_1_id, &island_1),
@@ -488,6 +665,7 @@ mod tests {
       &island_1_edge_bbh,
       /* edge_link_distance= */ 1e-5,
       &mut boundary_links,
+      &mut modified_node_refs_to_update,
     );
 
     fn transform_and_round_portal(
@@ -670,9 +848,30 @@ mod tests {
         }],
       ),
     ];
-    assert_eq!(clone_sort_round_links(&boundary_links), &expected_links);
+    assert_eq!(clone_sort_round_links(&boundary_links, 1e-6), &expected_links);
+
+    let mut modified_node_refs_to_update_sorted =
+      modified_node_refs_to_update.iter().copied().collect::<Vec<_>>();
+    modified_node_refs_to_update_sorted.sort();
+    assert_eq!(
+      modified_node_refs_to_update_sorted,
+      [
+        NodeRef { island_id: island_1_id, polygon_index: 0 },
+        NodeRef { island_id: island_1_id, polygon_index: 1 },
+        NodeRef { island_id: island_1_id, polygon_index: 2 },
+        NodeRef { island_id: island_1_id, polygon_index: 3 },
+        NodeRef { island_id: island_1_id, polygon_index: 4 },
+        NodeRef { island_id: island_1_id, polygon_index: 5 },
+        //
+        NodeRef { island_id: island_2_id, polygon_index: 0 },
+        NodeRef { island_id: island_2_id, polygon_index: 2 },
+        NodeRef { island_id: island_2_id, polygon_index: 3 },
+        NodeRef { island_id: island_2_id, polygon_index: 4 },
+      ]
+    );
 
     boundary_links = HashMap::new();
+    modified_node_refs_to_update = HashSet::new();
 
     link_edges_between_islands(
       (island_2_id, &island_2),
@@ -680,8 +879,9 @@ mod tests {
       &island_2_edge_bbh,
       /* edge_link_distance= */ 1e-5,
       &mut boundary_links,
+      &mut modified_node_refs_to_update,
     );
-    assert_eq!(clone_sort_round_links(&boundary_links), &expected_links);
+    assert_eq!(clone_sort_round_links(&boundary_links, 1e-6), &expected_links);
   }
 
   #[test]
@@ -746,7 +946,7 @@ mod tests {
     nav_data.update(/* edge_link_distance= */ 0.01);
 
     assert_eq!(
-      clone_sort_round_links(&nav_data.boundary_links),
+      clone_sort_round_links(&nav_data.boundary_links, 1e-6),
       [
         (
           NodeRef { island_id: island_1_id, polygon_index: 0 },
@@ -849,7 +1049,7 @@ mod tests {
     nav_data.update(/* edge_link_distance= */ 0.01);
 
     assert_eq!(
-      clone_sort_round_links(&nav_data.boundary_links),
+      clone_sort_round_links(&nav_data.boundary_links, 1e-6),
       [
         (
           NodeRef { island_id: island_1_id, polygon_index: 1 },
@@ -893,5 +1093,187 @@ mod tests {
         ),
       ],
     );
+  }
+
+  fn clone_sort_round_modified_nodes(
+    modified_nodes: &HashMap<NodeRef, ModifiedNode>,
+    round_amount: f32,
+  ) -> Vec<(NodeRef, ModifiedNode)> {
+    fn order_vec2(a: Vec2, b: Vec2) -> Ordering {
+      match a.x.partial_cmp(&b.x).unwrap() {
+        Ordering::Equal => {}
+        other => return other,
+      }
+      a.y.partial_cmp(&b.y).unwrap()
+    }
+
+    let mut nodes = modified_nodes
+      .iter()
+      .map(|(key, value)| {
+        (*key, {
+          let mut new_value = ModifiedNode {
+            new_boundary: value
+              .new_boundary
+              .iter()
+              .map(|(left, right)| {
+                let rounded_edge = (
+                  (*left / round_amount).round() * round_amount,
+                  (*right / round_amount).round() * round_amount,
+                );
+
+                match order_vec2(rounded_edge.0, rounded_edge.1) {
+                  Ordering::Equal | Ordering::Less => rounded_edge,
+                  Ordering::Greater => (rounded_edge.1, rounded_edge.0),
+                }
+              })
+              .filter(|(left, right)| left != right)
+              .collect(),
+          };
+
+          new_value.new_boundary.sort_by(
+            |a: &(Vec2, Vec2), b: &(Vec2, Vec2)| match order_vec2(a.0, b.0) {
+              Ordering::Equal => order_vec2(a.1, b.1),
+              other => other,
+            },
+          );
+
+          new_value
+        })
+      })
+      .collect::<Vec<_>>();
+    nodes.sort_by_key(|(node_ref, _)| {
+      node_ref.island_id as u32 * 100 + node_ref.polygon_index as u32
+    });
+    nodes
+  }
+
+  #[test]
+  fn modifies_node_boundaries_for_linked_islands() {
+    let nav_mesh = Arc::new(
+      NavigationMesh {
+        mesh_bounds: None,
+        vertices: vec![
+          Vec3::new(1.0, 1.0, 1.0),
+          Vec3::new(2.0, 1.0, 1.0),
+          Vec3::new(2.0, 1.0, 2.0),
+          Vec3::new(1.0, 1.0, 2.0),
+          Vec3::new(2.0, 1.0, 3.0),
+          Vec3::new(1.0, 1.0, 3.0),
+        ],
+        polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
+      }
+      .validate()
+      .expect("is valid."),
+    );
+
+    let island_1_id = 1;
+    let island_2_id = 2;
+    let island_3_id = 3;
+
+    let mut island_1 = Island::new();
+    let mut island_2 = Island::new();
+    let mut island_3 = Island::new();
+
+    island_1.set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      Arc::clone(&nav_mesh),
+    );
+    island_2.set_nav_mesh(
+      Transform { translation: Vec3::new(1.0, 0.0, -1.0), rotation: 0.0 },
+      Arc::clone(&nav_mesh),
+    );
+    island_3.set_nav_mesh(
+      Transform { translation: Vec3::new(2.0, 0.0, 3.0), rotation: PI * 0.5 },
+      Arc::clone(&nav_mesh),
+    );
+
+    let mut nav_data = NavigationData::new();
+    nav_data.islands.insert(island_1_id, island_1);
+    nav_data.islands.insert(island_2_id, island_2);
+    nav_data.islands.insert(island_3_id, island_3);
+
+    nav_data.update(/*edge_link_distance=*/ 1e-6);
+
+    let expected_modified_nodes = [
+      (
+        NodeRef { island_id: island_1_id, polygon_index: 0 },
+        ModifiedNode {
+          new_boundary: vec![
+            (Vec2::new(1.0, 1.0), Vec2::new(1.0, 2.0)),
+            (Vec2::new(1.0, 1.0), Vec2::new(2.0, 1.0)),
+          ],
+        },
+      ),
+      (
+        NodeRef { island_id: island_2_id, polygon_index: 1 },
+        ModifiedNode {
+          new_boundary: vec![(Vec2::new(2.0, 2.0), Vec2::new(3.0, 2.0))],
+        },
+      ),
+      (
+        NodeRef { island_id: island_3_id, polygon_index: 0 },
+        ModifiedNode {
+          new_boundary: vec![
+            (Vec2::new(3.0, 1.0), Vec2::new(4.0, 1.0)),
+            (Vec2::new(3.0, 2.0), Vec2::new(4.0, 2.0)),
+          ],
+        },
+      ),
+    ];
+
+    assert_eq!(
+      clone_sort_round_modified_nodes(&nav_data.modified_nodes, 1e-4),
+      &expected_modified_nodes
+    );
+  }
+
+  #[test]
+  fn stale_modified_nodes_are_removed() {
+    let nav_mesh = Arc::new(
+      NavigationMesh {
+        mesh_bounds: None,
+        vertices: vec![
+          Vec3::new(1.0, 1.0, 1.0),
+          Vec3::new(2.0, 1.0, 1.0),
+          Vec3::new(2.0, 1.0, 2.0),
+          Vec3::new(1.0, 1.0, 2.0),
+          Vec3::new(2.0, 1.0, 3.0),
+          Vec3::new(1.0, 1.0, 3.0),
+        ],
+        polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
+      }
+      .validate()
+      .expect("is valid."),
+    );
+
+    let island_1_id = 1;
+    let island_2_id = 2;
+
+    let mut island_1 = Island::new();
+    let mut island_2 = Island::new();
+
+    island_1.set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      Arc::clone(&nav_mesh),
+    );
+    island_2.set_nav_mesh(
+      Transform { translation: Vec3::new(1.0, 0.0, -1.0), rotation: 0.0 },
+      Arc::clone(&nav_mesh),
+    );
+
+    let mut nav_data = NavigationData::new();
+    nav_data.islands.insert(island_1_id, island_1);
+    nav_data.islands.insert(island_2_id, island_2);
+
+    nav_data.update(/*edge_link_distance=*/ 1e-6);
+
+    assert_eq!(nav_data.modified_nodes.len(), 2);
+
+    nav_data.islands.remove(&island_2_id);
+    nav_data.deleted_islands.insert(island_2_id);
+
+    nav_data.update(/*edge_link_distance=*/ 1e-6);
+
+    assert_eq!(nav_data.modified_nodes.len(), 0);
   }
 }
