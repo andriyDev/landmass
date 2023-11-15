@@ -14,9 +14,9 @@ categories = ["game-development"]
 keywords = ["navigation", "pathfinding", "avoidance", "landmass", "bevy"]
 
 [dependencies]
-bevy = {version = "0.11.0", default-features = false}
+bevy = { version = "0.11.0", default-features = false }
 glam = "0.24.0"
-landmass = "0.1.1"
+landmass = "0.2.0"
 
 [features]
 mesh-utils = ["bevy/bevy_render"]
