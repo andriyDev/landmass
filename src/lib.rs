@@ -468,8 +468,8 @@ mod tests {
     island::Island,
     nav_data::{NavigationData, NodeRef},
     path::Path,
-    Agent, AgentId, Archipelago, BoundingBox, IslandId, NavigationMesh,
-    RepathResult, Transform, ValidNavigationMesh,
+    Agent, AgentId, AgentState, Archipelago, BoundingBox, IslandId,
+    NavigationMesh, RepathResult, Transform, ValidNavigationMesh,
   };
 
   #[test]
@@ -795,6 +795,14 @@ mod tests {
       Some(Vec3::new(1.5, 1.09, 1.5));
 
     // Nothing has happened yet.
+    assert_eq!(archipelago.get_agent(agent_1).state(), AgentState::Idle);
+    assert_eq!(archipelago.get_agent(agent_2).state(), AgentState::Idle);
+    assert_eq!(archipelago.get_agent(agent_off_mesh).state(), AgentState::Idle);
+    assert_eq!(
+      archipelago.get_agent(agent_too_high_above_mesh).state(),
+      AgentState::Idle
+    );
+
     assert_eq!(
       archipelago.get_agent(agent_1).get_desired_velocity(),
       Vec3::ZERO
@@ -815,6 +823,8 @@ mod tests {
     archipelago.update(/* delta_time= */ 0.01);
 
     // These agents found a path and started following it.
+    assert_eq!(archipelago.get_agent(agent_1).state(), AgentState::Moving);
+    assert_eq!(archipelago.get_agent(agent_2).state(), AgentState::Moving);
     assert!(archipelago
       .get_agent(agent_1)
       .get_desired_velocity()
@@ -824,6 +834,14 @@ mod tests {
       .get_desired_velocity()
       .abs_diff_eq(Vec3::new(-0.5, 0.0, -1.5).normalize() * 2.0, 1e-2));
     // These agents are not on the nav mesh, so they don't do anything.
+    assert_eq!(
+      archipelago.get_agent(agent_off_mesh).state(),
+      AgentState::NoPath
+    );
+    assert_eq!(
+      archipelago.get_agent(agent_too_high_above_mesh).state(),
+      AgentState::NoPath
+    );
     assert_eq!(
       archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
       Vec3::ZERO
@@ -854,12 +872,27 @@ mod tests {
       archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
       Vec3::ZERO
     );
+    assert_eq!(archipelago.get_agent(agent_1).state(), AgentState::Moving);
+    assert_eq!(archipelago.get_agent(agent_2).state(), AgentState::Moving);
+    assert_eq!(
+      archipelago.get_agent(agent_off_mesh).state(),
+      AgentState::NoPath
+    );
+    assert_eq!(
+      archipelago.get_agent(agent_too_high_above_mesh).state(),
+      AgentState::NoPath
+    );
 
     // Move agent_1 close enough to destination and agent_2 forward.
     archipelago.get_agent_mut(agent_1).position = Vec3::new(3.4, 1.0, 3.4);
     archipelago.get_agent_mut(agent_2).position = Vec3::new(3.5, 1.0, 2.5);
     archipelago.update(/* delta_time= */ 0.01);
 
+    assert_eq!(
+      archipelago.get_agent(agent_1).state(),
+      AgentState::ReachedTarget
+    );
+    assert_eq!(archipelago.get_agent(agent_2).state(), AgentState::Moving);
     assert_eq!(
       archipelago.get_agent(agent_1).get_desired_velocity(),
       Vec3::ZERO
@@ -876,6 +909,14 @@ mod tests {
     assert_eq!(
       archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
       Vec3::ZERO
+    );
+    assert_eq!(
+      archipelago.get_agent(agent_off_mesh).state(),
+      AgentState::NoPath
+    );
+    assert_eq!(
+      archipelago.get_agent(agent_too_high_above_mesh).state(),
+      AgentState::NoPath
     );
   }
 
