@@ -76,6 +76,7 @@ fn set_up_scene(mut commands: Commands) {
     archipelago_ref: ArchipelagoRef(archipelago_id),
     target: AgentTarget::Point(Vec3::new(1.5, 0.0, 3.5)),
     velocity: Default::default(),
+    state: Default::default(),
     desired_velocity: Default::default(),
   });
 }
@@ -113,6 +114,8 @@ use util::{bevy_vec3_to_glam_vec3, glam_vec3_to_bevy_vec3};
 
 mod util;
 
+pub use landmass::AgentState;
+
 #[cfg(feature = "mesh-utils")]
 pub mod nav_mesh;
 
@@ -142,6 +145,7 @@ pub struct AgentBundle {
   pub archipelago_ref: ArchipelagoRef,
   pub velocity: AgentVelocity,
   pub target: AgentTarget,
+  pub state: AgentCurrentState,
   pub desired_velocity: AgentDesiredVelocity,
 }
 
@@ -190,7 +194,8 @@ impl Plugin for LandmassPlugin {
     );
     app.add_systems(
       Update,
-      sync_desired_velocity.in_set(LandmassSystemSet::Output),
+      (sync_agent_state, sync_desired_velocity)
+        .in_set(LandmassSystemSet::Output),
     );
   }
 }
@@ -390,6 +395,21 @@ impl AgentTarget {
   }
 }
 
+#[derive(Component)]
+pub struct AgentCurrentState(AgentState);
+
+impl Default for AgentCurrentState {
+  fn default() -> Self {
+    Self(AgentState::Idle)
+  }
+}
+
+impl AgentCurrentState {
+  pub fn state(&self) -> AgentState {
+    self.0
+  }
+}
+
 #[derive(Component, Default)]
 pub struct AgentDesiredVelocity(Vec3);
 
@@ -480,6 +500,25 @@ fn sync_agent_input_state(
   }
 }
 
+fn sync_agent_state(
+  mut agent_query: Query<
+    (Entity, &ArchipelagoRef, &mut AgentCurrentState),
+    With<Agent>,
+  >,
+  archipelago_query: Query<&Archipelago>,
+) {
+  for (agent_entity, &ArchipelagoRef(arch_entity), mut state) in
+    agent_query.iter_mut()
+  {
+    let archipelago = match archipelago_query.get(arch_entity).ok() {
+      None => continue,
+      Some(arch) => arch,
+    };
+
+    state.0 = archipelago.get_agent(agent_entity).state();
+  }
+}
+
 fn sync_desired_velocity(
   mut agent_query: Query<
     (Entity, &ArchipelagoRef, &mut AgentDesiredVelocity),
@@ -506,11 +545,12 @@ mod tests {
   use std::sync::Arc;
 
   use bevy::prelude::*;
-  use landmass::NavigationMesh;
+  use landmass::{AgentState, NavigationMesh};
 
   use crate::{
-    Agent, AgentBundle, AgentDesiredVelocity, AgentTarget, Archipelago,
-    ArchipelagoRef, Island, IslandBundle, IslandNavMesh, LandmassPlugin,
+    Agent, AgentBundle, AgentCurrentState, AgentDesiredVelocity, AgentTarget,
+    Archipelago, ArchipelagoRef, Island, IslandBundle, IslandNavMesh,
+    LandmassPlugin,
   };
 
   #[test]
@@ -571,6 +611,7 @@ mod tests {
         archipelago_ref: ArchipelagoRef(archipelago_id),
         target: AgentTarget::Point(Vec3::new(4.5, 1.0, 4.5)),
         velocity: Default::default(),
+        state: Default::default(),
         desired_velocity: Default::default(),
       })
       .id();
@@ -581,6 +622,14 @@ mod tests {
     // The second update allows landmass to update properly.
     app.update();
 
+    assert_eq!(
+      app
+        .world
+        .get::<AgentCurrentState>(agent_id)
+        .expect("current state was added")
+        .0,
+      AgentState::Moving,
+    );
     assert_eq!(
       app
         .world
@@ -607,6 +656,7 @@ mod tests {
         archipelago_ref: ArchipelagoRef(archipelago_id),
         target: AgentTarget::None,
         velocity: Default::default(),
+        state: Default::default(),
         desired_velocity: Default::default(),
       })
       .id();
@@ -619,6 +669,7 @@ mod tests {
         archipelago_ref: ArchipelagoRef(archipelago_id),
         target: AgentTarget::None,
         velocity: Default::default(),
+        state: Default::default(),
         desired_velocity: Default::default(),
       })
       .id();
@@ -647,6 +698,7 @@ mod tests {
         archipelago_ref: ArchipelagoRef(archipelago_id),
         target: AgentTarget::None,
         velocity: Default::default(),
+        state: Default::default(),
         desired_velocity: Default::default(),
       })
       .id();
