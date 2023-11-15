@@ -11,11 +11,13 @@ direction for characters using pathfinding.
 To use `bevy_landmass`:
 1) Add `LandmassPlugin` to your app.
 2) Spawn an entity with an `Archipelago` component.
+3) Spawn an entity with an `IslandBundle`, and an `IslandNavMesh` component.
 3) Spawn entities with the `AgentBundle` and a `TransformBundle` (or any other
 bundle which includes a `Transform` and `GlobalTransform`).
 
-Note the `Archipelago` can be created later, even if the agents already have an
-`ArchipelagoRef` to it. Agents will be added once the `Archipelago` exists.
+Note the `Archipelago` can be created later, even if the agents/islands already
+have an `ArchipelagoRef` to it. Agents/islands will be added once the
+`Archipelago` exists.
 
 See the docs for an example.
 
