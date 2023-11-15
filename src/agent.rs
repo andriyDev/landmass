@@ -4,6 +4,21 @@ use crate::{path::Path, NavigationData};
 
 pub type AgentId = u32;
 
+// The state of an agent.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum AgentState {
+  // The agent is idle, due to not having a target. Note this does not mean
+  // that they are motionless. An agent will still avoid nearby agents.
+  Idle,
+  // The agent has reached their target. The agent may resume moving if the
+  // target moves or otherwise changes.
+  ReachedTarget,
+  // The agent has a path and is moving towards their target.
+  Moving,
+  // The agent has a target but cannot find a path to it.
+  NoPath,
+}
+
 pub struct Agent {
   pub position: Vec3,
   pub velocity: Vec3,
@@ -13,6 +28,7 @@ pub struct Agent {
   pub target_reached_condition: TargetReachedCondition,
   pub(crate) current_path: Option<Path>,
   pub(crate) current_desired_move: Vec3,
+  pub(crate) state: AgentState,
 }
 
 // The condition to consider the agent as having reached its target. When this
@@ -56,11 +72,16 @@ impl Agent {
       target_reached_condition: TargetReachedCondition::Distance(radius),
       current_path: None,
       current_desired_move: Vec3::ZERO,
+      state: AgentState::Idle,
     }
   }
 
   pub fn get_desired_velocity(&self) -> Vec3 {
     self.current_desired_move
+  }
+
+  pub fn state(&self) -> AgentState {
+    self.state
   }
 
   pub(crate) fn has_reached_target(
