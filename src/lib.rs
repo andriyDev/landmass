@@ -27,11 +27,11 @@ use bevy_landmass::prelude::*;
 fn main() {
   App::new()
     .add_plugins(MinimalPlugins)
-    .add_plugin(TransformPlugin)
-    .add_plugin(LandmassPlugin)
-    .add_startup_system(set_up_scene)
-    .add_system(print_desired_velocity.after(LandmassSystemSet::Output))
-    .add_system(quit.after(print_desired_velocity))
+    .add_plugins(TransformPlugin)
+    .add_plugins(LandmassPlugin)
+    .add_systems(Startup, set_up_scene)
+    .add_systems(Update, print_desired_velocity.after(LandmassSystemSet::Output))
+    .add_systems(Update, quit.after(print_desired_velocity))
     .run();
 }
 
@@ -104,7 +104,7 @@ use std::{
 use bevy::{
   prelude::{
     Bundle, Component, Entity, EulerRot, GlobalTransform, IntoSystemConfigs,
-    IntoSystemSetConfig, Plugin, Query, Res, SystemSet, Update, Vec3, With,
+    IntoSystemSetConfigs, Plugin, Query, Res, SystemSet, Update, Vec3, With,
   },
   time::Time,
 };
