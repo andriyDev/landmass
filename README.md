@@ -22,13 +22,16 @@ languages so it can be used anywhere.
 
 ## Overview
 
-`landmass` has two major components: `Archipelago`s and `Agent`s. An
-`Archipelago` is essentially one
-[navigation mesh](https://en.wikipedia.org/wiki/Navigation_mesh) and the
-`Agent`s on that navigation mesh. Each game character (controlled by AI) should
-correspond to one `Agent`. To start using `landmass`:
+`landmass` has three major components: `Archipelago`s, `Island`s and `Agent`s.
+An `Archipelago` is composed of several `Island`s, as well as the `Agent`s that
+travel across those `Island`s. Each `Island` holds a single
+[navigation mesh](https://en.wikipedia.org/wiki/Navigation_mesh). Each game
+character (controlled by AI) should correspond to one `Agent`. To start using
+`landmass`:
 
-1. Create an `Archipelago` from a `ValidNavigationMesh`.
+1. Create an `Archipelago`.
+2. Create an `Island`.
+3. Assign a `ValidNavigationMesh` to the `Island`.
 2. Add `Agent`s to the `Archipelago`.
 
 Each frame of the game:
