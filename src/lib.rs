@@ -140,7 +140,7 @@ use nav_data::{NavigationData, NodeRef};
 
 pub mod debug;
 
-pub use agent::{Agent, AgentId, TargetReachedCondition};
+pub use agent::{Agent, AgentId, AgentState, TargetReachedCondition};
 pub use island::{Island, IslandId};
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh};
 pub use util::{BoundingBox, Transform};
@@ -304,7 +304,14 @@ impl Archipelago {
             (agent_node_in_corridor, target_node_in_corridor),
           );
         }
-        RepathResult::ClearPath => agent.current_path = None,
+        RepathResult::ClearPathNoTarget => {
+          agent.state = AgentState::Idle;
+          agent.current_path = None;
+        }
+        RepathResult::ClearPathNoPath => {
+          agent.state = AgentState::NoPath;
+          agent.current_path = None;
+        }
         RepathResult::NeedsRepath => {
           agent.current_path = None;
 
@@ -313,7 +320,10 @@ impl Archipelago {
             agent_node.unwrap(),
             target_node.unwrap(),
           ) {
-            Err(_) => continue,
+            Err(_) => {
+              agent.state = AgentState::NoPath;
+              continue;
+            }
             Ok(pathfinding::PathResult { path, .. }) => path,
           };
 
@@ -366,10 +376,12 @@ impl Archipelago {
         (target_node_index_in_corridor, target_point),
       ) {
         agent.current_desired_move = Vec3::ZERO;
+        agent.state = AgentState::ReachedTarget;
       } else {
         agent.current_desired_move = (next_waypoint.1 - agent.position)
           .normalize_or_zero()
           * agent.max_velocity;
+        agent.state = AgentState::Moving;
       }
     }
 
@@ -387,7 +399,8 @@ impl Archipelago {
 enum RepathResult {
   DoNothing,
   FollowPath(usize, usize),
-  ClearPath,
+  ClearPathNoTarget,
+  ClearPathNoPath,
   NeedsRepath,
 }
 
@@ -399,18 +412,18 @@ fn does_agent_need_repath(
 ) -> RepathResult {
   if let None = agent.current_target {
     if agent.current_path.is_some() {
-      return RepathResult::ClearPath;
+      return RepathResult::ClearPathNoTarget;
     } else {
       return RepathResult::DoNothing;
     }
   }
 
   let agent_node = match agent_node {
-    None => return RepathResult::ClearPath,
+    None => return RepathResult::ClearPathNoPath,
     Some(result) => result,
   };
   let target_node = match target_node {
-    None => return RepathResult::ClearPath,
+    None => return RepathResult::ClearPathNoPath,
     Some(result) => result,
   };
 
@@ -480,7 +493,7 @@ mod tests {
 
     assert_eq!(
       does_agent_need_repath(&agent, None, None, &nav_data),
-      RepathResult::ClearPath,
+      RepathResult::ClearPathNoTarget,
     );
   }
 
@@ -503,7 +516,7 @@ mod tests {
         Some(NodeRef { island_id: 0, polygon_index: 0 }),
         &nav_data,
       ),
-      RepathResult::ClearPath,
+      RepathResult::ClearPathNoPath,
     );
 
     assert_eq!(
@@ -513,7 +526,7 @@ mod tests {
         None,
         &nav_data,
       ),
-      RepathResult::ClearPath,
+      RepathResult::ClearPathNoPath,
     );
   }
 
