@@ -47,6 +47,82 @@ Generally, characters are moved using some other method (like a physics
 simulation) rather than just moving the character, so moving the `Agent` would
 be confusing.
 
+## Example
+
+```rust
+use glam::Vec3;
+use landmass::*;
+use std::sync::Arc;
+
+let mut archipelago = Archipelago::new();
+
+let nav_mesh = NavigationMesh {
+  mesh_bounds: None,
+  vertices: vec![
+    Vec3::new(0.0, 0.0, 0.0),
+    Vec3::new(15.0, 0.0, 0.0),
+    Vec3::new(15.0, 0.0, 15.0),
+    Vec3::new(0.0, 0.0, 15.0),
+  ],
+  polygons: vec![vec![0, 1, 2, 3]],
+};
+
+let valid_nav_mesh = Arc::new(
+  nav_mesh.validate().expect("Validation succeeds")
+);
+
+let island_id = archipelago.add_island();
+archipelago
+  .get_island_mut(island_id)
+  .set_nav_mesh(
+    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    valid_nav_mesh,
+  );
+
+let agent_1 = archipelago.add_agent({
+  let mut agent = Agent::create(
+    /* position= */ Vec3::new(1.0, 0.0, 1.0),
+    /* velocity= */ Vec3::ZERO,
+    /* radius= */ 1.0,
+    /* max_velocity= */ 1.0,
+  );
+  agent.current_target = Some(Vec3::new(11.0, 0.0, 1.1));
+  agent.target_reached_condition = TargetReachedCondition::Distance(0.01);
+  agent
+});
+let agent_2 = archipelago.add_agent({
+  let mut agent = Agent::create(
+    /* position= */ Vec3::new(11.0, 0.0, 1.1),
+    /* velocity= */ Vec3::ZERO,
+    /* radius= */ 1.0,
+    /* max_velocity= */ 1.0,
+  );
+  agent.current_target = Some(Vec3::new(1.0, 0.0, 1.0));
+  agent.target_reached_condition = TargetReachedCondition::Distance(0.01);
+  agent
+});
+
+for i in 0..200 {
+  let delta_time = 1.0 / 10.0;
+  archipelago.update(delta_time);
+
+  for agent_id in archipelago.get_agent_ids().collect::<Vec<_>>() {
+    let agent = archipelago.get_agent_mut(agent_id);
+    agent.velocity = agent.get_desired_velocity();
+    agent.position += agent.velocity * delta_time;
+  }
+}
+
+assert!(archipelago
+  .get_agent(agent_1)
+  .position
+  .abs_diff_eq(Vec3::new(11.0, 0.0, 1.1), 0.1));
+assert!(archipelago
+  .get_agent(agent_2)
+  .position
+  .abs_diff_eq(Vec3::new(1.0, 0.0, 1.0), 0.1));
+```
+
 ## License
 
 Licensed under the [MIT license](LICENSE).
