@@ -30,6 +30,7 @@ use bevy_landmass::prelude::*;
 fn main() {
   App::new()
     .add_plugins(MinimalPlugins)
+    .add_plugins(AssetPlugin::default())
     .add_plugins(TransformPlugin)
     .add_plugins(LandmassPlugin)
     .add_systems(Startup, set_up_scene)
@@ -38,9 +39,28 @@ fn main() {
     .run();
 }
 
-fn set_up_scene(mut commands: Commands) {
+fn set_up_scene(
+  mut commands: Commands,
+  mut nav_meshes: ResMut<Assets<NavMesh>>,
+) {
   let archipelago_id = commands.spawn(Archipelago::new()).id();
 
+  let nav_mesh_handle = nav_meshes
+    .get_handle_provider()
+    .reserve_handle()
+    .typed::<NavMesh>();
+
+  commands
+    .spawn(TransformBundle::default())
+    .insert(IslandBundle {
+      island: Island,
+      archipelago_ref: ArchipelagoRef(archipelago_id),
+      nav_mesh: Default::default(),
+    })
+    .insert(nav_mesh_handle.clone());
+  
+  // The nav mesh can be populated in another system, or even several frames
+  // later.
   let nav_mesh = Arc::new(landmass::NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
@@ -59,14 +79,7 @@ fn set_up_scene(mut commands: Commands) {
         vec![5, 4, 6, 7],
       ],
     }.validate().expect("is valid"));
-
-  commands
-    .spawn(TransformBundle::default())
-    .insert(IslandBundle {
-      island: Island,
-      archipelago_ref: ArchipelagoRef(archipelago_id),
-    })
-    .insert(IslandNavMesh(nav_mesh));
+  nav_meshes.insert(nav_mesh_handle, NavMesh(nav_mesh));
 
   commands.spawn(TransformBundle {
     local: Transform::from_translation(Vec3::new(1.5, 0.0, 1.5)),
