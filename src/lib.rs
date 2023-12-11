@@ -6,10 +6,12 @@ use std::{
 };
 
 use bevy::{
+  asset::{Asset, AssetApp, Assets, Handle},
   prelude::{
     Bundle, Component, Entity, EulerRot, GlobalTransform, IntoSystemConfigs,
     IntoSystemSetConfigs, Plugin, Query, Res, SystemSet, Update, Vec3, With,
   },
+  reflect::TypePath,
   time::Time,
 };
 use landmass::{AgentId, IslandId};
@@ -34,9 +36,9 @@ pub mod prelude {
   pub use crate::ArchipelagoRef;
   pub use crate::Island;
   pub use crate::IslandBundle;
-  pub use crate::IslandNavMesh;
   pub use crate::LandmassPlugin;
   pub use crate::LandmassSystemSet;
+  pub use crate::NavMesh;
 }
 
 // A bundle to create agents. This omits the GlobalTransform component, since
@@ -52,15 +54,14 @@ pub struct AgentBundle {
   pub desired_velocity: AgentDesiredVelocity,
 }
 
-// A bundle to create islands. This omits the IslandNavMesh component, as it is
-// only required for islands that have nav meshes assigned (so should be
-// inserted separately). The GlobalTransform component is also omitted, since
-// this is commonly added in other bundles (which is redundant and can override
-// previous bundles).
+// A bundle to create islands. The GlobalTransform component is omitted, since
+// this is commonly added in other bundles (which is redundant and can
+// override previous bundles).
 #[derive(Bundle)]
 pub struct IslandBundle {
   pub island: Island,
   pub archipelago_ref: ArchipelagoRef,
+  pub nav_mesh: Handle<NavMesh>,
 }
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
@@ -73,6 +74,7 @@ pub enum LandmassSystemSet {
 
 impl Plugin for LandmassPlugin {
   fn build(&self, app: &mut bevy::prelude::App) {
+    app.init_asset::<NavMesh>();
     app.configure_sets(
       Update,
       (
@@ -161,8 +163,8 @@ fn update_archipelagos(
 #[derive(Component)]
 pub struct Island;
 
-#[derive(Component)]
-pub struct IslandNavMesh(pub Arc<landmass::ValidNavigationMesh>);
+#[derive(Asset, TypePath)]
+pub struct NavMesh(pub Arc<landmass::ValidNavigationMesh>);
 
 fn add_islands_to_archipelago(
   mut archipelago_query: Query<(Entity, &mut Archipelago)>,
@@ -201,9 +203,15 @@ fn add_islands_to_archipelago(
 fn sync_island_nav_mesh(
   mut archipelago_query: Query<&mut Archipelago>,
   island_query: Query<
-    (Entity, Option<&IslandNavMesh>, Option<&GlobalTransform>, &ArchipelagoRef),
+    (
+      Entity,
+      Option<&Handle<NavMesh>>,
+      Option<&GlobalTransform>,
+      &ArchipelagoRef,
+    ),
     With<Island>,
   >,
+  nav_meshes: Res<Assets<NavMesh>>,
 ) {
   for (island_entity, island_nav_mesh, island_transform, archipelago_ref) in
     island_query.iter()
@@ -219,6 +227,16 @@ fn sync_island_nav_mesh(
     };
 
     let island_nav_mesh = match island_nav_mesh {
+      None => {
+        if landmass_island.get_nav_mesh().is_some() {
+          landmass_island.clear_nav_mesh();
+        }
+        continue;
+      }
+      Some(nav_mesh) => nav_mesh,
+    };
+
+    let island_nav_mesh = match nav_meshes.get(island_nav_mesh) {
       None => {
         if landmass_island.get_nav_mesh().is_some() {
           landmass_island.clear_nav_mesh();
@@ -452,8 +470,7 @@ mod tests {
 
   use crate::{
     Agent, AgentBundle, AgentCurrentState, AgentDesiredVelocity, AgentTarget,
-    Archipelago, ArchipelagoRef, Island, IslandBundle, IslandNavMesh,
-    LandmassPlugin,
+    Archipelago, ArchipelagoRef, Island, IslandBundle, LandmassPlugin, NavMesh,
   };
 
   #[test]
@@ -463,6 +480,7 @@ mod tests {
     app
       .add_plugins(MinimalPlugins)
       .add_plugins(TransformPlugin)
+      .add_plugins(AssetPlugin::default())
       .add_plugins(LandmassPlugin);
 
     let archipelago_id = app
@@ -491,6 +509,13 @@ mod tests {
       .expect("is valid"),
     );
 
+    let nav_mesh_handle = app
+      .world
+      .resource::<Assets<NavMesh>>()
+      .get_handle_provider()
+      .reserve_handle()
+      .typed::<NavMesh>();
+
     app
       .world
       .spawn(TransformBundle {
@@ -500,8 +525,14 @@ mod tests {
       .insert(IslandBundle {
         island: Island,
         archipelago_ref: ArchipelagoRef(archipelago_id),
+        nav_mesh: Default::default(),
       })
-      .insert(IslandNavMesh(nav_mesh));
+      .insert(nav_mesh_handle.clone());
+
+    app
+      .world
+      .resource_mut::<Assets<NavMesh>>()
+      .insert(nav_mesh_handle, NavMesh(nav_mesh));
 
     let agent_id = app
       .world
@@ -547,7 +578,10 @@ mod tests {
   fn adds_and_removes_agents() {
     let mut app = App::new();
 
-    app.add_plugins(MinimalPlugins).add_plugins(LandmassPlugin);
+    app
+      .add_plugins(MinimalPlugins)
+      .add_plugins(AssetPlugin::default())
+      .add_plugins(LandmassPlugin);
 
     let archipelago_id = app.world.spawn(Archipelago::new()).id();
 
@@ -646,7 +680,10 @@ mod tests {
   fn adds_and_removes_islands() {
     let mut app = App::new();
 
-    app.add_plugins(MinimalPlugins).add_plugins(LandmassPlugin);
+    app
+      .add_plugins(MinimalPlugins)
+      .add_plugins(AssetPlugin::default())
+      .add_plugins(LandmassPlugin);
 
     let archipelago_id = app.world.spawn(Archipelago::new()).id();
 
@@ -656,6 +693,7 @@ mod tests {
       .insert(IslandBundle {
         island: Island,
         archipelago_ref: ArchipelagoRef(archipelago_id),
+        nav_mesh: Default::default(),
       })
       .id();
 
@@ -665,6 +703,7 @@ mod tests {
       .insert(IslandBundle {
         island: Island,
         archipelago_ref: ArchipelagoRef(archipelago_id),
+        nav_mesh: Default::default(),
       })
       .id();
 
@@ -690,6 +729,7 @@ mod tests {
       .insert(IslandBundle {
         island: Island,
         archipelago_ref: ArchipelagoRef(archipelago_id),
+        nav_mesh: Default::default(),
       })
       .id();
 
