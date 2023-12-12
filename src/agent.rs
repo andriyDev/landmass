@@ -15,6 +15,10 @@ pub enum AgentState {
   ReachedTarget,
   // The agent has a path and is moving towards their target.
   Moving,
+  // The agent is not on a nav mesh.
+  AgentNotOnNavMesh,
+  // The target is not on a nav mesh.
+  TargetNotOnNavMesh,
   // The agent has a target but cannot find a path to it.
   NoPath,
 }
