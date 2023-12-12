@@ -251,7 +251,7 @@ fn sync_island_nav_mesh(
       None => true,
       Some((current_transform, current_nav_mesh)) => {
         current_transform != island_transform
-          || Arc::ptr_eq(&current_nav_mesh, &island_nav_mesh.0)
+          || !Arc::ptr_eq(&current_nav_mesh, &island_nav_mesh.0)
       }
     };
 
