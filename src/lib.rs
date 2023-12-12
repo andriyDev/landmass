@@ -186,8 +186,12 @@ impl Archipelago {
           agent.state = AgentState::Idle;
           agent.current_path = None;
         }
-        RepathResult::ClearPathNoPath => {
-          agent.state = AgentState::NoPath;
+        RepathResult::ClearPathBadAgent => {
+          agent.state = AgentState::AgentNotOnNavMesh;
+          agent.current_path = None;
+        }
+        RepathResult::ClearPathBadTarget => {
+          agent.state = AgentState::TargetNotOnNavMesh;
           agent.current_path = None;
         }
         RepathResult::NeedsRepath => {
@@ -278,7 +282,8 @@ enum RepathResult {
   DoNothing,
   FollowPath(usize, usize),
   ClearPathNoTarget,
-  ClearPathNoPath,
+  ClearPathBadAgent,
+  ClearPathBadTarget,
   NeedsRepath,
 }
 
@@ -297,11 +302,11 @@ fn does_agent_need_repath(
   }
 
   let agent_node = match agent_node {
-    None => return RepathResult::ClearPathNoPath,
+    None => return RepathResult::ClearPathBadAgent,
     Some(result) => result,
   };
   let target_node = match target_node {
-    None => return RepathResult::ClearPathNoPath,
+    None => return RepathResult::ClearPathBadTarget,
     Some(result) => result,
   };
 
@@ -394,7 +399,7 @@ mod tests {
         Some(NodeRef { island_id: 0, polygon_index: 0 }),
         &nav_data,
       ),
-      RepathResult::ClearPathNoPath,
+      RepathResult::ClearPathBadAgent,
     );
 
     assert_eq!(
@@ -404,7 +409,7 @@ mod tests {
         None,
         &nav_data,
       ),
-      RepathResult::ClearPathNoPath,
+      RepathResult::ClearPathBadTarget,
     );
   }
 
@@ -714,11 +719,11 @@ mod tests {
     // These agents are not on the nav mesh, so they don't do anything.
     assert_eq!(
       archipelago.get_agent(agent_off_mesh).state(),
-      AgentState::NoPath
+      AgentState::AgentNotOnNavMesh
     );
     assert_eq!(
       archipelago.get_agent(agent_too_high_above_mesh).state(),
-      AgentState::NoPath
+      AgentState::AgentNotOnNavMesh
     );
     assert_eq!(
       archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
@@ -754,11 +759,11 @@ mod tests {
     assert_eq!(archipelago.get_agent(agent_2).state(), AgentState::Moving);
     assert_eq!(
       archipelago.get_agent(agent_off_mesh).state(),
-      AgentState::NoPath
+      AgentState::AgentNotOnNavMesh
     );
     assert_eq!(
       archipelago.get_agent(agent_too_high_above_mesh).state(),
-      AgentState::NoPath
+      AgentState::AgentNotOnNavMesh
     );
 
     // Move agent_1 close enough to destination and agent_2 forward.
@@ -790,11 +795,11 @@ mod tests {
     );
     assert_eq!(
       archipelago.get_agent(agent_off_mesh).state(),
-      AgentState::NoPath
+      AgentState::AgentNotOnNavMesh
     );
     assert_eq!(
       archipelago.get_agent(agent_too_high_above_mesh).state(),
-      AgentState::NoPath
+      AgentState::AgentNotOnNavMesh
     );
   }
 
