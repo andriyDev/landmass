@@ -26,8 +26,8 @@ pub(crate) fn apply_avoidance_to_agents(
     agent_id_to_dodgy_agent.insert(
       *agent_id,
       dodgy::Agent {
-        position: glam::Vec2::new(agent_point.x, agent_point.z),
-        velocity: glam::Vec2::new(agent.velocity.x, agent.velocity.z),
+        position: to_dodgy_vec2(agent_point.xz()),
+        velocity: to_dodgy_vec2(agent.velocity.xz()),
         radius: agent.radius,
         max_velocity: agent.max_velocity,
         avoidance_responsibility: 1.0,
@@ -83,10 +83,7 @@ pub(crate) fn apply_avoidance_to_agents(
     let desired_move = dodgy_agent.compute_avoiding_velocity(
       &nearby_agents,
       &nearby_obstacles.iter().map(|obstacle| obstacle).collect::<Vec<_>>(),
-      glam::Vec2::new(
-        agent.current_desired_move.x,
-        agent.current_desired_move.z,
-      ),
+      to_dodgy_vec2(agent.current_desired_move.xz()),
       delta_time,
       &dodgy::AvoidanceOptions {
         obstacle_margin: agent_options.obstacle_avoidance_margin,
@@ -98,6 +95,10 @@ pub(crate) fn apply_avoidance_to_agents(
     agent.current_desired_move =
       glam::Vec3::new(desired_move.x, 0.0, desired_move.y);
   }
+}
+
+fn to_dodgy_vec2(v: glam::Vec2) -> dodgy::Vec2 {
+  dodgy::Vec2 { x: v.x, y: v.y }
 }
 
 fn nav_mesh_borders_to_dodgy_obstacles(
@@ -164,8 +165,10 @@ fn nav_mesh_borders_to_dodgy_obstacles(
         island_data.nav_mesh.vertices[vertex_1].xz(),
         island_data.nav_mesh.vertices[vertex_2].xz(),
       );
-      let (vertex_1, vertex_2) =
-        (vertex_1 - agent_node.0.xz(), vertex_2 - agent_node.0.xz());
+      let (vertex_1, vertex_2) = (
+        to_dodgy_vec2(vertex_1 - agent_node.0.xz()),
+        to_dodgy_vec2(vertex_2 - agent_node.0.xz()),
+      );
 
       if !visibility_set.is_line_visible(vertex_1, vertex_2) {
         continue;
@@ -188,8 +191,10 @@ fn nav_mesh_borders_to_dodgy_obstacles(
         island_data.nav_mesh.vertices[border_vertex_1].xz(),
         island_data.nav_mesh.vertices[border_vertex_2].xz(),
       );
-      let (vertex_1, vertex_2) =
-        (vertex_1 - agent_node.0.xz(), vertex_2 - agent_node.0.xz());
+      let (vertex_1, vertex_2) = (
+        to_dodgy_vec2(vertex_1 - agent_node.0.xz()),
+        to_dodgy_vec2(vertex_2 - agent_node.0.xz()),
+      );
 
       if let Some(line_index) = visibility_set.add_line(vertex_1, vertex_2) {
         border_edges.insert(line_index, (border_vertex_1, border_vertex_2));
@@ -256,6 +261,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
         .iter()
         .rev()
         .map(|vert| island_data.nav_mesh.vertices[*vert].xz())
+        .map(to_dodgy_vec2)
         .collect(),
     })
     .chain(unfinished_loops.drain(..).map(|looop| {
@@ -264,6 +270,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
           .iter()
           .rev()
           .map(|vert| island_data.nav_mesh.vertices[*vert].xz())
+          .map(to_dodgy_vec2)
           .collect(),
       }
     }))
@@ -274,7 +281,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
 mod tests {
   use std::{collections::HashMap, sync::Arc};
 
-  use glam::{Vec2, Vec3};
+  use glam::Vec3;
 
   use crate::{
     avoidance::apply_avoidance_to_agents, island::Island, nav_data::NodeRef,
@@ -365,10 +372,10 @@ mod tests {
       ),
       vec![dodgy::Obstacle::Closed {
         vertices: vec![
-          Vec2::new(1.0, 1.0),
-          Vec2::new(1.0, 2.0),
-          Vec2::new(2.0, 2.0),
-          Vec2::new(2.0, 1.0)
+          dodgy::Vec2::new(1.0, 1.0),
+          dodgy::Vec2::new(1.0, 2.0),
+          dodgy::Vec2::new(2.0, 2.0),
+          dodgy::Vec2::new(2.0, 1.0)
         ]
       }]
     );
@@ -421,15 +428,15 @@ mod tests {
       ),
       vec![dodgy::Obstacle::Open {
         vertices: vec![
-          Vec2::new(4.0, 3.0),
-          Vec2::new(4.0, 2.0),
-          Vec2::new(4.0, 1.0),
-          Vec2::new(3.0, 1.0),
-          Vec2::new(2.0, 1.0),
-          Vec2::new(1.0, 1.0),
-          Vec2::new(1.0, 2.0),
-          Vec2::new(2.0, 2.0),
-          Vec2::new(3.0, 2.0),
+          dodgy::Vec2::new(4.0, 3.0),
+          dodgy::Vec2::new(4.0, 2.0),
+          dodgy::Vec2::new(4.0, 1.0),
+          dodgy::Vec2::new(3.0, 1.0),
+          dodgy::Vec2::new(2.0, 1.0),
+          dodgy::Vec2::new(1.0, 1.0),
+          dodgy::Vec2::new(1.0, 2.0),
+          dodgy::Vec2::new(2.0, 2.0),
+          dodgy::Vec2::new(3.0, 2.0),
         ]
       }]
     );
@@ -442,15 +449,15 @@ mod tests {
       ),
       vec![dodgy::Obstacle::Open {
         vertices: vec![
-          Vec2::new(3.0, 2.0),
-          Vec2::new(3.0, 3.0),
-          Vec2::new(3.0, 4.0),
-          Vec2::new(4.0, 4.0),
-          Vec2::new(4.0, 3.0),
-          Vec2::new(4.0, 2.0),
-          Vec2::new(4.0, 1.0),
-          Vec2::new(3.0, 1.0),
-          Vec2::new(2.0, 1.0),
+          dodgy::Vec2::new(3.0, 2.0),
+          dodgy::Vec2::new(3.0, 3.0),
+          dodgy::Vec2::new(3.0, 4.0),
+          dodgy::Vec2::new(4.0, 4.0),
+          dodgy::Vec2::new(4.0, 3.0),
+          dodgy::Vec2::new(4.0, 2.0),
+          dodgy::Vec2::new(4.0, 1.0),
+          dodgy::Vec2::new(3.0, 1.0),
+          dodgy::Vec2::new(2.0, 1.0),
         ]
       }]
     );
@@ -464,12 +471,12 @@ mod tests {
       ),
       vec![dodgy::Obstacle::Open {
         vertices: vec![
-          Vec2::new(3.0, 2.0),
-          Vec2::new(3.0, 3.0),
-          Vec2::new(3.0, 4.0),
-          Vec2::new(4.0, 4.0),
-          Vec2::new(4.0, 3.0),
-          Vec2::new(4.0, 2.0),
+          dodgy::Vec2::new(3.0, 2.0),
+          dodgy::Vec2::new(3.0, 3.0),
+          dodgy::Vec2::new(3.0, 4.0),
+          dodgy::Vec2::new(4.0, 4.0),
+          dodgy::Vec2::new(4.0, 3.0),
+          dodgy::Vec2::new(4.0, 2.0),
         ]
       }]
     );
@@ -482,18 +489,18 @@ mod tests {
       ),
       vec![dodgy::Obstacle::Closed {
         vertices: vec![
-          Vec2::new(1.0, 1.0),
-          Vec2::new(1.0, 2.0),
-          Vec2::new(2.0, 2.0),
-          Vec2::new(3.0, 2.0),
-          Vec2::new(3.0, 3.0),
-          Vec2::new(3.0, 4.0),
-          Vec2::new(4.0, 4.0),
-          Vec2::new(4.0, 3.0),
-          Vec2::new(4.0, 2.0),
-          Vec2::new(4.0, 1.0),
-          Vec2::new(3.0, 1.0),
-          Vec2::new(2.0, 1.0),
+          dodgy::Vec2::new(1.0, 1.0),
+          dodgy::Vec2::new(1.0, 2.0),
+          dodgy::Vec2::new(2.0, 2.0),
+          dodgy::Vec2::new(3.0, 2.0),
+          dodgy::Vec2::new(3.0, 3.0),
+          dodgy::Vec2::new(3.0, 4.0),
+          dodgy::Vec2::new(4.0, 4.0),
+          dodgy::Vec2::new(4.0, 3.0),
+          dodgy::Vec2::new(4.0, 2.0),
+          dodgy::Vec2::new(4.0, 1.0),
+          dodgy::Vec2::new(3.0, 1.0),
+          dodgy::Vec2::new(2.0, 1.0),
         ]
       }]
     );
@@ -568,26 +575,26 @@ mod tests {
       vec![
         dodgy::Obstacle::Open {
           vertices: vec![
-            Vec2::new(1.0, 1.0),
-            Vec2::new(2.0, 1.0),
-            Vec2::new(3.0, 1.0),
-            Vec2::new(4.0, 1.0),
-            Vec2::new(5.0, 1.0),
+            dodgy::Vec2::new(1.0, 1.0),
+            dodgy::Vec2::new(2.0, 1.0),
+            dodgy::Vec2::new(3.0, 1.0),
+            dodgy::Vec2::new(4.0, 1.0),
+            dodgy::Vec2::new(5.0, 1.0),
           ]
         },
         dodgy::Obstacle::Open {
           vertices: vec![
-            Vec2::new(6.0, 2.0),
-            Vec2::new(6.0, 1.0),
-            Vec2::new(6.0, 0.0),
-            Vec2::new(5.0, 0.0),
-            Vec2::new(4.0, 0.0),
-            Vec2::new(3.0, 0.0),
-            Vec2::new(2.0, 0.0),
-            Vec2::new(1.0, 0.0),
-            Vec2::new(0.0, 0.0),
-            Vec2::new(0.0, 1.0),
-            Vec2::new(0.0, 2.0),
+            dodgy::Vec2::new(6.0, 2.0),
+            dodgy::Vec2::new(6.0, 1.0),
+            dodgy::Vec2::new(6.0, 0.0),
+            dodgy::Vec2::new(5.0, 0.0),
+            dodgy::Vec2::new(4.0, 0.0),
+            dodgy::Vec2::new(3.0, 0.0),
+            dodgy::Vec2::new(2.0, 0.0),
+            dodgy::Vec2::new(1.0, 0.0),
+            dodgy::Vec2::new(0.0, 0.0),
+            dodgy::Vec2::new(0.0, 1.0),
+            dodgy::Vec2::new(0.0, 2.0),
           ]
         }
       ]

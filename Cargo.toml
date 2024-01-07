@@ -14,7 +14,7 @@ categories = ["game-development"]
 keywords = ["navigation", "system", "pathfinding", "avoidance"]
 
 [dependencies]
-dodgy = "1.2.2"
+dodgy = "0.3.0"
 glam = "0.24.2"
 kdtree = "0.7.0"
 rand = "0.8.5"
