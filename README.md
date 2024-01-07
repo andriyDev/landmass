@@ -61,7 +61,7 @@ fn set_up_scene(
   
   // The nav mesh can be populated in another system, or even several frames
   // later.
-  let nav_mesh = Arc::new(landmass::NavigationMesh {
+  let nav_mesh = Arc::new(NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
         glam::Vec3::new(1.0, 0.0, 1.0),

@@ -20,6 +20,8 @@ use util::{bevy_vec3_to_glam_vec3, glam_vec3_to_bevy_vec3};
 mod util;
 
 pub use landmass::AgentState;
+pub use landmass::NavigationMesh;
+pub use landmass::ValidNavigationMesh;
 
 #[cfg(feature = "mesh-utils")]
 pub mod nav_mesh;
@@ -29,6 +31,7 @@ pub struct LandmassPlugin;
 pub mod prelude {
   pub use crate::Agent;
   pub use crate::AgentBundle;
+  pub use crate::AgentCurrentState;
   pub use crate::AgentDesiredVelocity;
   pub use crate::AgentTarget;
   pub use crate::AgentVelocity;
@@ -39,6 +42,9 @@ pub mod prelude {
   pub use crate::LandmassPlugin;
   pub use crate::LandmassSystemSet;
   pub use crate::NavMesh;
+  pub use landmass::AgentState;
+  pub use landmass::NavigationMesh;
+  pub use landmass::ValidNavigationMesh;
 }
 
 // A bundle to create agents. This omits the GlobalTransform component, since
