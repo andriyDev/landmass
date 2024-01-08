@@ -64,14 +64,14 @@ fn set_up_scene(
   let nav_mesh = Arc::new(NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
-        glam::Vec3::new(1.0, 0.0, 1.0),
-        glam::Vec3::new(2.0, 0.0, 1.0),
-        glam::Vec3::new(2.0, 0.0, 2.0),
-        glam::Vec3::new(1.0, 0.0, 2.0),
-        glam::Vec3::new(2.0, 0.0, 3.0),
-        glam::Vec3::new(1.0, 0.0, 3.0),
-        glam::Vec3::new(2.0, 0.0, 4.0),
-        glam::Vec3::new(1.0, 0.0, 4.0),
+        bevy_landmass::Vec3::new(1.0, 0.0, 1.0),
+        bevy_landmass::Vec3::new(2.0, 0.0, 1.0),
+        bevy_landmass::Vec3::new(2.0, 0.0, 2.0),
+        bevy_landmass::Vec3::new(1.0, 0.0, 2.0),
+        bevy_landmass::Vec3::new(2.0, 0.0, 3.0),
+        bevy_landmass::Vec3::new(1.0, 0.0, 3.0),
+        bevy_landmass::Vec3::new(2.0, 0.0, 4.0),
+        bevy_landmass::Vec3::new(1.0, 0.0, 4.0),
       ],
       polygons: vec![
         vec![0, 1, 2, 3],

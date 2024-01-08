@@ -17,7 +17,6 @@ keywords = ["navigation", "pathfinding", "avoidance", "landmass", "bevy"]
 bevy = { version = "0.12.0", default-features = false, features = [
   "bevy_asset",
 ] }
-glam = "0.24.2"
 landmass = "0.3.3"
 
 [features]

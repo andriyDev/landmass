@@ -9,19 +9,20 @@ use bevy::{
   asset::{Asset, AssetApp, Assets, Handle},
   prelude::{
     Bundle, Component, Entity, EulerRot, GlobalTransform, IntoSystemConfigs,
-    IntoSystemSetConfigs, Plugin, Query, Res, SystemSet, Update, Vec3, With,
+    IntoSystemSetConfigs, Plugin, Query, Res, SystemSet, Update, With,
   },
   reflect::TypePath,
   time::Time,
 };
 use landmass::{AgentId, IslandId};
-use util::{bevy_vec3_to_glam_vec3, glam_vec3_to_bevy_vec3};
+use util::{bevy_vec3_to_landmass_vec3, landmass_vec3_to_bevy_vec3};
 
 mod util;
 
 pub use landmass::AgentState;
 pub use landmass::NavigationMesh;
 pub use landmass::ValidNavigationMesh;
+pub use landmass::Vec3;
 
 #[cfg(feature = "mesh-utils")]
 pub mod nav_mesh;
@@ -262,7 +263,7 @@ fn sync_island_nav_mesh(
       Some(transform) => {
         let transform = transform.compute_transform();
         landmass::Transform {
-          translation: bevy_vec3_to_glam_vec3(transform.translation),
+          translation: bevy_vec3_to_landmass_vec3(transform.translation),
           rotation: transform.rotation.to_euler(EulerRot::YXZ).0,
         }
       }
@@ -379,8 +380,8 @@ fn add_agents_to_archipelagos(
     for (new_agent_entity, new_agent) in new_agent_map.drain() {
       let agent_id =
         archipelago.archipelago.add_agent(landmass::Agent::create(
-          /* position= */ glam::Vec3::ZERO,
-          /* velocity= */ glam::Vec3::ZERO,
+          /* position= */ landmass::Vec3::ZERO,
+          /* velocity= */ landmass::Vec3::ZERO,
           new_agent.radius,
           new_agent.max_velocity,
         ));
@@ -417,13 +418,13 @@ fn sync_agent_input_state(
     };
 
     let agent = archipelago.get_agent_mut(agent_entity);
-    agent.position = bevy_vec3_to_glam_vec3(transform.translation());
+    agent.position = bevy_vec3_to_landmass_vec3(transform.translation());
     if let Some(AgentVelocity(velocity)) = velocity {
-      agent.velocity = bevy_vec3_to_glam_vec3(*velocity);
+      agent.velocity = bevy_vec3_to_landmass_vec3(*velocity);
     }
     agent.current_target = target
       .and_then(|target| target.to_point(&global_transform_query))
-      .map(bevy_vec3_to_glam_vec3);
+      .map(bevy_vec3_to_landmass_vec3);
   }
 }
 
@@ -461,7 +462,7 @@ fn sync_desired_velocity(
       Some(arch) => arch,
     };
 
-    desired_velocity.0 = glam_vec3_to_bevy_vec3(
+    desired_velocity.0 = landmass_vec3_to_bevy_vec3(
       archipelago.get_agent(agent_entity).get_desired_velocity(),
     );
   }
@@ -502,12 +503,12 @@ mod tests {
       NavigationMesh {
         mesh_bounds: None,
         vertices: vec![
-          glam::Vec3::new(1.0, 0.0, 1.0),
-          glam::Vec3::new(4.0, 0.0, 1.0),
-          glam::Vec3::new(4.0, 0.0, 4.0),
-          glam::Vec3::new(3.0, 0.0, 4.0),
-          glam::Vec3::new(3.0, 0.0, 2.0),
-          glam::Vec3::new(1.0, 0.0, 2.0),
+          landmass::Vec3::new(1.0, 0.0, 1.0),
+          landmass::Vec3::new(4.0, 0.0, 1.0),
+          landmass::Vec3::new(4.0, 0.0, 4.0),
+          landmass::Vec3::new(3.0, 0.0, 4.0),
+          landmass::Vec3::new(3.0, 0.0, 2.0),
+          landmass::Vec3::new(1.0, 0.0, 2.0),
         ],
         polygons: vec![vec![0, 1, 4, 5], vec![1, 2, 3, 4]],
       }
