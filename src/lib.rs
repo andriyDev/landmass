@@ -10,11 +10,12 @@ mod path;
 mod pathfinding;
 mod util;
 
-use glam::Vec3;
 use rand::Rng;
 use std::collections::HashMap;
 
 use nav_data::{NavigationData, NodeRef};
+
+pub use glam::Vec3;
 
 pub mod debug;
 
