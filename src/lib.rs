@@ -21,7 +21,7 @@ pub mod debug;
 
 pub use agent::{Agent, AgentId, AgentState, TargetReachedCondition};
 pub use island::{Island, IslandId};
-pub use nav_mesh::{NavigationMesh, ValidNavigationMesh};
+pub use nav_mesh::{NavigationMesh, ValidNavigationMesh, ValidationError};
 pub use util::{BoundingBox, Transform};
 
 use crate::avoidance::apply_avoidance_to_agents;
