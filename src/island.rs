@@ -4,20 +4,20 @@ use crate::{util::Transform, ValidNavigationMesh};
 
 pub type IslandId = u32;
 
-// An Island in an Archipelago. Islands are the region that an navigation mesh
-// can be put into.
+/// An Island in an Archipelago. Islands are the region that an navigation mesh
+/// can be put into.
 pub struct Island {
-  // The navigation data, if present. May be missing for islands that have not
-  // finished loading yet, or are having their data updated.
+  /// The navigation data, if present. May be missing for islands that have not
+  /// finished loading yet, or are having their data updated.
   pub(crate) nav_data: Option<IslandNavigationData>,
-  // Whether the island has been updated recently.
+  /// Whether the island has been updated recently.
   pub(crate) dirty: bool,
 }
 
 pub(crate) struct IslandNavigationData {
-  // The transform from the Island's frame to the Archipelago's frame.
+  /// The transform from the Island's frame to the Archipelago's frame.
   pub transform: Transform,
-  // The navigation mesh for the island.
+  /// The navigation mesh for the island.
   pub nav_mesh: Arc<ValidNavigationMesh>,
 }
 

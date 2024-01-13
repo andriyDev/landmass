@@ -10,9 +10,9 @@ pub struct NavigationData {
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct NodeRef {
-  // The island of the node.
+  /// The island of the node.
   pub island_id: IslandId,
-  // The index of the node in the island.
+  /// The index of the node in the island.
   pub polygon_index: usize,
 }
 

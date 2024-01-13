@@ -4,22 +4,22 @@ use crate::{path::Path, NavigationData};
 
 pub type AgentId = u32;
 
-// The state of an agent.
+/// The state of an agent.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum AgentState {
-  // The agent is idle, due to not having a target. Note this does not mean
-  // that they are motionless. An agent will still avoid nearby agents.
+  /// The agent is idle, due to not having a target. Note this does not mean
+  /// that they are motionless. An agent will still avoid nearby agents.
   Idle,
-  // The agent has reached their target. The agent may resume moving if the
-  // target moves or otherwise changes.
+  /// The agent has reached their target. The agent may resume moving if the
+  /// target moves or otherwise changes.
   ReachedTarget,
-  // The agent has a path and is moving towards their target.
+  /// The agent has a path and is moving towards their target.
   Moving,
-  // The agent is not on a nav mesh.
+  /// The agent is not on a nav mesh.
   AgentNotOnNavMesh,
-  // The target is not on a nav mesh.
+  /// The target is not on a nav mesh.
   TargetNotOnNavMesh,
-  // The agent has a target but cannot find a path to it.
+  /// The agent has a target but cannot find a path to it.
   NoPath,
 }
 
@@ -35,28 +35,28 @@ pub struct Agent {
   pub(crate) state: AgentState,
 }
 
-// The condition to consider the agent as having reached its target. When this
-// condition is satisfied, the agent will stop moving.
+/// The condition to consider the agent as having reached its target. When this
+/// condition is satisfied, the agent will stop moving.
 pub enum TargetReachedCondition {
-  // The target is reached if it is within the provided (Euclidean) distance
-  // of the agent. Useful if the target is surrounded by small obstacles
-  // which don't need to be navigated around (e.g. the agent just needs to
-  // be close enough to shoot at the target, which is surrounded by cover).
-  // Alternatively, if the distance is low, this can simply mean "when the
-  // agent is really close to the target".
+  /// The target is reached if it is within the provided (Euclidean) distance
+  /// of the agent. Useful if the target is surrounded by small obstacles
+  /// which don't need to be navigated around (e.g. the agent just needs to
+  /// be close enough to shoot at the target, which is surrounded by cover).
+  /// Alternatively, if the distance is low, this can simply mean "when the
+  /// agent is really close to the target".
   Distance(f32),
-  // The target is reached if it is "visible" (there is a straight line from
-  // the agent to the target), and the target is within the provided
-  // (Euclidean) distance of the agent. Useful if the agent should be able
-  // to see the target (e.g. a companion character should remain visible to
-  // the player, but should ideally not stand too close).
+  /// The target is reached if it is "visible" (there is a straight line from
+  /// the agent to the target), and the target is within the provided
+  /// (Euclidean) distance of the agent. Useful if the agent should be able
+  /// to see the target (e.g. a companion character should remain visible to
+  /// the player, but should ideally not stand too close).
   VisibleAtDistance(f32),
-  // The target is reached if the "straight line" path from the agent to the
-  // target is less than the provided distance. "Straight line" path means if
-  // the agent's path goes around a corner, the distance will be computed
-  // going around the corner. This can be more computationally expensive, as
-  // the straight line path must be computed every update. Useful for agents
-  // that care about the actual walking distance to the target.
+  /// The target is reached if the "straight line" path from the agent to the
+  /// target is less than the provided distance. "Straight line" path means if
+  /// the agent's path goes around a corner, the distance will be computed
+  /// going around the corner. This can be more computationally expensive, as
+  /// the straight line path must be computed every update. Useful for agents
+  /// that care about the actual walking distance to the target.
   StraightPathDistance(f32),
 }
 

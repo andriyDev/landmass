@@ -4,37 +4,37 @@ use glam::{swizzles::Vec3Swizzles, Vec3};
 
 use crate::{BoundingBox, Transform};
 
-// A navigation mesh.
+/// A navigation mesh.
 #[derive(Clone)]
 pub struct NavigationMesh {
-  // The bounds of the mesh data itself. This should be a tight bounding box
-  // around the vertices of the navigation mesh. This may be None to
-  // automatically compute this from the vertices.
+  /// The bounds of the mesh data itself. This should be a tight bounding box
+  /// around the vertices of the navigation mesh. This may be None to
+  /// automatically compute this from the vertices.
   pub mesh_bounds: Option<BoundingBox>,
-  // The vertices that make up the polygons. The Y component is considered up.
+  /// The vertices that make up the polygons. The Y component is considered up.
   pub vertices: Vec<Vec3>,
-  // The polygons of the mesh. Polygons are indices to the `vertices` that make
-  // up the polygon. Polygons must be convex, and oriented counterclockwise.
-  // Polygons are assumed to be not self-intersecting.
+  /// The polygons of the mesh. Polygons are indices to the `vertices` that
+  /// make up the polygon. Polygons must be convex, and oriented
+  /// counterclockwise. Polygons are assumed to be not self-intersecting.
   pub polygons: Vec<Vec<usize>>,
 }
 
-// An error when validating a navigation mesh.
+/// An error when validating a navigation mesh.
 #[derive(Debug)]
 pub enum ValidationError {
-  // A polygon is concave (or has edges in clockwise order). Stores the index
-  // of the polygon.
+  /// A polygon is concave (or has edges in clockwise order). Stores the index
+  /// of the polygon.
   ConcavePolygon(usize),
-  // A polygon was not big enough (less than 3 vertices). Stores the index of
-  // the polygon.
+  /// A polygon was not big enough (less than 3 vertices). Stores the index of
+  /// the polygon.
   NotEnoughVerticesInPolygon(usize),
-  // A polygon indexed an invalid vertex. Stores the index of the polygon.
+  /// A polygon indexed an invalid vertex. Stores the index of the polygon.
   InvalidVertexIndexInPolygon(usize),
-  // A polygon contains a degenerate edge (an edge using the same vertex for
-  // both endpoints). Stores the index of the polygon.
+  /// A polygon contains a degenerate edge (an edge using the same vertex for
+  /// both endpoints). Stores the index of the polygon.
   DegenerateEdgeInPolygon(usize),
-  // An edge is used by more than two polygons. Stores the indices of the two
-  // vertices that make up the edge.
+  /// An edge is used by more than two polygons. Stores the indices of the two
+  /// vertices that make up the edge.
   DoublyConnectedEdge(usize, usize),
 }
 
@@ -193,53 +193,53 @@ impl NavigationMesh {
   }
 }
 
-// A navigation mesh which has been validated and derived data has been
-// computed.
+/// A navigation mesh which has been validated and derived data has been
+/// computed.
 #[derive(Debug, Clone)]
 pub struct ValidNavigationMesh {
-  // The bounds of the mesh data itself. This is a tight bounding box around
-  // the vertices of the navigation mesh.
+  /// The bounds of the mesh data itself. This is a tight bounding box around
+  /// the vertices of the navigation mesh.
   pub(crate) mesh_bounds: BoundingBox,
-  // The vertices that make up the polygons.
+  /// The vertices that make up the polygons.
   pub(crate) vertices: Vec<Vec3>,
-  // The polygons of the mesh.
+  /// The polygons of the mesh.
   pub(crate) polygons: Vec<ValidPolygon>,
-  // The connectivity for each polygon. Each polygon has a Vec of the pairs
-  // of (edge index, node index).
+  /// The connectivity for each polygon. Each polygon has a Vec of the pairs
+  /// of (edge index, node index).
   pub(crate) connectivity: Vec<Vec<Connectivity>>,
-  // The boundary edges in the navigation mesh. Edges are stored as pairs of
-  // vertices in a counter-clockwise direction. That is, moving along an edge
-  // (e.0, e.1) from e.0 to e.1 will move counter-clockwise along the boundary.
-  // The order of edges is undefined.
+  /// The boundary edges in the navigation mesh. Edges are stored as pairs of
+  /// vertices in a counter-clockwise direction. That is, moving along an edge
+  /// (e.0, e.1) from e.0 to e.1 will move counter-clockwise along the
+  /// boundary. The order of edges is undefined.
   pub(crate) boundary_edges: Vec<MeshEdgeRef>,
 }
 
-// A valid polygon. This means the polygon is convex and indexes the `vertices`
-// Vec of the corresponding ValidNavigationMesh.
+/// A valid polygon. This means the polygon is convex and indexes the `vertices`
+/// Vec of the corresponding ValidNavigationMesh.
 #[derive(PartialEq, Debug, Clone)]
 pub(crate) struct ValidPolygon {
-  // The vertices are indexes to the `vertices` Vec of the corresponding
-  // ValidNavigationMesh.
+  /// The vertices are indexes to the `vertices` Vec of the corresponding
+  /// ValidNavigationMesh.
   pub(crate) vertices: Vec<usize>,
-  // The bounding box of `vertices`.
+  /// The bounding box of `vertices`.
   pub(crate) bounds: BoundingBox,
   pub(crate) center: Vec3,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Connectivity {
-  // The index of the edge within the polygon.
+  /// The index of the edge within the polygon.
   pub edge_index: usize,
-  // The index of the polygon that this edge leads to.
+  /// The index of the polygon that this edge leads to.
   pub polygon_index: usize,
 }
 
-// A reference to an edge on a navigation mesh.
+/// A reference to an edge on a navigation mesh.
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct MeshEdgeRef {
-  // The index of the polygon that this edge belongs to.
+  /// The index of the polygon that this edge belongs to.
   pub polygon_index: usize,
-  // The index of the edge within the polygon.
+  /// The index of the edge within the polygon.
   pub edge_index: usize,
 }
 

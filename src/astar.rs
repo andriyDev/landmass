@@ -83,20 +83,20 @@ where
   path
 }
 
-// Stats about the pathfinding process.
+/// Stats about the pathfinding process.
 #[derive(Debug)]
 pub struct PathStats {
-  // The number of nodes that were explored. This can exceed the number of
-  // states if there are faster paths than the heuristic "predicts".
+  /// The number of nodes that were explored. This can exceed the number of
+  /// states if there are faster paths than the heuristic "predicts".
   pub explored_nodes: u32,
 }
 
-// The result of pathfinding.
+/// The result of pathfinding.
 #[derive(Debug)]
 pub struct PathResult<ActionType> {
-  // Stats about the pathfinding process.
+  /// Stats about the pathfinding process.
   pub stats: PathStats,
-  // The found path.
+  /// The found path.
   pub path: Vec<ActionType>,
 }
 

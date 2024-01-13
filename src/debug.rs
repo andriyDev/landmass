@@ -2,49 +2,49 @@ use glam::Vec3;
 
 use crate::{AgentId, Archipelago};
 
-// The type of debug points.
+/// The type of debug points.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum PointType {
-  // The position of an agent.
+  /// The position of an agent.
   AgentPosition(AgentId),
-  // The target of an agent.
+  /// The target of an agent.
   TargetPosition(AgentId),
-  // The waypoint of an agent.
+  /// The waypoint of an agent.
   Waypoint(AgentId),
 }
 
-// The type of debug lines.
+/// The type of debug lines.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum LineType {
-  // An edge of a node that is the boundary of the nav mesh.
+  /// An edge of a node that is the boundary of the nav mesh.
   BoundaryEdge,
-  // An edge of a node that is connected to another node.
+  /// An edge of a node that is connected to another node.
   ConnectivityEdge,
-  // Part of an agent's current path. The corridor follows the path along
-  // nodes, not the actual path the agent will travel.
+  /// Part of an agent's current path. The corridor follows the path along
+  /// nodes, not the actual path the agent will travel.
   AgentCorridor(AgentId),
-  // Line from an agent to its target.
+  /// Line from an agent to its target.
   Target(AgentId),
-  // Line to the waypoint of an agent.
+  /// Line to the waypoint of an agent.
   Waypoint(AgentId),
 }
 
-// The type of debug triangles.
+/// The type of debug triangles.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum TriangleType {
-  // Part of a node/polygon in a nav mesh.
+  /// Part of a node/polygon in a nav mesh.
   Node,
 }
 
-// Trait to "draw" Archipelago state to. Users should implement this to
-// visualize the state of their Archipelago.
+/// Trait to "draw" Archipelago state to. Users should implement this to
+/// visualize the state of their Archipelago.
 pub trait DebugDrawer {
   fn add_point(&mut self, point_type: PointType, point: Vec3);
   fn add_line(&mut self, line_type: LineType, line: [Vec3; 2]);
   fn add_triangle(&mut self, triangle_type: TriangleType, triangle: [Vec3; 3]);
 }
 
-// Draws all parts of `archipelago` to `debug_drawer`.
+/// Draws all parts of `archipelago` to `debug_drawer`.
 pub fn draw_archipelago_debug(
   archipelago: &Archipelago,
   debug_drawer: &mut impl DebugDrawer,

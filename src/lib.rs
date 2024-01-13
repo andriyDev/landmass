@@ -32,18 +32,19 @@ pub struct Archipelago {
   agents: HashMap<AgentId, Agent>,
 }
 
-// Options that apply to all agents
+/// Options that apply to all agents
 pub struct AgentOptions {
-  // The distance to use when sampling agent and target points.
+  /// The distance to use when sampling agent and target points.
   pub node_sample_distance: f32,
-  // The distance that an agent will consider avoiding another agent.
+  /// The distance that an agent will consider avoiding another agent.
   pub neighbourhood: f32,
   // The time into the future that collisions with other agents should be
-  // avoided.
+  /// avoided.
   pub avoidance_time_horizon: f32,
-  // The distance to stay away from the border of the nav mesh.
+  /// The distance to stay away from the border of the nav mesh.
   pub obstacle_avoidance_margin: f32,
-  // The time into the future that collisions with obstacles should be avoided.
+  /// The time into the future that collisions with obstacles should be
+  /// avoided.
   pub obstacle_avoidance_time_horizon: f32,
 }
 
