@@ -22,6 +22,7 @@ mod util;
 pub use landmass::AgentState;
 pub use landmass::NavigationMesh;
 pub use landmass::ValidNavigationMesh;
+pub use landmass::ValidationError;
 pub use landmass::Vec3;
 
 #[cfg(feature = "mesh-utils")]
