@@ -17,13 +17,15 @@ use bevy::{
 use landmass::{AgentId, IslandId};
 use util::{bevy_vec3_to_landmass_vec3, landmass_vec3_to_bevy_vec3};
 
+mod landmass_structs;
 mod util;
 
-pub use landmass::AgentState;
 pub use landmass::NavigationMesh;
 pub use landmass::ValidNavigationMesh;
 pub use landmass::ValidationError;
 pub use landmass::Vec3;
+
+pub use landmass_structs::*;
 
 #[cfg(feature = "mesh-utils")]
 pub mod nav_mesh;
@@ -33,8 +35,8 @@ pub struct LandmassPlugin;
 pub mod prelude {
   pub use crate::Agent;
   pub use crate::AgentBundle;
-  pub use crate::AgentCurrentState;
   pub use crate::AgentDesiredVelocity;
+  pub use crate::AgentState;
   pub use crate::AgentTarget;
   pub use crate::AgentVelocity;
   pub use crate::Archipelago;
@@ -44,7 +46,6 @@ pub mod prelude {
   pub use crate::LandmassPlugin;
   pub use crate::LandmassSystemSet;
   pub use crate::NavMesh;
-  pub use landmass::AgentState;
   pub use landmass::NavigationMesh;
   pub use landmass::ValidNavigationMesh;
 }
@@ -58,7 +59,7 @@ pub struct AgentBundle {
   pub archipelago_ref: ArchipelagoRef,
   pub velocity: AgentVelocity,
   pub target: AgentTarget,
-  pub state: AgentCurrentState,
+  pub state: AgentState,
   pub desired_velocity: AgentDesiredVelocity,
 }
 
@@ -324,21 +325,6 @@ impl AgentTarget {
   }
 }
 
-#[derive(Component)]
-pub struct AgentCurrentState(AgentState);
-
-impl Default for AgentCurrentState {
-  fn default() -> Self {
-    Self(AgentState::Idle)
-  }
-}
-
-impl AgentCurrentState {
-  pub fn state(&self) -> AgentState {
-    self.0
-  }
-}
-
 #[derive(Component, Default)]
 pub struct AgentDesiredVelocity(Vec3);
 
@@ -431,7 +417,7 @@ fn sync_agent_input_state(
 
 fn sync_agent_state(
   mut agent_query: Query<
-    (Entity, &ArchipelagoRef, &mut AgentCurrentState),
+    (Entity, &ArchipelagoRef, &mut AgentState),
     With<Agent>,
   >,
   archipelago_query: Query<&Archipelago>,
@@ -444,7 +430,8 @@ fn sync_agent_state(
       Some(arch) => arch,
     };
 
-    state.0 = archipelago.get_agent(agent_entity).state();
+    *state =
+      AgentState::from_landmass(&archipelago.get_agent(agent_entity).state());
   }
 }
 
@@ -474,10 +461,10 @@ mod tests {
   use std::sync::Arc;
 
   use bevy::prelude::*;
-  use landmass::{AgentState, NavigationMesh};
+  use landmass::NavigationMesh;
 
   use crate::{
-    Agent, AgentBundle, AgentCurrentState, AgentDesiredVelocity, AgentTarget,
+    Agent, AgentBundle, AgentDesiredVelocity, AgentState, AgentTarget,
     Archipelago, ArchipelagoRef, Island, IslandBundle, LandmassPlugin, NavMesh,
   };
 
@@ -565,11 +552,7 @@ mod tests {
     app.update();
 
     assert_eq!(
-      app
-        .world
-        .get::<AgentCurrentState>(agent_id)
-        .expect("current state was added")
-        .0,
+      *app.world.get::<AgentState>(agent_id).expect("current state was added"),
       AgentState::Moving,
     );
     assert_eq!(
