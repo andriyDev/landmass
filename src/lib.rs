@@ -50,9 +50,9 @@ pub mod prelude {
   pub use landmass::ValidNavigationMesh;
 }
 
-// A bundle to create agents. This omits the GlobalTransform component, since
-// this is commonly added in other bundles (which is redundant and can override
-// previous bundles).
+/// A bundle to create agents. This omits the GlobalTransform component, since
+/// this is commonly added in other bundles (which is redundant and can override
+/// previous bundles).
 #[derive(Bundle)]
 pub struct AgentBundle {
   pub agent: Agent,
@@ -63,9 +63,9 @@ pub struct AgentBundle {
   pub desired_velocity: AgentDesiredVelocity,
 }
 
-// A bundle to create islands. The GlobalTransform component is omitted, since
-// this is commonly added in other bundles (which is redundant and can
-// override previous bundles).
+/// A bundle to create islands. The GlobalTransform component is omitted, since
+/// this is commonly added in other bundles (which is redundant and can
+/// override previous bundles).
 #[derive(Bundle)]
 pub struct IslandBundle {
   pub island: Island,
