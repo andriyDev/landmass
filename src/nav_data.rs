@@ -4,10 +4,14 @@ use glam::Vec3;
 
 use crate::island::{Island, IslandId};
 
+/// The navigation data of a whole [`crate::Archipelago`]. This only includes
+/// "static" features.
 pub struct NavigationData {
+  /// The islands in the [`crate::Archipelago`].
   pub islands: HashMap<IslandId, Island>,
 }
 
+/// A reference to a node in the navigation data.
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct NodeRef {
   /// The island of the node.
@@ -17,10 +21,14 @@ pub struct NodeRef {
 }
 
 impl NavigationData {
+  /// Creates new navigation data.
   pub fn new() -> Self {
     Self { islands: HashMap::new() }
   }
 
+  /// Finds the node nearest to (and within `distance_to_node` of) `point`.
+  /// Returns the point on the nav data nearest to `point` and the reference to
+  /// the corresponding node.
   pub fn sample_point(
     &self,
     point: Vec3,

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::{util::Transform, ValidNavigationMesh};
 
+/// The ID of an island.
 pub type IslandId = u32;
 
 /// An Island in an Archipelago. Islands are the region that an navigation mesh
@@ -14,6 +15,7 @@ pub struct Island {
   pub(crate) dirty: bool,
 }
 
+/// The navigation data of an island.
 pub(crate) struct IslandNavigationData {
   /// The transform from the Island's frame to the Archipelago's frame.
   pub transform: Transform,
@@ -22,6 +24,7 @@ pub(crate) struct IslandNavigationData {
 }
 
 impl Island {
+  /// Creates a new island.
   pub(crate) fn new() -> Self {
     Self {
       nav_data: None,
@@ -30,14 +33,17 @@ impl Island {
     }
   }
 
+  /// Gets the current transform of the island.
   pub fn get_transform(&self) -> Option<Transform> {
     self.nav_data.as_ref().map(|d| d.transform)
   }
 
+  /// Gets the current navigation mesh used by the island.
   pub fn get_nav_mesh(&self) -> Option<Arc<ValidNavigationMesh>> {
     self.nav_data.as_ref().map(|d| Arc::clone(&d.nav_mesh))
   }
 
+  /// Sets the navigation mesh and the transform of the island.
   pub fn set_nav_mesh(
     &mut self,
     transform: Transform,
@@ -47,6 +53,8 @@ impl Island {
     self.dirty = true;
   }
 
+  /// Clears the navigation mesh from the island, making the island completely
+  /// empty.
   pub fn clear_nav_mesh(&mut self) {
     self.nav_data = None;
     self.dirty = true;

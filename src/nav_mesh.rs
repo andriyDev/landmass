@@ -39,6 +39,10 @@ pub enum ValidationError {
 }
 
 impl NavigationMesh {
+  /// Ensures required invariants of the navigation mesh, and computes
+  /// additional derived properties to produce and optimized and validated
+  /// navigation mesh. Returns an error if the navigation mesh is invalid in
+  /// some way.
   pub fn validate(mut self) -> Result<ValidNavigationMesh, ValidationError> {
     if self.mesh_bounds.is_none() {
       if self.vertices.is_empty() {
@@ -244,6 +248,7 @@ pub struct MeshEdgeRef {
 }
 
 impl ValidNavigationMesh {
+  /// Returns the bounds of the navigation mesh.
   pub fn get_bounds(&self) -> BoundingBox {
     self.mesh_bounds
   }
@@ -340,6 +345,9 @@ impl ValidNavigationMesh {
     linkable_edges_by_plane
   }
 
+  /// Finds the node nearest to (and within `distance_to_node` of) `point`.
+  /// Returns the point on the nav mesh nearest to `point` and the index of the
+  /// polygon.
   pub(crate) fn sample_point(
     &self,
     point: Vec3,
@@ -423,6 +431,7 @@ impl ValidNavigationMesh {
 }
 
 impl ValidPolygon {
+  /// Determines the vertices corresponding to `edge`.
   pub(crate) fn get_edge_indices(&self, edge: usize) -> (usize, usize) {
     (
       self.vertices[edge],

@@ -6,6 +6,8 @@ use kdtree::{distance::squared_euclidean, KdTree};
 
 use crate::{nav_data::NodeRef, Agent, AgentId, AgentOptions, NavigationData};
 
+/// Adjusts the velocity of `agents` to apply local avoidance. `delta_time` must
+/// be positive.
 pub(crate) fn apply_avoidance_to_agents(
   agents: &mut HashMap<AgentId, Agent>,
   agent_id_to_agent_node: &HashMap<AgentId, (Vec3, NodeRef)>,
@@ -101,6 +103,10 @@ fn to_dodgy_vec2(v: glam::Vec2) -> dodgy::Vec2 {
   dodgy::Vec2 { x: v.x, y: v.y }
 }
 
+/// Computes the dodgy obstacles corresponding to the navigation mesh borders.
+/// These obstacles are from the perspective of `agent_node` (to avoid problems
+/// with obstacles above/below the agent). `distance_limit` is the distance from
+/// the agent to include obstacles.
 fn nav_mesh_borders_to_dodgy_obstacles(
   agent_node: (Vec3, NodeRef),
   nav_data: &NavigationData,

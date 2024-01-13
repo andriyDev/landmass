@@ -4,13 +4,19 @@ use glam::{Vec3, Vec3Swizzles};
 
 use crate::{nav_data::NodeRef, NavigationData};
 
+/// A path computed on the navigation data.
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Path {
+  /// The nodes belonging to the path. Must have at least one element.
   pub(crate) corridor: Vec<NodeRef>,
+  /// The "portals" used between each node in [`Path::corridor`]. The portals
+  /// are the edges that the agent must cross along its path. Must have
+  /// exactly one less element than [`Path::corridor`].
   pub(crate) portal_edge_index: Vec<usize>,
 }
 
 impl Path {
+  /// Determines the endpoints of the portal at `portal_index` in `nav_data`.
   fn get_portal_endpoints(
     &self,
     portal_index: usize,
@@ -36,6 +42,13 @@ impl Path {
     )
   }
 
+  /// Determines the next point along `self` that the agent can walk straight
+  /// towards, starting at the node `start_index` at `start_point` and ending at
+  /// the node `end_index` at `end_point`. `start_index` and `end_index` are
+  /// indices into `self`. Returns the index of the node in the path where the
+  /// next point is, and that next point. Note this can be called repeatedly by
+  /// passing in the returned tuple as the `start_index` and `start_point` to
+  /// generate the full straight path.
   pub(crate) fn find_next_point_in_straight_path(
     &self,
     nav_data: &NavigationData,
@@ -87,6 +100,8 @@ impl Path {
     (end_index, end_point)
   }
 
+  /// Determines if a path is valid. A path may be invalid if an island it
+  /// travelled across was updated or removed.
   pub(crate) fn is_valid(&self, nav_data: &NavigationData) -> bool {
     let islands_in_path =
       self.corridor.iter().map(|n| n.island_id).collect::<HashSet<u32>>();

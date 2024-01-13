@@ -23,15 +23,29 @@ pub enum AgentState {
   NoPath,
 }
 
+/// An agent in an archipelago.
 pub struct Agent {
+  /// The current position of the agent.
   pub position: Vec3,
+  /// The current velocity of the agent.
   pub velocity: Vec3,
+  /// The radius of the agent.
   pub radius: f32,
+  /// The maximum velocity that the agent can move at.
   pub max_velocity: f32,
+  /// The current target to move towards. Modifying this every update is fine.
+  /// Paths will be reused for target points near each other if possible.
+  /// However, swapping between two distant targets every update can be
+  /// detrimental to be performance.
   pub current_target: Option<Vec3>,
+  /// The condition to test for reaching the target.
   pub target_reached_condition: TargetReachedCondition,
+  /// The current path of the agent. None if a path is unavailable or a new
+  /// path has not been computed yet (i.e., no path).
   pub(crate) current_path: Option<Path>,
+  /// The desired velocity of the agent to move towards its goal.
   pub(crate) current_desired_move: Vec3,
+  /// The state of the agent.
   pub(crate) state: AgentState,
 }
 
@@ -61,6 +75,7 @@ pub enum TargetReachedCondition {
 }
 
 impl Agent {
+  /// Creates a new agent.
   pub fn create(
     position: Vec3,
     velocity: Vec3,
@@ -80,14 +95,23 @@ impl Agent {
     }
   }
 
+  /// Returns the desired velocity. This will only be updated if `update` was
+  /// called on the associated [`crate::Archipelago`].
   pub fn get_desired_velocity(&self) -> Vec3 {
     self.current_desired_move
   }
 
+  /// Returns the state of the agent. This will only be updated if `update` was
+  /// called on the associated [`crate::Archipelago`].
   pub fn state(&self) -> AgentState {
     self.state
   }
 
+  /// Determines if this agent has reached its target. `next_waypoint` and
+  /// `target_waypoint` are formatted as an index into the `path` and the point
+  /// of the waypoint. `next_waypoint` is the next waypoint on the way to the
+  /// target. `target_waypoint` is the final waypoint that corresponds to the
+  /// target.
   pub(crate) fn has_reached_target(
     &self,
     path: &Path,

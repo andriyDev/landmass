@@ -5,9 +5,13 @@ use crate::{
   NavigationData,
 };
 
+/// A concrete A* problem specifically for [`crate::Archipelago`]s.
 struct ArchipelagoPathProblem<'a> {
+  /// The navigation data to search.
   nav_data: &'a NavigationData,
+  /// The node the agent is starting from.
   start_node: NodeRef,
+  /// The node the target is in.
   end_node: NodeRef,
 }
 
@@ -65,11 +69,16 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
   }
 }
 
+/// The results of pathfinding.
 pub(crate) struct PathResult {
+  /// Statistics about the pathfinding process.
   pub(crate) stats: PathStats,
+  /// The resulting path.
   pub(crate) path: Path,
 }
 
+/// Finds a path in `nav_data` from `start_node` to `end_node`. Returns an `Err`
+/// if no path was found.
 pub(crate) fn find_path(
   nav_data: &NavigationData,
   start_node: NodeRef,

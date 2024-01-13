@@ -5,31 +5,52 @@ use std::{
   hash::Hash,
 };
 
+/// A generic A* problem.
 pub trait AStarProblem {
+  /// The action that allows moving between states.
   type ActionType;
+  /// The state that agents try to optimize.
   type StateType;
 
+  /// Creates the initial state for the problem.
   fn initial_state(&self) -> Self::StateType;
 
+  /// Creates all possible states that can be reached by a single action from
+  /// `state`. The result stores the "cost" of the action, the action taken, and
+  /// the resulting state.
   fn successors(
     &self,
     state: &Self::StateType,
   ) -> Vec<(f32, Self::ActionType, Self::StateType)>;
 
+  /// Computes an estimate of the cost to reach a goal state from `state`. Must
+  /// be non-negative and goal states must have an estimate of 0.
   fn heuristic(&self, state: &Self::StateType) -> f32;
 
+  /// Determines whether `state` is a goal state.
   fn is_goal_state(&self, state: &Self::StateType) -> bool;
 }
 
+/// A node which represents a single path (by following the previous nodes).
 struct Node<ProblemType: AStarProblem> {
+  /// The cost of all actions taken by this path.
   cost: f32,
+  /// The state that the path results in.
   state: ProblemType::StateType,
+  /// The previous node in the path. This is stored as the index of the node
+  /// and the action used to get to this state from the previous state. Only
+  /// `None` for the initial state.
   previous_node: Option<(usize, ProblemType::ActionType)>,
 }
 
+/// A reference to a node.
 struct NodeRef {
+  /// The cost of the path of the node. This is a convenience for accessing the
+  /// node's cost directly.
   cost: f32,
+  /// The value of the [`AStarProblem::heuristic`] for this state.
   estimate: f32,
+  /// The index of the node.
   index: usize,
 }
 
@@ -59,6 +80,7 @@ impl Ord for NodeRef {
   }
 }
 
+/// Determines the list of actions taken by `node_ref`.
 fn recover_path_from_node<ProblemType: AStarProblem>(
   node_ref: &NodeRef,
   nodes: Vec<Node<ProblemType>>,
@@ -100,6 +122,8 @@ pub struct PathResult<ActionType> {
   pub path: Vec<ActionType>,
 }
 
+/// Finds a path in `problem` to get from the initial state to a goal state.
+/// Returns an `Err` if no path could be found.
 pub fn find_path<ProblemType: AStarProblem>(
   problem: &ProblemType,
 ) -> Result<PathResult<ProblemType::ActionType>, PathStats>

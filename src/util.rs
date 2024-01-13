@@ -1,16 +1,28 @@
 use glam::{Quat, Vec3};
 
+/// A bounding box.
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum BoundingBox {
+  /// The bounding box has no points in it.
   Empty,
-  Box { min: Vec3, max: Vec3 },
+  /// The bounding box has some points in it.
+  Box {
+    /// The minimum bounds of the bounding box.
+    min: Vec3,
+    /// The maximum bounds of the bounding box. Must be component-wise greather
+    /// than or equal to `min`.
+    max: Vec3,
+  },
 }
 
 impl BoundingBox {
+  /// Creates a box already with some data in it. `min` and `max` must already
+  /// be valid - this is unchecked.
   pub fn new_box(min: Vec3, max: Vec3) -> Self {
     Self::Box { min, max }
   }
 
+  /// Returns the bounds of the box, assuming it is non-empty.
   pub fn as_box(&self) -> (Vec3, Vec3) {
     match self {
       Self::Empty => panic!("BoundingBox is not a box."),
@@ -18,6 +30,7 @@ impl BoundingBox {
     }
   }
 
+  /// Computes the size of the bounding box. Returns 0 if the bounds are empty.
   pub fn size(&self) -> Vec3 {
     match self {
       Self::Empty => Vec3::ZERO,
@@ -25,11 +38,13 @@ impl BoundingBox {
     }
   }
 
+  /// Determines if the bounding box is valid (min <= max).
   pub fn is_valid(&self) -> bool {
     let size = self.size();
     size.x >= 0.0 && size.y >= 0.0 && size.z >= 0.0
   }
 
+  /// Expands the bounding box to contain the `other`.
   pub fn expand_to_bounds(&self, other: &Self) -> Self {
     match (self, other) {
       (Self::Empty, Self::Empty) => Self::Empty,
@@ -42,6 +57,8 @@ impl BoundingBox {
     }
   }
 
+  /// Expands the bounding box to contain `point`. If the box was empty, it will
+  /// now hold only the `point`.
   pub fn expand_to_point(&self, point: Vec3) -> Self {
     match self {
       Self::Empty => Self::Box { min: point, max: point },
@@ -51,6 +68,8 @@ impl BoundingBox {
     }
   }
 
+  /// Expands the bounding box by `size`. An empty bounding box will still be
+  /// empty after this.
   pub fn expand_by_size(&self, size: Vec3) -> BoundingBox {
     let expanded_box = match self {
       BoundingBox::Empty => BoundingBox::Empty,
@@ -66,6 +85,7 @@ impl BoundingBox {
     expanded_box
   }
 
+  /// Determines if `point` is in `self`.
   pub fn contains_point(&self, point: Vec3) -> bool {
     match self {
       Self::Empty => false,
@@ -80,6 +100,7 @@ impl BoundingBox {
     }
   }
 
+  /// Determines if `other` is fully contained by `self`.
   pub fn contains_bounds(&self, other: &Self) -> bool {
     let (other_min, other_max) = match other {
       Self::Empty => return false,
@@ -98,6 +119,7 @@ impl BoundingBox {
     }
   }
 
+  /// Detemrines if `other` intersects `self` at all.
   pub fn intersects_bounds(&self, other: &Self) -> bool {
     let (other_min, other_max) = match other {
       Self::Empty => return false,
@@ -116,6 +138,8 @@ impl BoundingBox {
     }
   }
 
+  /// Creates a conservative bounding box around `self` after transforming it by
+  /// `transform`.
   pub fn transform(&self, transform: Transform) -> Self {
     let (min, max) = match self {
       BoundingBox::Empty => return BoundingBox::Empty,
@@ -171,10 +195,12 @@ pub struct Transform {
 }
 
 impl Transform {
+  /// Applies the transformation.
   pub(crate) fn apply(&self, point: Vec3) -> Vec3 {
     Quat::from_rotation_y(self.rotation) * point + self.translation
   }
 
+  /// Inverses the transformation.
   pub(crate) fn apply_inverse(&self, point: Vec3) -> Vec3 {
     Quat::from_rotation_y(-self.rotation) * (point - self.translation)
   }
