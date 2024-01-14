@@ -30,10 +30,10 @@ pub fn bevy_mesh_to_landmass_nav_mesh(
     return Err(ConvertMeshError::MissingVertexPositions);
   };
 
-  let vertices: Vec<glam::Vec3> = match values {
+  let vertices: Vec<landmass::Vec3> = match values {
     Float32x3(vertices) => vertices
       .iter()
-      .map(|vert| glam::Vec3::new(vert[0], vert[1], vert[2]))
+      .map(|vert| landmass::Vec3::new(vert[0], vert[1], vert[2]))
       .collect(),
     _ => panic!("Mesh POSITION must be Float32x3"),
   };
@@ -111,14 +111,14 @@ mod tests {
     assert_eq!(
       nav_mesh.vertices,
       [
-        glam::Vec3::new(1.0, 1.0, 1.0),
-        glam::Vec3::new(2.0, 1.0, 1.0),
-        glam::Vec3::new(2.0, 1.0, 2.0),
-        glam::Vec3::new(1.0, 1.0, 2.0),
-        glam::Vec3::new(2.0, 1.0, 3.0),
-        glam::Vec3::new(1.0, 1.0, 3.0),
-        glam::Vec3::new(3.0, 1.0, 2.0),
-        glam::Vec3::new(3.0, 1.0, 3.0),
+        landmass::Vec3::new(1.0, 1.0, 1.0),
+        landmass::Vec3::new(2.0, 1.0, 1.0),
+        landmass::Vec3::new(2.0, 1.0, 2.0),
+        landmass::Vec3::new(1.0, 1.0, 2.0),
+        landmass::Vec3::new(2.0, 1.0, 3.0),
+        landmass::Vec3::new(1.0, 1.0, 3.0),
+        landmass::Vec3::new(3.0, 1.0, 2.0),
+        landmass::Vec3::new(3.0, 1.0, 3.0),
       ]
     );
 
@@ -160,14 +160,14 @@ mod tests {
     assert_eq!(
       nav_mesh.vertices,
       [
-        glam::Vec3::new(1.0, 1.0, 1.0),
-        glam::Vec3::new(2.0, 1.0, 1.0),
-        glam::Vec3::new(2.0, 1.0, 2.0),
-        glam::Vec3::new(1.0, 1.0, 2.0),
-        glam::Vec3::new(2.0, 1.0, 3.0),
-        glam::Vec3::new(1.0, 1.0, 3.0),
-        glam::Vec3::new(3.0, 1.0, 2.0),
-        glam::Vec3::new(3.0, 1.0, 3.0),
+        landmass::Vec3::new(1.0, 1.0, 1.0),
+        landmass::Vec3::new(2.0, 1.0, 1.0),
+        landmass::Vec3::new(2.0, 1.0, 2.0),
+        landmass::Vec3::new(1.0, 1.0, 2.0),
+        landmass::Vec3::new(2.0, 1.0, 3.0),
+        landmass::Vec3::new(1.0, 1.0, 3.0),
+        landmass::Vec3::new(3.0, 1.0, 2.0),
+        landmass::Vec3::new(3.0, 1.0, 3.0),
       ]
     );
 
