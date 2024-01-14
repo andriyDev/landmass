@@ -385,6 +385,7 @@ fn sync_agent_input_state(
       &GlobalTransform,
       Option<&AgentVelocity>,
       Option<&AgentTarget>,
+      Option<&TargetReachedCondition>,
     ),
     With<Agent>,
   >,
@@ -397,6 +398,7 @@ fn sync_agent_input_state(
     transform,
     velocity,
     target,
+    target_reached_condition,
   ) in agent_query.iter()
   {
     let mut archipelago = match archipelago_query.get_mut(arch_entity) {
@@ -412,6 +414,12 @@ fn sync_agent_input_state(
     agent.current_target = target
       .and_then(|target| target.to_point(&global_transform_query))
       .map(bevy_vec3_to_landmass_vec3);
+    if let Some(target_reached_condition) = target_reached_condition {
+      agent.target_reached_condition = target_reached_condition.to_landmass();
+    } else {
+      agent.target_reached_condition =
+        landmass::TargetReachedCondition::Distance(agent.radius);
+    }
   }
 }
 
