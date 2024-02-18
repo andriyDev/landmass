@@ -71,7 +71,12 @@ pub fn bevy_mesh_to_landmass_nav_mesh(
 
 #[cfg(test)]
 mod tests {
-  use bevy::{prelude::Mesh, render::render_resource::PrimitiveTopology};
+  use bevy::{
+    prelude::Mesh,
+    render::{
+      render_asset::RenderAssetUsages, render_resource::PrimitiveTopology,
+    },
+  };
 
   use crate::nav_mesh::ConvertMeshError;
 
@@ -79,7 +84,8 @@ mod tests {
 
   #[test]
   fn error_on_wrong_topology() {
-    let mesh = Mesh::new(PrimitiveTopology::LineStrip);
+    let mesh =
+      Mesh::new(PrimitiveTopology::LineStrip, RenderAssetUsages::MAIN_WORLD);
     match bevy_mesh_to_landmass_nav_mesh(&mesh) {
       Ok(_) => panic!("Conversion succeeded."),
       Err(error) => assert_eq!(error, ConvertMeshError::InvalidTopology),
@@ -88,7 +94,8 @@ mod tests {
 
   #[test]
   fn converts_u16_indices() {
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    let mut mesh =
+      Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD);
     mesh.insert_attribute(
       Mesh::ATTRIBUTE_POSITION,
       vec![
@@ -102,9 +109,9 @@ mod tests {
         [3.0, 1.0, 3.0],
       ],
     );
-    mesh.set_indices(Some(bevy::render::mesh::Indices::U16(vec![
+    mesh.insert_indices(bevy::render::mesh::Indices::U16(vec![
       0, 1, 2, 2, 3, 0, 3, 2, 4, 3, 4, 5, 4, 2, 6, 4, 6, 7,
-    ])));
+    ]));
     let nav_mesh =
       bevy_mesh_to_landmass_nav_mesh(&mesh).expect("conversion succeeds");
 
@@ -137,7 +144,8 @@ mod tests {
 
   #[test]
   fn converts_u32_indices() {
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    let mut mesh =
+      Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD);
     mesh.insert_attribute(
       Mesh::ATTRIBUTE_POSITION,
       vec![
@@ -151,9 +159,9 @@ mod tests {
         [3.0, 1.0, 3.0],
       ],
     );
-    mesh.set_indices(Some(bevy::render::mesh::Indices::U32(vec![
+    mesh.insert_indices(bevy::render::mesh::Indices::U32(vec![
       0, 1, 2, 2, 3, 0, 3, 2, 4, 3, 4, 5, 4, 2, 6, 4, 6, 7,
-    ])));
+    ]));
     let nav_mesh =
       bevy_mesh_to_landmass_nav_mesh(&mesh).expect("conversion succeeds");
 
