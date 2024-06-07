@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use glam::{swizzles::Vec3Swizzles, Vec3};
 
-use crate::{BoundingBox, Transform};
+use crate::BoundingBox;
 
 /// A navigation mesh.
 #[derive(Clone)]
@@ -269,82 +269,6 @@ impl ValidNavigationMesh {
     (self.vertices[left_vertex_index], self.vertices[right_vertex_index])
   }
 
-  pub fn find_linkable_edges(
-    &self,
-    region_bounds: BoundingBox,
-    transform: Transform,
-    linkable_distance_to_region_edge: f32,
-  ) -> [Vec<MeshEdgeRef>; 6] {
-    const ALIGNED_TO_PLANE_DIRECTION_DEVIATION_EPSILON: f32 = 1e-5;
-
-    fn find_plane_index(
-      region_bounds: &BoundingBox,
-      edge_vertices: &(Vec3, Vec3),
-      linkable_distance_to_region_edge: f32,
-    ) -> Option<usize> {
-      let region_bounds = region_bounds.as_box();
-      let edge_direction_abs =
-        (edge_vertices.1 - edge_vertices.0).normalize_or_zero().abs();
-      assert_ne!(edge_direction_abs, Vec3::ZERO);
-
-      if edge_direction_abs.x < ALIGNED_TO_PLANE_DIRECTION_DEVIATION_EPSILON {
-        if edge_vertices.0.x - region_bounds.0.x
-          < linkable_distance_to_region_edge
-        {
-          return Some(0);
-        } else if region_bounds.1.x - edge_vertices.0.x
-          < linkable_distance_to_region_edge
-        {
-          return Some(1);
-        }
-      }
-
-      if edge_direction_abs.y < ALIGNED_TO_PLANE_DIRECTION_DEVIATION_EPSILON {
-        if edge_vertices.0.y - region_bounds.0.y
-          < linkable_distance_to_region_edge
-        {
-          return Some(2);
-        } else if region_bounds.1.y - edge_vertices.0.y
-          < linkable_distance_to_region_edge
-        {
-          return Some(3);
-        }
-      }
-
-      if edge_direction_abs.z < ALIGNED_TO_PLANE_DIRECTION_DEVIATION_EPSILON {
-        if edge_vertices.0.z - region_bounds.0.z
-          < linkable_distance_to_region_edge
-        {
-          return Some(4);
-        } else if region_bounds.1.z - edge_vertices.0.z
-          < linkable_distance_to_region_edge
-        {
-          return Some(5);
-        }
-      }
-
-      None
-    }
-
-    let mut linkable_edges_by_plane =
-      [Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new()];
-    for boundary_edge in self.boundary_edges.iter() {
-      let edge_vertices = self.get_edge_points(boundary_edge.clone());
-      let edge_vertices =
-        (transform.apply(edge_vertices.0), transform.apply(edge_vertices.1));
-
-      if let Some(index) = find_plane_index(
-        &region_bounds,
-        &edge_vertices,
-        linkable_distance_to_region_edge,
-      ) {
-        linkable_edges_by_plane[index].push(boundary_edge.clone());
-      }
-    }
-
-    linkable_edges_by_plane
-  }
-
   /// Finds the node nearest to (and within `distance_to_node` of) `point`.
   /// Returns the point on the nav mesh nearest to `point` and the index of the
   /// polygon.
@@ -442,14 +366,11 @@ impl ValidPolygon {
 
 #[cfg(test)]
 mod tests {
-  use std::f32::consts::PI;
-
   use glam::Vec3;
 
   use crate::{
     nav_mesh::{Connectivity, MeshEdgeRef, ValidPolygon},
     util::BoundingBox,
-    Transform,
   };
 
   use super::{NavigationMesh, ValidationError};
@@ -742,131 +663,6 @@ mod tests {
         MeshEdgeRef { polygon_index: 3, edge_index: 1 },
         MeshEdgeRef { polygon_index: 3, edge_index: 2 },
         MeshEdgeRef { polygon_index: 3, edge_index: 3 },
-      ]
-    );
-  }
-
-  #[test]
-  fn finds_linkable_edges() {
-    let mesh = NavigationMesh {
-      mesh_bounds: None,
-      vertices: vec![
-        Vec3::new(1.0, 0.0, 0.0),
-        Vec3::new(2.0, 0.0, 0.0),
-        Vec3::new(4.0, 0.0, 1.0),
-        Vec3::new(4.0, 0.0, 2.0),
-        Vec3::new(2.0, 0.0, 3.0),
-        Vec3::new(1.0, 0.0, 3.0),
-        Vec3::new(0.0, 0.0, 2.0),
-        Vec3::new(0.0, 0.0, 1.0),
-        Vec3::new(1.0, 0.0, 5.0),
-        Vec3::new(2.0, 0.0, 5.0),
-        Vec3::new(2.0, 0.0, 4.0),
-        Vec3::new(3.0, 1.0, 5.0),
-        Vec3::new(3.0, 1.0, 4.0),
-        Vec3::new(3.0, -2.0, 4.0),
-        Vec3::new(3.0, -2.0, 3.0),
-      ],
-      polygons: vec![
-        vec![0, 1, 2, 3, 4, 5, 6, 7],
-        vec![5, 4, 10, 9, 8],
-        vec![9, 10, 12, 11],
-        vec![10, 4, 14, 13],
-      ],
-    }
-    .validate()
-    .expect("Mesh is valid.");
-
-    let mut linkable_edges = mesh.find_linkable_edges(
-      mesh.mesh_bounds,
-      Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      1e-10,
-    );
-
-    // Sort the edges so it matches the expected result.
-    linkable_edges.iter_mut().for_each(|edges| {
-      edges.sort_by_key(|edge| edge.polygon_index * 100 + edge.edge_index)
-    });
-
-    assert_eq!(
-      linkable_edges,
-      [
-        &[MeshEdgeRef { polygon_index: 0, edge_index: 6 }] as &[_],
-        &[MeshEdgeRef { polygon_index: 0, edge_index: 2 }] as &[_],
-        &[MeshEdgeRef { polygon_index: 3, edge_index: 2 }] as &[_],
-        &[MeshEdgeRef { polygon_index: 2, edge_index: 2 }] as &[_],
-        &[MeshEdgeRef { polygon_index: 0, edge_index: 0 }] as &[_],
-        &[
-          MeshEdgeRef { polygon_index: 1, edge_index: 3 },
-          MeshEdgeRef { polygon_index: 2, edge_index: 3 },
-        ] as &[_],
-      ]
-    );
-  }
-
-  #[test]
-  fn finds_linkable_edges_with_transform() {
-    let tan_8th = (PI / 8.0).tan();
-
-    let mesh = NavigationMesh {
-      mesh_bounds: None,
-      vertices: vec![
-        Vec3::new(1.0, 0.0, -tan_8th),
-        Vec3::new(1.0, 0.0, tan_8th),
-        Vec3::new(tan_8th, 0.0, 1.0),
-        Vec3::new(-tan_8th, 0.0, 1.0),
-        Vec3::new(-1.0, 0.0, tan_8th),
-        Vec3::new(-1.0, 0.0, -tan_8th),
-        Vec3::new(-tan_8th, 0.0, -1.0),
-        Vec3::new(tan_8th, 0.0, -1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3, 4, 5, 6, 7]],
-    }
-    .validate()
-    .expect("Mesh is valid.");
-
-    // No transform.
-    let linkable_edges = mesh.find_linkable_edges(
-      mesh.mesh_bounds.expand_by_size(Vec3 { x: 0.0, y: 0.1, z: 0.0 }),
-      Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      1e-10,
-    );
-
-    assert_eq!(
-      linkable_edges,
-      [
-        &[MeshEdgeRef { polygon_index: 0, edge_index: 4 }] as &[_],
-        &[MeshEdgeRef { polygon_index: 0, edge_index: 0 }] as &[_],
-        &[] as &[_],
-        &[] as &[_],
-        &[MeshEdgeRef { polygon_index: 0, edge_index: 6 }] as &[_],
-        &[MeshEdgeRef { polygon_index: 0, edge_index: 2 }] as &[_],
-      ]
-    );
-
-    // Translated and rotated.
-    let translation = Vec3::new(-1.0, 2.0, 5.0);
-    let region_bounds = mesh
-      .mesh_bounds
-      .expand_by_size(Vec3 { x: 0.0, y: 0.1, z: 0.0 })
-      // Translate but don't rotate the bounds.
-      .transform(Transform { translation, rotation: 0.0 });
-    let linkable_edges = mesh.find_linkable_edges(
-      region_bounds,
-      // Fully transform the nav mesh.
-      Transform { translation, rotation: PI * 0.75 },
-      1e-10,
-    );
-
-    assert_eq!(
-      linkable_edges,
-      [
-        &[MeshEdgeRef { polygon_index: 0, edge_index: 7 }] as &[_],
-        &[MeshEdgeRef { polygon_index: 0, edge_index: 3 }] as &[_],
-        &[] as &[_],
-        &[] as &[_],
-        &[MeshEdgeRef { polygon_index: 0, edge_index: 1 }] as &[_],
-        &[MeshEdgeRef { polygon_index: 0, edge_index: 5 }] as &[_],
       ]
     );
   }
