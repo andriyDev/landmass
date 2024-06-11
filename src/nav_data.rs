@@ -5,6 +5,7 @@ use std::{
 
 use geo::{BooleanOps, Coord, LineString, LinesIter, MultiPolygon, Polygon};
 use glam::{Vec2, Vec3, Vec3Swizzles};
+use rand::{thread_rng, Rng};
 
 use crate::{
   geometry::edge_intersection,
@@ -20,7 +21,7 @@ pub struct NavigationData {
   /// The islands in the [`crate::Archipelago`].
   pub islands: HashMap<IslandId, Island>,
   /// The links to other islands by [`crate::NodeRef`]
-  pub boundary_links: HashMap<NodeRef, Vec<BoundaryLink>>,
+  pub boundary_links: HashMap<NodeRef, HashMap<BoundaryLinkId, BoundaryLink>>,
   /// The nodes that have been modified.
   pub modified_nodes: HashMap<NodeRef, ModifiedNode>,
   /// The islands that have been deleted since the last update.
@@ -35,6 +36,9 @@ pub struct NodeRef {
   /// The index of the node in the island.
   pub polygon_index: usize,
 }
+
+/// The ID of a boundary link.
+pub type BoundaryLinkId = u32;
 
 /// A single link between two nodes on the boundary of an island.
 #[derive(PartialEq, Debug, Clone)]
@@ -120,7 +124,7 @@ impl NavigationData {
   fn update_islands(
     &mut self,
     edge_link_distance: f32,
-  ) -> (HashSet<IslandId>, HashSet<NodeRef>) {
+  ) -> (HashSet<BoundaryLinkId>, HashSet<IslandId>, HashSet<NodeRef>) {
     let mut dirty_islands = HashSet::new();
     for (&island_id, island) in self.islands.iter_mut() {
       if island.dirty {
@@ -129,6 +133,7 @@ impl NavigationData {
       }
     }
 
+    let mut dropped_links = HashSet::new();
     let mut modified_node_refs_to_update = HashSet::new();
     if !self.deleted_islands.is_empty() || !dirty_islands.is_empty() {
       let changed_islands =
@@ -136,13 +141,19 @@ impl NavigationData {
       self.boundary_links.retain(|node_ref, links| {
         if changed_islands.contains(&node_ref.island_id) {
           modified_node_refs_to_update.insert(*node_ref);
+          dropped_links.extend(links.keys().copied());
           return false;
         }
 
         let links_before = links.len();
 
-        links.retain(|link| {
-          !changed_islands.contains(&link.destination_node.island_id)
+        links.retain(|&link_id, link| {
+          let retain =
+            !changed_islands.contains(&link.destination_node.island_id);
+          if !retain {
+            dropped_links.insert(link_id);
+          }
+          retain
         });
 
         if links_before != links.len() {
@@ -159,7 +170,7 @@ impl NavigationData {
 
     if dirty_islands.is_empty() {
       // No new or changed islands, so no need to check for new links.
-      return (dirty_islands, modified_node_refs_to_update);
+      return (dropped_links, dirty_islands, modified_node_refs_to_update);
     }
 
     let mut island_bounds = self
@@ -175,7 +186,7 @@ impl NavigationData {
     // There are no islands with nav data, so no islands to link and prevents a
     // panic.
     if island_bounds.is_empty() {
-      return (dirty_islands, modified_node_refs_to_update);
+      return (dropped_links, dirty_islands, modified_node_refs_to_update);
     }
     let island_bbh = BoundingBoxHierarchy::new(&mut island_bounds);
 
@@ -218,11 +229,12 @@ impl NavigationData {
           edge_link_distance,
           &mut self.boundary_links,
           &mut modified_node_refs_to_update,
+          &mut thread_rng(),
         );
       }
     }
 
-    (dirty_islands, modified_node_refs_to_update)
+    (dropped_links, dirty_islands, modified_node_refs_to_update)
   }
 
   fn update_modified_node(
@@ -326,13 +338,14 @@ impl NavigationData {
       )])
     }
 
-    let link_clip = boundary_links.iter().skip(1).fold(
-      boundary_link_to_clip_polygon(&boundary_links[0], edge_link_distance),
-      |sum_clip, link| {
-        let new_clip = boundary_link_to_clip_polygon(link, edge_link_distance);
-        sum_clip.union(&new_clip)
-      },
-    );
+    let mut clip_polygons = boundary_links
+      .values()
+      .map(|link| boundary_link_to_clip_polygon(link, edge_link_distance));
+
+    let mut link_clip = clip_polygons.next().unwrap();
+    for clip_polygon in clip_polygons {
+      link_clip = link_clip.union(&clip_polygon);
+    }
 
     let clipped_boundary_edges =
       link_clip.clip(&boundary_edges, /* invert= */ true);
@@ -351,13 +364,16 @@ impl NavigationData {
     }
   }
 
-  pub fn update(&mut self, edge_link_distance: f32) -> HashSet<u32> {
-    let (dirty_islands, modified_node_refs_to_update) =
+  pub fn update(
+    &mut self,
+    edge_link_distance: f32,
+  ) -> (HashSet<BoundaryLinkId>, HashSet<IslandId>) {
+    let (dropped_links, dirty_islands, modified_node_refs_to_update) =
       self.update_islands(edge_link_distance);
     for node_ref in modified_node_refs_to_update {
       self.update_modified_node(node_ref, edge_link_distance);
     }
-    dirty_islands
+    (dropped_links, dirty_islands)
   }
 }
 
@@ -390,13 +406,24 @@ fn island_edges_bbh(
   BoundingBoxHierarchy::new(&mut edge_bounds)
 }
 
+trait CreateBoundaryId {
+  fn create(&mut self) -> BoundaryLinkId;
+}
+
+impl<T: Rng> CreateBoundaryId for T {
+  fn create(&mut self) -> BoundaryLinkId {
+    self.gen()
+  }
+}
+
 fn link_edges_between_islands(
   island_1: (IslandId, &Island),
   island_2: (IslandId, &Island),
   island_1_edge_bbh: &BoundingBoxHierarchy<MeshEdgeRef>,
   edge_link_distance: f32,
-  boundary_links: &mut HashMap<NodeRef, Vec<BoundaryLink>>,
+  boundary_links: &mut HashMap<NodeRef, HashMap<BoundaryLinkId, BoundaryLink>>,
   modified_node_refs_to_update: &mut HashSet<NodeRef>,
+  id_creator: &mut impl CreateBoundaryId,
 ) {
   let island_1_nav_data = island_1.1.nav_data.as_ref().unwrap();
   let island_2_nav_data = island_2.1.nav_data.as_ref().unwrap();
@@ -430,14 +457,19 @@ fn link_edges_between_islands(
           polygon_index: island_2_edge_ref.polygon_index,
         };
 
-        boundary_links.entry(node_1.clone()).or_default().push(BoundaryLink {
-          destination_node: node_2.clone(),
-          portal: portal,
-        });
-        boundary_links.entry(node_2).or_default().push(BoundaryLink {
-          destination_node: node_1,
-          portal: (portal.1, portal.0),
-        });
+        let id = id_creator.create();
+
+        boundary_links.entry(node_1.clone()).or_default().insert(
+          id,
+          BoundaryLink { destination_node: node_2.clone(), portal: portal },
+        );
+        boundary_links.entry(node_2).or_default().insert(
+          id,
+          BoundaryLink {
+            destination_node: node_1,
+            portal: (portal.1, portal.0),
+          },
+        );
         modified_node_refs_to_update.insert(node_1);
         modified_node_refs_to_update.insert(node_2);
       }
