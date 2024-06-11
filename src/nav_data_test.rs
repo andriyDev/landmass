@@ -6,6 +6,7 @@ use std::{
 };
 
 use glam::{Vec2, Vec3};
+use rand::thread_rng;
 
 use crate::{
   island::Island,
@@ -15,7 +16,8 @@ use crate::{
 };
 
 use super::{
-  island_edges_bbh, link_edges_between_islands, ModifiedNode, NavigationData,
+  island_edges_bbh, link_edges_between_islands, BoundaryLinkId, ModifiedNode,
+  NavigationData,
 };
 
 #[test]
@@ -103,7 +105,7 @@ fn samples_points() {
 }
 
 fn clone_sort_round_links(
-  boundary_links: &HashMap<NodeRef, Vec<BoundaryLink>>,
+  boundary_links: &HashMap<NodeRef, HashMap<BoundaryLinkId, BoundaryLink>>,
   round_amount: f32,
 ) -> Vec<(NodeRef, Vec<BoundaryLink>)> {
   fn node_ref_to_num(node_ref: &NodeRef) -> u32 {
@@ -115,7 +117,7 @@ fn clone_sort_round_links(
     .map(|(key, value)| {
       (*key, {
         let mut v = value
-          .iter()
+          .values()
           .map(|link| BoundaryLink {
             destination_node: link.destination_node,
             portal: (
@@ -219,6 +221,7 @@ fn link_edges_between_islands_links_touching_islands() {
     /* edge_link_distance= */ 1e-5,
     &mut boundary_links,
     &mut modified_node_refs_to_update,
+    &mut thread_rng(),
   );
 
   fn transform_and_round_portal(
@@ -409,6 +412,7 @@ fn link_edges_between_islands_links_touching_islands() {
     /* edge_link_distance= */ 1e-5,
     &mut boundary_links,
     &mut modified_node_refs_to_update,
+    &mut thread_rng(),
   );
   assert_eq!(clone_sort_round_links(&boundary_links, 1e-6), &expected_links);
 }
