@@ -19,8 +19,11 @@ use crate::{
 pub struct NavigationData {
   /// The islands in the [`crate::Archipelago`].
   pub islands: HashMap<IslandId, Island>,
+  /// The links to other islands by [`crate::NodeRef`]
   pub boundary_links: HashMap<NodeRef, Vec<BoundaryLink>>,
+  /// The nodes that have been modified.
   pub modified_nodes: HashMap<NodeRef, ModifiedNode>,
+  /// The islands that have been deleted since the last update.
   pub deleted_islands: HashSet<IslandId>,
 }
 
@@ -33,20 +36,23 @@ pub struct NodeRef {
   pub polygon_index: usize,
 }
 
+/// A single link between two nodes on the boundary of an island.
 #[derive(PartialEq, Debug, Clone)]
 pub struct BoundaryLink {
-  // The node that taking this link leads to.
+  /// The node that taking this link leads to.
   pub destination_node: NodeRef,
-  // The portal that this link occupies on the boundary of the source node.
-  // This is essentially the intersection of the linked islands' linkable
-  // edges.
+  /// The portal that this link occupies on the boundary of the source node.
+  /// This is essentially the intersection of the linked islands' linkable
+  /// edges.
   pub portal: (Vec3, Vec3),
 }
 
+/// A node that has been modified (e.g., by being connected with a boundary link
+/// to another island).
 #[derive(PartialEq, Debug, Clone)]
 pub struct ModifiedNode {
-  // The new (2D) edges that make up the boundary of this node. These are used
-  // for local collision avoidance, which already assumes "flatness".
+  /// The new (2D) edges that make up the boundary of this node. These are used
+  /// for local collision avoidance, which already assumes "flatness".
   pub new_boundary: Vec<(Vec2, Vec2)>,
 }
 
@@ -283,7 +289,8 @@ impl NavigationData {
         continue;
       }
 
-      // Add the left vertex. The right vertex will be added when we finish the line string.
+      // Add the left vertex. The right vertex will be added when we finish the
+      // line string.
       push_vertex(vertex, island_nav_data, &mut current_line_string);
     }
 
@@ -328,7 +335,7 @@ impl NavigationData {
     );
 
     let clipped_boundary_edges =
-      link_clip.clip(&boundary_edges, /*invert=*/ true);
+      link_clip.clip(&boundary_edges, /* invert= */ true);
 
     let modified_node = self
       .modified_nodes
@@ -1192,7 +1199,7 @@ mod tests {
     nav_data.islands.insert(island_2_id, island_2);
     nav_data.islands.insert(island_3_id, island_3);
 
-    nav_data.update(/*edge_link_distance=*/ 1e-6);
+    nav_data.update(/* edge_link_distance= */ 1e-6);
 
     let expected_modified_nodes = [
       (
@@ -1265,14 +1272,14 @@ mod tests {
     nav_data.islands.insert(island_1_id, island_1);
     nav_data.islands.insert(island_2_id, island_2);
 
-    nav_data.update(/*edge_link_distance=*/ 1e-6);
+    nav_data.update(/* edge_link_distance= */ 1e-6);
 
     assert_eq!(nav_data.modified_nodes.len(), 2);
 
     nav_data.islands.remove(&island_2_id);
     nav_data.deleted_islands.insert(island_2_id);
 
-    nav_data.update(/*edge_link_distance=*/ 1e-6);
+    nav_data.update(/* edge_link_distance= */ 1e-6);
 
     assert_eq!(nav_data.modified_nodes.len(), 0);
   }
