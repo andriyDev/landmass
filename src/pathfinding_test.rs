@@ -3,8 +3,10 @@ use std::{f32::consts::PI, sync::Arc};
 use glam::Vec3;
 
 use crate::{
-  nav_data::NodeRef, nav_mesh::NavigationMesh, path::Path, Archipelago,
-  Transform,
+  nav_data::NodeRef,
+  nav_mesh::NavigationMesh,
+  path::{IslandSegment, Path},
+  Archipelago, Transform,
 };
 
 use super::find_path;
@@ -59,12 +61,12 @@ fn finds_path_in_archipelago() {
   assert_eq!(
     path_result.path,
     Path {
-      corridor: vec![
-        NodeRef { island_id, polygon_index: 0 },
-        NodeRef { island_id, polygon_index: 1 },
-        NodeRef { island_id, polygon_index: 2 }
-      ],
-      portal_edge_index: vec![4, 2],
+      island_segments: vec![IslandSegment {
+        island_id,
+        corridor: vec![0, 1, 2],
+        portal_edge_index: vec![4, 2],
+      }],
+      boundary_link_segments: vec![],
     }
   );
 
@@ -78,12 +80,12 @@ fn finds_path_in_archipelago() {
   assert_eq!(
     path_result.path,
     Path {
-      corridor: vec![
-        NodeRef { island_id, polygon_index: 2 },
-        NodeRef { island_id, polygon_index: 1 },
-        NodeRef { island_id, polygon_index: 0 }
-      ],
-      portal_edge_index: vec![0, 0],
+      island_segments: vec![IslandSegment {
+        island_id,
+        corridor: vec![2, 1, 0],
+        portal_edge_index: vec![0, 0],
+      }],
+      boundary_link_segments: vec![],
     }
   );
 
@@ -97,12 +99,12 @@ fn finds_path_in_archipelago() {
   assert_eq!(
     path_result.path,
     Path {
-      corridor: vec![
-        NodeRef { island_id, polygon_index: 3 },
-        NodeRef { island_id, polygon_index: 1 },
-        NodeRef { island_id, polygon_index: 0 }
-      ],
-      portal_edge_index: vec![0, 0],
+      island_segments: vec![IslandSegment {
+        island_id,
+        corridor: vec![3, 1, 0],
+        portal_edge_index: vec![0, 0],
+      }],
+      boundary_link_segments: vec![],
     }
   );
 }
@@ -164,12 +166,12 @@ fn finds_paths_on_two_islands() {
   assert_eq!(
     path_result.path,
     Path {
-      corridor: vec![
-        NodeRef { island_id: island_id_1, polygon_index: 0 },
-        NodeRef { island_id: island_id_1, polygon_index: 1 },
-        NodeRef { island_id: island_id_1, polygon_index: 2 }
-      ],
-      portal_edge_index: vec![4, 2],
+      island_segments: vec![IslandSegment {
+        island_id: island_id_1,
+        corridor: vec![0, 1, 2],
+        portal_edge_index: vec![4, 2],
+      }],
+      boundary_link_segments: vec![],
     }
   );
 
@@ -183,12 +185,12 @@ fn finds_paths_on_two_islands() {
   assert_eq!(
     path_result.path,
     Path {
-      corridor: vec![
-        NodeRef { island_id: island_id_2, polygon_index: 0 },
-        NodeRef { island_id: island_id_2, polygon_index: 1 },
-        NodeRef { island_id: island_id_2, polygon_index: 2 }
-      ],
-      portal_edge_index: vec![4, 2],
+      island_segments: vec![IslandSegment {
+        island_id: island_id_2,
+        corridor: vec![0, 1, 2],
+        portal_edge_index: vec![4, 2],
+      }],
+      boundary_link_segments: vec![],
     }
   );
 }

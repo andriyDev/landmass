@@ -1,12 +1,11 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use glam::Vec3;
 
 use crate::{
   does_agent_need_repath,
-  island::Island,
-  nav_data::{NavigationData, NodeRef},
-  path::Path,
+  nav_data::NodeRef,
+  path::{IslandSegment, Path, PathIndex},
   Agent, AgentId, AgentState, Archipelago, BoundingBox, IslandId,
   NavigationMesh, RepathResult, Transform, ValidNavigationMesh,
 };
@@ -20,18 +19,28 @@ fn nothing_or_clear_path_for_no_target() {
     /* max_velocity= */ 0.0,
   );
 
-  let nav_data = NavigationData::new();
-
   assert_eq!(
-    does_agent_need_repath(&agent, None, None, &nav_data),
+    does_agent_need_repath(
+      &agent,
+      None,
+      None,
+      &HashSet::new(),
+      &HashSet::new()
+    ),
     RepathResult::DoNothing
   );
 
   agent.current_path =
-    Some(Path { corridor: vec![], portal_edge_index: vec![] });
+    Some(Path { island_segments: vec![], boundary_link_segments: vec![] });
 
   assert_eq!(
-    does_agent_need_repath(&agent, None, None, &nav_data),
+    does_agent_need_repath(
+      &agent,
+      None,
+      None,
+      &HashSet::new(),
+      &HashSet::new()
+    ),
     RepathResult::ClearPathNoTarget,
   );
 }
@@ -46,14 +55,13 @@ fn clears_path_for_missing_nodes() {
   );
   agent.current_target = Some(Vec3::ZERO);
 
-  let nav_data = NavigationData::new();
-
   assert_eq!(
     does_agent_need_repath(
       &agent,
       None,
       Some(NodeRef { island_id: 0, polygon_index: 0 }),
-      &nav_data,
+      &HashSet::new(),
+      &HashSet::new(),
     ),
     RepathResult::ClearPathBadAgent,
   );
@@ -63,7 +71,8 @@ fn clears_path_for_missing_nodes() {
       &agent,
       Some(NodeRef { island_id: 0, polygon_index: 0 }),
       None,
-      &nav_data,
+      &HashSet::new(),
+      &HashSet::new(),
     ),
     RepathResult::ClearPathBadTarget,
   );
@@ -79,78 +88,49 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
   );
   agent.current_target = Some(Vec3::ZERO);
 
-  let mut nav_data = NavigationData::new();
+  let island_id = 0;
 
   // No path.
   assert_eq!(
     does_agent_need_repath(
       &agent,
-      Some(NodeRef { island_id: 0, polygon_index: 1 }),
-      Some(NodeRef { island_id: 0, polygon_index: 3 }),
-      &nav_data,
+      Some(NodeRef { island_id, polygon_index: 1 }),
+      Some(NodeRef { island_id, polygon_index: 3 }),
+      &HashSet::new(),
+      &HashSet::new(),
     ),
     RepathResult::NeedsRepath,
   );
 
   agent.current_path = Some(Path {
-    corridor: vec![
-      NodeRef { island_id: 0, polygon_index: 2 },
-      NodeRef { island_id: 0, polygon_index: 3 },
-      NodeRef { island_id: 0, polygon_index: 4 },
-      NodeRef { island_id: 0, polygon_index: 1 },
-      NodeRef { island_id: 0, polygon_index: 0 },
-    ],
-    portal_edge_index: vec![],
+    island_segments: vec![IslandSegment {
+      island_id,
+      corridor: vec![2, 3, 4, 1, 0],
+      portal_edge_index: vec![],
+    }],
+    boundary_link_segments: vec![],
   });
 
-  // Missing island.
+  // Invalidated island.
   assert_eq!(
     does_agent_need_repath(
       &agent,
-      Some(NodeRef { island_id: 0, polygon_index: 3 }),
-      Some(NodeRef { island_id: 0, polygon_index: 1 }),
-      &nav_data,
+      Some(NodeRef { island_id, polygon_index: 3 }),
+      Some(NodeRef { island_id, polygon_index: 1 }),
+      &HashSet::new(),
+      &HashSet::from([island_id]),
     ),
     RepathResult::NeedsRepath
   );
 
-  nav_data.islands.insert(0, {
-    let mut island = Island::new();
-    island.set_nav_mesh(
-      Transform::default(),
-      Arc::new(
-        NavigationMesh {
-          mesh_bounds: None,
-          vertices: vec![],
-          polygons: vec![],
-        }
-        .validate()
-        .expect("is valid"),
-      ),
-    );
-    island
-  });
-
-  // Dirty island.
+  // Missing agent node in path.
   assert_eq!(
     does_agent_need_repath(
       &agent,
-      Some(NodeRef { island_id: 0, polygon_index: 3 }),
-      Some(NodeRef { island_id: 0, polygon_index: 1 }),
-      &nav_data,
-    ),
-    RepathResult::NeedsRepath
-  );
-
-  nav_data.islands.get_mut(&0).unwrap().dirty = false;
-
-  // Missing agent node.
-  assert_eq!(
-    does_agent_need_repath(
-      &agent,
-      Some(NodeRef { island_id: 0, polygon_index: 5 }),
-      Some(NodeRef { island_id: 0, polygon_index: 1 }),
-      &nav_data,
+      Some(NodeRef { island_id, polygon_index: 5 }),
+      Some(NodeRef { island_id, polygon_index: 1 }),
+      &HashSet::new(),
+      &HashSet::new(),
     ),
     RepathResult::NeedsRepath,
   );
@@ -159,9 +139,10 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
   assert_eq!(
     does_agent_need_repath(
       &agent,
-      Some(NodeRef { island_id: 0, polygon_index: 3 }),
-      Some(NodeRef { island_id: 0, polygon_index: 6 }),
-      &nav_data,
+      Some(NodeRef { island_id, polygon_index: 3 }),
+      Some(NodeRef { island_id, polygon_index: 6 }),
+      &HashSet::new(),
+      &HashSet::new(),
     ),
     RepathResult::NeedsRepath,
   );
@@ -170,9 +151,10 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
   assert_eq!(
     does_agent_need_repath(
       &agent,
-      Some(NodeRef { island_id: 0, polygon_index: 1 }),
-      Some(NodeRef { island_id: 0, polygon_index: 3 }),
-      &nav_data,
+      Some(NodeRef { island_id, polygon_index: 1 }),
+      Some(NodeRef { island_id, polygon_index: 3 }),
+      &HashSet::new(),
+      &HashSet::new(),
     ),
     RepathResult::NeedsRepath,
   );
@@ -181,11 +163,16 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
   assert_eq!(
     does_agent_need_repath(
       &agent,
-      Some(NodeRef { island_id: 0, polygon_index: 3 }),
-      Some(NodeRef { island_id: 0, polygon_index: 1 }),
-      &nav_data,
+      Some(NodeRef { island_id, polygon_index: 3 }),
+      Some(NodeRef { island_id, polygon_index: 1 }),
+      &HashSet::new(),
+      // This island is not involved in the path, so the path is still valid.
+      &HashSet::from([1337]),
     ),
-    RepathResult::FollowPath(1, 3),
+    RepathResult::FollowPath(
+      PathIndex::from_corridor_index(0, 1),
+      PathIndex::from_corridor_index(0, 3)
+    ),
   );
 }
 

@@ -1,6 +1,6 @@
 use glam::Vec3;
 
-use crate::{AgentId, Archipelago};
+use crate::{path::Path, Agent, AgentId, Archipelago};
 
 /// The type of debug points.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -132,66 +132,79 @@ pub fn draw_archipelago_debug(
       debug_drawer.add_point(PointType::TargetPosition(agent_id), target);
     }
     if let Some(path) = agent.current_path.as_ref() {
-      let target = agent
-        .current_target
-        .expect("The path is valid, so the target is valid.");
-
-      let corridor_points = path
-        .corridor
-        .iter()
-        .map(|node_ref| {
-          let island = archipelago
-            .nav_data
-            .islands
-            .get(&node_ref.island_id)
-            .expect("Island in corridor should be valid.");
-          let nav_data = island
-            .nav_data
-            .as_ref()
-            .expect("Island nav data in corridor should be valid.");
-          nav_data
-            .transform
-            .apply(nav_data.nav_mesh.polygons[node_ref.polygon_index].center)
-        })
-        .collect::<Vec<_>>();
-      for pair in corridor_points.windows(2) {
-        debug_drawer
-          .add_line(LineType::AgentCorridor(agent_id), [pair[0], pair[1]]);
-      }
-
-      let (agent_sample_point, agent_node_ref) = archipelago
-        .nav_data
-        .sample_point(
-          agent.position,
-          archipelago.agent_options.node_sample_distance,
-        )
-        .expect("Path exists, so sampling the agent should be fine.");
-      let (target_sample_point, target_node_ref) = archipelago
-        .nav_data
-        .sample_point(target, archipelago.agent_options.node_sample_distance)
-        .expect("Path exists, so sampling the agent should be fine.");
-
-      let agent_corridor_index = path
-        .find_index_of_node(agent_node_ref)
-        .expect("Path exists, so the agent's node must be in the corridor.");
-      let target_corridor_index = path
-        .find_index_of_node_rev(target_node_ref)
-        .expect("Path exists, so the target's node must be in the corridor.");
-
-      let waypoint = path
-        .find_next_point_in_straight_path(
-          &archipelago.nav_data,
-          agent_corridor_index,
-          agent_sample_point,
-          target_corridor_index,
-          target_sample_point,
-        )
-        .1;
-      debug_drawer
-        .add_line(LineType::Waypoint(agent_id), [agent.position, waypoint]);
-      debug_drawer.add_point(PointType::Waypoint(agent_id), waypoint);
+      draw_path(path, agent_id, agent, archipelago, debug_drawer);
     }
   }
+}
+
+/// Draws `path` to `debug_drawer`. The path belongs to `agent` and both belong
+/// to `archipelago`.
+fn draw_path(
+  path: &Path,
+  agent_id: AgentId,
+  agent: &Agent,
+  archipelago: &Archipelago,
+  debug_drawer: &mut impl DebugDrawer,
+) {
+  let target =
+    agent.current_target.expect("The path is valid, so the target is valid.");
+
+  let corridor_points = path
+    .island_segments
+    .iter()
+    .flat_map(|island_segment| {
+      island_segment.corridor.iter().copied().map(|polygon_index| {
+        let island = archipelago
+          .nav_data
+          .islands
+          .get(&island_segment.island_id)
+          .expect("Island in corridor should be valid.");
+        let nav_data = island
+          .nav_data
+          .as_ref()
+          .expect("Island nav data in corridor should be valid.");
+        nav_data
+          .transform
+          .apply(nav_data.nav_mesh.polygons[polygon_index].center)
+      })
+    })
+    .collect::<Vec<_>>();
+  for pair in corridor_points.windows(2) {
+    debug_drawer
+      .add_line(LineType::AgentCorridor(agent_id), [pair[0], pair[1]]);
+  }
+
+  let (agent_sample_point, agent_node_ref) = archipelago
+    .nav_data
+    .sample_point(
+      agent.position,
+      archipelago.agent_options.node_sample_distance,
+    )
+    .expect("Path exists, so sampling the agent should be fine.");
+  let (target_sample_point, target_node_ref) = archipelago
+    .nav_data
+    .sample_point(target, archipelago.agent_options.node_sample_distance)
+    .expect("Path exists, so sampling the agent should be fine.");
+
+  let agent_corridor_index = path
+    .find_index_of_node(agent_node_ref)
+    .expect("Path exists, so the agent's node must be in the corridor.");
+  let target_corridor_index = path
+    .find_index_of_node_rev(target_node_ref)
+    .expect("Path exists, so the target's node must be in the corridor.");
+
+  let waypoint = path
+    .find_next_point_in_straight_path(
+      &archipelago.nav_data,
+      agent_corridor_index,
+      agent_sample_point,
+      target_corridor_index,
+      target_sample_point,
+    )
+    .1;
+  debug_drawer
+    .add_line(LineType::Waypoint(agent_id), [agent.position, waypoint]);
+  debug_drawer.add_point(PointType::Waypoint(agent_id), waypoint);
 }
 
 #[cfg(test)]
