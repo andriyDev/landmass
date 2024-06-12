@@ -297,3 +297,83 @@ fn path_not_valid_for_missing_islands_or_dirty_islands() {
   nav_data.islands.get_mut(&1).unwrap().clear_nav_mesh();
   assert!(!path.is_valid(&nav_data));
 }
+
+#[test]
+fn indices_in_path_are_found() {
+  let path = Path {
+    corridor: vec![
+      NodeRef { island_id: 1, polygon_index: 3 },
+      NodeRef { island_id: 2, polygon_index: 2 },
+      NodeRef { island_id: 3, polygon_index: 1 },
+      NodeRef { island_id: 4, polygon_index: 0 },
+    ],
+    portal_edge_index: vec![0, 1, 2],
+  };
+
+  assert_eq!(
+    path.find_index_of_node(NodeRef { island_id: 3, polygon_index: 1 }),
+    Some(2)
+  );
+  assert_eq!(
+    path.find_index_of_node(NodeRef { island_id: 1, polygon_index: 3 }),
+    Some(0)
+  );
+  assert_eq!(
+    path.find_index_of_node(NodeRef { island_id: 4, polygon_index: 0 }),
+    Some(3)
+  );
+
+  // Missing NodeRefs.
+  assert_eq!(
+    path.find_index_of_node(NodeRef { island_id: 3, polygon_index: 3 }),
+    None
+  );
+  assert_eq!(
+    path.find_index_of_node(NodeRef { island_id: 1, polygon_index: 1 }),
+    None
+  );
+  assert_eq!(
+    path.find_index_of_node(NodeRef { island_id: 4, polygon_index: 4 }),
+    None
+  );
+}
+
+#[test]
+fn indices_in_path_are_found_rev() {
+  let path = Path {
+    corridor: vec![
+      NodeRef { island_id: 1, polygon_index: 3 },
+      NodeRef { island_id: 2, polygon_index: 2 },
+      NodeRef { island_id: 3, polygon_index: 1 },
+      NodeRef { island_id: 4, polygon_index: 0 },
+    ],
+    portal_edge_index: vec![0, 1, 2],
+  };
+
+  assert_eq!(
+    path.find_index_of_node_rev(NodeRef { island_id: 3, polygon_index: 1 }),
+    Some(2)
+  );
+  assert_eq!(
+    path.find_index_of_node_rev(NodeRef { island_id: 1, polygon_index: 3 }),
+    Some(0)
+  );
+  assert_eq!(
+    path.find_index_of_node_rev(NodeRef { island_id: 4, polygon_index: 0 }),
+    Some(3)
+  );
+
+  // Missing NodeRefs.
+  assert_eq!(
+    path.find_index_of_node_rev(NodeRef { island_id: 3, polygon_index: 3 }),
+    None
+  );
+  assert_eq!(
+    path.find_index_of_node(NodeRef { island_id: 1, polygon_index: 1 }),
+    None
+  );
+  assert_eq!(
+    path.find_index_of_node(NodeRef { island_id: 4, polygon_index: 4 }),
+    None
+  );
+}
