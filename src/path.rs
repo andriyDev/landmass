@@ -116,6 +116,24 @@ impl Path {
 
     true
   }
+
+  /// Finds the index of `node` in the path.
+  pub(crate) fn find_index_of_node(&self, node: NodeRef) -> Option<usize> {
+    self.corridor.iter().position(|x| x == &node)
+  }
+
+  /// Finds the index of `node` in the path, iterating backwards. This is
+  /// slightly more efficient than [`Path::find_index_of_node`] for the target
+  /// node, since most of the time the target node will be near the end of the
+  /// path.
+  pub(crate) fn find_index_of_node_rev(&self, node: NodeRef) -> Option<usize> {
+    self
+      .corridor
+      .iter()
+      .rev()
+      .position(|x| x == &node)
+      .map(|rev_index| self.corridor.len() - 1 - rev_index)
+  }
 }
 
 #[cfg(test)]

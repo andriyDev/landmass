@@ -172,14 +172,10 @@ pub fn draw_archipelago_debug(
         .expect("Path exists, so sampling the agent should be fine.");
 
       let agent_corridor_index = path
-        .corridor
-        .iter()
-        .position(|node_ref| *node_ref == agent_node_ref)
+        .find_index_of_node(agent_node_ref)
         .expect("Path exists, so the agent's node must be in the corridor.");
       let target_corridor_index = path
-        .corridor
-        .iter()
-        .position(|node_ref| *node_ref == target_node_ref)
+        .find_index_of_node_rev(target_node_ref)
         .expect("Path exists, so the target's node must be in the corridor.");
 
       let waypoint = path

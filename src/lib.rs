@@ -321,25 +321,23 @@ fn does_agent_need_repath(
     return RepathResult::NeedsRepath;
   }
 
-  let agent_node_index_in_corridor =
-    match current_path.corridor.iter().position(|x| x == &agent_node) {
-      None => return RepathResult::NeedsRepath,
-      Some(index) => index,
-    };
+  let Some(agent_node_index_in_path) =
+    current_path.find_index_of_node(agent_node)
+  else {
+    return RepathResult::NeedsRepath;
+  };
 
-  let target_node_index_in_corridor =
-    match current_path.corridor.iter().rev().position(|x| x == &target_node) {
-      None => return RepathResult::NeedsRepath,
-      Some(index) => current_path.corridor.len() - 1 - index,
-    };
+  let Some(target_node_index_in_path) =
+    current_path.find_index_of_node_rev(target_node)
+  else {
+    return RepathResult::NeedsRepath;
+  };
 
-  match agent_node_index_in_corridor <= target_node_index_in_corridor {
-    true => RepathResult::FollowPath(
-      agent_node_index_in_corridor,
-      target_node_index_in_corridor,
-    ),
-    false => RepathResult::NeedsRepath,
+  if agent_node_index_in_path > target_node_index_in_path {
+    return RepathResult::NeedsRepath;
   }
+
+  RepathResult::FollowPath(agent_node_index_in_path, target_node_index_in_path)
 }
 
 #[cfg(test)]
