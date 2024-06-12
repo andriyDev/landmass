@@ -1,6 +1,9 @@
 use glam::Vec3;
 
-use crate::{path::Path, NavigationData};
+use crate::{
+  path::{Path, PathIndex},
+  NavigationData,
+};
 
 pub type AgentId = u32;
 
@@ -116,8 +119,8 @@ impl Agent {
     &self,
     path: &Path,
     nav_data: &NavigationData,
-    next_waypoint: (usize, Vec3),
-    target_waypoint: (usize, Vec3),
+    next_waypoint: (PathIndex, Vec3),
+    target_waypoint: (PathIndex, Vec3),
   ) -> bool {
     match self.target_reached_condition {
       TargetReachedCondition::Distance(distance) => {

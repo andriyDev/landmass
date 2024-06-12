@@ -1,23 +1,23 @@
-use std::{collections::HashMap, f32::consts::PI, sync::Arc};
+use std::{collections::HashSet, f32::consts::PI, sync::Arc};
 
 use glam::Vec3;
 
 use crate::{
-  island::Island,
   nav_data::{NavigationData, NodeRef},
   nav_mesh::NavigationMesh,
-  Archipelago, BoundingBox, Transform, ValidNavigationMesh,
+  path::{BoundaryLinkSegment, IslandSegment},
+  Archipelago, Transform,
 };
 
-use super::Path;
+use super::{Path, PathIndex};
 
 fn collect_straight_path(
   path: &Path,
   nav_data: &NavigationData,
-  start: (usize, Vec3),
-  end: (usize, Vec3),
+  start: (PathIndex, Vec3),
+  end: (PathIndex, Vec3),
   iteration_limit: u32,
-) -> Vec<(usize, Vec3)> {
+) -> Vec<(PathIndex, Vec3)> {
   let mut straight_path = Vec::with_capacity(iteration_limit as usize);
 
   let mut current = start;
@@ -73,26 +73,43 @@ fn finds_next_point_for_organic_map() {
     .set_nav_mesh(transform, Arc::new(nav_mesh));
 
   let path = Path {
-    corridor: vec![
-      NodeRef { island_id, polygon_index: 0 },
-      NodeRef { island_id, polygon_index: 1 },
-      NodeRef { island_id, polygon_index: 2 },
-    ],
-    portal_edge_index: vec![4, 2],
+    island_segments: vec![IslandSegment {
+      island_id,
+      corridor: vec![0, 1, 2],
+      portal_edge_index: vec![4, 2],
+    }],
+    boundary_link_segments: vec![],
   };
 
   assert_eq!(
     collect_straight_path(
       &path,
       &archipelago.nav_data,
-      /* start= */ (0, transform.apply(Vec3::new(3.0, 0.0, 1.5))),
-      /* end= */ (2, transform.apply(Vec3::new(2.5, 0.5, 4.5))),
+      /* start= */
+      (
+        PathIndex::from_corridor_index(0, 0),
+        transform.apply(Vec3::new(3.0, 0.0, 1.5))
+      ),
+      /* end= */
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.5, 0.5, 4.5))
+      ),
       /* iteration_limit= */ 3,
     ),
     [
-      (0, transform.apply(Vec3::new(2.0, 0.0, 3.0))),
-      (1, transform.apply(Vec3::new(2.0, 0.0, 4.0))),
-      (2, transform.apply(Vec3::new(2.5, 0.5, 4.5))),
+      (
+        PathIndex::from_corridor_index(0, 0),
+        transform.apply(Vec3::new(2.0, 0.0, 3.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 1),
+        transform.apply(Vec3::new(2.0, 0.0, 4.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.5, 0.5, 4.5))
+      ),
     ]
   );
 }
@@ -161,40 +178,51 @@ fn finds_next_point_in_zig_zag() {
     .set_nav_mesh(transform, Arc::new(nav_mesh));
 
   let path = Path {
-    corridor: vec![
-      NodeRef { island_id, polygon_index: 0 },
-      NodeRef { island_id, polygon_index: 1 },
-      NodeRef { island_id, polygon_index: 2 },
-      NodeRef { island_id, polygon_index: 3 },
-      NodeRef { island_id, polygon_index: 4 },
-      NodeRef { island_id, polygon_index: 5 },
-      NodeRef { island_id, polygon_index: 6 },
-      NodeRef { island_id, polygon_index: 7 },
-      NodeRef { island_id, polygon_index: 8 },
-      NodeRef { island_id, polygon_index: 9 },
-      NodeRef { island_id, polygon_index: 10 },
-      NodeRef { island_id, polygon_index: 11 },
-      NodeRef { island_id, polygon_index: 12 },
-      NodeRef { island_id, polygon_index: 13 },
-      NodeRef { island_id, polygon_index: 14 },
-    ],
-    portal_edge_index: vec![2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    island_segments: vec![IslandSegment {
+      island_id,
+      corridor: vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+      portal_edge_index: vec![2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    }],
+    boundary_link_segments: vec![],
   };
 
   assert_eq!(
     collect_straight_path(
       &path,
       &archipelago.nav_data,
-      /* start= */ (0, transform.apply(Vec3::new(0.5, 0.0, 0.5))),
-      /* end= */ (14, transform.apply(Vec3::new(-3.5, 0.0, 14.0))),
+      /* start= */
+      (
+        PathIndex::from_corridor_index(0, 0),
+        transform.apply(Vec3::new(0.5, 0.0, 0.5))
+      ),
+      /* end= */
+      (
+        PathIndex::from_corridor_index(0, 14),
+        transform.apply(Vec3::new(-3.5, 0.0, 14.0))
+      ),
       /* iteration_limit= */ 5,
     ),
     [
-      (4, transform.apply(Vec3::new(1.0, 0.0, 4.0))),
-      (8, transform.apply(Vec3::new(4.0, 0.0, 5.0))),
-      (11, transform.apply(Vec3::new(4.0, 0.0, 7.0))),
-      (13, transform.apply(Vec3::new(-3.0, 0.0, 8.0))),
-      (14, transform.apply(Vec3::new(-3.5, 0.0, 14.0))),
+      (
+        PathIndex::from_corridor_index(0, 4),
+        transform.apply(Vec3::new(1.0, 0.0, 4.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 8),
+        transform.apply(Vec3::new(4.0, 0.0, 5.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 11),
+        transform.apply(Vec3::new(4.0, 0.0, 7.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 13),
+        transform.apply(Vec3::new(-3.0, 0.0, 8.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 14),
+        transform.apply(Vec3::new(-3.5, 0.0, 14.0))
+      ),
     ]
   );
 }
@@ -224,103 +252,131 @@ fn starts_at_end_index_goes_to_end_point() {
   );
 
   let path = Path {
-    corridor: vec![
-      NodeRef { island_id, polygon_index: 0 },
-      NodeRef { island_id, polygon_index: 1 },
-    ],
-    portal_edge_index: vec![2],
+    island_segments: vec![IslandSegment {
+      island_id,
+      corridor: vec![0, 1],
+      portal_edge_index: vec![2],
+    }],
+    boundary_link_segments: vec![],
   };
 
   assert_eq!(
     path.find_next_point_in_straight_path(
       &archipelago.nav_data,
-      /* start_index= */ 1,
+      /* start_index= */ PathIndex::from_corridor_index(0, 1),
       /* start_point= */ Vec3::new(0.25, 0.0, 1.1),
-      /* end_index= */ 1,
+      /* end_index= */ PathIndex::from_corridor_index(0, 1),
       /* end_point= */ Vec3::new(0.75, 0.0, 1.9),
     ),
-    (1, Vec3::new(0.75, 0.0, 1.9))
+    (PathIndex::from_corridor_index(0, 1), Vec3::new(0.75, 0.0, 1.9))
   );
 }
 
 #[test]
-fn path_not_valid_for_missing_islands_or_dirty_islands() {
+fn path_not_valid_for_invalidated_islands_or_boundary_links() {
   let path = Path {
-    corridor: vec![
-      NodeRef { island_id: 1, polygon_index: 0 },
-      NodeRef { island_id: 2, polygon_index: 0 },
-      NodeRef { island_id: 2, polygon_index: 1 },
-      NodeRef { island_id: 3, polygon_index: 0 },
+    island_segments: vec![
+      IslandSegment {
+        island_id: 1,
+        corridor: vec![0],
+        portal_edge_index: vec![],
+      },
+      IslandSegment {
+        island_id: 2,
+        corridor: vec![0, 1],
+        portal_edge_index: vec![],
+      },
+      IslandSegment {
+        island_id: 3,
+        corridor: vec![0],
+        portal_edge_index: vec![],
+      },
     ],
-    portal_edge_index: vec![0, 1, 2],
+    boundary_link_segments: vec![
+      BoundaryLinkSegment {
+        starting_node: NodeRef { island_id: 1, polygon_index: 0 },
+        boundary_link: 10,
+      },
+      BoundaryLinkSegment {
+        starting_node: NodeRef { island_id: 2, polygon_index: 1 },
+        boundary_link: 11,
+      },
+    ],
   };
 
-  let nav_mesh = ValidNavigationMesh {
-    mesh_bounds: BoundingBox::Empty,
-    boundary_edges: vec![],
-    connectivity: vec![],
-    polygons: vec![],
-    vertices: vec![],
-  };
-  let nav_mesh = Arc::new(nav_mesh);
+  assert!(path.is_valid(
+    /* invalidated_boundary_links= */ &HashSet::new(),
+    /* invalidated_islands= */ &HashSet::new()
+  ));
 
-  let mut island_1 = Island::new();
-  island_1.set_nav_mesh(Transform::default(), Arc::clone(&nav_mesh));
+  // Each island is invalidated.
+  assert!(!path.is_valid(
+    /* invalidated_boundary_links= */ &HashSet::new(),
+    /* invalidated_islands= */ &HashSet::from([1]),
+  ));
+  assert!(!path.is_valid(
+    /* invalidated_boundary_links= */ &HashSet::new(),
+    /* invalidated_islands= */ &HashSet::from([2]),
+  ));
+  assert!(!path.is_valid(
+    /* invalidated_boundary_links= */ &HashSet::new(),
+    /* invalidated_islands= */ &HashSet::from([3]),
+  ));
 
-  let mut island_3 = Island::new();
-  island_3.set_nav_mesh(Transform::default(), Arc::clone(&nav_mesh));
-
-  // Pretend we updated the islands so they aren't dirty.
-  island_1.dirty = false;
-  island_3.dirty = false;
-
-  let mut islands = HashMap::new();
-  islands.insert(1, island_1);
-  islands.insert(3, island_3);
-
-  let mut nav_data = NavigationData::new();
-  nav_data.islands = islands;
-  assert!(!path.is_valid(&nav_data));
-
-  let mut island_2 = Island::new();
-  island_2.set_nav_mesh(Transform::default(), nav_mesh);
-
-  nav_data.islands.insert(2, island_2);
-  assert!(!path.is_valid(&nav_data));
-
-  // Pretend we updated island_2.
-  nav_data.islands.get_mut(&2).unwrap().dirty = false;
-  assert!(path.is_valid(&nav_data));
-
-  // Clear one of the islands of its nav mesh which should make the path
-  // invalid again.
-  nav_data.islands.get_mut(&1).unwrap().clear_nav_mesh();
-  assert!(!path.is_valid(&nav_data));
+  // Each boundary link is invalidated.
+  assert!(!path.is_valid(
+    /* invalidated_boundary_links= */ &HashSet::from([10]),
+    /* invalidated_islands= */ &HashSet::new(),
+  ));
+  assert!(!path.is_valid(
+    /* invalidated_boundary_links= */ &HashSet::from([11]),
+    /* invalidated_islands= */ &HashSet::new(),
+  ));
 }
 
 #[test]
 fn indices_in_path_are_found() {
   let path = Path {
-    corridor: vec![
-      NodeRef { island_id: 1, polygon_index: 3 },
-      NodeRef { island_id: 2, polygon_index: 2 },
-      NodeRef { island_id: 3, polygon_index: 1 },
-      NodeRef { island_id: 4, polygon_index: 0 },
+    island_segments: vec![
+      IslandSegment {
+        island_id: 1,
+        corridor: vec![3],
+        portal_edge_index: vec![],
+      },
+      IslandSegment {
+        island_id: 2,
+        corridor: vec![2, 1],
+        portal_edge_index: vec![],
+      },
+      IslandSegment {
+        island_id: 3,
+        corridor: vec![0],
+        portal_edge_index: vec![],
+      },
     ],
-    portal_edge_index: vec![0, 1, 2],
+    boundary_link_segments: vec![
+      BoundaryLinkSegment {
+        starting_node: NodeRef { island_id: 1, polygon_index: 0 },
+        boundary_link: 10,
+      },
+      BoundaryLinkSegment {
+        starting_node: NodeRef { island_id: 2, polygon_index: 1 },
+        boundary_link: 11,
+      },
+    ],
   };
 
   assert_eq!(
-    path.find_index_of_node(NodeRef { island_id: 3, polygon_index: 1 }),
-    Some(2)
+    path.find_index_of_node(NodeRef { island_id: 3, polygon_index: 0 }),
+    Some(PathIndex { segment_index: 2, portal_index: 0 })
   );
   assert_eq!(
     path.find_index_of_node(NodeRef { island_id: 1, polygon_index: 3 }),
-    Some(0)
+    Some(PathIndex { segment_index: 0, portal_index: 0 })
   );
   assert_eq!(
-    path.find_index_of_node(NodeRef { island_id: 4, polygon_index: 0 }),
-    Some(3)
+    path.find_index_of_node(NodeRef { island_id: 2, polygon_index: 1 }),
+    Some(PathIndex { segment_index: 1, portal_index: 1 })
   );
 
   // Missing NodeRefs.
@@ -341,26 +397,46 @@ fn indices_in_path_are_found() {
 #[test]
 fn indices_in_path_are_found_rev() {
   let path = Path {
-    corridor: vec![
-      NodeRef { island_id: 1, polygon_index: 3 },
-      NodeRef { island_id: 2, polygon_index: 2 },
-      NodeRef { island_id: 3, polygon_index: 1 },
-      NodeRef { island_id: 4, polygon_index: 0 },
+    island_segments: vec![
+      IslandSegment {
+        island_id: 1,
+        corridor: vec![3],
+        portal_edge_index: vec![],
+      },
+      IslandSegment {
+        island_id: 2,
+        corridor: vec![2, 1],
+        portal_edge_index: vec![],
+      },
+      IslandSegment {
+        island_id: 3,
+        corridor: vec![0],
+        portal_edge_index: vec![],
+      },
     ],
-    portal_edge_index: vec![0, 1, 2],
+    boundary_link_segments: vec![
+      BoundaryLinkSegment {
+        starting_node: NodeRef { island_id: 1, polygon_index: 0 },
+        boundary_link: 10,
+      },
+      BoundaryLinkSegment {
+        starting_node: NodeRef { island_id: 2, polygon_index: 1 },
+        boundary_link: 11,
+      },
+    ],
   };
 
   assert_eq!(
-    path.find_index_of_node_rev(NodeRef { island_id: 3, polygon_index: 1 }),
-    Some(2)
+    path.find_index_of_node_rev(NodeRef { island_id: 3, polygon_index: 0 }),
+    Some(PathIndex { segment_index: 2, portal_index: 0 })
   );
   assert_eq!(
     path.find_index_of_node_rev(NodeRef { island_id: 1, polygon_index: 3 }),
-    Some(0)
+    Some(PathIndex { segment_index: 0, portal_index: 0 })
   );
   assert_eq!(
-    path.find_index_of_node_rev(NodeRef { island_id: 4, polygon_index: 0 }),
-    Some(3)
+    path.find_index_of_node_rev(NodeRef { island_id: 2, polygon_index: 1 }),
+    Some(PathIndex { segment_index: 1, portal_index: 1 })
   );
 
   // Missing NodeRefs.
@@ -369,11 +445,11 @@ fn indices_in_path_are_found_rev() {
     None
   );
   assert_eq!(
-    path.find_index_of_node(NodeRef { island_id: 1, polygon_index: 1 }),
+    path.find_index_of_node_rev(NodeRef { island_id: 1, polygon_index: 1 }),
     None
   );
   assert_eq!(
-    path.find_index_of_node(NodeRef { island_id: 4, polygon_index: 4 }),
+    path.find_index_of_node_rev(NodeRef { island_id: 4, polygon_index: 4 }),
     None
   );
 }

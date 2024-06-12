@@ -3,8 +3,8 @@ use std::{f32::consts::PI, sync::Arc};
 use glam::Vec3;
 
 use crate::{
-  nav_data::NodeRef, path::Path, Agent, Archipelago, NavigationMesh,
-  TargetReachedCondition, Transform,
+  path::{IslandSegment, Path, PathIndex},
+  Agent, Archipelago, NavigationMesh, TargetReachedCondition, Transform,
 };
 
 #[test]
@@ -28,10 +28,15 @@ fn has_reached_target_at_end_node() {
   );
 
   let path = Path {
-    corridor: vec![NodeRef { island_id, polygon_index: 0 }],
-    portal_edge_index: vec![],
+    island_segments: vec![IslandSegment {
+      island_id,
+      corridor: vec![0],
+      portal_edge_index: vec![],
+    }],
+    boundary_link_segments: vec![],
   };
 
+  let first_path_index = PathIndex::from_corridor_index(0, 0);
   for condition in [
     TargetReachedCondition::Distance(2.0),
     TargetReachedCondition::StraightPathDistance(2.0),
@@ -42,26 +47,26 @@ fn has_reached_target_at_end_node() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (0, transform.apply(Vec3::new(2.5, 0.0, 1.0))),
-      (0, transform.apply(Vec3::new(2.5, 0.0, 1.0))),
+      (first_path_index, transform.apply(Vec3::new(2.5, 0.0, 1.0))),
+      (first_path_index, transform.apply(Vec3::new(2.5, 0.0, 1.0))),
     ));
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (0, transform.apply(Vec3::new(3.5, 0.0, 1.0))),
-      (0, transform.apply(Vec3::new(3.5, 0.0, 1.0))),
+      (first_path_index, transform.apply(Vec3::new(3.5, 0.0, 1.0))),
+      (first_path_index, transform.apply(Vec3::new(3.5, 0.0, 1.0))),
     ));
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (0, transform.apply(Vec3::new(2.0, 0.0, 2.0))),
-      (0, transform.apply(Vec3::new(2.0, 0.0, 2.0))),
+      (first_path_index, transform.apply(Vec3::new(2.0, 0.0, 2.0))),
+      (first_path_index, transform.apply(Vec3::new(2.0, 0.0, 2.0))),
     ));
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (0, transform.apply(Vec3::new(2.5, 0.0, 2.5))),
-      (0, transform.apply(Vec3::new(2.5, 0.0, 2.5))),
+      (first_path_index, transform.apply(Vec3::new(2.5, 0.0, 2.5))),
+      (first_path_index, transform.apply(Vec3::new(2.5, 0.0, 2.5))),
     ));
   }
 }
@@ -99,12 +104,12 @@ fn long_detour_reaches_target_in_different_ways() {
   );
 
   let path = Path {
-    corridor: vec![
-      NodeRef { island_id, polygon_index: 0 },
-      NodeRef { island_id, polygon_index: 1 },
-      NodeRef { island_id, polygon_index: 2 },
-    ],
-    portal_edge_index: vec![1, 2],
+    island_segments: vec![IslandSegment {
+      island_id,
+      corridor: vec![0, 1, 2],
+      portal_edge_index: vec![1, 2],
+    }],
+    boundary_link_segments: vec![],
   };
 
   {
@@ -116,8 +121,14 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (1, transform.apply(Vec3::new(1.0, 0.0, 11.0))),
-      (2, transform.apply(Vec3::new(2.0, 0.0, 1.0))),
+      (
+        PathIndex::from_corridor_index(0, 1),
+        transform.apply(Vec3::new(1.0, 0.0, 11.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+      ),
     ));
 
     // Agent is just outside of 1.1 units, so they still have not reached the
@@ -126,8 +137,14 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (1, transform.apply(Vec3::new(1.0, 0.0, 11.0))),
-      (2, transform.apply(Vec3::new(2.0, 0.0, 1.0))),
+      (
+        PathIndex::from_corridor_index(0, 1),
+        transform.apply(Vec3::new(1.0, 0.0, 11.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+      ),
     ));
   }
 
@@ -140,8 +157,14 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (1, transform.apply(Vec3::new(1.0, 0.0, 11.0))),
-      (2, transform.apply(Vec3::new(2.0, 0.0, 1.0))),
+      (
+        PathIndex::from_corridor_index(0, 1),
+        transform.apply(Vec3::new(1.0, 0.0, 11.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+      ),
     ));
 
     // The agent only has 12 units left to travel to the target, and yet the
@@ -150,8 +173,14 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (1, transform.apply(Vec3::new(1.0, 0.0, 11.0))),
-      (2, transform.apply(Vec3::new(2.0, 0.0, 1.0))),
+      (
+        PathIndex::from_corridor_index(0, 1),
+        transform.apply(Vec3::new(1.0, 0.0, 11.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+      ),
     ));
 
     // The agent has now "rounded the corner", and so can see the target (and
@@ -160,8 +189,14 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (2, transform.apply(Vec3::new(2.0, 0.0, 1.0))),
-      (2, transform.apply(Vec3::new(2.0, 0.0, 1.0))),
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+      ),
     ));
 
     // The agent can see the target but is still too far away.
@@ -169,8 +204,14 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (2, transform.apply(Vec3::new(2.0, 0.0, 1.0))),
-      (2, transform.apply(Vec3::new(2.0, 0.0, 1.0))),
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+      ),
     ));
   }
 
@@ -183,8 +224,14 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (1, transform.apply(Vec3::new(1.0, 0.0, 11.0))),
-      (2, transform.apply(Vec3::new(2.0, 0.0, 1.0))),
+      (
+        PathIndex::from_corridor_index(0, 1),
+        transform.apply(Vec3::new(1.0, 0.0, 11.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+      ),
     ));
 
     // The agent only has 12 units left to travel to the target, so they have
@@ -193,8 +240,14 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (1, transform.apply(Vec3::new(1.0, 0.0, 11.0))),
-      (2, transform.apply(Vec3::new(2.0, 0.0, 1.0))),
+      (
+        PathIndex::from_corridor_index(0, 1),
+        transform.apply(Vec3::new(1.0, 0.0, 11.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+      ),
     ));
 
     // The agent can see the target but is still too far away.
@@ -202,8 +255,14 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (2, transform.apply(Vec3::new(2.0, 0.0, 1.0))),
-      (2, transform.apply(Vec3::new(2.0, 0.0, 1.0))),
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+      ),
+      (
+        PathIndex::from_corridor_index(0, 2),
+        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+      ),
     ));
   }
 }

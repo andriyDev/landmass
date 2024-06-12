@@ -1,7 +1,7 @@
 use crate::{
   astar::{self, AStarProblem, PathStats},
   nav_data::NodeRef,
-  path::Path,
+  path::{IslandSegment, Path},
   NavigationData,
 };
 
@@ -94,30 +94,33 @@ pub(crate) fn find_path(
 
   let mut corridor = Vec::with_capacity(path_result.path.len() + 1);
   let mut portal_edge_index = Vec::with_capacity(path_result.path.len());
-  corridor.push(start_node);
+  corridor.push(start_node.polygon_index);
 
   for conn_index in path_result.path {
-    let previous_node = corridor.last().unwrap();
+    let previous_node = *corridor.last().unwrap();
     let nav_mesh = &nav_data
       .islands
-      .get(&previous_node.island_id)
+      .get(&start_node.island_id)
       .unwrap()
       .nav_data
       .as_ref()
       .unwrap()
       .nav_mesh;
-    let connectivity =
-      &nav_mesh.connectivity[previous_node.polygon_index][conn_index];
+    let connectivity = &nav_mesh.connectivity[previous_node][conn_index];
     portal_edge_index.push(connectivity.edge_index);
-    corridor.push(NodeRef {
-      island_id: previous_node.island_id,
-      polygon_index: connectivity.polygon_index,
-    });
+    corridor.push(connectivity.polygon_index);
   }
 
   Ok(PathResult {
     stats: path_result.stats,
-    path: Path { corridor, portal_edge_index },
+    path: Path {
+      island_segments: vec![IslandSegment {
+        island_id: start_node.island_id,
+        corridor,
+        portal_edge_index,
+      }],
+      boundary_link_segments: vec![],
+    },
   })
 }
 

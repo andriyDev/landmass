@@ -11,10 +11,11 @@ mod path;
 mod pathfinding;
 mod util;
 
+use path::PathIndex;
 use rand::Rng;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use nav_data::{NavigationData, NodeRef};
+use nav_data::{BoundaryLinkId, NavigationData, NodeRef};
 
 pub use glam::Vec3;
 
@@ -129,6 +130,10 @@ impl Archipelago {
   }
 
   pub fn update(&mut self, delta_time: f32) {
+    // TODO: make the edge_link_distance configurable.
+    let (invalidated_boundary_links, invalidated_islands) =
+      self.nav_data.update(/* edge_link_distance= */ 0.01);
+
     let mut agent_id_to_agent_node = HashMap::new();
     let mut agent_id_to_target_node = HashMap::new();
 
@@ -172,9 +177,10 @@ impl Archipelago {
         .map(|node_and_point| node_and_point.1.clone());
       match does_agent_need_repath(
         agent,
-        agent_node.clone(),
-        target_node.clone(),
-        &self.nav_data,
+        agent_node,
+        target_node,
+        &invalidated_boundary_links,
+        &invalidated_islands,
       ) {
         RepathResult::DoNothing => {}
         RepathResult::FollowPath(
@@ -213,14 +219,14 @@ impl Archipelago {
             Ok(pathfinding::PathResult { path, .. }) => path,
           };
 
-          agent_id_to_follow_path_indices
-            .insert(*agent_id, (0, new_path.corridor.len() - 1));
+          agent_id_to_follow_path_indices.insert(
+            *agent_id,
+            (PathIndex::from_corridor_index(0, 0), new_path.last_index()),
+          );
           agent.current_path = Some(new_path);
         }
       }
     }
-
-    self.nav_data.update(/* edge_link_distance= */ 0.01);
 
     for (agent_id, agent) in self.agents.iter_mut() {
       let path = match &agent.current_path {
@@ -282,7 +288,7 @@ impl Archipelago {
 #[derive(PartialEq, Eq, Debug)]
 enum RepathResult {
   DoNothing,
-  FollowPath(usize, usize),
+  FollowPath(PathIndex, PathIndex),
   ClearPathNoTarget,
   ClearPathBadAgent,
   ClearPathBadTarget,
@@ -293,7 +299,8 @@ fn does_agent_need_repath(
   agent: &Agent,
   agent_node: Option<NodeRef>,
   target_node: Option<NodeRef>,
-  nav_data: &NavigationData,
+  invalidated_boundary_links: &HashSet<BoundaryLinkId>,
+  invalidated_islands: &HashSet<IslandId>,
 ) -> RepathResult {
   if let None = agent.current_target {
     if agent.current_path.is_some() {
@@ -317,7 +324,7 @@ fn does_agent_need_repath(
     Some(current_path) => current_path,
   };
 
-  if !current_path.is_valid(nav_data) {
+  if !current_path.is_valid(invalidated_boundary_links, invalidated_islands) {
     return RepathResult::NeedsRepath;
   }
 

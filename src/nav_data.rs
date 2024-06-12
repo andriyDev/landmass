@@ -133,11 +133,15 @@ impl NavigationData {
       }
     }
 
+    let changed_islands = self
+      .deleted_islands
+      .union(&dirty_islands)
+      .copied()
+      .collect::<HashSet<_>>();
+
     let mut dropped_links = HashSet::new();
     let mut modified_node_refs_to_update = HashSet::new();
     if !self.deleted_islands.is_empty() || !dirty_islands.is_empty() {
-      let changed_islands =
-        self.deleted_islands.union(&dirty_islands).collect::<HashSet<_>>();
       self.boundary_links.retain(|node_ref, links| {
         if changed_islands.contains(&node_ref.island_id) {
           modified_node_refs_to_update.insert(*node_ref);
@@ -170,7 +174,7 @@ impl NavigationData {
 
     if dirty_islands.is_empty() {
       // No new or changed islands, so no need to check for new links.
-      return (dropped_links, dirty_islands, modified_node_refs_to_update);
+      return (dropped_links, changed_islands, modified_node_refs_to_update);
     }
 
     let mut island_bounds = self
@@ -186,7 +190,7 @@ impl NavigationData {
     // There are no islands with nav data, so no islands to link and prevents a
     // panic.
     if island_bounds.is_empty() {
-      return (dropped_links, dirty_islands, modified_node_refs_to_update);
+      return (dropped_links, changed_islands, modified_node_refs_to_update);
     }
     let island_bbh = BoundingBoxHierarchy::new(&mut island_bounds);
 
@@ -234,7 +238,7 @@ impl NavigationData {
       }
     }
 
-    (dropped_links, dirty_islands, modified_node_refs_to_update)
+    (dropped_links, changed_islands, modified_node_refs_to_update)
   }
 
   fn update_modified_node(
@@ -368,12 +372,12 @@ impl NavigationData {
     &mut self,
     edge_link_distance: f32,
   ) -> (HashSet<BoundaryLinkId>, HashSet<IslandId>) {
-    let (dropped_links, dirty_islands, modified_node_refs_to_update) =
+    let (dropped_links, changed_islands, modified_node_refs_to_update) =
       self.update_islands(edge_link_distance);
     for node_ref in modified_node_refs_to_update {
       self.update_modified_node(node_ref, edge_link_distance);
     }
-    (dropped_links, dirty_islands)
+    (dropped_links, changed_islands)
   }
 }
 
