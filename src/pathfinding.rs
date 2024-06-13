@@ -1,7 +1,9 @@
+use std::{borrow::Cow, collections::HashMap};
+
 use crate::{
   astar::{self, AStarProblem, PathStats},
-  nav_data::NodeRef,
-  path::{IslandSegment, Path},
+  nav_data::{BoundaryLinkId, NodeRef},
+  path::{BoundaryLinkSegment, IslandSegment, Path},
   NavigationData,
 };
 
@@ -15,8 +17,17 @@ struct ArchipelagoPathProblem<'a> {
   end_node: NodeRef,
 }
 
+/// An action taken in the path.
+#[derive(Clone, Copy)]
+enum PathStep {
+  /// Take the node connection at the specified index in the current node.
+  NodeConnection(usize),
+  /// Take the boundary link with the specified ID in the current node.
+  BoundaryLink(BoundaryLinkId),
+}
+
 impl AStarProblem for ArchipelagoPathProblem<'_> {
-  type ActionType = usize;
+  type ActionType = PathStep;
 
   type StateType = NodeRef;
 
@@ -29,30 +40,53 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
     state: &Self::StateType,
   ) -> Vec<(f32, Self::ActionType, Self::StateType)> {
     let island = self.nav_data.islands.get(&state.island_id).unwrap();
-    let nav_mesh = &island.nav_data.as_ref().unwrap().nav_mesh;
-    let polygon = &nav_mesh.polygons[state.polygon_index];
-    let connectivity = &nav_mesh.connectivity[state.polygon_index];
+    let nav_data = island.nav_data.as_ref().unwrap();
+    let polygon = &nav_data.nav_mesh.polygons[state.polygon_index];
+    let connectivity = &nav_data.nav_mesh.connectivity[state.polygon_index];
+    let boundary_links = self
+      .nav_data
+      .boundary_links
+      .get(state)
+      .map_or(Cow::Owned(HashMap::new()), |links| Cow::Borrowed(links));
 
     connectivity
       .iter()
       .enumerate()
       .map(|(conn_index, conn)| {
-        let next_polygon = &nav_mesh.polygons[conn.polygon_index];
+        let next_polygon = &nav_data.nav_mesh.polygons[conn.polygon_index];
         let edge = polygon.get_edge_indices(conn.edge_index);
-        let edge_point =
-          (nav_mesh.vertices[edge.0] + nav_mesh.vertices[edge.1]) / 2.0;
+        let edge_point = (nav_data.nav_mesh.vertices[edge.0]
+          + nav_data.nav_mesh.vertices[edge.1])
+          / 2.0;
         let cost = polygon.center.distance(edge_point)
           + next_polygon.center.distance(edge_point);
 
         (
           cost,
-          conn_index,
+          PathStep::NodeConnection(conn_index),
           NodeRef {
             island_id: state.island_id,
             polygon_index: conn.polygon_index,
           },
         )
       })
+      .chain(boundary_links.iter().map(|(&link_id, link)| {
+        let next_island =
+          self.nav_data.islands.get(&link.destination_node.island_id).unwrap();
+        let next_nav_data = next_island.nav_data.as_ref().unwrap();
+        let next_polygon =
+          &next_nav_data.nav_mesh.polygons[link.destination_node.polygon_index];
+
+        let polygon_center = nav_data.transform.apply(polygon.center);
+        let next_polygon_center =
+          next_nav_data.transform.apply(next_polygon.center);
+
+        let edge_point = (link.portal.0 + link.portal.1) / 2.0;
+
+        let cost = polygon_center.distance(edge_point)
+          + next_polygon_center.distance(edge_point);
+        (cost, PathStep::BoundaryLink(link_id), link.destination_node)
+      }))
       .collect()
   }
 
@@ -92,36 +126,59 @@ pub(crate) fn find_path(
 
   let path_result = astar::find_path(&path_problem)?;
 
-  let mut corridor = Vec::with_capacity(path_result.path.len() + 1);
-  let mut portal_edge_index = Vec::with_capacity(path_result.path.len());
-  corridor.push(start_node.polygon_index);
+  let mut output_path =
+    Path { island_segments: vec![], boundary_link_segments: vec![] };
 
-  for conn_index in path_result.path {
-    let previous_node = *corridor.last().unwrap();
-    let nav_mesh = &nav_data
-      .islands
-      .get(&start_node.island_id)
-      .unwrap()
-      .nav_data
-      .as_ref()
-      .unwrap()
-      .nav_mesh;
-    let connectivity = &nav_mesh.connectivity[previous_node][conn_index];
-    portal_edge_index.push(connectivity.edge_index);
-    corridor.push(connectivity.polygon_index);
+  output_path.island_segments.push(IslandSegment {
+    island_id: start_node.island_id,
+    corridor: vec![start_node.polygon_index],
+    portal_edge_index: vec![],
+  });
+
+  for path_step in path_result.path {
+    let last_segment = output_path.island_segments.last_mut().unwrap();
+
+    let previous_node = *last_segment.corridor.last().unwrap();
+
+    match path_step {
+      PathStep::NodeConnection(conn_index) => {
+        let nav_mesh = &nav_data
+          .islands
+          .get(&start_node.island_id)
+          .unwrap()
+          .nav_data
+          .as_ref()
+          .unwrap()
+          .nav_mesh;
+        let connectivity = &nav_mesh.connectivity[previous_node][conn_index];
+        last_segment.corridor.push(connectivity.polygon_index);
+        last_segment.portal_edge_index.push(connectivity.edge_index);
+      }
+      PathStep::BoundaryLink(boundary_link) => {
+        let previous_node = NodeRef {
+          island_id: last_segment.island_id,
+          polygon_index: previous_node,
+        };
+
+        output_path.boundary_link_segments.push(BoundaryLinkSegment {
+          starting_node: previous_node,
+          boundary_link,
+        });
+
+        let boundary_links =
+          nav_data.boundary_links.get(&previous_node).unwrap();
+
+        let boundary_link = boundary_links.get(&boundary_link).unwrap();
+        output_path.island_segments.push(IslandSegment {
+          island_id: boundary_link.destination_node.island_id,
+          corridor: vec![boundary_link.destination_node.polygon_index],
+          portal_edge_index: vec![],
+        });
+      }
+    }
   }
 
-  Ok(PathResult {
-    stats: path_result.stats,
-    path: Path {
-      island_segments: vec![IslandSegment {
-        island_id: start_node.island_id,
-        corridor,
-        portal_edge_index,
-      }],
-      boundary_link_segments: vec![],
-    },
-  })
+  Ok(PathResult { stats: path_result.stats, path: output_path })
 }
 
 #[cfg(test)]

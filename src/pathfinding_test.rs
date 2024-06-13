@@ -1,11 +1,11 @@
-use std::{f32::consts::PI, sync::Arc};
+use std::{collections::HashMap, f32::consts::PI, sync::Arc};
 
 use glam::Vec3;
 
 use crate::{
   nav_data::NodeRef,
   nav_mesh::NavigationMesh,
-  path::{IslandSegment, Path},
+  path::{BoundaryLinkSegment, IslandSegment, Path},
   Archipelago, Transform,
 };
 
@@ -255,4 +255,113 @@ fn no_path_between_disconnected_islands() {
     NodeRef { island_id: island_id_1, polygon_index: 0 },
   )
   .is_err());
+}
+
+#[test]
+fn find_path_across_connected_islands() {
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(-0.5, 0.0, -0.5),
+        Vec3::new(0.5, 0.0, -0.5),
+        Vec3::new(0.5, 0.0, 0.5),
+        Vec3::new(-0.5, 0.0, 0.5),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+    }
+    .validate()
+    .expect("Mesh is valid."),
+  );
+
+  let mut archipelago = Archipelago::new();
+
+  let island_id_1 = archipelago.add_island();
+  let island_id_2 = archipelago.add_island();
+  let island_id_3 = archipelago.add_island();
+  let island_id_4 = archipelago.add_island();
+  let island_id_5 = archipelago.add_island();
+
+  archipelago.get_island_mut(island_id_1).set_nav_mesh(
+    Transform { rotation: 0.0, translation: Vec3::ZERO },
+    Arc::clone(&nav_mesh),
+  );
+  archipelago.get_island_mut(island_id_2).set_nav_mesh(
+    Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 0.0) },
+    Arc::clone(&nav_mesh),
+  );
+  archipelago.get_island_mut(island_id_3).set_nav_mesh(
+    Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, -1.0) },
+    Arc::clone(&nav_mesh),
+  );
+  archipelago.get_island_mut(island_id_4).set_nav_mesh(
+    Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 1.0) },
+    Arc::clone(&nav_mesh),
+  );
+  archipelago.get_island_mut(island_id_5).set_nav_mesh(
+    Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 2.0) },
+    Arc::clone(&nav_mesh),
+  );
+
+  archipelago.update(1.0);
+
+  let boundary_links = archipelago
+    .nav_data
+    .boundary_links
+    .iter()
+    .flat_map(|(node_ref, link_id_to_link)| {
+      link_id_to_link.iter().map(|(link_id, link)| {
+        ((node_ref.island_id, link.destination_node.island_id), *link_id)
+      })
+    })
+    .collect::<HashMap<_, _>>();
+
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id: island_id_1, polygon_index: 0 },
+    NodeRef { island_id: island_id_5, polygon_index: 0 },
+  )
+  .expect("found path");
+
+  assert_eq!(
+    path_result.path,
+    Path {
+      island_segments: vec![
+        IslandSegment {
+          island_id: island_id_1,
+          corridor: vec![0],
+          portal_edge_index: vec![],
+        },
+        IslandSegment {
+          island_id: island_id_2,
+          corridor: vec![0],
+          portal_edge_index: vec![],
+        },
+        IslandSegment {
+          island_id: island_id_4,
+          corridor: vec![0],
+          portal_edge_index: vec![],
+        },
+        IslandSegment {
+          island_id: island_id_5,
+          corridor: vec![0],
+          portal_edge_index: vec![],
+        },
+      ],
+      boundary_link_segments: vec![
+        BoundaryLinkSegment {
+          starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
+          boundary_link: boundary_links[&(island_id_1, island_id_2)],
+        },
+        BoundaryLinkSegment {
+          starting_node: NodeRef { island_id: island_id_2, polygon_index: 0 },
+          boundary_link: boundary_links[&(island_id_2, island_id_4)],
+        },
+        BoundaryLinkSegment {
+          starting_node: NodeRef { island_id: island_id_4, polygon_index: 0 },
+          boundary_link: boundary_links[&(island_id_4, island_id_5)],
+        },
+      ],
+    }
+  );
 }
