@@ -4,7 +4,10 @@ use dodgy::VisibilitySet;
 use glam::{Vec3, Vec3Swizzles};
 use kdtree::{distance::squared_euclidean, KdTree};
 
-use crate::{nav_data::NodeRef, Agent, AgentId, AgentOptions, NavigationData};
+use crate::{
+  island::IslandNavigationData, nav_data::NodeRef, Agent, AgentId,
+  AgentOptions, NavigationData,
+};
 
 /// Adjusts the velocity of `agents` to apply local avoidance. `delta_time` must
 /// be positive.
@@ -150,6 +153,19 @@ fn nav_mesh_borders_to_dodgy_obstacles(
     .as_ref()
     .unwrap();
 
+  let agent_point = agent_node.0.xz();
+
+  fn vertex_index_to_dodgy_vec(
+    island_data: &IslandNavigationData,
+    index: usize,
+    relative_point: glam::Vec2,
+  ) -> dodgy::Vec2 {
+    to_dodgy_vec2(
+      island_data.transform.apply(island_data.nav_mesh.vertices[index]).xz()
+        - relative_point,
+    )
+  }
+
   while !next_nodes.is_empty() {
     let node = next_nodes.pop().unwrap().node;
     if !explored_nodes.insert(node) {
@@ -168,12 +184,8 @@ fn nav_mesh_borders_to_dodgy_obstacles(
       let (vertex_1, vertex_2) =
         polygon.get_edge_indices(connectivity.edge_index);
       let (vertex_1, vertex_2) = (
-        island_data.nav_mesh.vertices[vertex_1].xz(),
-        island_data.nav_mesh.vertices[vertex_2].xz(),
-      );
-      let (vertex_1, vertex_2) = (
-        to_dodgy_vec2(vertex_1 - agent_node.0.xz()),
-        to_dodgy_vec2(vertex_2 - agent_node.0.xz()),
+        vertex_index_to_dodgy_vec(island_data, vertex_1, agent_point),
+        vertex_index_to_dodgy_vec(island_data, vertex_2, agent_point),
       );
 
       if !visibility_set.is_line_visible(vertex_1, vertex_2) {
@@ -194,12 +206,8 @@ fn nav_mesh_borders_to_dodgy_obstacles(
       let (border_vertex_1, border_vertex_2) =
         polygon.get_edge_indices(border_edge);
       let (vertex_1, vertex_2) = (
-        island_data.nav_mesh.vertices[border_vertex_1].xz(),
-        island_data.nav_mesh.vertices[border_vertex_2].xz(),
-      );
-      let (vertex_1, vertex_2) = (
-        to_dodgy_vec2(vertex_1 - agent_node.0.xz()),
-        to_dodgy_vec2(vertex_2 - agent_node.0.xz()),
+        vertex_index_to_dodgy_vec(island_data, border_vertex_1, agent_point),
+        vertex_index_to_dodgy_vec(island_data, border_vertex_2, agent_point),
       );
 
       if let Some(line_index) = visibility_set.add_line(vertex_1, vertex_2) {
@@ -266,8 +274,9 @@ fn nav_mesh_borders_to_dodgy_obstacles(
       vertices: looop
         .iter()
         .rev()
-        .map(|vert| island_data.nav_mesh.vertices[*vert].xz())
-        .map(to_dodgy_vec2)
+        .map(|vert| {
+          vertex_index_to_dodgy_vec(island_data, *vert, glam::Vec2::ZERO)
+        })
         .collect(),
     })
     .chain(unfinished_loops.drain(..).map(|looop| {
@@ -275,8 +284,9 @@ fn nav_mesh_borders_to_dodgy_obstacles(
         vertices: looop
           .iter()
           .rev()
-          .map(|vert| island_data.nav_mesh.vertices[*vert].xz())
-          .map(to_dodgy_vec2)
+          .map(|vert| {
+            vertex_index_to_dodgy_vec(island_data, *vert, glam::Vec2::ZERO)
+          })
           .collect(),
       }
     }))

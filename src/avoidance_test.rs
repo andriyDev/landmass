@@ -74,10 +74,13 @@ fn computes_obstacle_for_box() {
   .expect("Validation succeeds");
 
   let mut nav_data = NavigationData::new();
+
+  let island_offset = Vec3::new(130.0, 20.0, -50.0);
+  let island_offset_dodgy = dodgy::Vec2::new(island_offset.x, island_offset.z);
   nav_data.islands.insert(1, {
     let mut island = Island::new();
     island.set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      Transform { translation: island_offset, rotation: 0.0 },
       Arc::new(nav_mesh),
     );
     island
@@ -85,16 +88,19 @@ fn computes_obstacle_for_box() {
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
-      (Vec3::new(1.5, 0.0, 1.5), NodeRef { island_id: 1, polygon_index: 0 }),
+      (
+        Vec3::new(1.5, 0.0, 1.5) + island_offset,
+        NodeRef { island_id: 1, polygon_index: 0 }
+      ),
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
     vec![dodgy::Obstacle::Closed {
       vertices: vec![
-        dodgy::Vec2::new(1.0, 1.0),
-        dodgy::Vec2::new(1.0, 2.0),
-        dodgy::Vec2::new(2.0, 2.0),
-        dodgy::Vec2::new(2.0, 1.0)
+        dodgy::Vec2::new(1.0, 1.0) + island_offset_dodgy,
+        dodgy::Vec2::new(1.0, 2.0) + island_offset_dodgy,
+        dodgy::Vec2::new(2.0, 2.0) + island_offset_dodgy,
+        dodgy::Vec2::new(2.0, 1.0) + island_offset_dodgy
       ]
     }]
   );
