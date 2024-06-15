@@ -5,8 +5,9 @@ use glam::{Vec3, Vec3Swizzles};
 use kdtree::{distance::squared_euclidean, KdTree};
 
 use crate::{
-  island::IslandNavigationData, nav_data::NodeRef, Agent, AgentId,
-  AgentOptions, NavigationData,
+  island::IslandNavigationData,
+  nav_data::{ModifiedNode, NodeRef},
+  Agent, AgentId, AgentOptions, IslandId, NavigationData,
 };
 
 /// Adjusts the velocity of `agents` to apply local avoidance. `delta_time` must
@@ -122,9 +123,10 @@ fn nav_mesh_borders_to_dodgy_obstacles(
 
   let mut visibility_set = VisibilitySet::new();
   let mut border_edges = HashMap::new();
+  let mut new_vertices = Vec::new();
 
   struct ExploreNode {
-    node: usize,
+    node: NodeRef,
     score: f32,
   }
   impl PartialEq for ExploreNode {
@@ -146,15 +148,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
 
   let mut explored_nodes = HashSet::new();
   let mut next_nodes = BinaryHeap::new();
-  next_nodes.push(ExploreNode { node: agent_node.1.polygon_index, score: 0.0 });
-
-  let island_data = nav_data
-    .islands
-    .get(&agent_node.1.island_id)
-    .unwrap()
-    .nav_data
-    .as_ref()
-    .unwrap();
+  next_nodes.push(ExploreNode { node: agent_node.1, score: 0.0 });
 
   let agent_point = agent_node.0.xz();
 
@@ -176,27 +170,48 @@ fn nav_mesh_borders_to_dodgy_obstacles(
       continue;
     }
 
-    let polygon = &island_data.nav_mesh.polygons[node];
-    let connectivity = &island_data.nav_mesh.connectivity[node];
+    let island_data =
+      nav_data.islands.get(&node.island_id).unwrap().nav_data.as_ref().unwrap();
+
+    let polygon = &island_data.nav_mesh.polygons[node.polygon_index];
+    let connectivity = &island_data.nav_mesh.connectivity[node.polygon_index];
+    let boundary_links = nav_data.boundary_links.get(&node);
+    let modified_node = nav_data.modified_nodes.get(&node);
 
     let mut remaining_edges: HashSet<usize> =
       HashSet::from_iter(0..polygon.vertices.len());
-    for connectivity in connectivity.iter() {
-      remaining_edges.remove(&connectivity.edge_index);
+    for (vertex_1, vertex_2, node_ref) in connectivity
+      .iter()
+      .map(|connectivity| {
+        remaining_edges.remove(&connectivity.edge_index);
 
-      let (vertex_1, vertex_2) =
-        polygon.get_edge_indices(connectivity.edge_index);
-      let (vertex_1, vertex_2) = (
-        vertex_index_to_dodgy_vec(island_data, vertex_1, agent_point),
-        vertex_index_to_dodgy_vec(island_data, vertex_2, agent_point),
-      );
-
+        let (vertex_1, vertex_2) =
+          polygon.get_edge_indices(connectivity.edge_index);
+        (
+          vertex_index_to_dodgy_vec(island_data, vertex_1, agent_point),
+          vertex_index_to_dodgy_vec(island_data, vertex_2, agent_point),
+          NodeRef {
+            island_id: node.island_id,
+            polygon_index: connectivity.polygon_index,
+          },
+        )
+      })
+      .chain(boundary_links.iter().flat_map(|boundary_links| {
+        boundary_links.values().map(|link| {
+          (
+            to_dodgy_vec2(link.portal.0.xz() - agent_point),
+            to_dodgy_vec2(link.portal.1.xz() - agent_point),
+            link.destination_node,
+          )
+        })
+      }))
+    {
       if !visibility_set.is_line_visible(vertex_1, vertex_2) {
         continue;
       }
 
       let node = ExploreNode {
-        node: connectivity.polygon_index,
+        node: node_ref,
         score: vertex_1.length_squared().min(vertex_2.length_squared()),
       };
 
@@ -205,22 +220,79 @@ fn nav_mesh_borders_to_dodgy_obstacles(
       }
     }
 
-    for border_edge in remaining_edges {
-      let (border_vertex_1, border_vertex_2) =
-        polygon.get_edge_indices(border_edge);
-      let (vertex_1, vertex_2) = (
-        vertex_index_to_dodgy_vec(island_data, border_vertex_1, agent_point),
-        vertex_index_to_dodgy_vec(island_data, border_vertex_2, agent_point),
-      );
+    if let Some(modified_node) = modified_node {
+      for &(left, right) in modified_node.new_boundary.iter() {
+        fn index_to_vertex_and_index(
+          index: usize,
+          island_id: IslandId,
+          agent_point: glam::Vec2,
+          modified_node: &ModifiedNode,
+          island_data: &IslandNavigationData,
+          new_vertices: &mut Vec<dodgy_2d::Vec2>,
+        ) -> (dodgy_2d::Vec2, (Option<IslandId>, usize)) {
+          if index >= island_data.nav_mesh.vertices.len() {
+            let new_vertex = modified_node.new_vertices
+              [index - island_data.nav_mesh.vertices.len()];
+            let new_index = new_vertices.len();
+            new_vertices.push(to_dodgy_vec2(new_vertex));
+            return (
+              to_dodgy_vec2(new_vertex - agent_point),
+              (None, new_index),
+            );
+          }
 
-      if let Some(line_index) = visibility_set.add_line(vertex_1, vertex_2) {
-        border_edges.insert(line_index, (border_vertex_1, border_vertex_2));
+          let vertex =
+            vertex_index_to_dodgy_vec(island_data, index, agent_point);
+          (vertex, (Some(island_id), index))
+        }
+
+        let (left_point, left_index) = index_to_vertex_and_index(
+          left,
+          node.island_id,
+          agent_point,
+          modified_node,
+          island_data,
+          &mut new_vertices,
+        );
+        let (right_point, right_index) = index_to_vertex_and_index(
+          right,
+          node.island_id,
+          agent_point,
+          modified_node,
+          island_data,
+          &mut new_vertices,
+        );
+
+        if let Some(line_index) =
+          visibility_set.add_line(left_point, right_point)
+        {
+          border_edges.insert(line_index, (left_index, right_index));
+        }
+      }
+    } else {
+      for border_edge in remaining_edges {
+        let (border_vertex_1, border_vertex_2) =
+          polygon.get_edge_indices(border_edge);
+        let (vertex_1, vertex_2) = (
+          vertex_index_to_dodgy_vec(island_data, border_vertex_1, agent_point),
+          vertex_index_to_dodgy_vec(island_data, border_vertex_2, agent_point),
+        );
+
+        if let Some(line_index) = visibility_set.add_line(vertex_1, vertex_2) {
+          border_edges.insert(
+            line_index,
+            (
+              (Some(node.island_id), border_vertex_1),
+              (Some(node.island_id), border_vertex_2),
+            ),
+          );
+        }
       }
     }
   }
 
   let mut finished_loops = Vec::new();
-  let mut unfinished_loops = Vec::<Vec<usize>>::new();
+  let mut unfinished_loops = Vec::<Vec<(Option<IslandId>, usize)>>::new();
   for line_id in visibility_set.get_visible_line_ids() {
     let edge = border_edges.get(&line_id).unwrap();
 
@@ -271,15 +343,24 @@ fn nav_mesh_borders_to_dodgy_obstacles(
     }
   }
 
+  let island_and_vertex_index_to_dodgy_vec =
+    |(island_id, index)| match island_id {
+      None => new_vertices[index],
+      Some(island_id) => {
+        let island_data =
+          nav_data.islands.get(&island_id).unwrap().nav_data.as_ref().unwrap();
+        vertex_index_to_dodgy_vec(island_data, index, glam::Vec2::ZERO)
+      }
+    };
+
   finished_loops
     .drain(..)
     .map(|looop| dodgy_2d::Obstacle::Closed {
       vertices: looop
         .iter()
         .rev()
-        .map(|vert| {
-          vertex_index_to_dodgy_vec(island_data, *vert, glam::Vec2::ZERO)
-        })
+        .copied()
+        .map(island_and_vertex_index_to_dodgy_vec)
         .collect(),
     })
     .chain(unfinished_loops.drain(..).map(|looop| {
@@ -287,9 +368,8 @@ fn nav_mesh_borders_to_dodgy_obstacles(
         vertices: looop
           .iter()
           .rev()
-          .map(|vert| {
-            vertex_index_to_dodgy_vec(island_data, *vert, glam::Vec2::ZERO)
-          })
+          .copied()
+          .map(island_and_vertex_index_to_dodgy_vec)
           .collect(),
       }
     }))

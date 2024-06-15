@@ -331,6 +331,70 @@ fn split_borders() {
 }
 
 #[test]
+fn creates_obstacles_across_boundary_link() {
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(1.0, 1.0, 1.0),
+        Vec3::new(2.0, 1.0, 1.0),
+        Vec3::new(2.0, 1.0, 2.0),
+        Vec3::new(1.0, 1.0, 2.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+    }
+    .validate()
+    .expect("Validation succeeds"),
+  );
+
+  let mut nav_data = NavigationData::new();
+  nav_data.islands.insert(1, {
+    let mut island = Island::new();
+    island.set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      Arc::clone(&nav_mesh),
+    );
+    island
+  });
+  nav_data.islands.insert(2, {
+    let mut island = Island::new();
+    island.set_nav_mesh(
+      Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
+      nav_mesh,
+    );
+    island
+  });
+
+  nav_data.update(0.01);
+
+  assert_obstacles_match!(
+    nav_mesh_borders_to_dodgy_obstacles(
+      (Vec3::new(2.5, 1.0, 1.5), NodeRef { island_id: 2, polygon_index: 0 }),
+      &nav_data,
+      /* distance_limit= */ 10.0,
+    ),
+    vec![
+      dodgy_2d::Obstacle::Open {
+        vertices: vec![
+          dodgy_2d::Vec2::new(2.0, 1.0),
+          dodgy_2d::Vec2::new(1.0, 1.0),
+          dodgy_2d::Vec2::new(1.0, 2.0),
+          dodgy_2d::Vec2::new(2.0, 2.0),
+        ]
+      },
+      dodgy_2d::Obstacle::Open {
+        vertices: vec![
+          dodgy_2d::Vec2::new(2.0, 2.0),
+          dodgy_2d::Vec2::new(3.0, 2.0),
+          dodgy_2d::Vec2::new(3.0, 1.0),
+          dodgy_2d::Vec2::new(2.0, 1.0),
+        ]
+      }
+    ]
+  );
+}
+
+#[test]
 fn applies_no_avoidance_for_far_agents() {
   const AGENT_1: AgentId = 1;
   const AGENT_2: AgentId = 2;
