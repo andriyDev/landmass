@@ -27,6 +27,8 @@ pub use landmass::Vec3;
 
 pub use landmass_structs::*;
 
+pub mod debug;
+
 #[cfg(feature = "mesh-utils")]
 pub mod nav_mesh;
 
