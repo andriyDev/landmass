@@ -104,7 +104,7 @@ impl PathIndex {
   fn next(&self, path: &Path) -> Self {
     let new_portal_index = self.portal_index + 1;
     match new_portal_index
-      .cmp(&path.island_segments[self.segment_index].corridor.len())
+      .cmp(&path.island_segments[self.segment_index].portal_edge_index.len())
     {
       Ordering::Less | Ordering::Equal => Self {
         segment_index: self.segment_index,
@@ -136,7 +136,7 @@ impl Path {
     nav_data: &NavigationData,
   ) -> (Vec3, Vec3) {
     if path_index.portal_index
-      == self.island_segments[path_index.segment_index].corridor.len()
+      == self.island_segments[path_index.segment_index].portal_edge_index.len()
     {
       self.boundary_link_segments[path_index.segment_index]
         .get_portal_endpoints(nav_data)
