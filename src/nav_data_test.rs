@@ -680,15 +680,6 @@ fn clone_sort_round_modified_nodes(
             }
             (left, right)
           })
-          .map(
-            |(left, right)| {
-              if left < right {
-                (left, right)
-              } else {
-                (right, left)
-              }
-            },
-          )
           .collect::<Vec<_>>();
 
         new_boundary_sorted.sort();
@@ -756,7 +747,7 @@ fn modifies_node_boundaries_for_linked_islands() {
   let expected_modified_nodes = [
     (
       NodeRef { island_id: island_1_id, polygon_index: 0 },
-      ModifiedNode { new_boundary: vec![(0, 1), (0, 3)], new_vertices: vec![] },
+      ModifiedNode { new_boundary: vec![(0, 1), (3, 0)], new_vertices: vec![] },
     ),
     (
       NodeRef { island_id: island_2_id, polygon_index: 1 },
@@ -768,7 +759,7 @@ fn modifies_node_boundaries_for_linked_islands() {
     (
       NodeRef { island_id: island_3_id, polygon_index: 0 },
       ModifiedNode {
-        new_boundary: vec![(0, 3), (0, 6), (1, 2)],
+        new_boundary: vec![(0, 6), (1, 2), (3, 0)],
         new_vertices: vec![Vec2::new(3.0, 2.0)],
       },
     ),

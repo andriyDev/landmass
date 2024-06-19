@@ -58,7 +58,8 @@ pub struct BoundaryLink {
 pub struct ModifiedNode {
   /// The new (2D) edges that make up the boundary of this node. These are
   /// indices in the nav mesh this corresponds to. Indices larger than the nav
-  /// mesh vertices refer to [`ModifiedNode::new_vertices`].
+  /// mesh vertices refer to [`ModifiedNode::new_vertices`]. Note the boundary
+  /// winds in the same direction as nav mesh polygons (CCW).
   pub new_boundary: Vec<(usize, usize)>,
   /// The "new" vertices (in world space) that are needed for the modified
   /// node. These are not vertices in the original nav mesh and should only
@@ -408,19 +409,31 @@ impl NavigationData {
           }
         }
 
-        let start_index = start_index.unwrap_or_else(|| {
+        let mut start_index = start_index.unwrap_or_else(|| {
           modified_node.new_vertices.push(coord_to_vec2(edge.start));
           island_nav_data.nav_mesh.vertices.len()
             + modified_node.new_vertices.len()
             - 1
         });
 
-        let end_index = end_index.unwrap_or_else(|| {
+        let mut end_index = end_index.unwrap_or_else(|| {
           modified_node.new_vertices.push(coord_to_vec2(edge.end));
           island_nav_data.nav_mesh.vertices.len()
             + modified_node.new_vertices.len()
             - 1
         });
+
+        let polygon_center =
+          island_nav_data.transform.apply(polygon.center).xz();
+
+        // Ensure the winding order of the modified node boundary matches the
+        // polygon edges.
+        if (coord_to_vec2(edge.start) - polygon_center)
+          .perp_dot(coord_to_vec2(edge.end) - polygon_center)
+          < 0.0
+        {
+          swap(&mut start_index, &mut end_index);
+        }
 
         modified_node.new_boundary.push((start_index, end_index));
       }
