@@ -9,11 +9,14 @@ use crate::{
 
 use super::nav_mesh_borders_to_dodgy_obstacles;
 
-fn obstacle_matches(left: &dodgy::Obstacle, right: &dodgy::Obstacle) -> bool {
+fn obstacle_matches(
+  left: &dodgy_2d::Obstacle,
+  right: &dodgy_2d::Obstacle,
+) -> bool {
   match (left, right) {
     (
-      dodgy::Obstacle::Closed { vertices: left_vertices },
-      dodgy::Obstacle::Closed { vertices: right_vertices },
+      dodgy_2d::Obstacle::Closed { vertices: left_vertices },
+      dodgy_2d::Obstacle::Closed { vertices: right_vertices },
     ) => {
       for left_offset in 0..left_vertices.len() {
         if left_vertices[left_offset..]
@@ -29,8 +32,8 @@ fn obstacle_matches(left: &dodgy::Obstacle, right: &dodgy::Obstacle) -> bool {
       false
     }
     (
-      dodgy::Obstacle::Open { vertices: left_vertices },
-      dodgy::Obstacle::Open { vertices: right_vertices },
+      dodgy_2d::Obstacle::Open { vertices: left_vertices },
+      dodgy_2d::Obstacle::Open { vertices: right_vertices },
     ) => left_vertices == right_vertices,
     _ => false,
   }
@@ -76,7 +79,8 @@ fn computes_obstacle_for_box() {
   let mut nav_data = NavigationData::new();
 
   let island_offset = Vec3::new(130.0, 20.0, -50.0);
-  let island_offset_dodgy = dodgy::Vec2::new(island_offset.x, island_offset.z);
+  let island_offset_dodgy =
+    dodgy_2d::Vec2::new(island_offset.x, island_offset.z);
   nav_data.islands.insert(1, {
     let mut island = Island::new();
     island.set_nav_mesh(
@@ -95,12 +99,12 @@ fn computes_obstacle_for_box() {
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
-    vec![dodgy::Obstacle::Closed {
+    vec![dodgy_2d::Obstacle::Closed {
       vertices: vec![
-        dodgy::Vec2::new(1.0, 1.0) + island_offset_dodgy,
-        dodgy::Vec2::new(1.0, 2.0) + island_offset_dodgy,
-        dodgy::Vec2::new(2.0, 2.0) + island_offset_dodgy,
-        dodgy::Vec2::new(2.0, 1.0) + island_offset_dodgy
+        dodgy_2d::Vec2::new(1.0, 1.0) + island_offset_dodgy,
+        dodgy_2d::Vec2::new(1.0, 2.0) + island_offset_dodgy,
+        dodgy_2d::Vec2::new(2.0, 2.0) + island_offset_dodgy,
+        dodgy_2d::Vec2::new(2.0, 1.0) + island_offset_dodgy
       ]
     }]
   );
@@ -151,17 +155,17 @@ fn dead_end_makes_open_obstacle() {
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
-    vec![dodgy::Obstacle::Open {
+    vec![dodgy_2d::Obstacle::Open {
       vertices: vec![
-        dodgy::Vec2::new(4.0, 3.0),
-        dodgy::Vec2::new(4.0, 2.0),
-        dodgy::Vec2::new(4.0, 1.0),
-        dodgy::Vec2::new(3.0, 1.0),
-        dodgy::Vec2::new(2.0, 1.0),
-        dodgy::Vec2::new(1.0, 1.0),
-        dodgy::Vec2::new(1.0, 2.0),
-        dodgy::Vec2::new(2.0, 2.0),
-        dodgy::Vec2::new(3.0, 2.0),
+        dodgy_2d::Vec2::new(4.0, 3.0),
+        dodgy_2d::Vec2::new(4.0, 2.0),
+        dodgy_2d::Vec2::new(4.0, 1.0),
+        dodgy_2d::Vec2::new(3.0, 1.0),
+        dodgy_2d::Vec2::new(2.0, 1.0),
+        dodgy_2d::Vec2::new(1.0, 1.0),
+        dodgy_2d::Vec2::new(1.0, 2.0),
+        dodgy_2d::Vec2::new(2.0, 2.0),
+        dodgy_2d::Vec2::new(3.0, 2.0),
       ]
     }]
   );
@@ -172,17 +176,17 @@ fn dead_end_makes_open_obstacle() {
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
-    vec![dodgy::Obstacle::Open {
+    vec![dodgy_2d::Obstacle::Open {
       vertices: vec![
-        dodgy::Vec2::new(3.0, 2.0),
-        dodgy::Vec2::new(3.0, 3.0),
-        dodgy::Vec2::new(3.0, 4.0),
-        dodgy::Vec2::new(4.0, 4.0),
-        dodgy::Vec2::new(4.0, 3.0),
-        dodgy::Vec2::new(4.0, 2.0),
-        dodgy::Vec2::new(4.0, 1.0),
-        dodgy::Vec2::new(3.0, 1.0),
-        dodgy::Vec2::new(2.0, 1.0),
+        dodgy_2d::Vec2::new(3.0, 2.0),
+        dodgy_2d::Vec2::new(3.0, 3.0),
+        dodgy_2d::Vec2::new(3.0, 4.0),
+        dodgy_2d::Vec2::new(4.0, 4.0),
+        dodgy_2d::Vec2::new(4.0, 3.0),
+        dodgy_2d::Vec2::new(4.0, 2.0),
+        dodgy_2d::Vec2::new(4.0, 1.0),
+        dodgy_2d::Vec2::new(3.0, 1.0),
+        dodgy_2d::Vec2::new(2.0, 1.0),
       ]
     }]
   );
@@ -194,14 +198,14 @@ fn dead_end_makes_open_obstacle() {
       &nav_data,
       /* distance_limit= */ 1.0,
     ),
-    vec![dodgy::Obstacle::Open {
+    vec![dodgy_2d::Obstacle::Open {
       vertices: vec![
-        dodgy::Vec2::new(3.0, 2.0),
-        dodgy::Vec2::new(3.0, 3.0),
-        dodgy::Vec2::new(3.0, 4.0),
-        dodgy::Vec2::new(4.0, 4.0),
-        dodgy::Vec2::new(4.0, 3.0),
-        dodgy::Vec2::new(4.0, 2.0),
+        dodgy_2d::Vec2::new(3.0, 2.0),
+        dodgy_2d::Vec2::new(3.0, 3.0),
+        dodgy_2d::Vec2::new(3.0, 4.0),
+        dodgy_2d::Vec2::new(4.0, 4.0),
+        dodgy_2d::Vec2::new(4.0, 3.0),
+        dodgy_2d::Vec2::new(4.0, 2.0),
       ]
     }]
   );
@@ -212,20 +216,20 @@ fn dead_end_makes_open_obstacle() {
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
-    vec![dodgy::Obstacle::Closed {
+    vec![dodgy_2d::Obstacle::Closed {
       vertices: vec![
-        dodgy::Vec2::new(1.0, 1.0),
-        dodgy::Vec2::new(1.0, 2.0),
-        dodgy::Vec2::new(2.0, 2.0),
-        dodgy::Vec2::new(3.0, 2.0),
-        dodgy::Vec2::new(3.0, 3.0),
-        dodgy::Vec2::new(3.0, 4.0),
-        dodgy::Vec2::new(4.0, 4.0),
-        dodgy::Vec2::new(4.0, 3.0),
-        dodgy::Vec2::new(4.0, 2.0),
-        dodgy::Vec2::new(4.0, 1.0),
-        dodgy::Vec2::new(3.0, 1.0),
-        dodgy::Vec2::new(2.0, 1.0),
+        dodgy_2d::Vec2::new(1.0, 1.0),
+        dodgy_2d::Vec2::new(1.0, 2.0),
+        dodgy_2d::Vec2::new(2.0, 2.0),
+        dodgy_2d::Vec2::new(3.0, 2.0),
+        dodgy_2d::Vec2::new(3.0, 3.0),
+        dodgy_2d::Vec2::new(3.0, 4.0),
+        dodgy_2d::Vec2::new(4.0, 4.0),
+        dodgy_2d::Vec2::new(4.0, 3.0),
+        dodgy_2d::Vec2::new(4.0, 2.0),
+        dodgy_2d::Vec2::new(4.0, 1.0),
+        dodgy_2d::Vec2::new(3.0, 1.0),
+        dodgy_2d::Vec2::new(2.0, 1.0),
       ]
     }]
   );
@@ -298,28 +302,28 @@ fn split_borders() {
       /* distance_limit= */ 10.0,
     ),
     vec![
-      dodgy::Obstacle::Open {
+      dodgy_2d::Obstacle::Open {
         vertices: vec![
-          dodgy::Vec2::new(1.0, 1.0),
-          dodgy::Vec2::new(2.0, 1.0),
-          dodgy::Vec2::new(3.0, 1.0),
-          dodgy::Vec2::new(4.0, 1.0),
-          dodgy::Vec2::new(5.0, 1.0),
+          dodgy_2d::Vec2::new(1.0, 1.0),
+          dodgy_2d::Vec2::new(2.0, 1.0),
+          dodgy_2d::Vec2::new(3.0, 1.0),
+          dodgy_2d::Vec2::new(4.0, 1.0),
+          dodgy_2d::Vec2::new(5.0, 1.0),
         ]
       },
-      dodgy::Obstacle::Open {
+      dodgy_2d::Obstacle::Open {
         vertices: vec![
-          dodgy::Vec2::new(6.0, 2.0),
-          dodgy::Vec2::new(6.0, 1.0),
-          dodgy::Vec2::new(6.0, 0.0),
-          dodgy::Vec2::new(5.0, 0.0),
-          dodgy::Vec2::new(4.0, 0.0),
-          dodgy::Vec2::new(3.0, 0.0),
-          dodgy::Vec2::new(2.0, 0.0),
-          dodgy::Vec2::new(1.0, 0.0),
-          dodgy::Vec2::new(0.0, 0.0),
-          dodgy::Vec2::new(0.0, 1.0),
-          dodgy::Vec2::new(0.0, 2.0),
+          dodgy_2d::Vec2::new(6.0, 2.0),
+          dodgy_2d::Vec2::new(6.0, 1.0),
+          dodgy_2d::Vec2::new(6.0, 0.0),
+          dodgy_2d::Vec2::new(5.0, 0.0),
+          dodgy_2d::Vec2::new(4.0, 0.0),
+          dodgy_2d::Vec2::new(3.0, 0.0),
+          dodgy_2d::Vec2::new(2.0, 0.0),
+          dodgy_2d::Vec2::new(1.0, 0.0),
+          dodgy_2d::Vec2::new(0.0, 0.0),
+          dodgy_2d::Vec2::new(0.0, 1.0),
+          dodgy_2d::Vec2::new(0.0, 2.0),
         ]
       }
     ]
@@ -436,7 +440,7 @@ fn applies_avoidance_for_two_agents() {
     let mut agent = Agent::create(
       /* position= */ Vec3::new(1.0, 0.0, 1.0),
       /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
-      /* radius= */ 0.5,
+      /* radius= */ 1.0,
       /* max_velocity= */ 1.0,
     );
     agent.current_desired_move = Vec3::new(1.0, 0.0, 0.0);
@@ -446,7 +450,7 @@ fn applies_avoidance_for_two_agents() {
     let mut agent = Agent::create(
       /* position= */ Vec3::new(11.0, 0.0, 1.01),
       /* velocity= */ Vec3::new(-1.0, 0.0, 0.0),
-      /* radius= */ 0.5,
+      /* radius= */ 1.0,
       /* max_velocity= */ 1.0,
     );
     agent.current_desired_move = Vec3::new(-1.0, 0.0, 0.0);
@@ -504,14 +508,21 @@ fn applies_avoidance_for_two_agents() {
     0.01,
   );
 
-  assert!(agents
-    .get(&AGENT_1)
-    .unwrap()
-    .get_desired_velocity()
-    .abs_diff_eq(Vec3::new(0.98, 0.0, -0.2), 0.05));
-  assert!(agents
-    .get(&AGENT_2)
-    .unwrap()
-    .get_desired_velocity()
-    .abs_diff_eq(Vec3::new(-0.98, 0.0, 0.2), 0.05));
+  // The agents each have a radius of 1, and they are separated by a distance
+  // of 10 (they start at (1,0) and (11,0)). So in order to pass each other, one
+  // agent must go to (6,1) and the other agent must go to (6,-1). That's a rise
+  // over run of 1/5 or 0.2, which is our expected Z velocity. We derive the X
+  // velocity by just making the length of the vector 1 (the agent's max speed).
+  let agent_1_desired_velocity =
+    agents.get(&AGENT_1).unwrap().get_desired_velocity();
+  assert!(
+    agent_1_desired_velocity.abs_diff_eq(Vec3::new(0.98, 0.0, -0.2), 0.05),
+    "left={agent_1_desired_velocity}, right=Vec3(0.98, 0.0, -0.2)"
+  );
+  let agent_2_desired_velocity =
+    agents.get(&AGENT_2).unwrap().get_desired_velocity();
+  assert!(
+    agent_2_desired_velocity.abs_diff_eq(Vec3::new(-0.98, 0.0, 0.2), 0.05),
+    "left={agent_2_desired_velocity}, right=Vec3(-0.98, 0.0, 0.2)"
+  );
 }
