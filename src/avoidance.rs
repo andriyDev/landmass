@@ -1,6 +1,6 @@
 use std::collections::{BinaryHeap, HashMap, HashSet};
 
-use dodgy::VisibilitySet;
+use dodgy_2d::VisibilitySet;
 use glam::{Vec3, Vec3Swizzles};
 use kdtree::{distance::squared_euclidean, KdTree};
 
@@ -30,11 +30,10 @@ pub(crate) fn apply_avoidance_to_agents(
 
     agent_id_to_dodgy_agent.insert(
       *agent_id,
-      dodgy::Agent {
+      dodgy_2d::Agent {
         position: to_dodgy_vec2(agent_point.xz()),
         velocity: to_dodgy_vec2(agent.velocity.xz()),
         radius: agent.radius,
-        max_velocity: agent.max_velocity,
         avoidance_responsibility: 1.0,
       },
     );
@@ -71,14 +70,14 @@ pub(crate) fn apply_avoidance_to_agents(
 
         let neighbourhood = agent_options.neighbourhood + dodgy_agent.radius;
         if distance_squared < neighbourhood * neighbourhood {
-          Some(dodgy_agent)
+          Some(std::borrow::Cow::Borrowed(dodgy_agent))
         } else {
           None
         }
       })
       .collect::<Vec<_>>();
 
-    let nearby_obstacles = nav_mesh_borders_to_dodgy_obstacles(
+    let mut nearby_obstacles = nav_mesh_borders_to_dodgy_obstacles(
       agent_node.clone(),
       nav_data,
       agent_options.neighbourhood,
@@ -87,10 +86,14 @@ pub(crate) fn apply_avoidance_to_agents(
     let dodgy_agent = agent_id_to_dodgy_agent.get(agent_id).unwrap();
     let desired_move = dodgy_agent.compute_avoiding_velocity(
       &nearby_agents,
-      &nearby_obstacles.iter().map(|obstacle| obstacle).collect::<Vec<_>>(),
+      &nearby_obstacles
+        .drain(..)
+        .map(|obstacle| std::borrow::Cow::Owned(obstacle))
+        .collect::<Vec<_>>(),
       to_dodgy_vec2(agent.current_desired_move.xz()),
+      agent.max_velocity,
       delta_time,
-      &dodgy::AvoidanceOptions {
+      &dodgy_2d::AvoidanceOptions {
         obstacle_margin: agent_options.obstacle_avoidance_margin,
         time_horizon: agent_options.avoidance_time_horizon,
         obstacle_time_horizon: agent_options.obstacle_avoidance_time_horizon,
@@ -102,8 +105,8 @@ pub(crate) fn apply_avoidance_to_agents(
   }
 }
 
-fn to_dodgy_vec2(v: glam::Vec2) -> dodgy::Vec2 {
-  dodgy::Vec2 { x: v.x, y: v.y }
+fn to_dodgy_vec2(v: glam::Vec2) -> dodgy_2d::Vec2 {
+  dodgy_2d::Vec2 { x: v.x, y: v.y }
 }
 
 /// Computes the dodgy obstacles corresponding to the navigation mesh borders.
@@ -114,7 +117,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
   agent_node: (Vec3, NodeRef),
   nav_data: &NavigationData,
   distance_limit: f32,
-) -> Vec<dodgy::Obstacle> {
+) -> Vec<dodgy_2d::Obstacle> {
   let distance_limit = distance_limit * distance_limit;
 
   let mut visibility_set = VisibilitySet::new();
@@ -159,7 +162,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
     island_data: &IslandNavigationData,
     index: usize,
     relative_point: glam::Vec2,
-  ) -> dodgy::Vec2 {
+  ) -> dodgy_2d::Vec2 {
     to_dodgy_vec2(
       island_data.transform.apply(island_data.nav_mesh.vertices[index]).xz()
         - relative_point,
@@ -270,7 +273,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
 
   finished_loops
     .drain(..)
-    .map(|looop| dodgy::Obstacle::Closed {
+    .map(|looop| dodgy_2d::Obstacle::Closed {
       vertices: looop
         .iter()
         .rev()
@@ -280,7 +283,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
         .collect(),
     })
     .chain(unfinished_loops.drain(..).map(|looop| {
-      dodgy::Obstacle::Open {
+      dodgy_2d::Obstacle::Open {
         vertices: looop
           .iter()
           .rev()
