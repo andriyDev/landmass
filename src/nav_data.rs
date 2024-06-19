@@ -5,6 +5,7 @@ use std::{
 
 use geo::{BooleanOps, Coord, LineString, LinesIter, MultiPolygon, Polygon};
 use glam::{Vec2, Vec3, Vec3Swizzles};
+use kdtree::{distance::squared_euclidean, KdTree};
 use rand::{thread_rng, Rng};
 
 use crate::{
@@ -55,9 +56,14 @@ pub struct BoundaryLink {
 /// to another island).
 #[derive(PartialEq, Debug, Clone)]
 pub struct ModifiedNode {
-  /// The new (2D) edges that make up the boundary of this node. These are used
-  /// for local collision avoidance, which already assumes "flatness".
-  pub new_boundary: Vec<(Vec2, Vec2)>,
+  /// The new (2D) edges that make up the boundary of this node. These are
+  /// indices in the nav mesh this corresponds to. Indices larger than the nav
+  /// mesh vertices refer to [`ModifiedNode::new_vertices`].
+  pub new_boundary: Vec<(usize, usize)>,
+  /// The "new" vertices (in world space) that are needed for the modified
+  /// node. These are not vertices in the original nav mesh and should only
+  /// be used by a single boundary edge.
+  pub new_vertices: Vec<Vec2>,
 }
 
 impl NavigationData {
@@ -354,16 +360,69 @@ impl NavigationData {
     let clipped_boundary_edges =
       link_clip.clip(&boundary_edges, /* invert= */ true);
 
-    let modified_node = self
-      .modified_nodes
-      .entry(node_ref)
-      .or_insert_with(|| ModifiedNode { new_boundary: Vec::new() });
+    let mut original_vertices = KdTree::new(/* dimensions= */ 2);
+    for &index in polygon.vertices.iter() {
+      let vertex = island_nav_data
+        .transform
+        .apply(island_nav_data.nav_mesh.vertices[index]);
+
+      original_vertices
+        .add([vertex.x, vertex.z], index)
+        .expect("Vertex is valid");
+    }
+
+    let modified_node =
+      self.modified_nodes.entry(node_ref).or_insert_with(|| ModifiedNode {
+        new_boundary: Vec::new(),
+        new_vertices: Vec::new(),
+      });
 
     for line_string in clipped_boundary_edges.iter() {
       for edge in line_string.lines_iter() {
-        modified_node
-          .new_boundary
-          .push((coord_to_vec2(edge.start), coord_to_vec2(edge.end)));
+        let start_index = original_vertices
+          .nearest(
+            &[edge.start.x, edge.start.y],
+            /* num= */ 1,
+            &squared_euclidean,
+          )
+          .unwrap()
+          .first()
+          .filter(|&(distance, _)| *distance < 0.01)
+          .map(|&(_, &index)| index);
+
+        let end_index = original_vertices
+          .nearest(
+            &[edge.end.x, edge.end.y],
+            /* num= */ 1,
+            &squared_euclidean,
+          )
+          .unwrap()
+          .first()
+          .filter(|&(distance, _)| *distance < 0.01)
+          .map(|&(_, &index)| index);
+
+        if let (Some(start_index), Some(end_index)) = (start_index, end_index) {
+          // We don't want degenerate edges, so ignore edges with equal indices.
+          if start_index == end_index {
+            continue;
+          }
+        }
+
+        let start_index = start_index.unwrap_or_else(|| {
+          modified_node.new_vertices.push(coord_to_vec2(edge.start));
+          island_nav_data.nav_mesh.vertices.len()
+            + modified_node.new_vertices.len()
+            - 1
+        });
+
+        let end_index = end_index.unwrap_or_else(|| {
+          modified_node.new_vertices.push(coord_to_vec2(edge.end));
+          island_nav_data.nav_mesh.vertices.len()
+            + modified_node.new_vertices.len()
+            - 1
+        });
+
+        modified_node.new_boundary.push((start_index, end_index));
       }
     }
   }

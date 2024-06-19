@@ -12,7 +12,7 @@ use crate::{
   island::Island,
   nav_data::{BoundaryLink, NodeRef},
   nav_mesh::NavigationMesh,
-  Transform,
+  IslandId, Transform,
 };
 
 use super::{
@@ -630,6 +630,7 @@ fn update_links_islands_and_unlinks_on_delete() {
 
 fn clone_sort_round_modified_nodes(
   modified_nodes: &HashMap<NodeRef, ModifiedNode>,
+  island_id_to_vertices: &HashMap<IslandId, usize>,
   round_amount: f32,
 ) -> Vec<(NodeRef, ModifiedNode)> {
   fn order_vec2(a: Vec2, b: Vec2) -> Ordering {
@@ -644,33 +645,58 @@ fn clone_sort_round_modified_nodes(
     .iter()
     .map(|(key, value)| {
       (*key, {
-        let mut new_value = ModifiedNode {
-          new_boundary: value
-            .new_boundary
-            .iter()
-            .map(|(left, right)| {
-              let rounded_edge = (
-                (*left / round_amount).round() * round_amount,
-                (*right / round_amount).round() * round_amount,
-              );
+        let nav_mesh_vertices =
+          *island_id_to_vertices.get(&key.island_id).unwrap();
 
-              match order_vec2(rounded_edge.0, rounded_edge.1) {
-                Ordering::Equal | Ordering::Less => rounded_edge,
-                Ordering::Greater => (rounded_edge.1, rounded_edge.0),
-              }
-            })
-            .filter(|(left, right)| left != right)
-            .collect(),
-        };
+        let new_vertices_rounded = value
+          .new_vertices
+          .iter()
+          .map(|&point| (point / round_amount).round() * round_amount)
+          .collect::<Vec<_>>();
 
-        new_value.new_boundary.sort_by(|a: &(Vec2, Vec2), b: &(Vec2, Vec2)| {
-          match order_vec2(a.0, b.0) {
-            Ordering::Equal => order_vec2(a.1, b.1),
-            other => other,
-          }
+        let mut new_vertices_sort_indices =
+          (0..new_vertices_rounded.len()).collect::<Vec<_>>();
+        new_vertices_sort_indices.sort_by(|&a, &b| {
+          order_vec2(new_vertices_rounded[a], new_vertices_rounded[b])
         });
 
-        new_value
+        let new_vertices_sorted = new_vertices_sort_indices
+          .iter()
+          .copied()
+          .map(|index| new_vertices_rounded[index])
+          .collect::<Vec<_>>();
+
+        let mut new_boundary_sorted = value
+          .new_boundary
+          .iter()
+          .map(|&(mut left, mut right)| {
+            if left >= nav_mesh_vertices {
+              left = new_vertices_sort_indices[left - nav_mesh_vertices]
+                + nav_mesh_vertices;
+            }
+            if right >= nav_mesh_vertices {
+              right = new_vertices_sort_indices[right - nav_mesh_vertices]
+                + nav_mesh_vertices;
+            }
+            (left, right)
+          })
+          .map(
+            |(left, right)| {
+              if left < right {
+                (left, right)
+              } else {
+                (right, left)
+              }
+            },
+          )
+          .collect::<Vec<_>>();
+
+        new_boundary_sorted.sort();
+
+        ModifiedNode {
+          new_boundary: new_boundary_sorted,
+          new_vertices: new_vertices_sorted,
+        }
       })
     })
     .collect::<Vec<_>>();
@@ -716,7 +742,7 @@ fn modifies_node_boundaries_for_linked_islands() {
     Arc::clone(&nav_mesh),
   );
   island_3.set_nav_mesh(
-    Transform { translation: Vec3::new(2.0, 0.0, 3.0), rotation: PI * 0.5 },
+    Transform { translation: Vec3::new(2.0, 0.0, 3.5), rotation: PI * 0.5 },
     Arc::clone(&nav_mesh),
   );
 
@@ -730,32 +756,30 @@ fn modifies_node_boundaries_for_linked_islands() {
   let expected_modified_nodes = [
     (
       NodeRef { island_id: island_1_id, polygon_index: 0 },
-      ModifiedNode {
-        new_boundary: vec![
-          (Vec2::new(1.0, 1.0), Vec2::new(1.0, 2.0)),
-          (Vec2::new(1.0, 1.0), Vec2::new(2.0, 1.0)),
-        ],
-      },
+      ModifiedNode { new_boundary: vec![(0, 1), (0, 3)], new_vertices: vec![] },
     ),
     (
       NodeRef { island_id: island_2_id, polygon_index: 1 },
       ModifiedNode {
-        new_boundary: vec![(Vec2::new(2.0, 2.0), Vec2::new(3.0, 2.0))],
+        new_boundary: vec![(2, 6), (4, 5)],
+        new_vertices: vec![Vec2::new(3.0, 1.5)],
       },
     ),
     (
       NodeRef { island_id: island_3_id, polygon_index: 0 },
       ModifiedNode {
-        new_boundary: vec![
-          (Vec2::new(3.0, 1.0), Vec2::new(4.0, 1.0)),
-          (Vec2::new(3.0, 2.0), Vec2::new(4.0, 2.0)),
-        ],
+        new_boundary: vec![(0, 3), (0, 6), (1, 2)],
+        new_vertices: vec![Vec2::new(3.0, 2.0)],
       },
     ),
   ];
 
   assert_eq!(
-    clone_sort_round_modified_nodes(&nav_data.modified_nodes, 1e-4),
+    clone_sort_round_modified_nodes(
+      &nav_data.modified_nodes,
+      &HashMap::from([(island_1_id, 6), (island_2_id, 6), (island_3_id, 6)]),
+      1e-4
+    ),
     &expected_modified_nodes
   );
 }
