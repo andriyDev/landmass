@@ -284,7 +284,6 @@ fn computes_and_follows_path() {
 
   archipelago.agent_options.neighbourhood = 0.0;
   archipelago.agent_options.obstacle_avoidance_time_horizon = 0.01;
-  archipelago.agent_options.obstacle_avoidance_margin = 0.0;
 
   let agent_1 = archipelago.add_agent(Agent::create(
     /* position= */ Vec3::new(1.5, 1.09, 1.5),
