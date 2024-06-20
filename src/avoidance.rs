@@ -95,7 +95,9 @@ pub(crate) fn apply_avoidance_to_agents(
       agent.max_velocity,
       delta_time,
       &dodgy_2d::AvoidanceOptions {
-        obstacle_margin: agent_options.obstacle_avoidance_margin,
+        // Always use an avoidance margin of zero since we assume the nav mesh
+        // is the "valid" region.
+        obstacle_margin: 0.0,
         time_horizon: agent_options.avoidance_time_horizon,
         obstacle_time_horizon: agent_options.obstacle_avoidance_time_horizon,
       },

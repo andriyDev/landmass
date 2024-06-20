@@ -43,8 +43,6 @@ pub struct AgentOptions {
   // The time into the future that collisions with other agents should be
   /// avoided.
   pub avoidance_time_horizon: f32,
-  /// The distance to stay away from the border of the nav mesh.
-  pub obstacle_avoidance_margin: f32,
   /// The time into the future that collisions with obstacles should be
   /// avoided.
   pub obstacle_avoidance_time_horizon: f32,
@@ -55,7 +53,6 @@ impl Default for AgentOptions {
     Self {
       node_sample_distance: 0.1,
       neighbourhood: 5.0,
-      obstacle_avoidance_margin: 0.1,
       avoidance_time_horizon: 1.0,
       obstacle_avoidance_time_horizon: 0.5,
     }
