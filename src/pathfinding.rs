@@ -1,5 +1,7 @@
 use std::{borrow::Cow, collections::HashMap};
 
+use glam::Vec3;
+
 use crate::{
   astar::{self, AStarProblem, PathStats},
   nav_data::{BoundaryLinkId, NodeRef},
@@ -15,6 +17,8 @@ struct ArchipelagoPathProblem<'a> {
   start_node: NodeRef,
   /// The node the target is in.
   end_node: NodeRef,
+  /// The center of the end_node. This is just a cached point for easy access.
+  end_point: Vec3,
 }
 
 /// An action taken in the path.
@@ -91,11 +95,18 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
   }
 
   fn heuristic(&self, state: &Self::StateType) -> f32 {
-    let island = self.nav_data.islands.get(&state.island_id).unwrap();
-    let nav_mesh = &island.nav_data.as_ref().unwrap().nav_mesh;
-    nav_mesh.polygons[state.polygon_index]
-      .center
-      .distance(nav_mesh.polygons[self.end_node.polygon_index].center)
+    let island_nav_data = self
+      .nav_data
+      .islands
+      .get(&state.island_id)
+      .unwrap()
+      .nav_data
+      .as_ref()
+      .unwrap();
+    island_nav_data
+      .transform
+      .apply(island_nav_data.nav_mesh.polygons[state.polygon_index].center)
+      .distance(self.end_point)
   }
 
   fn is_goal_state(&self, state: &Self::StateType) -> bool {
@@ -122,6 +133,18 @@ pub(crate) fn find_path(
     nav_data,
     start_node: start_node.clone(),
     end_node,
+    end_point: {
+      let island_nav_data = nav_data
+        .islands
+        .get(&end_node.island_id)
+        .unwrap()
+        .nav_data
+        .as_ref()
+        .unwrap();
+      island_nav_data
+        .transform
+        .apply(island_nav_data.nav_mesh.polygons[end_node.polygon_index].center)
+    },
   };
 
   let path_result = astar::find_path(&path_problem)?;
@@ -144,7 +167,7 @@ pub(crate) fn find_path(
       PathStep::NodeConnection(conn_index) => {
         let nav_mesh = &nav_data
           .islands
-          .get(&start_node.island_id)
+          .get(&last_segment.island_id)
           .unwrap()
           .nav_data
           .as_ref()
