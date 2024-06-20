@@ -365,3 +365,93 @@ fn find_path_across_connected_islands() {
     }
   );
 }
+
+#[test]
+fn finds_path_across_different_islands() {
+  let nav_mesh_1 = Arc::new(
+    NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(-0.5, 0.0, -0.5),
+        Vec3::new(0.5, 0.0, -0.5),
+        Vec3::new(0.5, 0.0, 0.5),
+        Vec3::new(-0.5, 0.0, 0.5),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+    }
+    .validate()
+    .expect("Mesh is valid."),
+  );
+  let nav_mesh_2 = Arc::new(
+    NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(-0.5, 0.0, -0.5),
+        Vec3::new(0.5, 0.0, -0.5),
+        Vec3::new(0.5, 0.0, 0.5),
+        Vec3::new(-0.5, 0.0, 0.5),
+        Vec3::new(1.5, 0.0, -0.5),
+        Vec3::new(1.5, 0.0, 0.5),
+      ],
+      polygons: vec![vec![0, 1, 2, 3], vec![2, 1, 4, 5]],
+    }
+    .validate()
+    .expect("Mesh is valid."),
+  );
+
+  let mut archipelago = Archipelago::new();
+
+  let island_id_1 = archipelago.add_island();
+  let island_id_2 = archipelago.add_island();
+
+  archipelago.get_island_mut(island_id_1).set_nav_mesh(
+    Transform { rotation: 0.0, translation: Vec3::ZERO },
+    nav_mesh_1,
+  );
+  archipelago.get_island_mut(island_id_2).set_nav_mesh(
+    Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 0.0) },
+    nav_mesh_2,
+  );
+
+  archipelago.update(1.0);
+
+  let boundary_links = archipelago
+    .nav_data
+    .boundary_links
+    .iter()
+    .flat_map(|(node_ref, link_id_to_link)| {
+      link_id_to_link.iter().map(|(link_id, link)| {
+        ((node_ref.island_id, link.destination_node.island_id), *link_id)
+      })
+    })
+    .collect::<HashMap<_, _>>();
+
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id: island_id_1, polygon_index: 0 },
+    NodeRef { island_id: island_id_2, polygon_index: 1 },
+  )
+  .expect("found path");
+
+  assert_eq!(
+    path_result.path,
+    Path {
+      island_segments: vec![
+        IslandSegment {
+          island_id: island_id_1,
+          corridor: vec![0],
+          portal_edge_index: vec![],
+        },
+        IslandSegment {
+          island_id: island_id_2,
+          corridor: vec![0, 1],
+          portal_edge_index: vec![1],
+        },
+      ],
+      boundary_link_segments: vec![BoundaryLinkSegment {
+        starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
+        boundary_link: boundary_links[&(island_id_1, island_id_2)],
+      }],
+    }
+  );
+}
