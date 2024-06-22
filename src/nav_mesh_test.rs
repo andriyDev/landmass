@@ -1,4 +1,4 @@
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 
 use crate::{
   nav_mesh::{Connectivity, MeshEdgeRef, ValidPolygon},
@@ -268,15 +268,24 @@ fn derives_connectivity_and_boundary_edges() {
     boundary_edge.polygon_index * 100 + boundary_edge.edge_index
   });
 
+  // Each edge has a cost of node 1 to its edge (always 0.5), and each other
+  // node to its edge.
+  let cost_01 =
+    0.5 + Vec2::new(2.0 / 3.0, 1.0 / 3.0).distance(Vec2::new(1.0, 0.5));
+  let cost_12 =
+    0.5 + Vec3::new(2.5, 0.5, 0.5).distance(Vec3::new(2.0, 0.0, 0.5));
+  let cost_13 =
+    0.5 + Vec3::new(1.5, 0.5, 1.5).distance(Vec3::new(1.5, 0.0, 1.0));
+
   let expected_connectivity: [&[_]; 4] = [
-    &[Connectivity { edge_index: 1, polygon_index: 1 }],
+    &[Connectivity { edge_index: 1, polygon_index: 1, cost: cost_01 }],
     &[
-      Connectivity { edge_index: 3, polygon_index: 0 },
-      Connectivity { edge_index: 1, polygon_index: 2 },
-      Connectivity { edge_index: 2, polygon_index: 3 },
+      Connectivity { edge_index: 3, polygon_index: 0, cost: cost_01 },
+      Connectivity { edge_index: 1, polygon_index: 2, cost: cost_12 },
+      Connectivity { edge_index: 2, polygon_index: 3, cost: cost_13 },
     ],
-    &[Connectivity { edge_index: 3, polygon_index: 1 }],
-    &[Connectivity { edge_index: 0, polygon_index: 1 }],
+    &[Connectivity { edge_index: 3, polygon_index: 1, cost: cost_12 }],
+    &[Connectivity { edge_index: 0, polygon_index: 1, cost: cost_13 }],
   ];
   assert_eq!(valid_mesh.connectivity, expected_connectivity);
   assert_eq!(

@@ -124,6 +124,7 @@ fn clone_sort_round_links(
               (link.portal.0 / round_amount).round() * round_amount,
               (link.portal.1 / round_amount).round() * round_amount,
             ),
+            cost: (link.cost / round_amount).round() * round_amount,
           })
           .collect::<Vec<_>>();
         v.sort_by_key(|link| node_ref_to_num(&link.destination_node));
@@ -133,6 +134,14 @@ fn clone_sort_round_links(
     .collect::<Vec<_>>();
   links.sort_by_key(|(a, _)| node_ref_to_num(a));
   links
+}
+
+fn chain_length_rounded(chain: &[Vec2], round_amount: f32) -> f32 {
+  let mut sum = 0.0;
+  for i in 0..(chain.len() - 1) {
+    sum += chain[i].distance(chain[i + 1]);
+  }
+  (sum / round_amount).round() * round_amount
 }
 
 #[test]
@@ -235,6 +244,16 @@ fn link_edges_between_islands_links_touching_islands() {
     )
   }
 
+  // The cost of a link between island_2's horizontal nodes, and island_1's
+  // left/right nodes. All these are symmetric, so we can just pick a candidate.
+  let diagonal_link_cost = chain_length_rounded(
+    &[Vec2::new(0.75, 0.0), Vec2::new(1.0, 0.25), Vec2::new(1.5, 0.75)],
+    1e-6,
+  );
+  // The same logic applies for the vertical connections.
+  let vertical_link_cost =
+    chain_length_rounded(&[Vec2::new(0.0, 1.5), Vec2::new(0.0, 0.75)], 1e-6);
+
   let expected_links = [
     (
       NodeRef { island_id: island_1_id, polygon_index: 0 },
@@ -245,6 +264,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(1.0, 1.0, 0.5),
           Vec3::new(1.0, 1.0, 0.0),
         ),
+        cost: diagonal_link_cost,
       }],
     ),
     (
@@ -256,6 +276,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(-0.5, 1.0, 1.0),
           Vec3::new(0.5, 1.0, 1.0),
         ),
+        cost: vertical_link_cost,
       }],
     ),
     (
@@ -267,6 +288,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(-1.0, 1.0, 0.0),
           Vec3::new(-1.0, 1.0, 0.5),
         ),
+        cost: diagonal_link_cost,
       }],
     ),
     (
@@ -278,6 +300,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(-1.0, 1.0, -0.5),
           Vec3::new(-1.0, 1.0, 0.0),
         ),
+        cost: diagonal_link_cost,
       }],
     ),
     (
@@ -289,6 +312,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(0.5, 1.0, -1.0),
           Vec3::new(-0.5, 1.0, -1.0),
         ),
+        cost: vertical_link_cost,
       }],
     ),
     (
@@ -300,6 +324,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(1.0, 1.0, 0.0),
           Vec3::new(1.0, 1.0, -0.5),
         ),
+        cost: diagonal_link_cost,
       }],
     ),
     // Reverse links
@@ -316,6 +341,7 @@ fn link_edges_between_islands_links_touching_islands() {
             Vec3::new(-1.0, 1.0, 0.5),
             Vec3::new(-1.0, 1.0, 0.0),
           ),
+          cost: diagonal_link_cost,
         },
         BoundaryLink {
           destination_node: NodeRef {
@@ -327,6 +353,7 @@ fn link_edges_between_islands_links_touching_islands() {
             Vec3::new(-1.0, 1.0, 0.0),
             Vec3::new(-1.0, 1.0, -0.5),
           ),
+          cost: diagonal_link_cost,
         },
       ],
     ),
@@ -343,6 +370,7 @@ fn link_edges_between_islands_links_touching_islands() {
             Vec3::new(1.0, 1.0, 0.0),
             Vec3::new(1.0, 1.0, 0.5),
           ),
+          cost: diagonal_link_cost,
         },
         BoundaryLink {
           destination_node: NodeRef {
@@ -354,6 +382,7 @@ fn link_edges_between_islands_links_touching_islands() {
             Vec3::new(1.0, 1.0, -0.5),
             Vec3::new(1.0, 1.0, 0.0),
           ),
+          cost: diagonal_link_cost,
         },
       ],
     ),
@@ -366,6 +395,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(0.5, 1.0, 1.0),
           Vec3::new(-0.5, 1.0, 1.0),
         ),
+        cost: vertical_link_cost,
       }],
     ),
     (
@@ -377,6 +407,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(-0.5, 1.0, -1.0),
           Vec3::new(0.5, 1.0, -1.0),
         ),
+        cost: vertical_link_cost,
       }],
     ),
   ];
@@ -478,6 +509,13 @@ fn update_links_islands_and_unlinks_on_delete() {
 
   nav_data.update(/* edge_link_distance= */ 0.01);
 
+  let lined_up_cost =
+    chain_length_rounded(&[Vec2::new(1.5, 0.75), Vec2::new(1.5, -0.75)], 1e-6);
+  let offset_cost = chain_length_rounded(
+    &[Vec2::new(1.5, 0.75), Vec2::new(2.0, 1.5), Vec2::new(2.75, 1.5)],
+    1e-6,
+  );
+
   assert_eq!(
     clone_sort_round_links(&nav_data.boundary_links, 1e-6),
     [
@@ -490,6 +528,7 @@ fn update_links_islands_and_unlinks_on_delete() {
               polygon_index: 0,
             },
             portal: (Vec3::new(1.0, 1.0, 0.0), Vec3::new(2.0, 1.0, 0.0)),
+            cost: lined_up_cost,
           },
           BoundaryLink {
             destination_node: NodeRef {
@@ -497,6 +536,7 @@ fn update_links_islands_and_unlinks_on_delete() {
               polygon_index: 0,
             },
             portal: (Vec3::new(2.0, 1.0, 1.0), Vec3::new(2.0, 1.0, 2.0)),
+            cost: offset_cost,
           },
         ],
       ),
@@ -508,6 +548,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             polygon_index: 0,
           },
           portal: (Vec3::new(0.0, 1.0, 2.0), Vec3::new(0.0, 1.0, 1.0)),
+          cost: lined_up_cost,
         }],
       ),
       (
@@ -518,6 +559,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             polygon_index: 1,
           },
           portal: (Vec3::new(0.0, 1.0, 1.0), Vec3::new(0.0, 1.0, 2.0)),
+          cost: lined_up_cost,
         }],
       ),
       (
@@ -528,6 +570,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             polygon_index: 0,
           },
           portal: (Vec3::new(-2.0, 1.0, 0.0), Vec3::new(-1.0, 1.0, 0.0)),
+          cost: lined_up_cost,
         }],
       ),
       (
@@ -538,6 +581,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             polygon_index: 1,
           },
           portal: (Vec3::new(-1.0, 1.0, 0.0), Vec3::new(-2.0, 1.0, 0.0)),
+          cost: lined_up_cost,
         }],
       ),
       (
@@ -548,6 +592,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             polygon_index: 0,
           },
           portal: (Vec3::new(2.0, 1.0, 0.0), Vec3::new(1.0, 1.0, 0.0)),
+          cost: lined_up_cost,
         }],
       ),
       (
@@ -558,6 +603,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             polygon_index: 0,
           },
           portal: (Vec3::new(2.0, 1.0, 2.0), Vec3::new(2.0, 1.0, 1.0)),
+          cost: offset_cost,
         }],
       ),
     ],
@@ -592,6 +638,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             polygon_index: 0,
           },
           portal: (Vec3::new(0.0, 1.0, 2.0), Vec3::new(0.0, 1.0, 1.0)),
+          cost: lined_up_cost,
         }],
       ),
       (
@@ -602,6 +649,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             polygon_index: 1,
           },
           portal: (Vec3::new(-1.0, 1.0, 0.0), Vec3::new(-2.0, 1.0, 0.0)),
+          cost: lined_up_cost,
         }],
       ),
       (
@@ -612,6 +660,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             polygon_index: 1,
           },
           portal: (Vec3::new(0.0, 1.0, 1.0), Vec3::new(0.0, 1.0, 2.0)),
+          cost: lined_up_cost,
         }],
       ),
       (
@@ -622,6 +671,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             polygon_index: 0,
           },
           portal: (Vec3::new(-2.0, 1.0, 0.0), Vec3::new(-1.0, 1.0, 0.0)),
+          cost: lined_up_cost,
         }],
       ),
     ],
