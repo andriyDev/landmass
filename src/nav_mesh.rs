@@ -144,7 +144,25 @@ impl NavigationMesh {
       }
     }
 
-    let mut connectivity = vec![Vec::new(); self.polygons.len()];
+    let polygons = self
+      .polygons
+      .drain(..)
+      .map(|polygon_vertices| ValidPolygon {
+        bounds: polygon_vertices
+          .iter()
+          .fold(BoundingBox::Empty, |bounds, vertex| {
+            bounds.expand_to_point(self.vertices[*vertex])
+          }),
+        center: polygon_vertices
+          .iter()
+          .map(|i| self.vertices[*i])
+          .sum::<Vec3>()
+          / polygon_vertices.len() as f32,
+        vertices: polygon_vertices,
+      })
+      .collect::<Vec<_>>();
+
+    let mut connectivity = vec![Vec::new(); polygons.len()];
     let mut boundary_edges = Vec::new();
     for connectivity_state in connectivity_set.values() {
       match connectivity_state {
@@ -159,13 +177,20 @@ impl NavigationMesh {
           polygon_2,
           edge_2,
         } => {
+          let edge = polygons[polygon_1].get_edge_indices(edge_1);
+          let edge_center =
+            (self.vertices[edge.0] + self.vertices[edge.1]) / 2.0;
+          let cost = polygons[polygon_1].center.distance(edge_center)
+            + polygons[polygon_2].center.distance(edge_center);
           connectivity[polygon_1].push(Connectivity {
             edge_index: edge_1,
             polygon_index: polygon_2,
+            cost,
           });
           connectivity[polygon_2].push(Connectivity {
             edge_index: edge_2,
             polygon_index: polygon_1,
+            cost,
           });
         }
       }
@@ -173,23 +198,7 @@ impl NavigationMesh {
 
     Ok(ValidNavigationMesh {
       mesh_bounds: self.mesh_bounds.unwrap(),
-      polygons: self
-        .polygons
-        .drain(..)
-        .map(|polygon_vertices| ValidPolygon {
-          bounds: polygon_vertices
-            .iter()
-            .fold(BoundingBox::Empty, |bounds, vertex| {
-              bounds.expand_to_point(self.vertices[*vertex])
-            }),
-          center: polygon_vertices
-            .iter()
-            .map(|i| self.vertices[*i])
-            .sum::<Vec3>()
-            / polygon_vertices.len() as f32,
-          vertices: polygon_vertices,
-        })
-        .collect(),
+      polygons,
       vertices: self.vertices,
       connectivity,
       boundary_edges,
@@ -230,12 +239,14 @@ pub(crate) struct ValidPolygon {
   pub(crate) center: Vec3,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Connectivity {
   /// The index of the edge within the polygon.
   pub edge_index: usize,
   /// The index of the polygon that this edge leads to.
   pub polygon_index: usize,
+  /// The cost of travelling across this connection.
+  pub cost: f32,
 }
 
 /// A reference to an edge on a navigation mesh.

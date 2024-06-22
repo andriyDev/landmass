@@ -50,6 +50,8 @@ pub struct BoundaryLink {
   /// This is essentially the intersection of the linked islands' linkable
   /// edges.
   pub portal: (Vec3, Vec3),
+  /// The cost of travelling across this link.
+  pub cost: f32,
 }
 
 /// A node that has been modified (e.g., by being connected with a boundary link
@@ -535,15 +537,33 @@ fn link_edges_between_islands(
 
         let id = id_creator.create();
 
+        let polygon_center_1 = island_1_nav_data.transform.apply(
+          island_1_nav_data.nav_mesh.polygons[island_1_edge_ref.polygon_index]
+            .center,
+        );
+        let polygon_center_2 = island_2_nav_data.transform.apply(
+          island_2_nav_data.nav_mesh.polygons[island_2_edge_ref.polygon_index]
+            .center,
+        );
+        let portal_center = (portal.0 + portal.1) / 2.0;
+
+        let cost = polygon_center_1.distance(portal_center)
+          + polygon_center_2.distance(portal_center);
+
         boundary_links.entry(node_1.clone()).or_default().insert(
           id,
-          BoundaryLink { destination_node: node_2.clone(), portal: portal },
+          BoundaryLink {
+            destination_node: node_2.clone(),
+            portal: portal,
+            cost,
+          },
         );
         boundary_links.entry(node_2).or_default().insert(
           id,
           BoundaryLink {
             destination_node: node_1,
             portal: (portal.1, portal.0),
+            cost,
           },
         );
         modified_node_refs_to_update.insert(node_1);

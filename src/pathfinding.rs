@@ -45,7 +45,6 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
   ) -> Vec<(f32, Self::ActionType, Self::StateType)> {
     let island = self.nav_data.islands.get(&state.island_id).unwrap();
     let nav_data = island.nav_data.as_ref().unwrap();
-    let polygon = &nav_data.nav_mesh.polygons[state.polygon_index];
     let connectivity = &nav_data.nav_mesh.connectivity[state.polygon_index];
     let boundary_links = self
       .nav_data
@@ -57,16 +56,8 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
       .iter()
       .enumerate()
       .map(|(conn_index, conn)| {
-        let next_polygon = &nav_data.nav_mesh.polygons[conn.polygon_index];
-        let edge = polygon.get_edge_indices(conn.edge_index);
-        let edge_point = (nav_data.nav_mesh.vertices[edge.0]
-          + nav_data.nav_mesh.vertices[edge.1])
-          / 2.0;
-        let cost = polygon.center.distance(edge_point)
-          + next_polygon.center.distance(edge_point);
-
         (
-          cost,
+          conn.cost,
           PathStep::NodeConnection(conn_index),
           NodeRef {
             island_id: state.island_id,
@@ -75,21 +66,7 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
         )
       })
       .chain(boundary_links.iter().map(|(&link_id, link)| {
-        let next_island =
-          self.nav_data.islands.get(&link.destination_node.island_id).unwrap();
-        let next_nav_data = next_island.nav_data.as_ref().unwrap();
-        let next_polygon =
-          &next_nav_data.nav_mesh.polygons[link.destination_node.polygon_index];
-
-        let polygon_center = nav_data.transform.apply(polygon.center);
-        let next_polygon_center =
-          next_nav_data.transform.apply(next_polygon.center);
-
-        let edge_point = (link.portal.0 + link.portal.1) / 2.0;
-
-        let cost = polygon_center.distance(edge_point)
-          + next_polygon_center.distance(edge_point);
-        (cost, PathStep::BoundaryLink(link_id), link.destination_node)
+        (link.cost, PathStep::BoundaryLink(link_id), link.destination_node)
       }))
       .collect()
   }
