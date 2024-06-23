@@ -5,7 +5,8 @@ use crate::{
   NavigationData,
 };
 
-pub type AgentId = u32;
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
+pub struct AgentId(pub(crate) u32);
 
 /// The state of an agent.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
