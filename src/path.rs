@@ -49,7 +49,7 @@ impl IslandSegment {
     portal_index: usize,
     nav_data: &NavigationData,
   ) -> (Vec3, Vec3) {
-    let polygon_index = self.corridor[portal_index].clone();
+    let polygon_index = self.corridor[portal_index];
     let edge = self.portal_edge_index[portal_index];
 
     let island_data = nav_data
@@ -171,8 +171,7 @@ impl Path {
     };
 
     fn triangle_area_2(point_0: Vec3, point_1: Vec3, point_2: Vec3) -> f32 {
-      return (point_1.xz() - point_0.xz())
-        .perp_dot(point_2.xz() - point_0.xz());
+      (point_1.xz() - point_0.xz()).perp_dot(point_2.xz() - point_0.xz())
     }
 
     let mut portal_index = start_index.next(self);

@@ -591,13 +591,13 @@ fn link_edges_between_islands(
 
   for island_2_edge_ref in island_2_nav_data.nav_mesh.boundary_edges.iter() {
     let island_2_edge =
-      edge_ref_to_world_edge(island_2_edge_ref.clone(), &island_2_nav_data);
+      edge_ref_to_world_edge(island_2_edge_ref.clone(), island_2_nav_data);
     let island_2_edge_bbox = edge_to_bbox(island_2_edge)
       .expand_by_size(Vec3::ONE * edge_link_distance);
 
     for island_1_edge_ref in island_1_edge_bbh.query_box(island_2_edge_bbox) {
       let island_1_edge =
-        edge_ref_to_world_edge(island_1_edge_ref.clone(), &island_1_nav_data);
+        edge_ref_to_world_edge(island_1_edge_ref.clone(), island_1_nav_data);
       if let Some(portal) = edge_intersection(
         island_1_edge,
         island_2_edge,
@@ -631,14 +631,10 @@ fn link_edges_between_islands(
         let cost = polygon_center_1.distance(portal_center)
           + polygon_center_2.distance(portal_center);
 
-        boundary_links.entry(node_1.clone()).or_default().insert(
-          id,
-          BoundaryLink {
-            destination_node: node_2.clone(),
-            portal: portal,
-            cost,
-          },
-        );
+        boundary_links
+          .entry(node_1)
+          .or_default()
+          .insert(id, BoundaryLink { destination_node: node_2, portal, cost });
         boundary_links.entry(node_2).or_default().insert(
           id,
           BoundaryLink {

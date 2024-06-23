@@ -36,7 +36,7 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
   type StateType = NodeRef;
 
   fn initial_state(&self) -> Self::StateType {
-    self.start_node.clone()
+    self.start_node
   }
 
   fn successors(
@@ -50,7 +50,7 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
       .nav_data
       .boundary_links
       .get(state)
-      .map_or(Cow::Owned(HashMap::new()), |links| Cow::Borrowed(links));
+      .map_or(Cow::Owned(HashMap::new()), Cow::Borrowed);
 
     polygon
       .connectivity
@@ -117,7 +117,7 @@ pub(crate) fn find_path(
 
   let path_problem = ArchipelagoPathProblem {
     nav_data,
-    start_node: start_node.clone(),
+    start_node,
     end_node,
     end_point: {
       let island_nav_data = nav_data

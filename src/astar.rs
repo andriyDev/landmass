@@ -1,7 +1,6 @@
 use std::{
   cmp::Reverse,
   collections::{BinaryHeap, HashMap},
-  f32::INFINITY,
   hash::Hash,
 };
 
@@ -149,7 +148,7 @@ where
   {
     let estimate = node.cost + problem.heuristic(&node.state);
     let best_estimate =
-      best_estimates.entry(node.state.clone()).or_insert(INFINITY);
+      best_estimates.entry(node.state.clone()).or_insert(f32::INFINITY);
     if *best_estimate <= estimate {
       return;
     }
