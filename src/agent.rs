@@ -1,12 +1,15 @@
 use glam::Vec3;
+use slotmap::new_key_type;
 
 use crate::{
   path::{Path, PathIndex},
   NavigationData,
 };
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
-pub struct AgentId(pub(crate) u32);
+new_key_type! {
+  /// The ID of an agent.
+  pub struct AgentId;
+}
 
 /// The state of an agent.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

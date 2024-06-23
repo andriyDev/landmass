@@ -3,6 +3,7 @@ use std::collections::{BinaryHeap, HashMap, HashSet};
 use dodgy_2d::VisibilitySet;
 use glam::{Vec3, Vec3Swizzles};
 use kdtree::{distance::squared_euclidean, KdTree};
+use slotmap::HopSlotMap;
 
 use crate::{
   island::IslandNavigationData,
@@ -13,7 +14,7 @@ use crate::{
 /// Adjusts the velocity of `agents` to apply local avoidance. `delta_time` must
 /// be positive.
 pub(crate) fn apply_avoidance_to_agents(
-  agents: &mut HashMap<AgentId, Agent>,
+  agents: &mut HopSlotMap<AgentId, Agent>,
   agent_id_to_agent_node: &HashMap<AgentId, (Vec3, NodeRef)>,
   nav_data: &NavigationData,
   agent_options: &AgentOptions,
@@ -24,13 +25,13 @@ pub(crate) fn apply_avoidance_to_agents(
   let mut agent_max_radius = 0.0f32;
 
   for (agent_id, agent) in agents.iter() {
-    let agent_point = match agent_id_to_agent_node.get(agent_id) {
+    let agent_point = match agent_id_to_agent_node.get(&agent_id) {
       None => continue,
       Some(agent_point_and_node) => agent_point_and_node.0,
     };
 
     agent_id_to_dodgy_agent.insert(
-      *agent_id,
+      agent_id,
       dodgy_2d::Agent {
         position: to_dodgy_vec2(agent_point.xz()),
         velocity: to_dodgy_vec2(agent.velocity.xz()),
@@ -39,7 +40,7 @@ pub(crate) fn apply_avoidance_to_agents(
       },
     );
     agent_kdtree
-      .add([agent_point.x, agent_point.y, agent_point.z], *agent_id)
+      .add([agent_point.x, agent_point.y, agent_point.z], agent_id)
       .expect("Agent point is finite");
     agent_max_radius = agent_max_radius.max(agent.radius);
   }
@@ -47,7 +48,7 @@ pub(crate) fn apply_avoidance_to_agents(
   let neighbourhood = agent_max_radius + agent_options.neighbourhood;
   let neighbourhood_squared = neighbourhood * neighbourhood;
   for (agent_id, agent) in agents.iter_mut() {
-    let agent_node = match agent_id_to_agent_node.get(agent_id) {
+    let agent_node = match agent_id_to_agent_node.get(&agent_id) {
       None => continue,
       Some(agent_node) => agent_node,
     };
@@ -63,7 +64,7 @@ pub(crate) fn apply_avoidance_to_agents(
     let nearby_agents = nearby_agents
       .iter()
       .filter_map(|&(distance_squared, neighbour_id)| {
-        if neighbour_id == agent_id {
+        if *neighbour_id == agent_id {
           return None;
         }
 
@@ -84,7 +85,7 @@ pub(crate) fn apply_avoidance_to_agents(
       agent_options.neighbourhood,
     );
 
-    let dodgy_agent = agent_id_to_dodgy_agent.get(agent_id).unwrap();
+    let dodgy_agent = agent_id_to_dodgy_agent.get(&agent_id).unwrap();
     let desired_move = dodgy_agent.compute_avoiding_velocity(
       &nearby_agents,
       &nearby_obstacles
