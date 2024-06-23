@@ -24,7 +24,7 @@ struct ArchipelagoPathProblem<'a> {
 /// An action taken in the path.
 #[derive(Clone, Copy)]
 enum PathStep {
-  /// Take the node connection at the specified index in the current node.
+  /// Take the node connection at the specified edge index in the current node.
   NodeConnection(usize),
   /// Take the boundary link with the specified ID in the current node.
   BoundaryLink(BoundaryLinkId),
@@ -45,20 +45,24 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
   ) -> Vec<(f32, Self::ActionType, Self::StateType)> {
     let island = self.nav_data.islands.get(&state.island_id).unwrap();
     let nav_data = island.nav_data.as_ref().unwrap();
-    let connectivity = &nav_data.nav_mesh.connectivity[state.polygon_index];
+    let polygon = &nav_data.nav_mesh.polygons[state.polygon_index];
     let boundary_links = self
       .nav_data
       .boundary_links
       .get(state)
       .map_or(Cow::Owned(HashMap::new()), |links| Cow::Borrowed(links));
 
-    connectivity
+    polygon
+      .connectivity
       .iter()
       .enumerate()
-      .map(|(conn_index, conn)| {
+      .filter_map(|(edge_index, conn)| {
+        conn.as_ref().map(|conn| (edge_index, conn))
+      })
+      .map(|(edge_index, conn)| {
         (
           conn.cost,
-          PathStep::NodeConnection(conn_index),
+          PathStep::NodeConnection(edge_index),
           NodeRef {
             island_id: state.island_id,
             polygon_index: conn.polygon_index,
@@ -141,7 +145,7 @@ pub(crate) fn find_path(
     let previous_node = *last_segment.corridor.last().unwrap();
 
     match path_step {
-      PathStep::NodeConnection(conn_index) => {
+      PathStep::NodeConnection(edge_index) => {
         let nav_mesh = &nav_data
           .islands
           .get(&last_segment.island_id)
@@ -150,9 +154,12 @@ pub(crate) fn find_path(
           .as_ref()
           .unwrap()
           .nav_mesh;
-        let connectivity = &nav_mesh.connectivity[previous_node][conn_index];
+        let connectivity = nav_mesh.polygons[previous_node].connectivity
+          [edge_index]
+          .as_ref()
+          .unwrap();
         last_segment.corridor.push(connectivity.polygon_index);
-        last_segment.portal_edge_index.push(connectivity.edge_index);
+        last_segment.portal_edge_index.push(edge_index);
       }
       PathStep::BoundaryLink(boundary_link) => {
         let previous_node = NodeRef {

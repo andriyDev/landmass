@@ -176,19 +176,22 @@ fn nav_mesh_borders_to_dodgy_obstacles(
       nav_data.islands.get(&node.island_id).unwrap().nav_data.as_ref().unwrap();
 
     let polygon = &island_data.nav_mesh.polygons[node.polygon_index];
-    let connectivity = &island_data.nav_mesh.connectivity[node.polygon_index];
     let boundary_links = nav_data.boundary_links.get(&node);
     let modified_node = nav_data.modified_nodes.get(&node);
 
     let mut remaining_edges: HashSet<usize> =
       HashSet::from_iter(0..polygon.vertices.len());
-    for (vertex_1, vertex_2, node_ref) in connectivity
+    for (vertex_1, vertex_2, node_ref) in polygon
+      .connectivity
       .iter()
-      .map(|connectivity| {
-        remaining_edges.remove(&connectivity.edge_index);
+      .enumerate()
+      .filter_map(|(edge_index, conn)| {
+        conn.as_ref().map(|conn| (edge_index, conn))
+      })
+      .map(|(edge_index, connectivity)| {
+        remaining_edges.remove(&edge_index);
 
-        let (vertex_1, vertex_2) =
-          polygon.get_edge_indices(connectivity.edge_index);
+        let (vertex_1, vertex_2) = polygon.get_edge_indices(edge_index);
         (
           vertex_index_to_dodgy_vec(island_data, vertex_1, agent_point),
           vertex_index_to_dodgy_vec(island_data, vertex_2, agent_point),
