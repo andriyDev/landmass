@@ -204,7 +204,7 @@ impl NavigationData {
         value
           .nav_data
           .as_ref()
-          .map(|nav_data| (nav_data.transformed_bounds, *key))
+          .map(|nav_data| (nav_data.transformed_bounds, Some(*key)))
       })
       .collect::<Vec<_>>();
     // There are no islands with nav data, so no islands to link and prevents a
@@ -558,7 +558,7 @@ fn island_edges_bbh(
     .map(|edge| {
       (
         edge_to_bbox(edge_ref_to_world_edge(edge.clone(), island_nav_data)),
-        edge.clone(),
+        Some(edge.clone()),
       )
     })
     .collect::<Vec<_>>();
