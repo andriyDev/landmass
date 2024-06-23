@@ -3,7 +3,7 @@ use std::{collections::HashSet, f32::consts::PI, sync::Arc};
 use glam::Vec3;
 
 use crate::{
-  nav_data::{NavigationData, NodeRef},
+  nav_data::{BoundaryLinkId, NavigationData, NodeRef},
   nav_mesh::NavigationMesh,
   path::{BoundaryLinkSegment, IslandSegment},
   Archipelago, IslandId, Transform,
@@ -295,11 +295,11 @@ fn path_not_valid_for_invalidated_islands_or_boundary_links() {
     boundary_link_segments: vec![
       BoundaryLinkSegment {
         starting_node: NodeRef { island_id: IslandId(1), polygon_index: 0 },
-        boundary_link: 10,
+        boundary_link: BoundaryLinkId(10),
       },
       BoundaryLinkSegment {
         starting_node: NodeRef { island_id: IslandId(2), polygon_index: 1 },
-        boundary_link: 11,
+        boundary_link: BoundaryLinkId(11),
       },
     ],
   };
@@ -325,11 +325,13 @@ fn path_not_valid_for_invalidated_islands_or_boundary_links() {
 
   // Each boundary link is invalidated.
   assert!(!path.is_valid(
-    /* invalidated_boundary_links= */ &HashSet::from([10]),
+    /* invalidated_boundary_links= */
+    &HashSet::from([BoundaryLinkId(10)]),
     /* invalidated_islands= */ &HashSet::new(),
   ));
   assert!(!path.is_valid(
-    /* invalidated_boundary_links= */ &HashSet::from([11]),
+    /* invalidated_boundary_links= */
+    &HashSet::from([BoundaryLinkId(11)]),
     /* invalidated_islands= */ &HashSet::new(),
   ));
 }
@@ -357,11 +359,11 @@ fn indices_in_path_are_found() {
     boundary_link_segments: vec![
       BoundaryLinkSegment {
         starting_node: NodeRef { island_id: IslandId(1), polygon_index: 0 },
-        boundary_link: 10,
+        boundary_link: BoundaryLinkId(10),
       },
       BoundaryLinkSegment {
         starting_node: NodeRef { island_id: IslandId(2), polygon_index: 1 },
-        boundary_link: 11,
+        boundary_link: BoundaryLinkId(11),
       },
     ],
   };
@@ -423,11 +425,11 @@ fn indices_in_path_are_found_rev() {
     boundary_link_segments: vec![
       BoundaryLinkSegment {
         starting_node: NodeRef { island_id: IslandId(1), polygon_index: 0 },
-        boundary_link: 10,
+        boundary_link: BoundaryLinkId(10),
       },
       BoundaryLinkSegment {
         starting_node: NodeRef { island_id: IslandId(2), polygon_index: 1 },
-        boundary_link: 11,
+        boundary_link: BoundaryLinkId(11),
       },
     ],
   };

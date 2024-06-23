@@ -48,7 +48,8 @@ pub struct NodeRef {
 }
 
 /// The ID of a boundary link.
-pub type BoundaryLinkId = u32;
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
+pub struct BoundaryLinkId(pub(crate) u32);
 
 /// A single link between two nodes on the boundary of an island.
 #[derive(PartialEq, Debug, Clone)]
@@ -571,7 +572,7 @@ trait CreateBoundaryId {
 
 impl<T: Rng> CreateBoundaryId for T {
   fn create(&mut self) -> BoundaryLinkId {
-    self.gen()
+    BoundaryLinkId(self.gen())
   }
 }
 
