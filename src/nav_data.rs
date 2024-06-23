@@ -1,6 +1,7 @@
 use std::{
   collections::{HashMap, HashSet},
   mem::swap,
+  sync::Mutex,
 };
 
 use disjoint::DisjointSet;
@@ -28,7 +29,7 @@ pub struct NavigationData {
   pub region_id_to_number: HashMap<(IslandId, usize), usize>,
   /// Connectedness of regions based on their "region number" in
   /// [`Self::region_id_to_number`].
-  pub region_connections: DisjointSet,
+  pub region_connections: Mutex<DisjointSet>,
   /// The links to other islands by [`crate::NodeRef`]
   pub boundary_links: HashMap<NodeRef, HashMap<BoundaryLinkId, BoundaryLink>>,
   /// The nodes that have been modified.
@@ -83,7 +84,7 @@ impl NavigationData {
     Self {
       islands: HashMap::new(),
       region_id_to_number: HashMap::new(),
-      region_connections: DisjointSet::new(),
+      region_connections: Mutex::new(DisjointSet::new()),
       boundary_links: HashMap::new(),
       modified_nodes: HashMap::new(),
       deleted_islands: HashSet::new(),
@@ -483,12 +484,17 @@ impl NavigationData {
       return false;
     };
 
-    self.region_connections.is_joined(region_number_1, region_number_2)
+    self
+      .region_connections
+      .lock()
+      .unwrap()
+      .is_joined(region_number_1, region_number_2)
   }
 
   fn update_regions(&mut self) {
     self.region_id_to_number.clear();
-    self.region_connections = DisjointSet::new();
+    let mut region_connections = self.region_connections.lock().unwrap();
+    *region_connections = DisjointSet::new();
 
     for (node_ref, link) in
       self.boundary_links.iter().flat_map(|(&node_ref, links)| {
@@ -500,17 +506,17 @@ impl NavigationData {
 
       let start_region =
         *self.region_id_to_number.entry(start_region).or_insert_with(|| {
-          self.region_connections.add_singleton();
-          self.region_connections.len() - 1
+          region_connections.add_singleton();
+          region_connections.len() - 1
         });
 
       let end_region =
         *self.region_id_to_number.entry(end_region).or_insert_with(|| {
-          self.region_connections.add_singleton();
-          self.region_connections.len() - 1
+          region_connections.add_singleton();
+          region_connections.len() - 1
         });
 
-      self.region_connections.join(start_region, end_region);
+      region_connections.join(start_region, end_region);
     }
   }
 
