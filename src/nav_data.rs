@@ -3,6 +3,7 @@ use std::{
   mem::swap,
 };
 
+use disjoint::DisjointSet;
 use geo::{BooleanOps, Coord, LineString, LinesIter, MultiPolygon, Polygon};
 use glam::{Vec2, Vec3, Vec3Swizzles};
 use kdtree::{distance::squared_euclidean, KdTree};
@@ -21,6 +22,13 @@ use crate::{
 pub struct NavigationData {
   /// The islands in the [`crate::Archipelago`].
   pub islands: HashMap<IslandId, Island>,
+  /// Maps a "region id" (consisting of the IslandId and the region in that
+  /// island's nav mesh) to its "region number" (the number used in
+  /// [`Self::region_connections`]).
+  pub region_id_to_number: HashMap<(IslandId, usize), usize>,
+  /// Connectedness of regions based on their "region number" in
+  /// [`Self::region_id_to_number`].
+  pub region_connections: DisjointSet,
   /// The links to other islands by [`crate::NodeRef`]
   pub boundary_links: HashMap<NodeRef, HashMap<BoundaryLinkId, BoundaryLink>>,
   /// The nodes that have been modified.
@@ -74,6 +82,8 @@ impl NavigationData {
   pub fn new() -> Self {
     Self {
       islands: HashMap::new(),
+      region_id_to_number: HashMap::new(),
+      region_connections: DisjointSet::new(),
       boundary_links: HashMap::new(),
       modified_nodes: HashMap::new(),
       deleted_islands: HashSet::new(),
@@ -435,6 +445,48 @@ impl NavigationData {
     }
   }
 
+  fn update_regions(&mut self) {
+    self.region_id_to_number.clear();
+    self.region_connections = DisjointSet::new();
+
+    let node_ref_to_region_id = |node_ref: NodeRef| {
+      let region = self
+        .islands
+        .get(&node_ref.island_id)
+        .unwrap()
+        .nav_data
+        .as_ref()
+        .unwrap()
+        .nav_mesh
+        .polygons[node_ref.polygon_index]
+        .region;
+      (node_ref.island_id, region)
+    };
+
+    for (node_ref, link) in
+      self.boundary_links.iter().flat_map(|(&node_ref, links)| {
+        links.values().map(move |link| (node_ref, link))
+      })
+    {
+      let start_region = node_ref_to_region_id(node_ref);
+      let end_region = node_ref_to_region_id(link.destination_node);
+
+      let start_region =
+        *self.region_id_to_number.entry(start_region).or_insert_with(|| {
+          self.region_connections.add_singleton();
+          self.region_connections.len() - 1
+        });
+
+      let end_region =
+        *self.region_id_to_number.entry(end_region).or_insert_with(|| {
+          self.region_connections.add_singleton();
+          self.region_connections.len() - 1
+        });
+
+      self.region_connections.join(start_region, end_region);
+    }
+  }
+
   pub fn update(
     &mut self,
     edge_link_distance: f32,
@@ -443,6 +495,9 @@ impl NavigationData {
       self.update_islands(edge_link_distance);
     for node_ref in modified_node_refs_to_update {
       self.update_modified_node(node_ref, edge_link_distance);
+    }
+    if !changed_islands.is_empty() {
+      self.update_regions();
     }
     (dropped_links, changed_islands)
   }
