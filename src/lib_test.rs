@@ -55,11 +55,13 @@ fn clears_path_for_missing_nodes() {
   );
   agent.current_target = Some(Vec3::ZERO);
 
+  let island_id = IslandId(1);
+
   assert_eq!(
     does_agent_need_repath(
       &agent,
       None,
-      Some(NodeRef { island_id: 0, polygon_index: 0 }),
+      Some(NodeRef { island_id, polygon_index: 0 }),
       &HashSet::new(),
       &HashSet::new(),
     ),
@@ -69,7 +71,7 @@ fn clears_path_for_missing_nodes() {
   assert_eq!(
     does_agent_need_repath(
       &agent,
-      Some(NodeRef { island_id: 0, polygon_index: 0 }),
+      Some(NodeRef { island_id, polygon_index: 0 }),
       None,
       &HashSet::new(),
       &HashSet::new(),
@@ -88,7 +90,7 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
   );
   agent.current_target = Some(Vec3::ZERO);
 
-  let island_id = 0;
+  let island_id = IslandId(0);
 
   // No path.
   assert_eq!(
@@ -167,7 +169,7 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
       Some(NodeRef { island_id, polygon_index: 1 }),
       &HashSet::new(),
       // This island is not involved in the path, so the path is still valid.
-      &HashSet::from([1337]),
+      &HashSet::from([IslandId(1337)]),
     ),
     RepathResult::FollowPath(
       PathIndex::from_corridor_index(0, 1),

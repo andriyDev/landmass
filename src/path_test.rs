@@ -6,7 +6,7 @@ use crate::{
   nav_data::{NavigationData, NodeRef},
   nav_mesh::NavigationMesh,
   path::{BoundaryLinkSegment, IslandSegment},
-  Archipelago, Transform,
+  Archipelago, IslandId, Transform,
 };
 
 use super::{Path, PathIndex};
@@ -277,28 +277,28 @@ fn path_not_valid_for_invalidated_islands_or_boundary_links() {
   let path = Path {
     island_segments: vec![
       IslandSegment {
-        island_id: 1,
+        island_id: IslandId(1),
         corridor: vec![0],
         portal_edge_index: vec![],
       },
       IslandSegment {
-        island_id: 2,
+        island_id: IslandId(2),
         corridor: vec![0, 1],
         portal_edge_index: vec![],
       },
       IslandSegment {
-        island_id: 3,
+        island_id: IslandId(3),
         corridor: vec![0],
         portal_edge_index: vec![],
       },
     ],
     boundary_link_segments: vec![
       BoundaryLinkSegment {
-        starting_node: NodeRef { island_id: 1, polygon_index: 0 },
+        starting_node: NodeRef { island_id: IslandId(1), polygon_index: 0 },
         boundary_link: 10,
       },
       BoundaryLinkSegment {
-        starting_node: NodeRef { island_id: 2, polygon_index: 1 },
+        starting_node: NodeRef { island_id: IslandId(2), polygon_index: 1 },
         boundary_link: 11,
       },
     ],
@@ -312,15 +312,15 @@ fn path_not_valid_for_invalidated_islands_or_boundary_links() {
   // Each island is invalidated.
   assert!(!path.is_valid(
     /* invalidated_boundary_links= */ &HashSet::new(),
-    /* invalidated_islands= */ &HashSet::from([1]),
+    /* invalidated_islands= */ &HashSet::from([IslandId(1)]),
   ));
   assert!(!path.is_valid(
     /* invalidated_boundary_links= */ &HashSet::new(),
-    /* invalidated_islands= */ &HashSet::from([2]),
+    /* invalidated_islands= */ &HashSet::from([IslandId(2)]),
   ));
   assert!(!path.is_valid(
     /* invalidated_boundary_links= */ &HashSet::new(),
-    /* invalidated_islands= */ &HashSet::from([3]),
+    /* invalidated_islands= */ &HashSet::from([IslandId(3)]),
   ));
 
   // Each boundary link is invalidated.
@@ -339,57 +339,63 @@ fn indices_in_path_are_found() {
   let path = Path {
     island_segments: vec![
       IslandSegment {
-        island_id: 1,
+        island_id: IslandId(1),
         corridor: vec![3],
         portal_edge_index: vec![],
       },
       IslandSegment {
-        island_id: 2,
+        island_id: IslandId(2),
         corridor: vec![2, 1],
         portal_edge_index: vec![],
       },
       IslandSegment {
-        island_id: 3,
+        island_id: IslandId(3),
         corridor: vec![0],
         portal_edge_index: vec![],
       },
     ],
     boundary_link_segments: vec![
       BoundaryLinkSegment {
-        starting_node: NodeRef { island_id: 1, polygon_index: 0 },
+        starting_node: NodeRef { island_id: IslandId(1), polygon_index: 0 },
         boundary_link: 10,
       },
       BoundaryLinkSegment {
-        starting_node: NodeRef { island_id: 2, polygon_index: 1 },
+        starting_node: NodeRef { island_id: IslandId(2), polygon_index: 1 },
         boundary_link: 11,
       },
     ],
   };
 
   assert_eq!(
-    path.find_index_of_node(NodeRef { island_id: 3, polygon_index: 0 }),
+    path
+      .find_index_of_node(NodeRef { island_id: IslandId(3), polygon_index: 0 }),
     Some(PathIndex { segment_index: 2, portal_index: 0 })
   );
   assert_eq!(
-    path.find_index_of_node(NodeRef { island_id: 1, polygon_index: 3 }),
+    path
+      .find_index_of_node(NodeRef { island_id: IslandId(1), polygon_index: 3 }),
     Some(PathIndex { segment_index: 0, portal_index: 0 })
   );
   assert_eq!(
-    path.find_index_of_node(NodeRef { island_id: 2, polygon_index: 1 }),
+    path
+      .find_index_of_node(NodeRef { island_id: IslandId(2), polygon_index: 1 }),
     Some(PathIndex { segment_index: 1, portal_index: 1 })
   );
 
   // Missing NodeRefs.
   assert_eq!(
-    path.find_index_of_node(NodeRef { island_id: 3, polygon_index: 3 }),
+    path
+      .find_index_of_node(NodeRef { island_id: IslandId(3), polygon_index: 3 }),
     None
   );
   assert_eq!(
-    path.find_index_of_node(NodeRef { island_id: 1, polygon_index: 1 }),
+    path
+      .find_index_of_node(NodeRef { island_id: IslandId(1), polygon_index: 1 }),
     None
   );
   assert_eq!(
-    path.find_index_of_node(NodeRef { island_id: 4, polygon_index: 4 }),
+    path
+      .find_index_of_node(NodeRef { island_id: IslandId(4), polygon_index: 4 }),
     None
   );
 }
@@ -399,57 +405,75 @@ fn indices_in_path_are_found_rev() {
   let path = Path {
     island_segments: vec![
       IslandSegment {
-        island_id: 1,
+        island_id: IslandId(1),
         corridor: vec![3],
         portal_edge_index: vec![],
       },
       IslandSegment {
-        island_id: 2,
+        island_id: IslandId(2),
         corridor: vec![2, 1],
         portal_edge_index: vec![],
       },
       IslandSegment {
-        island_id: 3,
+        island_id: IslandId(3),
         corridor: vec![0],
         portal_edge_index: vec![],
       },
     ],
     boundary_link_segments: vec![
       BoundaryLinkSegment {
-        starting_node: NodeRef { island_id: 1, polygon_index: 0 },
+        starting_node: NodeRef { island_id: IslandId(1), polygon_index: 0 },
         boundary_link: 10,
       },
       BoundaryLinkSegment {
-        starting_node: NodeRef { island_id: 2, polygon_index: 1 },
+        starting_node: NodeRef { island_id: IslandId(2), polygon_index: 1 },
         boundary_link: 11,
       },
     ],
   };
 
   assert_eq!(
-    path.find_index_of_node_rev(NodeRef { island_id: 3, polygon_index: 0 }),
+    path.find_index_of_node_rev(NodeRef {
+      island_id: IslandId(3),
+      polygon_index: 0
+    }),
     Some(PathIndex { segment_index: 2, portal_index: 0 })
   );
   assert_eq!(
-    path.find_index_of_node_rev(NodeRef { island_id: 1, polygon_index: 3 }),
+    path.find_index_of_node_rev(NodeRef {
+      island_id: IslandId(1),
+      polygon_index: 3
+    }),
     Some(PathIndex { segment_index: 0, portal_index: 0 })
   );
   assert_eq!(
-    path.find_index_of_node_rev(NodeRef { island_id: 2, polygon_index: 1 }),
+    path.find_index_of_node_rev(NodeRef {
+      island_id: IslandId(2),
+      polygon_index: 1
+    }),
     Some(PathIndex { segment_index: 1, portal_index: 1 })
   );
 
   // Missing NodeRefs.
   assert_eq!(
-    path.find_index_of_node_rev(NodeRef { island_id: 3, polygon_index: 3 }),
+    path.find_index_of_node_rev(NodeRef {
+      island_id: IslandId(3),
+      polygon_index: 3
+    }),
     None
   );
   assert_eq!(
-    path.find_index_of_node_rev(NodeRef { island_id: 1, polygon_index: 1 }),
+    path.find_index_of_node_rev(NodeRef {
+      island_id: IslandId(1),
+      polygon_index: 1
+    }),
     None
   );
   assert_eq!(
-    path.find_index_of_node_rev(NodeRef { island_id: 4, polygon_index: 4 }),
+    path.find_index_of_node_rev(NodeRef {
+      island_id: IslandId(4),
+      polygon_index: 4
+    }),
     None
   );
 }

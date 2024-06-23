@@ -54,8 +54,11 @@ fn samples_points() {
     Arc::clone(&nav_mesh),
   );
 
-  islands.insert(1, island_1);
-  islands.insert(2, island_2);
+  let island_id_1 = IslandId(1);
+  let island_id_2 = IslandId(2);
+
+  islands.insert(island_id_1, island_1);
+  islands.insert(island_id_2, island_2);
 
   let mut nav_data = NavigationData::new();
   nav_data.islands = islands;
@@ -67,7 +70,7 @@ fn samples_points() {
     ),
     Some((
       Vec3::new(1.5, 1.0, 1.5),
-      NodeRef { island_id: 1, polygon_index: 0 }
+      NodeRef { island_id: island_id_1, polygon_index: 0 }
     )),
   );
   // Just outside island 1 node.
@@ -78,7 +81,7 @@ fn samples_points() {
     ),
     Some((
       Vec3::new(1.0, 1.0, 1.0),
-      NodeRef { island_id: 1, polygon_index: 0 }
+      NodeRef { island_id: island_id_1, polygon_index: 0 }
     )),
   );
   // At overlap, but closer to island 1.
@@ -89,7 +92,7 @@ fn samples_points() {
     ),
     Some((
       Vec3::new(3.5, 1.0, 1.5),
-      NodeRef { island_id: 1, polygon_index: 2 }
+      NodeRef { island_id: island_id_1, polygon_index: 2 }
     )),
   );
   // At overlap, but closer to island 2.
@@ -99,7 +102,7 @@ fn samples_points() {
       .map(|(p, n)| ((p * 1e6).round() / 1e6, n)),
     Some((
       Vec3::new(3.5, 1.1, 1.5),
-      NodeRef { island_id: 2, polygon_index: 0 }
+      NodeRef { island_id: island_id_2, polygon_index: 0 }
     )),
   );
 }
@@ -109,7 +112,7 @@ fn clone_sort_round_links(
   round_amount: f32,
 ) -> Vec<(NodeRef, Vec<BoundaryLink>)> {
   fn node_ref_to_num(node_ref: &NodeRef) -> u32 {
-    node_ref.island_id as u32 * 100 + node_ref.polygon_index as u32
+    node_ref.island_id.0 as u32 * 100 + node_ref.polygon_index as u32
   }
 
   let mut links = boundary_links
@@ -206,8 +209,8 @@ fn link_edges_between_islands_links_touching_islands() {
     .expect("is valid."),
   );
 
-  let island_1_id = 1;
-  let island_2_id = 2;
+  let island_1_id = IslandId(1);
+  let island_2_id = IslandId(2);
 
   let mut island_1 = Island::new();
   let mut island_2 = Island::new();
@@ -467,11 +470,11 @@ fn update_links_islands_and_unlinks_on_delete() {
     .expect("is valid."),
   );
 
-  let island_1_id = 1;
-  let island_2_id = 2;
-  let island_3_id = 3;
-  let island_4_id = 4;
-  let island_5_id = 5;
+  let island_1_id = IslandId(1);
+  let island_2_id = IslandId(2);
+  let island_3_id = IslandId(3);
+  let island_4_id = IslandId(4);
+  let island_5_id = IslandId(5);
 
   let mut island_1 = Island::new();
   let mut island_2 = Island::new();
@@ -742,7 +745,7 @@ fn clone_sort_round_modified_nodes(
     })
     .collect::<Vec<_>>();
   nodes.sort_by_key(|(node_ref, _)| {
-    node_ref.island_id as u32 * 100 + node_ref.polygon_index as u32
+    node_ref.island_id.0 as u32 * 100 + node_ref.polygon_index as u32
   });
   nodes
 }
@@ -766,9 +769,9 @@ fn modifies_node_boundaries_for_linked_islands() {
     .expect("is valid."),
   );
 
-  let island_1_id = 1;
-  let island_2_id = 2;
-  let island_3_id = 3;
+  let island_1_id = IslandId(1);
+  let island_2_id = IslandId(2);
+  let island_3_id = IslandId(3);
 
   let mut island_1 = Island::new();
   let mut island_2 = Island::new();
@@ -844,8 +847,8 @@ fn stale_modified_nodes_are_removed() {
     .expect("is valid."),
   );
 
-  let island_1_id = 1;
-  let island_2_id = 2;
+  let island_1_id = IslandId(1);
+  let island_2_id = IslandId(2);
 
   let mut island_1 = Island::new();
   let mut island_2 = Island::new();

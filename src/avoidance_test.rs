@@ -4,7 +4,8 @@ use glam::Vec3;
 
 use crate::{
   avoidance::apply_avoidance_to_agents, island::Island, nav_data::NodeRef,
-  Agent, AgentId, AgentOptions, NavigationData, NavigationMesh, Transform,
+  Agent, AgentId, AgentOptions, IslandId, NavigationData, NavigationMesh,
+  Transform,
 };
 
 use super::nav_mesh_borders_to_dodgy_obstacles;
@@ -81,7 +82,10 @@ fn computes_obstacle_for_box() {
   let island_offset = Vec3::new(130.0, 20.0, -50.0);
   let island_offset_dodgy =
     dodgy_2d::Vec2::new(island_offset.x, island_offset.z);
-  nav_data.islands.insert(1, {
+
+  let island_id = IslandId(1);
+
+  nav_data.islands.insert(island_id, {
     let mut island = Island::new();
     island.set_nav_mesh(
       Transform { translation: island_offset, rotation: 0.0 },
@@ -94,7 +98,7 @@ fn computes_obstacle_for_box() {
     nav_mesh_borders_to_dodgy_obstacles(
       (
         Vec3::new(1.5, 0.0, 1.5) + island_offset,
-        NodeRef { island_id: 1, polygon_index: 0 }
+        NodeRef { island_id, polygon_index: 0 }
       ),
       &nav_data,
       /* distance_limit= */ 10.0,
@@ -139,8 +143,10 @@ fn dead_end_makes_open_obstacle() {
   .validate()
   .expect("Validation succeeds");
 
+  let island_id = IslandId(1);
+
   let mut nav_data = NavigationData::new();
-  nav_data.islands.insert(1, {
+  nav_data.islands.insert(island_id, {
     let mut island = Island::new();
     island.set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
@@ -151,7 +157,7 @@ fn dead_end_makes_open_obstacle() {
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
-      (Vec3::new(1.5, 0.0, 1.5), NodeRef { island_id: 1, polygon_index: 0 }),
+      (Vec3::new(1.5, 0.0, 1.5), NodeRef { island_id, polygon_index: 0 }),
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
@@ -172,7 +178,7 @@ fn dead_end_makes_open_obstacle() {
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
-      (Vec3::new(3.5, 0.0, 3.5), NodeRef { island_id: 1, polygon_index: 4 }),
+      (Vec3::new(3.5, 0.0, 3.5), NodeRef { island_id, polygon_index: 4 }),
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
@@ -194,7 +200,7 @@ fn dead_end_makes_open_obstacle() {
   // Decrease the distance limit to limit the size of the open obstacle.
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
-      (Vec3::new(3.5, 0.0, 3.5), NodeRef { island_id: 1, polygon_index: 4 }),
+      (Vec3::new(3.5, 0.0, 3.5), NodeRef { island_id, polygon_index: 4 }),
       &nav_data,
       /* distance_limit= */ 1.0,
     ),
@@ -212,7 +218,7 @@ fn dead_end_makes_open_obstacle() {
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
-      (Vec3::new(3.5, 0.0, 1.5), NodeRef { island_id: 1, polygon_index: 2 }),
+      (Vec3::new(3.5, 0.0, 1.5), NodeRef { island_id, polygon_index: 2 }),
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
@@ -285,8 +291,10 @@ fn split_borders() {
   .validate()
   .expect("Validation succeeds");
 
+  let island_id = IslandId(1);
+
   let mut nav_data = NavigationData::new();
-  nav_data.islands.insert(1, {
+  nav_data.islands.insert(island_id, {
     let mut island = Island::new();
     island.set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
@@ -297,7 +305,7 @@ fn split_borders() {
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
-      (Vec3::new(3.0, 0.0, 0.9), NodeRef { island_id: 1, polygon_index: 0 }),
+      (Vec3::new(3.0, 0.0, 0.9), NodeRef { island_id, polygon_index: 0 }),
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
@@ -347,8 +355,11 @@ fn creates_obstacles_across_boundary_link() {
     .expect("Validation succeeds"),
   );
 
+  let island_id_1 = IslandId(1);
+  let island_id_2 = IslandId(2);
+
   let mut nav_data = NavigationData::new();
-  nav_data.islands.insert(1, {
+  nav_data.islands.insert(island_id_1, {
     let mut island = Island::new();
     island.set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
@@ -356,7 +367,7 @@ fn creates_obstacles_across_boundary_link() {
     );
     island
   });
-  nav_data.islands.insert(2, {
+  nav_data.islands.insert(island_id_2, {
     let mut island = Island::new();
     island.set_nav_mesh(
       Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
@@ -369,7 +380,10 @@ fn creates_obstacles_across_boundary_link() {
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
-      (Vec3::new(2.5, 1.0, 1.5), NodeRef { island_id: 2, polygon_index: 0 }),
+      (
+        Vec3::new(2.5, 1.0, 1.5),
+        NodeRef { island_id: island_id_2, polygon_index: 0 }
+      ),
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
@@ -399,6 +413,8 @@ fn applies_no_avoidance_for_far_agents() {
   const AGENT_1: AgentId = AgentId(1);
   const AGENT_2: AgentId = AgentId(2);
   const AGENT_3: AgentId = AgentId(3);
+
+  let island_id = IslandId(1);
 
   let mut agents = HashMap::new();
   agents.insert(AGENT_1, {
@@ -437,14 +453,14 @@ fn applies_no_avoidance_for_far_agents() {
     AGENT_1,
     (
       agents.get(&AGENT_1).unwrap().position,
-      NodeRef { island_id: 1, polygon_index: 0 },
+      NodeRef { island_id, polygon_index: 0 },
     ),
   );
   agent_id_to_agent_node.insert(
     AGENT_2,
     (
       agents.get(&AGENT_2).unwrap().position,
-      NodeRef { island_id: 1, polygon_index: 0 },
+      NodeRef { island_id, polygon_index: 0 },
     ),
   );
   // `AGENT_3` is not on a node.
@@ -463,7 +479,7 @@ fn applies_no_avoidance_for_far_agents() {
   .expect("Validation succeeded.");
 
   let mut nav_data = NavigationData::new();
-  nav_data.islands.insert(1, {
+  nav_data.islands.insert(island_id, {
     let mut island = Island::new();
     island.set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
@@ -499,6 +515,8 @@ fn applies_avoidance_for_two_agents() {
   const AGENT_1: AgentId = AgentId(1);
   const AGENT_2: AgentId = AgentId(2);
 
+  let island_id = IslandId(1);
+
   let mut agents = HashMap::new();
   agents.insert(AGENT_1, {
     let mut agent = Agent::create(
@@ -526,14 +544,14 @@ fn applies_avoidance_for_two_agents() {
     AGENT_1,
     (
       agents.get(&AGENT_1).unwrap().position,
-      NodeRef { island_id: 1, polygon_index: 0 },
+      NodeRef { island_id, polygon_index: 0 },
     ),
   );
   agent_id_to_agent_node.insert(
     AGENT_2,
     (
       agents.get(&AGENT_2).unwrap().position,
-      NodeRef { island_id: 1, polygon_index: 0 },
+      NodeRef { island_id, polygon_index: 0 },
     ),
   );
 
@@ -551,7 +569,7 @@ fn applies_avoidance_for_two_agents() {
   .expect("Validation succeeded.");
 
   let mut nav_data = NavigationData::new();
-  nav_data.islands.insert(1, {
+  nav_data.islands.insert(island_id, {
     let mut island = Island::new();
     island.set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
