@@ -212,35 +212,35 @@ fn octant_bounding_box_hierarchy() {
   let mut values = vec![
     (
       BoundingBox::new_box(Vec3::new(1.0, 1.0, 1.0), Vec3::new(4.0, 4.0, 4.0)),
-      0,
+      Some(0),
     ),
     (
       BoundingBox::new_box(Vec3::new(5.0, 1.0, 1.0), Vec3::new(8.0, 4.0, 4.0)),
-      1,
+      Some(1),
     ),
     (
       BoundingBox::new_box(Vec3::new(1.0, 5.0, 1.0), Vec3::new(4.0, 8.0, 4.0)),
-      2,
+      Some(2),
     ),
     (
       BoundingBox::new_box(Vec3::new(5.0, 5.0, 1.0), Vec3::new(8.0, 8.0, 4.0)),
-      3,
+      Some(3),
     ),
     (
       BoundingBox::new_box(Vec3::new(1.0, 1.0, 5.0), Vec3::new(4.0, 4.0, 8.0)),
-      4,
+      Some(4),
     ),
     (
       BoundingBox::new_box(Vec3::new(5.0, 1.0, 5.0), Vec3::new(8.0, 4.0, 8.0)),
-      5,
+      Some(5),
     ),
     (
       BoundingBox::new_box(Vec3::new(1.0, 5.0, 5.0), Vec3::new(4.0, 8.0, 8.0)),
-      6,
+      Some(6),
     ),
     (
       BoundingBox::new_box(Vec3::new(5.0, 5.0, 5.0), Vec3::new(8.0, 8.0, 8.0)),
-      7,
+      Some(7),
     ),
   ];
 
@@ -277,11 +277,11 @@ fn bounding_box_hierarchy_with_same_big_dimension() {
   let mut values = vec![
     (
       BoundingBox::new_box(Vec3::new(1.0, 1.0, 1.0), Vec3::new(2.0, 2.0, 11.0)),
-      0,
+      Some(0),
     ),
     (
       BoundingBox::new_box(Vec3::new(4.0, 1.0, 1.0), Vec3::new(5.0, 2.0, 11.0)),
-      1,
+      Some(1),
     ),
   ];
 

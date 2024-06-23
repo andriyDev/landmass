@@ -230,15 +230,15 @@ pub enum BoundingBoxHierarchy<ValueType> {
 }
 
 impl<ValueType> BoundingBoxHierarchy<ValueType> {
-  pub fn new(values: &mut [(BoundingBox, ValueType)]) -> Self
-  where
-    ValueType: Default,
-  {
+  /// Creates a hierarchy from values and their bounding boxes. The values are
+  /// all expected to be Some, and the values will be moved into the hierarchy
+  /// (leaving behind None).
+  pub fn new(values: &mut [(BoundingBox, Option<ValueType>)]) -> Self {
     assert!(!values.is_empty());
     if values.len() == 1 {
-      let mut value = (BoundingBox::Empty, ValueType::default());
+      let mut value = (BoundingBox::Empty, None);
       swap(&mut values[0], &mut value);
-      return Self::Leaf { bounds: value.0, value: value.1 };
+      return Self::Leaf { bounds: value.0, value: value.1.unwrap() };
     }
 
     let bounding_box = values
