@@ -370,6 +370,14 @@ fn computes_and_follows_path() {
     Vec3::ZERO
   );
 
+  assert_eq!(archipelago.get_pathing_results().len(), 2);
+  let path_result_1 = archipelago.get_pathing_results()[0];
+  let path_result_2 = archipelago.get_pathing_results()[1];
+  assert_eq!(path_result_1.success, true);
+  assert_eq!(path_result_2.success, true);
+  assert!(path_result_1.explored_nodes > 0);
+  assert!(path_result_2.explored_nodes > 0);
+
   // Move agent_1 forward.
   archipelago.get_agent_mut(agent_1).position = Vec3::new(2.5, 1.0, 1.5);
   archipelago.update(/* delta_time= */ 0.01);
