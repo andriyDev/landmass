@@ -13,6 +13,7 @@ mod util;
 
 use path::PathIndex;
 use rand::Rng;
+use slotmap::HopSlotMap;
 use std::collections::{HashMap, HashSet};
 
 use nav_data::{BoundaryLinkId, NavigationData, NodeRef};
@@ -31,7 +32,7 @@ use crate::avoidance::apply_avoidance_to_agents;
 pub struct Archipelago {
   pub agent_options: AgentOptions,
   nav_data: NavigationData,
-  agents: HashMap<AgentId, Agent>,
+  agents: HopSlotMap<AgentId, Agent>,
   pathing_results: Vec<PathingResult>,
 }
 
@@ -65,37 +66,32 @@ impl Archipelago {
     Self {
       nav_data: NavigationData::new(),
       agent_options: AgentOptions::default(),
-      agents: HashMap::new(),
+      agents: HopSlotMap::with_key(),
       pathing_results: Vec::new(),
     }
   }
 
   pub fn add_agent(&mut self, agent: Agent) -> AgentId {
-    let mut rng = rand::thread_rng();
-
-    let agent_id = AgentId(rng.gen());
-    assert!(self.agents.insert(agent_id, agent).is_none());
-
-    agent_id
+    self.agents.insert(agent)
   }
 
   pub fn remove_agent(&mut self, agent_id: AgentId) {
     self
       .agents
-      .remove(&agent_id)
+      .remove(agent_id)
       .expect("Agent should be present in the archipelago");
   }
 
   pub fn get_agent(&self, agent_id: AgentId) -> &Agent {
-    self.agents.get(&agent_id).unwrap()
+    self.agents.get(agent_id).unwrap()
   }
 
   pub fn get_agent_mut(&mut self, agent_id: AgentId) -> &mut Agent {
-    self.agents.get_mut(&agent_id).unwrap()
+    self.agents.get_mut(agent_id).unwrap()
   }
 
   pub fn get_agent_ids(&self) -> impl ExactSizeIterator<Item = AgentId> + '_ {
-    self.agents.keys().copied()
+    self.agents.keys()
   }
 
   pub fn add_island(&mut self) -> IslandId {
@@ -151,9 +147,8 @@ impl Archipelago {
         None => continue,
         Some(node_and_point) => node_and_point,
       };
-      let inserted = agent_id_to_agent_node
-        .insert(*agent_id, agent_node_and_point)
-        .is_none();
+      let inserted =
+        agent_id_to_agent_node.insert(agent_id, agent_node_and_point).is_none();
       debug_assert!(inserted);
 
       if let Some(target) = agent.current_target {
@@ -166,7 +161,7 @@ impl Archipelago {
         };
 
         let inserted = agent_id_to_target_node
-          .insert(*agent_id, target_node_and_point)
+          .insert(agent_id, target_node_and_point)
           .is_none();
         debug_assert!(inserted);
       }
@@ -174,7 +169,7 @@ impl Archipelago {
 
     let mut agent_id_to_follow_path_indices = HashMap::new();
 
-    for (&agent_id, agent) in self.agents.iter_mut() {
+    for (agent_id, agent) in self.agents.iter_mut() {
       let agent_node = agent_id_to_agent_node
         .get(&agent_id)
         .map(|node_and_point| node_and_point.1);
@@ -256,16 +251,16 @@ impl Archipelago {
       };
 
       let agent_point = agent_id_to_agent_node
-        .get(agent_id)
+        .get(&agent_id)
         .expect("Agent has a path, so should have a valid start node")
         .0;
       let target_point = agent_id_to_target_node
-        .get(agent_id)
+        .get(&agent_id)
         .expect("Agent has a path, so should have a valid target node")
         .0;
 
       let &(agent_node_index_in_corridor, target_node_index_in_corridor) =
-        agent_id_to_follow_path_indices.get(agent_id).expect(
+        agent_id_to_follow_path_indices.get(&agent_id).expect(
           "Any agent with a path must have its follow path indices filled out.",
         );
 

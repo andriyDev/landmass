@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use glam::Vec3;
+use slotmap::HopSlotMap;
 
 use crate::{
   avoidance::apply_avoidance_to_agents, island::Island, nav_data::NodeRef,
@@ -410,14 +411,10 @@ fn creates_obstacles_across_boundary_link() {
 
 #[test]
 fn applies_no_avoidance_for_far_agents() {
-  const AGENT_1: AgentId = AgentId(1);
-  const AGENT_2: AgentId = AgentId(2);
-  const AGENT_3: AgentId = AgentId(3);
-
   let island_id = IslandId(1);
 
-  let mut agents = HashMap::new();
-  agents.insert(AGENT_1, {
+  let mut agents = HopSlotMap::<AgentId, _>::with_key();
+  let agent_1 = agents.insert({
     let mut agent = Agent::create(
       /* position= */ Vec3::new(1.0, 0.0, 1.0),
       /* velocity= */ Vec3::ZERO,
@@ -427,7 +424,7 @@ fn applies_no_avoidance_for_far_agents() {
     agent.current_desired_move = Vec3::new(1.0, 0.0, 0.0);
     agent
   });
-  agents.insert(AGENT_2, {
+  let agent_2 = agents.insert({
     let mut agent = Agent::create(
       /* position= */ Vec3::new(11.0, 0.0, 1.0),
       /* velocity= */ Vec3::ZERO,
@@ -437,7 +434,7 @@ fn applies_no_avoidance_for_far_agents() {
     agent.current_desired_move = Vec3::new(-1.0, 0.0, 0.0);
     agent
   });
-  agents.insert(AGENT_3, {
+  let agent_3 = agents.insert({
     let mut agent = Agent::create(
       /* position= */ Vec3::new(5.0, 0.0, 4.0),
       /* velocity= */ Vec3::ZERO,
@@ -450,20 +447,20 @@ fn applies_no_avoidance_for_far_agents() {
 
   let mut agent_id_to_agent_node = HashMap::new();
   agent_id_to_agent_node.insert(
-    AGENT_1,
+    agent_1,
     (
-      agents.get(&AGENT_1).unwrap().position,
+      agents.get(agent_1).unwrap().position,
       NodeRef { island_id, polygon_index: 0 },
     ),
   );
   agent_id_to_agent_node.insert(
-    AGENT_2,
+    agent_2,
     (
-      agents.get(&AGENT_2).unwrap().position,
+      agents.get(agent_2).unwrap().position,
       NodeRef { island_id, polygon_index: 0 },
     ),
   );
-  // `AGENT_3` is not on a node.
+  // `agent_3` is not on a node.
 
   let nav_mesh = NavigationMesh {
     mesh_bounds: None,
@@ -497,28 +494,25 @@ fn applies_no_avoidance_for_far_agents() {
   );
 
   assert_eq!(
-    agents.get(&AGENT_1).unwrap().get_desired_velocity(),
+    agents.get(agent_1).unwrap().get_desired_velocity(),
     Vec3::new(1.0, 0.0, 0.0)
   );
   assert_eq!(
-    agents.get(&AGENT_2).unwrap().get_desired_velocity(),
+    agents.get(agent_2).unwrap().get_desired_velocity(),
     Vec3::new(-1.0, 0.0, 0.0)
   );
   assert_eq!(
-    agents.get(&AGENT_3).unwrap().get_desired_velocity(),
+    agents.get(agent_3).unwrap().get_desired_velocity(),
     Vec3::new(0.0, 0.0, 1.0)
   );
 }
 
 #[test]
 fn applies_avoidance_for_two_agents() {
-  const AGENT_1: AgentId = AgentId(1);
-  const AGENT_2: AgentId = AgentId(2);
-
   let island_id = IslandId(1);
 
-  let mut agents = HashMap::new();
-  agents.insert(AGENT_1, {
+  let mut agents = HopSlotMap::<AgentId, _>::with_key();
+  let agent_1 = agents.insert({
     let mut agent = Agent::create(
       /* position= */ Vec3::new(1.0, 0.0, 1.0),
       /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
@@ -528,7 +522,7 @@ fn applies_avoidance_for_two_agents() {
     agent.current_desired_move = Vec3::new(1.0, 0.0, 0.0);
     agent
   });
-  agents.insert(AGENT_2, {
+  let agent_2 = agents.insert({
     let mut agent = Agent::create(
       /* position= */ Vec3::new(11.0, 0.0, 1.01),
       /* velocity= */ Vec3::new(-1.0, 0.0, 0.0),
@@ -541,16 +535,16 @@ fn applies_avoidance_for_two_agents() {
 
   let mut agent_id_to_agent_node = HashMap::new();
   agent_id_to_agent_node.insert(
-    AGENT_1,
+    agent_1,
     (
-      agents.get(&AGENT_1).unwrap().position,
+      agents.get(agent_1).unwrap().position,
       NodeRef { island_id, polygon_index: 0 },
     ),
   );
   agent_id_to_agent_node.insert(
-    AGENT_2,
+    agent_2,
     (
-      agents.get(&AGENT_2).unwrap().position,
+      agents.get(agent_2).unwrap().position,
       NodeRef { island_id, polygon_index: 0 },
     ),
   );
@@ -596,13 +590,13 @@ fn applies_avoidance_for_two_agents() {
   // over run of 1/5 or 0.2, which is our expected Z velocity. We derive the X
   // velocity by just making the length of the vector 1 (the agent's max speed).
   let agent_1_desired_velocity =
-    agents.get(&AGENT_1).unwrap().get_desired_velocity();
+    agents.get(agent_1).unwrap().get_desired_velocity();
   assert!(
     agent_1_desired_velocity.abs_diff_eq(Vec3::new(0.98, 0.0, -0.2), 0.05),
     "left={agent_1_desired_velocity}, right=Vec3(0.98, 0.0, -0.2)"
   );
   let agent_2_desired_velocity =
-    agents.get(&AGENT_2).unwrap().get_desired_velocity();
+    agents.get(agent_2).unwrap().get_desired_velocity();
   assert!(
     agent_2_desired_velocity.abs_diff_eq(Vec3::new(-0.98, 0.0, 0.2), 0.05),
     "left={agent_2_desired_velocity}, right=Vec3(-0.98, 0.0, 0.2)"

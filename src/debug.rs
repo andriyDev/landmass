@@ -123,7 +123,7 @@ pub fn draw_archipelago_debug(
     }
   }
 
-  for (&agent_id, agent) in archipelago.agents.iter() {
+  for (agent_id, agent) in archipelago.agents.iter() {
     debug_drawer.add_point(PointType::AgentPosition(agent_id), agent.position);
     if let Some(target) = agent.current_target {
       debug_drawer
