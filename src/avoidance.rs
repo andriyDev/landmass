@@ -137,6 +137,9 @@ fn nav_mesh_borders_to_dodgy_obstacles(
     }
   }
   impl Eq for ExploreNode {}
+  // Since we are comparing floats which are not Ord, it is more meaningful to
+  // impl PartialOrd, then unwrap in Ord.
+  #[allow(clippy::non_canonical_partial_ord_impl)]
   impl PartialOrd for ExploreNode {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
       other.score.partial_cmp(&self.score)
