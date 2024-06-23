@@ -73,7 +73,7 @@ impl Archipelago {
   pub fn add_agent(&mut self, agent: Agent) -> AgentId {
     let mut rng = rand::thread_rng();
 
-    let agent_id: AgentId = rng.gen();
+    let agent_id = AgentId(rng.gen());
     assert!(self.agents.insert(agent_id, agent).is_none());
 
     agent_id

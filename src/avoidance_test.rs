@@ -396,9 +396,9 @@ fn creates_obstacles_across_boundary_link() {
 
 #[test]
 fn applies_no_avoidance_for_far_agents() {
-  const AGENT_1: AgentId = 1;
-  const AGENT_2: AgentId = 2;
-  const AGENT_3: AgentId = 3;
+  const AGENT_1: AgentId = AgentId(1);
+  const AGENT_2: AgentId = AgentId(2);
+  const AGENT_3: AgentId = AgentId(3);
 
   let mut agents = HashMap::new();
   agents.insert(AGENT_1, {
@@ -496,8 +496,8 @@ fn applies_no_avoidance_for_far_agents() {
 
 #[test]
 fn applies_avoidance_for_two_agents() {
-  const AGENT_1: AgentId = 1;
-  const AGENT_2: AgentId = 2;
+  const AGENT_1: AgentId = AgentId(1);
+  const AGENT_2: AgentId = AgentId(2);
 
   let mut agents = HashMap::new();
   agents.insert(AGENT_1, {
