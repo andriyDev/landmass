@@ -57,12 +57,8 @@ pub fn draw_archipelago_debug(
       continue;
     };
 
-    for (polygon_index, (polygon, connectivity)) in nav_data
-      .nav_mesh
-      .polygons
-      .iter()
-      .zip(nav_data.nav_mesh.connectivity.iter())
-      .enumerate()
+    for (polygon_index, polygon) in
+      nav_data.nav_mesh.polygons.iter().enumerate()
     {
       let center_point = nav_data.transform.apply(polygon.center);
       for i in 0..polygon.vertices.len() {
@@ -81,7 +77,10 @@ pub fn draw_archipelago_debug(
         );
       }
 
-      for connection in connectivity.iter() {
+      for (edge_index, connection) in polygon.connectivity.iter().enumerate() {
+        let Some(connection) = connection.as_ref() else {
+          continue;
+        };
         // Ignore connections where the connected polygon has a greater index.
         // This prevents drawing the same edge multiple times by picking one of
         // the edges to draw.
@@ -89,7 +88,7 @@ pub fn draw_archipelago_debug(
           continue;
         }
 
-        let i = connection.edge_index;
+        let i = edge_index;
         let j = (i + 1) % polygon.vertices.len();
 
         let i = polygon.vertices[i];

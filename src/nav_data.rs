@@ -272,13 +272,6 @@ impl NavigationData {
     };
 
     let polygon = &island_nav_data.nav_mesh.polygons[node_ref.polygon_index];
-    let connectivity =
-      &island_nav_data.nav_mesh.connectivity[node_ref.polygon_index];
-
-    let connected_edges = connectivity
-      .iter()
-      .map(|connectivity| connectivity.edge_index)
-      .collect::<HashSet<usize>>();
 
     fn vec2_to_coord(v: Vec2) -> Coord<f32> {
       Coord::from((v.x, v.y))
@@ -301,7 +294,7 @@ impl NavigationData {
     let mut current_line_string = vec![];
 
     for (i, vertex) in polygon.vertices.iter().copied().enumerate() {
-      if connected_edges.contains(&i) {
+      if polygon.connectivity[i].is_some() {
         if !current_line_string.is_empty() {
           let mut line_string = vec![];
           swap(&mut current_line_string, &mut line_string);

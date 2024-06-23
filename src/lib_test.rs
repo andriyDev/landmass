@@ -476,7 +476,6 @@ fn new_or_changed_island_is_not_dirty_after_update() {
     Arc::new(ValidNavigationMesh {
       mesh_bounds: BoundingBox::Empty,
       boundary_edges: vec![],
-      connectivity: vec![],
       polygons: vec![],
       vertices: vec![],
     }),

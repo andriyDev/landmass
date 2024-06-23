@@ -76,6 +76,7 @@ fn polygons_derived_and_vertices_copied() {
   let expected_polygons = vec![
     ValidPolygon {
       vertices: source_mesh.polygons[0].clone(),
+      connectivity: vec![None, None, None],
       bounds: BoundingBox::new_box(
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(2.0, 1.0, 1.0),
@@ -84,6 +85,7 @@ fn polygons_derived_and_vertices_copied() {
     },
     ValidPolygon {
       vertices: source_mesh.polygons[1].clone(),
+      connectivity: vec![None, None, None],
       bounds: BoundingBox::new_box(
         Vec3::new(0.25, -0.25, 3.0),
         Vec3::new(0.75, 0.5, 4.0),
@@ -257,13 +259,7 @@ fn derives_connectivity_and_boundary_edges() {
   let mut valid_mesh =
     source_mesh.clone().validate().expect("Validation succeeds.");
 
-  // Sort connectivity and boundary edges to ensure the order is consistent
-  // when comparing.
-  for connectivity in valid_mesh.connectivity.iter_mut() {
-    connectivity.sort_by_key(|connectivity| {
-      connectivity.polygon_index * 100 + connectivity.edge_index
-    });
-  }
+  // Sort boundary edges to ensure the order is consistent when comparing.
   valid_mesh.boundary_edges.sort_by_key(|boundary_edge| {
     boundary_edge.polygon_index * 100 + boundary_edge.edge_index
   });
@@ -278,16 +274,24 @@ fn derives_connectivity_and_boundary_edges() {
     0.5 + Vec3::new(1.5, 0.5, 1.5).distance(Vec3::new(1.5, 0.0, 1.0));
 
   let expected_connectivity: [&[_]; 4] = [
-    &[Connectivity { edge_index: 1, polygon_index: 1, cost: cost_01 }],
+    &[None, Some(Connectivity { polygon_index: 1, cost: cost_01 }), None],
     &[
-      Connectivity { edge_index: 3, polygon_index: 0, cost: cost_01 },
-      Connectivity { edge_index: 1, polygon_index: 2, cost: cost_12 },
-      Connectivity { edge_index: 2, polygon_index: 3, cost: cost_13 },
+      None,
+      Some(Connectivity { polygon_index: 2, cost: cost_12 }),
+      Some(Connectivity { polygon_index: 3, cost: cost_13 }),
+      Some(Connectivity { polygon_index: 0, cost: cost_01 }),
     ],
-    &[Connectivity { edge_index: 3, polygon_index: 1, cost: cost_12 }],
-    &[Connectivity { edge_index: 0, polygon_index: 1, cost: cost_13 }],
+    &[None, None, None, Some(Connectivity { polygon_index: 1, cost: cost_12 })],
+    &[Some(Connectivity { polygon_index: 1, cost: cost_13 }), None, None, None],
   ];
-  assert_eq!(valid_mesh.connectivity, expected_connectivity);
+  assert_eq!(
+    valid_mesh
+      .polygons
+      .iter()
+      .map(|polygon| polygon.connectivity.clone())
+      .collect::<Vec<_>>(),
+    expected_connectivity
+  );
   assert_eq!(
     valid_mesh.boundary_edges,
     [
@@ -518,6 +522,7 @@ fn valid_polygon_gets_edge_indices() {
   let polygon = ValidPolygon {
     bounds: BoundingBox::Empty,
     vertices: vec![1, 3, 9, 2, 7],
+    connectivity: vec![],
     center: Vec3::ZERO,
   };
 

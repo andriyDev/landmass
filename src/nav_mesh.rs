@@ -144,7 +144,7 @@ impl NavigationMesh {
       }
     }
 
-    let polygons = self
+    let mut polygons = self
       .polygons
       .drain(..)
       .map(|polygon_vertices| ValidPolygon {
@@ -158,11 +158,11 @@ impl NavigationMesh {
           .map(|i| self.vertices[*i])
           .sum::<Vec3>()
           / polygon_vertices.len() as f32,
+        connectivity: vec![None; polygon_vertices.len()],
         vertices: polygon_vertices,
       })
       .collect::<Vec<_>>();
 
-    let mut connectivity = vec![Vec::new(); polygons.len()];
     let mut boundary_edges = Vec::new();
     for connectivity_state in connectivity_set.values() {
       match connectivity_state {
@@ -182,16 +182,10 @@ impl NavigationMesh {
             (self.vertices[edge.0] + self.vertices[edge.1]) / 2.0;
           let cost = polygons[polygon_1].center.distance(edge_center)
             + polygons[polygon_2].center.distance(edge_center);
-          connectivity[polygon_1].push(Connectivity {
-            edge_index: edge_1,
-            polygon_index: polygon_2,
-            cost,
-          });
-          connectivity[polygon_2].push(Connectivity {
-            edge_index: edge_2,
-            polygon_index: polygon_1,
-            cost,
-          });
+          polygons[polygon_1].connectivity[edge_1] =
+            Some(Connectivity { polygon_index: polygon_2, cost });
+          polygons[polygon_2].connectivity[edge_2] =
+            Some(Connectivity { polygon_index: polygon_1, cost });
         }
       }
     }
@@ -200,7 +194,6 @@ impl NavigationMesh {
       mesh_bounds: self.mesh_bounds.unwrap(),
       polygons,
       vertices: self.vertices,
-      connectivity,
       boundary_edges,
     })
   }
@@ -217,9 +210,6 @@ pub struct ValidNavigationMesh {
   pub(crate) vertices: Vec<Vec3>,
   /// The polygons of the mesh.
   pub(crate) polygons: Vec<ValidPolygon>,
-  /// The connectivity for each polygon. Each polygon has a Vec of the pairs
-  /// of (edge index, node index).
-  pub(crate) connectivity: Vec<Vec<Connectivity>>,
   /// The boundary edges in the navigation mesh. Edges are stored as pairs of
   /// vertices in a counter-clockwise direction. That is, moving along an edge
   /// (e.0, e.1) from e.0 to e.1 will move counter-clockwise along the
@@ -234,15 +224,19 @@ pub(crate) struct ValidPolygon {
   /// The vertices are indexes to the `vertices` Vec of the corresponding
   /// ValidNavigationMesh.
   pub(crate) vertices: Vec<usize>,
+  /// The connectivity of each edge in the polygon. This is the same length as
+  /// the number of edges (which is equivalent to `self.vertices.len()`).
+  /// Entries that are `None` correspond to the boundary of the navigation
+  /// mesh, while `Some` entries are connected to another node.
+  pub(crate) connectivity: Vec<Option<Connectivity>>,
   /// The bounding box of `vertices`.
   pub(crate) bounds: BoundingBox,
+  /// The center of the polygon.
   pub(crate) center: Vec3,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Connectivity {
-  /// The index of the edge within the polygon.
-  pub edge_index: usize,
   /// The index of the polygon that this edge leads to.
   pub polygon_index: usize,
   /// The cost of travelling across this connection.
