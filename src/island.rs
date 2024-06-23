@@ -3,7 +3,8 @@ use std::sync::Arc;
 use crate::{util::Transform, BoundingBox, ValidNavigationMesh};
 
 /// The ID of an island.
-pub type IslandId = u32;
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
+pub struct IslandId(pub(crate) u32);
 
 /// An Island in an Archipelago. Islands are the region that an navigation mesh
 /// can be put into.

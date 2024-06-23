@@ -101,7 +101,7 @@ impl Archipelago {
   pub fn add_island(&mut self) -> IslandId {
     let mut rng = rand::thread_rng();
 
-    let island_id: IslandId = rng.gen();
+    let island_id = IslandId(rng.gen());
     assert!(self.nav_data.islands.insert(island_id, Island::new()).is_none());
 
     island_id
