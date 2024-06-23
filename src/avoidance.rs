@@ -79,7 +79,7 @@ pub(crate) fn apply_avoidance_to_agents(
       .collect::<Vec<_>>();
 
     let mut nearby_obstacles = nav_mesh_borders_to_dodgy_obstacles(
-      agent_node.clone(),
+      *agent_node,
       nav_data,
       agent_options.neighbourhood,
     );
@@ -89,7 +89,7 @@ pub(crate) fn apply_avoidance_to_agents(
       &nearby_agents,
       &nearby_obstacles
         .drain(..)
-        .map(|obstacle| std::borrow::Cow::Owned(obstacle))
+        .map(std::borrow::Cow::Owned)
         .collect::<Vec<_>>(),
       to_dodgy_vec2(agent.current_desired_move.xz()),
       agent.max_velocity,

@@ -152,7 +152,7 @@ impl Archipelago {
         Some(node_and_point) => node_and_point,
       };
       let inserted = agent_id_to_agent_node
-        .insert(*agent_id, agent_node_and_point.clone())
+        .insert(*agent_id, agent_node_and_point)
         .is_none();
       debug_assert!(inserted);
 
@@ -177,10 +177,10 @@ impl Archipelago {
     for (&agent_id, agent) in self.agents.iter_mut() {
       let agent_node = agent_id_to_agent_node
         .get(&agent_id)
-        .map(|node_and_point| node_and_point.1.clone());
+        .map(|node_and_point| node_and_point.1);
       let target_node = agent_id_to_target_node
         .get(&agent_id)
-        .map(|node_and_point| node_and_point.1.clone());
+        .map(|node_and_point| node_and_point.1);
       match does_agent_need_repath(
         agent,
         agent_node,
@@ -303,6 +303,12 @@ impl Archipelago {
   }
 }
 
+impl Default for Archipelago {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 /// The result of path finding.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PathingResult {
@@ -332,7 +338,7 @@ fn does_agent_need_repath(
   invalidated_boundary_links: &HashSet<BoundaryLinkId>,
   invalidated_islands: &HashSet<IslandId>,
 ) -> RepathResult {
-  if let None = agent.current_target {
+  if agent.current_target.is_none() {
     if agent.current_path.is_some() {
       return RepathResult::ClearPathNoTarget;
     } else {
