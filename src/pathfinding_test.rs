@@ -455,3 +455,63 @@ fn finds_path_across_different_islands() {
     }
   );
 }
+
+#[test]
+fn aborts_early_for_unconnected_regions() {
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      mesh_bounds: None,
+      vertices: vec![
+        Vec3::new(-0.5, 0.0, -1.5),
+        Vec3::new(0.5, 0.0, -1.5),
+        Vec3::new(0.5, 0.0, 1.5),
+        Vec3::new(-0.5, 0.0, 1.5),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+    }
+    .validate()
+    .expect("Mesh is valid."),
+  );
+
+  let mut archipelago = Archipelago::new();
+  let island_id_1 = archipelago.add_island();
+  let island_id_2 = archipelago.add_island();
+  let island_id_3 = archipelago.add_island();
+
+  archipelago.get_island_mut(island_id_1).set_nav_mesh(
+    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    nav_mesh.clone(),
+  );
+  archipelago.get_island_mut(island_id_2).set_nav_mesh(
+    Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
+    nav_mesh.clone(),
+  );
+  archipelago.get_island_mut(island_id_3).set_nav_mesh(
+    Transform { translation: Vec3::new(1.5, 0.0, 2.0), rotation: PI * 0.5 },
+    nav_mesh.clone(),
+  );
+
+  archipelago.update(1.0);
+
+  // Verify that with island_id_3, the islands are connected.
+  let _ = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id: island_id_1, polygon_index: 0 },
+    NodeRef { island_id: island_id_2, polygon_index: 0 },
+  )
+  .expect("the path is connected");
+
+  // Remove island_id_3 which will disconnect the other two islands.
+  archipelago.remove_island(island_id_3);
+  archipelago.update(1.0);
+
+  let path_stats = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id: island_id_1, polygon_index: 0 },
+    NodeRef { island_id: island_id_2, polygon_index: 0 },
+  )
+  .expect_err("the path is not connected");
+
+  assert_eq!(path_stats.explored_nodes, 0,
+    "No nodes should have been explored since the regions are completely disconnected.");
+}

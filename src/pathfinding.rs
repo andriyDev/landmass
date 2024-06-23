@@ -96,6 +96,7 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
 }
 
 /// The results of pathfinding.
+#[derive(Debug)]
 pub(crate) struct PathResult {
   /// Statistics about the pathfinding process.
   pub(crate) stats: PathStats,
@@ -110,6 +111,10 @@ pub(crate) fn find_path(
   start_node: NodeRef,
   end_node: NodeRef,
 ) -> Result<PathResult, PathStats> {
+  if !nav_data.are_nodes_connected(start_node, end_node) {
+    return Err(PathStats { explored_nodes: 0 });
+  }
+
   let path_problem = ArchipelagoPathProblem {
     nav_data,
     start_node: start_node.clone(),

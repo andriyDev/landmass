@@ -445,31 +445,58 @@ impl NavigationData {
     }
   }
 
+  fn node_to_region_id(&self, node_ref: NodeRef) -> (IslandId, usize) {
+    let region = self
+      .islands
+      .get(&node_ref.island_id)
+      .unwrap()
+      .nav_data
+      .as_ref()
+      .unwrap()
+      .nav_mesh
+      .polygons[node_ref.polygon_index]
+      .region;
+    (node_ref.island_id, region)
+  }
+
+  /// Determines whether `node_1` and `node_2` can be connected by some path.
+  pub fn are_nodes_connected(&self, node_1: NodeRef, node_2: NodeRef) -> bool {
+    let region_id_1 = self.node_to_region_id(node_1);
+    let region_id_2 = self.node_to_region_id(node_2);
+    if region_id_1 == region_id_2 {
+      // The regions are the same, so they are definitely connected. Skip all
+      // the rest of the work.
+      return true;
+    }
+
+    let Some(&region_number_1) = self.region_id_to_number.get(&region_id_1)
+    else {
+      // If the requested region is not in the `region_id_to_number` map, it is
+      // not connected to any other region by a boundary link. Therefore, the
+      // regions are unconnected.
+      return false;
+    };
+
+    let Some(&region_number_2) = self.region_id_to_number.get(&region_id_2)
+    else {
+      // Same reasoning as above.
+      return false;
+    };
+
+    self.region_connections.is_joined(region_number_1, region_number_2)
+  }
+
   fn update_regions(&mut self) {
     self.region_id_to_number.clear();
     self.region_connections = DisjointSet::new();
-
-    let node_ref_to_region_id = |node_ref: NodeRef| {
-      let region = self
-        .islands
-        .get(&node_ref.island_id)
-        .unwrap()
-        .nav_data
-        .as_ref()
-        .unwrap()
-        .nav_mesh
-        .polygons[node_ref.polygon_index]
-        .region;
-      (node_ref.island_id, region)
-    };
 
     for (node_ref, link) in
       self.boundary_links.iter().flat_map(|(&node_ref, links)| {
         links.values().map(move |link| (node_ref, link))
       })
     {
-      let start_region = node_ref_to_region_id(node_ref);
-      let end_region = node_ref_to_region_id(link.destination_node);
+      let start_region = self.node_to_region_id(node_ref);
+      let end_region = self.node_to_region_id(link.destination_node);
 
       let start_region =
         *self.region_id_to_number.entry(start_region).or_insert_with(|| {
