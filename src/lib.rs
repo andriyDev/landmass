@@ -95,21 +95,11 @@ impl Archipelago {
   }
 
   pub fn add_island(&mut self) -> IslandId {
-    let mut rng = rand::thread_rng();
-
-    let island_id = IslandId(rng.gen());
-    assert!(self.nav_data.islands.insert(island_id, Island::new()).is_none());
-
-    island_id
+    self.nav_data.add_island()
   }
 
   pub fn remove_island(&mut self, island_id: IslandId) {
-    self
-      .nav_data
-      .islands
-      .remove(&island_id)
-      .expect("Island should be present in the Archipelago");
-    self.nav_data.deleted_islands.insert(island_id);
+    self.nav_data.remove_island(island_id)
   }
 
   pub fn get_island(&self, island_id: IslandId) -> &Island {
