@@ -77,6 +77,7 @@ fn polygons_derived_and_vertices_copied() {
     ValidPolygon {
       vertices: source_mesh.polygons[0].clone(),
       connectivity: vec![None, None, None],
+      region: 0,
       bounds: BoundingBox::new_box(
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(2.0, 1.0, 1.0),
@@ -86,6 +87,7 @@ fn polygons_derived_and_vertices_copied() {
     ValidPolygon {
       vertices: source_mesh.polygons[1].clone(),
       connectivity: vec![None, None, None],
+      region: 1,
       bounds: BoundingBox::new_box(
         Vec3::new(0.25, -0.25, 3.0),
         Vec3::new(0.75, 0.5, 4.0),
@@ -309,6 +311,44 @@ fn derives_connectivity_and_boundary_edges() {
 }
 
 #[test]
+fn finds_regions() {
+  let mesh = NavigationMesh {
+    mesh_bounds: None,
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 1.0),
+      Vec3::new(0.0, 0.0, 1.0),
+      Vec3::new(1.0, 0.0, 2.0),
+      Vec3::new(0.0, 0.0, 2.0),
+      Vec3::new(1.0, 0.0, 3.0),
+      Vec3::new(0.0, 0.0, 3.0),
+      //
+      Vec3::new(2.0, 0.0, 0.0),
+      Vec3::new(3.0, 0.0, 0.0),
+      Vec3::new(3.0, 0.0, 1.0),
+      Vec3::new(2.0, 0.0, 1.0),
+      Vec3::new(3.0, 0.0, 2.0),
+      Vec3::new(2.0, 0.0, 2.0),
+    ],
+    polygons: vec![
+      vec![0, 1, 2, 3],
+      vec![3, 2, 4, 5],
+      vec![5, 4, 6, 7],
+      vec![8, 9, 10, 11],
+      vec![11, 10, 12, 13],
+    ],
+  }
+  .validate()
+  .expect("Mesh is valid.");
+
+  assert_eq!(
+    mesh.polygons.iter().map(|polygon| polygon.region).collect::<Vec<_>>(),
+    [0, 0, 0, 1, 1],
+  );
+}
+
+#[test]
 fn sample_point_returns_none_for_far_point() {
   let mesh = NavigationMesh {
     mesh_bounds: None,
@@ -522,6 +562,7 @@ fn valid_polygon_gets_edge_indices() {
   let polygon = ValidPolygon {
     bounds: BoundingBox::Empty,
     vertices: vec![1, 3, 9, 2, 7],
+    region: 0,
     connectivity: vec![],
     center: Vec3::ZERO,
   };

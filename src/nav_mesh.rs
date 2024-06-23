@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use disjoint::DisjointSet;
 use glam::{swizzles::Vec3Swizzles, Vec3};
 
 use crate::BoundingBox;
@@ -53,6 +54,8 @@ impl NavigationMesh {
           acc.expand_to_point(vertex)
         }));
     }
+
+    let mut region_sets = DisjointSet::with_len(self.polygons.len());
 
     enum ConnectivityState {
       Disconnected,
@@ -121,6 +124,7 @@ impl NavigationMesh {
               polygon_2: polygon_index,
               edge_2: i,
             };
+            region_sets.join(polygon_1, polygon_index);
           }
           ConnectivityState::Connected { .. } => {
             return Err(ValidationError::DoublyConnectedEdge(edge.0, edge.1));
@@ -144,10 +148,13 @@ impl NavigationMesh {
       }
     }
 
+    let mut region_to_normalized_region = HashMap::new();
+
     let mut polygons = self
       .polygons
       .drain(..)
-      .map(|polygon_vertices| ValidPolygon {
+      .enumerate()
+      .map(|(polygon_index, polygon_vertices)| ValidPolygon {
         bounds: polygon_vertices
           .iter()
           .fold(BoundingBox::Empty, |bounds, vertex| {
@@ -160,6 +167,17 @@ impl NavigationMesh {
           / polygon_vertices.len() as f32,
         connectivity: vec![None; polygon_vertices.len()],
         vertices: polygon_vertices,
+        region: {
+          let region = region_sets.root_of(polygon_index);
+          // Get around the borrow checker by deciding on the new normalized
+          // region beforehand.
+          let new_normalized_region = region_to_normalized_region.len();
+          // Either lookup the existing normalized region or insert the next
+          // unique index.
+          *region_to_normalized_region
+            .entry(region)
+            .or_insert_with(|| new_normalized_region)
+        },
       })
       .collect::<Vec<_>>();
 
@@ -229,6 +247,11 @@ pub(crate) struct ValidPolygon {
   /// Entries that are `None` correspond to the boundary of the navigation
   /// mesh, while `Some` entries are connected to another node.
   pub(crate) connectivity: Vec<Option<Connectivity>>,
+  /// The "region" that this polygon belongs to. Each region is disjoint from
+  /// every other. A "direct" path only exists if the region matches between
+  /// two nodes. An "indirect" path exists if regions are joined together
+  /// through boundary links.
+  pub(crate) region: usize,
   /// The bounding box of `vertices`.
   pub(crate) bounds: BoundingBox,
   /// The center of the polygon.
