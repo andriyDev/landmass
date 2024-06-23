@@ -61,6 +61,9 @@ impl PartialEq for NodeRef {
 
 impl Eq for NodeRef {}
 
+// Since we are comparing floats which are not Ord, it is more meaningful to
+// impl PartialOrd, then unwrap in Ord.
+#[allow(clippy::non_canonical_partial_ord_impl)]
 impl PartialOrd for NodeRef {
   fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
     match self.estimate.partial_cmp(&other.estimate) {
