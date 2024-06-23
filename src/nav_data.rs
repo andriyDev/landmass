@@ -92,6 +92,26 @@ impl NavigationData {
     }
   }
 
+  /// Adds a new (empty) island to the navigation data.
+  pub fn add_island(&mut self) -> IslandId {
+    let mut rng = rand::thread_rng();
+
+    let island_id = IslandId(rng.gen());
+    assert!(self.islands.insert(island_id, Island::new()).is_none());
+
+    island_id
+  }
+
+  /// Removes the island with `island_id`. Panics if the island ID is not in the
+  /// navigation data.
+  pub fn remove_island(&mut self, island_id: IslandId) {
+    self
+      .islands
+      .remove(&island_id)
+      .expect("Island should be present in the Archipelago");
+    self.deleted_islands.insert(island_id);
+  }
+
   /// Finds the node nearest to (and within `distance_to_node` of) `point`.
   /// Returns the point on the nav data nearest to `point` and the reference to
   /// the corresponding node.
