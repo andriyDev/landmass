@@ -32,6 +32,7 @@ pub struct Archipelago {
   pub agent_options: AgentOptions,
   nav_data: NavigationData,
   agents: HashMap<AgentId, Agent>,
+  pathing_results: Vec<PathingResult>,
 }
 
 /// Options that apply to all agents
@@ -65,6 +66,7 @@ impl Archipelago {
       nav_data: NavigationData::new(),
       agent_options: AgentOptions::default(),
       agents: HashMap::new(),
+      pathing_results: Vec::new(),
     }
   }
 
@@ -126,7 +128,14 @@ impl Archipelago {
     self.nav_data.islands.keys().copied()
   }
 
+  /// Gets the pathing results from the last [`Self::update`] call.
+  pub fn get_pathing_results(&self) -> &[PathingResult] {
+    &self.pathing_results
+  }
+
   pub fn update(&mut self, delta_time: f32) {
+    self.pathing_results.clear();
+
     // TODO: make the edge_link_distance configurable.
     let (invalidated_boundary_links, invalidated_islands) =
       self.nav_data.update(/* edge_link_distance= */ 0.01);
@@ -165,12 +174,12 @@ impl Archipelago {
 
     let mut agent_id_to_follow_path_indices = HashMap::new();
 
-    for (agent_id, agent) in self.agents.iter_mut() {
+    for (&agent_id, agent) in self.agents.iter_mut() {
       let agent_node = agent_id_to_agent_node
-        .get(agent_id)
+        .get(&agent_id)
         .map(|node_and_point| node_and_point.1.clone());
       let target_node = agent_id_to_target_node
-        .get(agent_id)
+        .get(&agent_id)
         .map(|node_and_point| node_and_point.1.clone());
       match does_agent_need_repath(
         agent,
@@ -185,7 +194,7 @@ impl Archipelago {
           target_node_in_corridor,
         ) => {
           agent_id_to_follow_path_indices.insert(
-            *agent_id,
+            agent_id,
             (agent_node_in_corridor, target_node_in_corridor),
           );
         }
@@ -209,15 +218,27 @@ impl Archipelago {
             agent_node.unwrap(),
             target_node.unwrap(),
           ) {
-            Err(_) => {
+            Err(stats) => {
               agent.state = AgentState::NoPath;
+              self.pathing_results.push(PathingResult {
+                agent: agent_id,
+                success: false,
+                explored_nodes: stats.explored_nodes,
+              });
               continue;
             }
-            Ok(pathfinding::PathResult { path, .. }) => path,
+            Ok(pathfinding::PathResult { path, stats }) => {
+              self.pathing_results.push(PathingResult {
+                agent: agent_id,
+                success: true,
+                explored_nodes: stats.explored_nodes,
+              });
+              path
+            }
           };
 
           agent_id_to_follow_path_indices.insert(
-            *agent_id,
+            agent_id,
             (PathIndex::from_corridor_index(0, 0), new_path.last_index()),
           );
           agent.current_path = Some(new_path);
@@ -280,6 +301,18 @@ impl Archipelago {
       delta_time,
     );
   }
+}
+
+/// The result of path finding.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PathingResult {
+  /// The agent that searched for the path.
+  pub agent: AgentId,
+  /// Whether the pathing succeeded or failed.
+  pub success: bool,
+  /// The number of "nodes" explored while finding the path. Note this may be
+  /// zero if the start and end point are known to be disconnected.
+  pub explored_nodes: u32,
 }
 
 #[derive(PartialEq, Eq, Debug)]
