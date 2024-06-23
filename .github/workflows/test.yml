@@ -55,3 +55,15 @@ jobs:
           submodules: true
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo clippy -- -D warnings
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly # Remove this once wrap_comments is stabilized.
+          components: rustfmt # and this.
+      - run: cargo fmt --all -- --check
