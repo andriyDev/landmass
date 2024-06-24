@@ -1,6 +1,7 @@
 use std::{collections::HashSet, f32::consts::PI, sync::Arc};
 
 use glam::Vec3;
+use slotmap::HopSlotMap;
 
 use crate::{
   nav_data::{BoundaryLinkId, NavigationData, NodeRef},
@@ -274,31 +275,37 @@ fn starts_at_end_index_goes_to_end_point() {
 
 #[test]
 fn path_not_valid_for_invalidated_islands_or_boundary_links() {
+  // Create an unused slotmap just to get `IslandId`s.
+  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let island_id_1 = slotmap.insert(0);
+  let island_id_2 = slotmap.insert(0);
+  let island_id_3 = slotmap.insert(0);
+
   let path = Path {
     island_segments: vec![
       IslandSegment {
-        island_id: IslandId(1),
+        island_id: island_id_1,
         corridor: vec![0],
         portal_edge_index: vec![],
       },
       IslandSegment {
-        island_id: IslandId(2),
+        island_id: island_id_2,
         corridor: vec![0, 1],
         portal_edge_index: vec![],
       },
       IslandSegment {
-        island_id: IslandId(3),
+        island_id: island_id_3,
         corridor: vec![0],
         portal_edge_index: vec![],
       },
     ],
     boundary_link_segments: vec![
       BoundaryLinkSegment {
-        starting_node: NodeRef { island_id: IslandId(1), polygon_index: 0 },
+        starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
         boundary_link: BoundaryLinkId(10),
       },
       BoundaryLinkSegment {
-        starting_node: NodeRef { island_id: IslandId(2), polygon_index: 1 },
+        starting_node: NodeRef { island_id: island_id_2, polygon_index: 1 },
         boundary_link: BoundaryLinkId(11),
       },
     ],
@@ -312,15 +319,15 @@ fn path_not_valid_for_invalidated_islands_or_boundary_links() {
   // Each island is invalidated.
   assert!(!path.is_valid(
     /* invalidated_boundary_links= */ &HashSet::new(),
-    /* invalidated_islands= */ &HashSet::from([IslandId(1)]),
+    /* invalidated_islands= */ &HashSet::from([island_id_1]),
   ));
   assert!(!path.is_valid(
     /* invalidated_boundary_links= */ &HashSet::new(),
-    /* invalidated_islands= */ &HashSet::from([IslandId(2)]),
+    /* invalidated_islands= */ &HashSet::from([island_id_2]),
   ));
   assert!(!path.is_valid(
     /* invalidated_boundary_links= */ &HashSet::new(),
-    /* invalidated_islands= */ &HashSet::from([IslandId(3)]),
+    /* invalidated_islands= */ &HashSet::from([island_id_3]),
   ));
 
   // Each boundary link is invalidated.
@@ -338,31 +345,38 @@ fn path_not_valid_for_invalidated_islands_or_boundary_links() {
 
 #[test]
 fn indices_in_path_are_found() {
+  // Create an unused slotmap just to get `IslandId`s.
+  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let island_id_1 = slotmap.insert(0);
+  let island_id_2 = slotmap.insert(0);
+  let island_id_3 = slotmap.insert(0);
+  let island_id_4 = slotmap.insert(0);
+
   let path = Path {
     island_segments: vec![
       IslandSegment {
-        island_id: IslandId(1),
+        island_id: island_id_1,
         corridor: vec![3],
         portal_edge_index: vec![],
       },
       IslandSegment {
-        island_id: IslandId(2),
+        island_id: island_id_2,
         corridor: vec![2, 1],
         portal_edge_index: vec![],
       },
       IslandSegment {
-        island_id: IslandId(3),
+        island_id: island_id_3,
         corridor: vec![0],
         portal_edge_index: vec![],
       },
     ],
     boundary_link_segments: vec![
       BoundaryLinkSegment {
-        starting_node: NodeRef { island_id: IslandId(1), polygon_index: 0 },
+        starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
         boundary_link: BoundaryLinkId(10),
       },
       BoundaryLinkSegment {
-        starting_node: NodeRef { island_id: IslandId(2), polygon_index: 1 },
+        starting_node: NodeRef { island_id: island_id_2, polygon_index: 1 },
         boundary_link: BoundaryLinkId(11),
       },
     ],
@@ -370,65 +384,72 @@ fn indices_in_path_are_found() {
 
   assert_eq!(
     path
-      .find_index_of_node(NodeRef { island_id: IslandId(3), polygon_index: 0 }),
+      .find_index_of_node(NodeRef { island_id: island_id_3, polygon_index: 0 }),
     Some(PathIndex { segment_index: 2, portal_index: 0 })
   );
   assert_eq!(
     path
-      .find_index_of_node(NodeRef { island_id: IslandId(1), polygon_index: 3 }),
+      .find_index_of_node(NodeRef { island_id: island_id_1, polygon_index: 3 }),
     Some(PathIndex { segment_index: 0, portal_index: 0 })
   );
   assert_eq!(
     path
-      .find_index_of_node(NodeRef { island_id: IslandId(2), polygon_index: 1 }),
+      .find_index_of_node(NodeRef { island_id: island_id_2, polygon_index: 1 }),
     Some(PathIndex { segment_index: 1, portal_index: 1 })
   );
 
   // Missing NodeRefs.
   assert_eq!(
     path
-      .find_index_of_node(NodeRef { island_id: IslandId(3), polygon_index: 3 }),
+      .find_index_of_node(NodeRef { island_id: island_id_3, polygon_index: 3 }),
     None
   );
   assert_eq!(
     path
-      .find_index_of_node(NodeRef { island_id: IslandId(1), polygon_index: 1 }),
+      .find_index_of_node(NodeRef { island_id: island_id_1, polygon_index: 1 }),
     None
   );
   assert_eq!(
     path
-      .find_index_of_node(NodeRef { island_id: IslandId(4), polygon_index: 4 }),
+      .find_index_of_node(NodeRef { island_id: island_id_4, polygon_index: 4 }),
     None
   );
 }
 
 #[test]
 fn indices_in_path_are_found_rev() {
+  // Create an unused slotmap just to get `IslandId`s.
+  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let island_id_1 = slotmap.insert(0);
+  let island_id_2 = slotmap.insert(0);
+  let island_id_3 = slotmap.insert(0);
+  let island_id_4 = slotmap.insert(0);
+
   let path = Path {
     island_segments: vec![
       IslandSegment {
-        island_id: IslandId(1),
+        island_id: island_id_1,
         corridor: vec![3],
         portal_edge_index: vec![],
       },
       IslandSegment {
-        island_id: IslandId(2),
+        island_id: island_id_2,
         corridor: vec![2, 1],
         portal_edge_index: vec![],
       },
       IslandSegment {
-        island_id: IslandId(3),
+        island_id: island_id_3,
         corridor: vec![0],
         portal_edge_index: vec![],
       },
     ],
     boundary_link_segments: vec![
       BoundaryLinkSegment {
-        starting_node: NodeRef { island_id: IslandId(1), polygon_index: 0 },
+        starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
         boundary_link: BoundaryLinkId(10),
       },
       BoundaryLinkSegment {
-        starting_node: NodeRef { island_id: IslandId(2), polygon_index: 1 },
+        starting_node: NodeRef { island_id: island_id_2, polygon_index: 1 },
         boundary_link: BoundaryLinkId(11),
       },
     ],
@@ -436,21 +457,21 @@ fn indices_in_path_are_found_rev() {
 
   assert_eq!(
     path.find_index_of_node_rev(NodeRef {
-      island_id: IslandId(3),
+      island_id: island_id_3,
       polygon_index: 0
     }),
     Some(PathIndex { segment_index: 2, portal_index: 0 })
   );
   assert_eq!(
     path.find_index_of_node_rev(NodeRef {
-      island_id: IslandId(1),
+      island_id: island_id_1,
       polygon_index: 3
     }),
     Some(PathIndex { segment_index: 0, portal_index: 0 })
   );
   assert_eq!(
     path.find_index_of_node_rev(NodeRef {
-      island_id: IslandId(2),
+      island_id: island_id_2,
       polygon_index: 1
     }),
     Some(PathIndex { segment_index: 1, portal_index: 1 })
@@ -459,21 +480,21 @@ fn indices_in_path_are_found_rev() {
   // Missing NodeRefs.
   assert_eq!(
     path.find_index_of_node_rev(NodeRef {
-      island_id: IslandId(3),
+      island_id: island_id_3,
       polygon_index: 3
     }),
     None
   );
   assert_eq!(
     path.find_index_of_node_rev(NodeRef {
-      island_id: IslandId(1),
+      island_id: island_id_1,
       polygon_index: 1
     }),
     None
   );
   assert_eq!(
     path.find_index_of_node_rev(NodeRef {
-      island_id: IslandId(4),
+      island_id: island_id_4,
       polygon_index: 4
     }),
     None

@@ -177,7 +177,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
     }
 
     let island_data =
-      nav_data.islands.get(&node.island_id).unwrap().nav_data.as_ref().unwrap();
+      nav_data.islands.get(node.island_id).unwrap().nav_data.as_ref().unwrap();
 
     let polygon = &island_data.nav_mesh.polygons[node.polygon_index];
     let boundary_links = nav_data.boundary_links.get(&node);
@@ -357,7 +357,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
       None => new_vertices[index],
       Some(island_id) => {
         let island_data =
-          nav_data.islands.get(&island_id).unwrap().nav_data.as_ref().unwrap();
+          nav_data.islands.get(island_id).unwrap().nav_data.as_ref().unwrap();
         vertex_index_to_dodgy_vec(island_data, index, glam::Vec2::ZERO)
       }
     };

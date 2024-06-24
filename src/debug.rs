@@ -156,7 +156,7 @@ fn draw_path(
         let island = archipelago
           .nav_data
           .islands
-          .get(&island_segment.island_id)
+          .get(island_segment.island_id)
           .expect("Island in corridor should be valid.");
         let nav_data = island
           .nav_data

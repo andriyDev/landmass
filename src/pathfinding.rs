@@ -43,7 +43,7 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
     &self,
     state: &Self::StateType,
   ) -> Vec<(f32, Self::ActionType, Self::StateType)> {
-    let island = self.nav_data.islands.get(&state.island_id).unwrap();
+    let island = self.nav_data.islands.get(state.island_id).unwrap();
     let nav_data = island.nav_data.as_ref().unwrap();
     let polygon = &nav_data.nav_mesh.polygons[state.polygon_index];
     let boundary_links = self
@@ -79,7 +79,7 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
     let island_nav_data = self
       .nav_data
       .islands
-      .get(&state.island_id)
+      .get(state.island_id)
       .unwrap()
       .nav_data
       .as_ref()
@@ -122,7 +122,7 @@ pub(crate) fn find_path(
     end_point: {
       let island_nav_data = nav_data
         .islands
-        .get(&end_node.island_id)
+        .get(end_node.island_id)
         .unwrap()
         .nav_data
         .as_ref()
@@ -153,7 +153,7 @@ pub(crate) fn find_path(
       PathStep::NodeConnection(edge_index) => {
         let nav_mesh = &nav_data
           .islands
-          .get(&last_segment.island_id)
+          .get(last_segment.island_id)
           .unwrap()
           .nav_data
           .as_ref()

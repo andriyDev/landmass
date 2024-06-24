@@ -1,10 +1,13 @@
 use std::sync::Arc;
 
+use slotmap::new_key_type;
+
 use crate::{util::Transform, BoundingBox, ValidNavigationMesh};
 
-/// The ID of an island.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
-pub struct IslandId(pub(crate) u32);
+new_key_type! {
+  /// The ID of an island.
+  pub struct IslandId;
+}
 
 /// An Island in an Archipelago. Islands are the region that an navigation mesh
 /// can be put into.

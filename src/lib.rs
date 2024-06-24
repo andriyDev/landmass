@@ -12,7 +12,6 @@ mod pathfinding;
 mod util;
 
 use path::PathIndex;
-use rand::Rng;
 use slotmap::HopSlotMap;
 use std::collections::{HashMap, HashSet};
 
@@ -103,15 +102,15 @@ impl Archipelago {
   }
 
   pub fn get_island(&self, island_id: IslandId) -> &Island {
-    self.nav_data.islands.get(&island_id).unwrap()
+    self.nav_data.islands.get(island_id).unwrap()
   }
 
   pub fn get_island_mut(&mut self, island_id: IslandId) -> &mut Island {
-    self.nav_data.islands.get_mut(&island_id).unwrap()
+    self.nav_data.islands.get_mut(island_id).unwrap()
   }
 
   pub fn get_island_ids(&self) -> impl ExactSizeIterator<Item = IslandId> + '_ {
-    self.nav_data.islands.keys().copied()
+    self.nav_data.islands.keys()
   }
 
   /// Gets the pathing results from the last [`Self::update`] call.
