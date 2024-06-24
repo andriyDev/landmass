@@ -7,6 +7,7 @@ use std::{
 
 use glam::{Vec2, Vec3};
 use rand::thread_rng;
+use slotmap::HopSlotMap;
 
 use crate::{
   island::Island,
@@ -40,28 +41,24 @@ fn samples_points() {
   .expect("is valid");
   let nav_mesh = Arc::new(nav_mesh);
 
-  let mut islands = HashMap::new();
-
-  let mut island_1 = Island::new();
-  island_1.set_nav_mesh(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::clone(&nav_mesh),
-  );
-
-  let mut island_2 = Island::new();
-  island_2.set_nav_mesh(
-    Transform { translation: Vec3::new(5.0, 0.1, 0.0), rotation: PI * -0.5 },
-    Arc::clone(&nav_mesh),
-  );
-
-  let island_id_1 = IslandId(1);
-  let island_id_2 = IslandId(2);
-
-  islands.insert(island_id_1, island_1);
-  islands.insert(island_id_2, island_2);
-
   let mut nav_data = NavigationData::new();
-  nav_data.islands = islands;
+  let island_id_1 = nav_data.islands.insert({
+    let mut island = Island::new();
+    island.set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      Arc::clone(&nav_mesh),
+    );
+    island
+  });
+  let island_id_2 = nav_data.islands.insert({
+    let mut island = Island::new();
+    island.set_nav_mesh(
+      Transform { translation: Vec3::new(5.0, 0.1, 0.0), rotation: PI * -0.5 },
+      Arc::clone(&nav_mesh),
+    );
+    island
+  });
+
   // Just above island 1 node.
   assert_eq!(
     nav_data.sample_point(
@@ -107,14 +104,17 @@ fn samples_points() {
   );
 }
 
+fn node_ref_to_num(node_ref: &NodeRef, island_order: &[IslandId]) -> u32 {
+  let island_index =
+    island_order.iter().position(|id| node_ref.island_id == *id).unwrap();
+  island_index as u32 * 100 + node_ref.polygon_index as u32
+}
+
 fn clone_sort_round_links(
   boundary_links: &HashMap<NodeRef, HashMap<BoundaryLinkId, BoundaryLink>>,
+  island_order: &[IslandId],
   round_amount: f32,
 ) -> Vec<(NodeRef, Vec<BoundaryLink>)> {
-  fn node_ref_to_num(node_ref: &NodeRef) -> u32 {
-    node_ref.island_id.0 as u32 * 100 + node_ref.polygon_index as u32
-  }
-
   let mut links = boundary_links
     .iter()
     .map(|(key, value)| {
@@ -130,12 +130,14 @@ fn clone_sort_round_links(
             cost: (link.cost / round_amount).round() * round_amount,
           })
           .collect::<Vec<_>>();
-        v.sort_by_key(|link| node_ref_to_num(&link.destination_node));
+        v.sort_by_key(|link| {
+          node_ref_to_num(&link.destination_node, &island_order)
+        });
         v
       })
     })
     .collect::<Vec<_>>();
-  links.sort_by_key(|(a, _)| node_ref_to_num(a));
+  links.sort_by_key(|(a, _)| node_ref_to_num(a, &island_order));
   links
 }
 
@@ -209,8 +211,10 @@ fn link_edges_between_islands_links_touching_islands() {
     .expect("is valid."),
   );
 
-  let island_1_id = IslandId(1);
-  let island_2_id = IslandId(2);
+  // Create an unused slotmap just to get `IslandId`s.
+  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let island_1_id = slotmap.insert(0);
+  let island_2_id = slotmap.insert(0);
 
   let mut island_1 = Island::new();
   let mut island_2 = Island::new();
@@ -414,7 +418,10 @@ fn link_edges_between_islands_links_touching_islands() {
       }],
     ),
   ];
-  assert_eq!(clone_sort_round_links(&boundary_links, 1e-6), &expected_links);
+  assert_eq!(
+    clone_sort_round_links(&boundary_links, &[island_1_id, island_2_id], 1e-6),
+    &expected_links
+  );
 
   let mut modified_node_refs_to_update_sorted =
     modified_node_refs_to_update.iter().copied().collect::<Vec<_>>();
@@ -448,7 +455,10 @@ fn link_edges_between_islands_links_touching_islands() {
     &mut modified_node_refs_to_update,
     &mut thread_rng(),
   );
-  assert_eq!(clone_sort_round_links(&boundary_links, 1e-6), &expected_links);
+  assert_eq!(
+    clone_sort_round_links(&boundary_links, &[island_1_id, island_2_id], 1e-6),
+    &expected_links
+  );
 }
 
 #[test]
@@ -469,12 +479,6 @@ fn update_links_islands_and_unlinks_on_delete() {
     .validate()
     .expect("is valid."),
   );
-
-  let island_1_id = IslandId(1);
-  let island_2_id = IslandId(2);
-  let island_3_id = IslandId(3);
-  let island_4_id = IslandId(4);
-  let island_5_id = IslandId(5);
 
   let mut island_1 = Island::new();
   let mut island_2 = Island::new();
@@ -504,11 +508,11 @@ fn update_links_islands_and_unlinks_on_delete() {
   );
 
   let mut nav_data = NavigationData::new();
-  nav_data.islands.insert(island_1_id, island_1);
-  nav_data.islands.insert(island_2_id, island_2);
-  nav_data.islands.insert(island_3_id, island_3);
-  nav_data.islands.insert(island_4_id, island_4);
-  nav_data.islands.insert(island_5_id, island_5);
+  let island_1_id = nav_data.islands.insert(island_1);
+  let island_2_id = nav_data.islands.insert(island_2);
+  let island_3_id = nav_data.islands.insert(island_3);
+  let island_4_id = nav_data.islands.insert(island_4);
+  let island_5_id = nav_data.islands.insert(island_5);
 
   nav_data.update(/* edge_link_distance= */ 0.01);
 
@@ -520,7 +524,11 @@ fn update_links_islands_and_unlinks_on_delete() {
   );
 
   assert_eq!(
-    clone_sort_round_links(&nav_data.boundary_links, 1e-6),
+    clone_sort_round_links(
+      &nav_data.boundary_links,
+      &[island_1_id, island_2_id, island_3_id, island_4_id, island_5_id],
+      1e-6
+    ),
     [
       (
         NodeRef { island_id: island_1_id, polygon_index: 0 },
@@ -613,25 +621,26 @@ fn update_links_islands_and_unlinks_on_delete() {
   );
 
   // Delete island_2 and island_4.
-  nav_data.islands.remove(&island_2_id);
-  nav_data.islands.remove(&island_4_id);
+  nav_data.remove_island(island_2_id);
+  nav_data.remove_island(island_4_id);
   // Move island_5 to replace island_2.
   nav_data
     .islands
-    .get_mut(&island_5_id)
+    .get_mut(island_5_id)
     .expect("island_5 still exists")
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: PI * -0.5 },
       Arc::clone(&nav_mesh),
     );
-  // Record the deletions so the update can react to them.
-  nav_data.deleted_islands.insert(island_2_id);
-  nav_data.deleted_islands.insert(island_4_id);
 
   nav_data.update(/* edge_link_distance= */ 0.01);
 
   assert_eq!(
-    clone_sort_round_links(&nav_data.boundary_links, 1e-6),
+    clone_sort_round_links(
+      &nav_data.boundary_links,
+      &[island_1_id, island_2_id, island_3_id, island_4_id, island_5_id],
+      1e-6
+    ),
     [
       (
         NodeRef { island_id: island_1_id, polygon_index: 1 },
@@ -684,6 +693,7 @@ fn update_links_islands_and_unlinks_on_delete() {
 fn clone_sort_round_modified_nodes(
   modified_nodes: &HashMap<NodeRef, ModifiedNode>,
   island_id_to_vertices: &HashMap<IslandId, usize>,
+  island_order: &[IslandId],
   round_amount: f32,
 ) -> Vec<(NodeRef, ModifiedNode)> {
   fn order_vec2(a: Vec2, b: Vec2) -> Ordering {
@@ -744,9 +754,7 @@ fn clone_sort_round_modified_nodes(
       })
     })
     .collect::<Vec<_>>();
-  nodes.sort_by_key(|(node_ref, _)| {
-    node_ref.island_id.0 as u32 * 100 + node_ref.polygon_index as u32
-  });
+  nodes.sort_by_key(|(node_ref, _)| node_ref_to_num(node_ref, island_order));
   nodes
 }
 
@@ -769,10 +777,6 @@ fn modifies_node_boundaries_for_linked_islands() {
     .expect("is valid."),
   );
 
-  let island_1_id = IslandId(1);
-  let island_2_id = IslandId(2);
-  let island_3_id = IslandId(3);
-
   let mut island_1 = Island::new();
   let mut island_2 = Island::new();
   let mut island_3 = Island::new();
@@ -791,9 +795,9 @@ fn modifies_node_boundaries_for_linked_islands() {
   );
 
   let mut nav_data = NavigationData::new();
-  nav_data.islands.insert(island_1_id, island_1);
-  nav_data.islands.insert(island_2_id, island_2);
-  nav_data.islands.insert(island_3_id, island_3);
+  let island_1_id = nav_data.islands.insert(island_1);
+  let island_2_id = nav_data.islands.insert(island_2);
+  let island_3_id = nav_data.islands.insert(island_3);
 
   nav_data.update(/* edge_link_distance= */ 1e-6);
 
@@ -822,6 +826,7 @@ fn modifies_node_boundaries_for_linked_islands() {
     clone_sort_round_modified_nodes(
       &nav_data.modified_nodes,
       &HashMap::from([(island_1_id, 6), (island_2_id, 6), (island_3_id, 6)]),
+      &[island_1_id, island_2_id, island_3_id],
       1e-4
     ),
     &expected_modified_nodes
@@ -847,9 +852,6 @@ fn stale_modified_nodes_are_removed() {
     .expect("is valid."),
   );
 
-  let island_1_id = IslandId(1);
-  let island_2_id = IslandId(2);
-
   let mut island_1 = Island::new();
   let mut island_2 = Island::new();
 
@@ -863,15 +865,14 @@ fn stale_modified_nodes_are_removed() {
   );
 
   let mut nav_data = NavigationData::new();
-  nav_data.islands.insert(island_1_id, island_1);
-  nav_data.islands.insert(island_2_id, island_2);
+  nav_data.islands.insert(island_1);
+  let island_2_id = nav_data.islands.insert(island_2);
 
   nav_data.update(/* edge_link_distance= */ 1e-6);
 
   assert_eq!(nav_data.modified_nodes.len(), 2);
 
-  nav_data.islands.remove(&island_2_id);
-  nav_data.deleted_islands.insert(island_2_id);
+  nav_data.remove_island(island_2_id);
 
   nav_data.update(/* edge_link_distance= */ 1e-6);
 

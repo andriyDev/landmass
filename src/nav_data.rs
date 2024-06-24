@@ -9,6 +9,7 @@ use geo::{BooleanOps, Coord, LineString, LinesIter, MultiPolygon, Polygon};
 use glam::{Vec2, Vec3, Vec3Swizzles};
 use kdtree::{distance::squared_euclidean, KdTree};
 use rand::{thread_rng, Rng};
+use slotmap::HopSlotMap;
 
 use crate::{
   geometry::edge_intersection,
@@ -22,7 +23,7 @@ use crate::{
 /// "static" features.
 pub struct NavigationData {
   /// The islands in the [`crate::Archipelago`].
-  pub islands: HashMap<IslandId, Island>,
+  pub islands: HopSlotMap<IslandId, Island>,
   /// Maps a "region id" (consisting of the IslandId and the region in that
   /// island's nav mesh) to its "region number" (the number used in
   /// [`Self::region_connections`]).
@@ -83,7 +84,7 @@ impl NavigationData {
   /// Creates new navigation data.
   pub fn new() -> Self {
     Self {
-      islands: HashMap::new(),
+      islands: HopSlotMap::with_key(),
       region_id_to_number: HashMap::new(),
       region_connections: Mutex::new(DisjointSet::new()),
       boundary_links: HashMap::new(),
@@ -94,12 +95,7 @@ impl NavigationData {
 
   /// Adds a new (empty) island to the navigation data.
   pub fn add_island(&mut self) -> IslandId {
-    let mut rng = rand::thread_rng();
-
-    let island_id = IslandId(rng.gen());
-    assert!(self.islands.insert(island_id, Island::new()).is_none());
-
-    island_id
+    self.islands.insert(Island::new())
   }
 
   /// Removes the island with `island_id`. Panics if the island ID is not in the
@@ -107,7 +103,7 @@ impl NavigationData {
   pub fn remove_island(&mut self, island_id: IslandId) {
     self
       .islands
-      .remove(&island_id)
+      .remove(island_id)
       .expect("Island should be present in the Archipelago");
     self.deleted_islands.insert(island_id);
   }
@@ -155,7 +151,7 @@ impl NavigationData {
         distance,
         (
           nav_data.transform.apply(sampled_point),
-          NodeRef { island_id: *island_id, polygon_index: sampled_node },
+          NodeRef { island_id, polygon_index: sampled_node },
         ),
       ));
     }
@@ -167,7 +163,7 @@ impl NavigationData {
     edge_link_distance: f32,
   ) -> (HashSet<BoundaryLinkId>, HashSet<IslandId>, HashSet<NodeRef>) {
     let mut dirty_islands = HashSet::new();
-    for (&island_id, island) in self.islands.iter_mut() {
+    for (island_id, island) in self.islands.iter_mut() {
       if island.dirty {
         island.dirty = false;
         dirty_islands.insert(island_id);
@@ -225,7 +221,7 @@ impl NavigationData {
         value
           .nav_data
           .as_ref()
-          .map(|nav_data| (nav_data.transformed_bounds, Some(*key)))
+          .map(|nav_data| (nav_data.transformed_bounds, Some(key)))
       })
       .collect::<Vec<_>>();
     // There are no islands with nav data, so no islands to link and prevents a
@@ -236,7 +232,7 @@ impl NavigationData {
     let island_bbh = BoundingBoxHierarchy::new(&mut island_bounds);
 
     for &dirty_island_id in dirty_islands.iter() {
-      let dirty_island = self.islands.get(&dirty_island_id).unwrap();
+      let dirty_island = self.islands.get(dirty_island_id).unwrap();
       let dirty_nav_data = match &dirty_island.nav_data {
         None => continue,
         Some(n) => n,
@@ -266,7 +262,7 @@ impl NavigationData {
         {
           continue;
         }
-        let candidate_island = self.islands.get(&candidate_island_id).unwrap();
+        let candidate_island = self.islands.get(candidate_island_id).unwrap();
         link_edges_between_islands(
           (dirty_island_id, dirty_island),
           (candidate_island_id, candidate_island),
@@ -291,7 +287,7 @@ impl NavigationData {
     // data (the nav mesh was removed), should be removed.
     let Some(island_nav_data) = self
       .islands
-      .get(&node_ref.island_id)
+      .get(node_ref.island_id)
       .and_then(|island| island.nav_data.as_ref())
     else {
       self.modified_nodes.remove(&node_ref);
@@ -470,7 +466,7 @@ impl NavigationData {
   fn node_to_region_id(&self, node_ref: NodeRef) -> (IslandId, usize) {
     let region = self
       .islands
-      .get(&node_ref.island_id)
+      .get(node_ref.island_id)
       .unwrap()
       .nav_data
       .as_ref()

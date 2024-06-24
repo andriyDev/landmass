@@ -1,6 +1,7 @@
 use std::{collections::HashSet, sync::Arc};
 
 use glam::Vec3;
+use slotmap::HopSlotMap;
 
 use crate::{
   does_agent_need_repath,
@@ -55,7 +56,9 @@ fn clears_path_for_missing_nodes() {
   );
   agent.current_target = Some(Vec3::ZERO);
 
-  let island_id = IslandId(1);
+  // Create an unused slotmap just to get `IslandId`s.
+  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let island_id = slotmap.insert(0);
 
   assert_eq!(
     does_agent_need_repath(
@@ -90,7 +93,10 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
   );
   agent.current_target = Some(Vec3::ZERO);
 
-  let island_id = IslandId(0);
+  // Create an unused slotmap just to get `IslandId`s.
+  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let island_id = slotmap.insert(0);
+  let missing_island_id = slotmap.insert(0);
 
   // No path.
   assert_eq!(
@@ -169,7 +175,7 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
       Some(NodeRef { island_id, polygon_index: 1 }),
       &HashSet::new(),
       // This island is not involved in the path, so the path is still valid.
-      &HashSet::from([IslandId(1337)]),
+      &HashSet::from([missing_island_id]),
     ),
     RepathResult::FollowPath(
       PathIndex::from_corridor_index(0, 1),

@@ -54,7 +54,7 @@ impl IslandSegment {
 
     let island_data = nav_data
       .islands
-      .get(&self.island_id)
+      .get(self.island_id)
       .expect("only called if path is still valid")
       .nav_data
       .as_ref()
