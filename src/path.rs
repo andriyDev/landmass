@@ -74,7 +74,7 @@ impl BoundaryLinkSegment {
   fn get_portal_endpoints(&self, nav_data: &NavigationData) -> (Vec3, Vec3) {
     nav_data
       .boundary_links
-      .get(&self.boundary_link)
+      .get(self.boundary_link)
       .expect("only called if path is still valid")
       .portal
   }

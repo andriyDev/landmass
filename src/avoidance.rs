@@ -208,7 +208,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
       .chain(boundary_links.iter().flat_map(|boundary_links| {
         boundary_links
           .iter()
-          .map(|link_id| nav_data.boundary_links.get(link_id).unwrap())
+          .map(|link_id| nav_data.boundary_links.get(*link_id).unwrap())
           .map(|link| {
             (
               to_dodgy_vec2(link.portal.0.xz() - agent_point),

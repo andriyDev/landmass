@@ -6,8 +6,7 @@ use std::{
 };
 
 use glam::{Vec2, Vec3};
-use rand::thread_rng;
-use slotmap::HopSlotMap;
+use slotmap::{HopSlotMap, SlotMap};
 
 use crate::{
   island::Island,
@@ -111,7 +110,7 @@ fn node_ref_to_num(node_ref: &NodeRef, island_order: &[IslandId]) -> u32 {
 }
 
 fn clone_sort_round_links(
-  boundary_links: &HashMap<BoundaryLinkId, BoundaryLink>,
+  boundary_links: &SlotMap<BoundaryLinkId, BoundaryLink>,
   node_to_boundary_link_ids: &HashMap<NodeRef, HashSet<BoundaryLinkId>>,
   island_order: &[IslandId],
   round_amount: f32,
@@ -122,7 +121,7 @@ fn clone_sort_round_links(
       (*key, {
         let mut v = value
           .iter()
-          .map(|link_id| boundary_links.get(link_id).unwrap())
+          .map(|link_id| boundary_links.get(*link_id).unwrap())
           .map(|link| BoundaryLink {
             destination_node: link.destination_node,
             portal: (
@@ -229,7 +228,7 @@ fn link_edges_between_islands_links_touching_islands() {
   let island_1_edge_bbh = island_edges_bbh(island_1.nav_data.as_ref().unwrap());
   let island_2_edge_bbh = island_edges_bbh(island_2.nav_data.as_ref().unwrap());
 
-  let mut boundary_links = HashMap::new();
+  let mut boundary_links = SlotMap::with_key();
   let mut node_to_boundary_link_ids = HashMap::new();
   let mut modified_node_refs_to_update = HashSet::new();
 
@@ -241,7 +240,6 @@ fn link_edges_between_islands_links_touching_islands() {
     &mut boundary_links,
     &mut node_to_boundary_link_ids,
     &mut modified_node_refs_to_update,
-    &mut thread_rng(),
   );
 
   fn transform_and_round_portal(
@@ -452,7 +450,7 @@ fn link_edges_between_islands_links_touching_islands() {
     ]
   );
 
-  boundary_links = HashMap::new();
+  boundary_links = SlotMap::with_key();
   node_to_boundary_link_ids = HashMap::new();
   modified_node_refs_to_update = HashSet::new();
 
@@ -464,7 +462,6 @@ fn link_edges_between_islands_links_touching_islands() {
     &mut boundary_links,
     &mut node_to_boundary_link_ids,
     &mut modified_node_refs_to_update,
-    &mut thread_rng(),
   );
   assert_eq!(
     clone_sort_round_links(
