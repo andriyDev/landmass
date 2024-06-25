@@ -38,9 +38,9 @@ fn has_reached_target_at_end_node() {
 
   let first_path_index = PathIndex::from_corridor_index(0, 0);
   for condition in [
-    TargetReachedCondition::Distance(2.0),
-    TargetReachedCondition::StraightPathDistance(2.0),
-    TargetReachedCondition::VisibleAtDistance(2.0),
+    TargetReachedCondition::Distance(Some(2.0)),
+    TargetReachedCondition::StraightPathDistance(Some(2.0)),
+    TargetReachedCondition::VisibleAtDistance(Some(2.0)),
   ] {
     agent.target_reached_condition = condition;
 
@@ -114,7 +114,8 @@ fn long_detour_reaches_target_in_different_ways() {
 
   {
     agent.position = transform.apply(Vec3::new(1.0, 0.0, 1.0));
-    agent.target_reached_condition = TargetReachedCondition::Distance(1.1);
+    agent.target_reached_condition =
+      TargetReachedCondition::Distance(Some(1.1));
 
     // Agent started within 1.1 units of the destination, so they are close
     // enough.
@@ -150,7 +151,7 @@ fn long_detour_reaches_target_in_different_ways() {
 
   {
     agent.target_reached_condition =
-      TargetReachedCondition::VisibleAtDistance(15.0);
+      TargetReachedCondition::VisibleAtDistance(Some(15.0));
 
     // The agent cannot see the target and its path is still too long.
     agent.position = transform.apply(Vec3::new(1.0, 0.0, 1.0));
@@ -217,7 +218,7 @@ fn long_detour_reaches_target_in_different_ways() {
 
   {
     agent.target_reached_condition =
-      TargetReachedCondition::StraightPathDistance(15.0);
+      TargetReachedCondition::StraightPathDistance(Some(15.0));
 
     // The agent's path is too long (21 units).
     agent.position = transform.apply(Vec3::new(1.0, 0.0, 1.0));
