@@ -275,11 +275,14 @@ fn starts_at_end_index_goes_to_end_point() {
 
 #[test]
 fn path_not_valid_for_invalidated_islands_or_boundary_links() {
-  // Create an unused slotmap just to get `IslandId`s.
+  // Create unused slotmaps just to get `IslandId`s and `BoundaryLinkId`s.
   let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
   let island_id_1 = slotmap.insert(0);
   let island_id_2 = slotmap.insert(0);
   let island_id_3 = slotmap.insert(0);
+  let mut slotmap = HopSlotMap::<BoundaryLinkId, _>::with_key();
+  let boundary_link_id_1 = slotmap.insert(0);
+  let boundary_link_id_2 = slotmap.insert(0);
 
   let path = Path {
     island_segments: vec![
@@ -302,11 +305,11 @@ fn path_not_valid_for_invalidated_islands_or_boundary_links() {
     boundary_link_segments: vec![
       BoundaryLinkSegment {
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
-        boundary_link: BoundaryLinkId(10),
+        boundary_link: boundary_link_id_1,
       },
       BoundaryLinkSegment {
         starting_node: NodeRef { island_id: island_id_2, polygon_index: 1 },
-        boundary_link: BoundaryLinkId(11),
+        boundary_link: boundary_link_id_2,
       },
     ],
   };
@@ -333,24 +336,27 @@ fn path_not_valid_for_invalidated_islands_or_boundary_links() {
   // Each boundary link is invalidated.
   assert!(!path.is_valid(
     /* invalidated_boundary_links= */
-    &HashSet::from([BoundaryLinkId(10)]),
+    &HashSet::from([boundary_link_id_1]),
     /* invalidated_islands= */ &HashSet::new(),
   ));
   assert!(!path.is_valid(
     /* invalidated_boundary_links= */
-    &HashSet::from([BoundaryLinkId(11)]),
+    &HashSet::from([boundary_link_id_2]),
     /* invalidated_islands= */ &HashSet::new(),
   ));
 }
 
 #[test]
 fn indices_in_path_are_found() {
-  // Create an unused slotmap just to get `IslandId`s.
+  // Create unused slotmaps just to get `IslandId`s and `BoundaryLinkId`s.
   let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
   let island_id_1 = slotmap.insert(0);
   let island_id_2 = slotmap.insert(0);
   let island_id_3 = slotmap.insert(0);
   let island_id_4 = slotmap.insert(0);
+  let mut slotmap = HopSlotMap::<BoundaryLinkId, _>::with_key();
+  let boundary_link_id_1 = slotmap.insert(0);
+  let boundary_link_id_2 = slotmap.insert(0);
 
   let path = Path {
     island_segments: vec![
@@ -373,11 +379,11 @@ fn indices_in_path_are_found() {
     boundary_link_segments: vec![
       BoundaryLinkSegment {
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
-        boundary_link: BoundaryLinkId(10),
+        boundary_link: boundary_link_id_1,
       },
       BoundaryLinkSegment {
         starting_node: NodeRef { island_id: island_id_2, polygon_index: 1 },
-        boundary_link: BoundaryLinkId(11),
+        boundary_link: boundary_link_id_2,
       },
     ],
   };
@@ -418,12 +424,15 @@ fn indices_in_path_are_found() {
 
 #[test]
 fn indices_in_path_are_found_rev() {
-  // Create an unused slotmap just to get `IslandId`s.
+  // Create unused slotmaps just to get `IslandId`s and `BoundaryLinkId`s.
   let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
   let island_id_1 = slotmap.insert(0);
   let island_id_2 = slotmap.insert(0);
   let island_id_3 = slotmap.insert(0);
   let island_id_4 = slotmap.insert(0);
+  let mut slotmap = HopSlotMap::<BoundaryLinkId, _>::with_key();
+  let boundary_link_id_1 = slotmap.insert(0);
+  let boundary_link_id_2 = slotmap.insert(0);
 
   let path = Path {
     island_segments: vec![
@@ -446,11 +455,11 @@ fn indices_in_path_are_found_rev() {
     boundary_link_segments: vec![
       BoundaryLinkSegment {
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
-        boundary_link: BoundaryLinkId(10),
+        boundary_link: boundary_link_id_1,
       },
       BoundaryLinkSegment {
         starting_node: NodeRef { island_id: island_id_2, polygon_index: 1 },
-        boundary_link: BoundaryLinkId(11),
+        boundary_link: boundary_link_id_2,
       },
     ],
   };

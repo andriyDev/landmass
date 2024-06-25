@@ -70,7 +70,7 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
         )
       })
       .chain(boundary_links.iter().map(|link_id| {
-        let link = self.nav_data.boundary_links.get(link_id).unwrap();
+        let link = self.nav_data.boundary_links.get(*link_id).unwrap();
         (link.cost, PathStep::BoundaryLink(*link_id), link.destination_node)
       }))
       .collect()
@@ -178,8 +178,7 @@ pub(crate) fn find_path(
           boundary_link,
         });
 
-        let boundary_link =
-          nav_data.boundary_links.get(&boundary_link).unwrap();
+        let boundary_link = nav_data.boundary_links.get(boundary_link).unwrap();
         output_path.island_segments.push(IslandSegment {
           island_id: boundary_link.destination_node.island_id,
           corridor: vec![boundary_link.destination_node.polygon_index],
