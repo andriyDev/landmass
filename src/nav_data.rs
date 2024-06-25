@@ -32,7 +32,9 @@ pub struct NavigationData {
   /// [`Self::region_id_to_number`].
   pub region_connections: Mutex<DisjointSet>,
   /// The links to other islands by [`crate::NodeRef`]
-  pub boundary_links: HashMap<NodeRef, HashMap<BoundaryLinkId, BoundaryLink>>,
+  pub boundary_links: HashMap<BoundaryLinkId, BoundaryLink>,
+  /// The links that can be taken from a particular node ref.
+  pub node_to_boundary_link_ids: HashMap<NodeRef, HashSet<BoundaryLinkId>>,
   /// The nodes that have been modified.
   pub modified_nodes: HashMap<NodeRef, ModifiedNode>,
   /// The islands that have been deleted since the last update.
@@ -88,6 +90,7 @@ impl NavigationData {
       region_id_to_number: HashMap::new(),
       region_connections: Mutex::new(DisjointSet::new()),
       boundary_links: HashMap::new(),
+      node_to_boundary_link_ids: HashMap::new(),
       modified_nodes: HashMap::new(),
       deleted_islands: HashSet::new(),
     }
@@ -179,20 +182,25 @@ impl NavigationData {
     let mut dropped_links = HashSet::new();
     let mut modified_node_refs_to_update = HashSet::new();
     if !self.deleted_islands.is_empty() || !dirty_islands.is_empty() {
-      self.boundary_links.retain(|node_ref, links| {
+      self.node_to_boundary_link_ids.retain(|node_ref, links| {
         if changed_islands.contains(&node_ref.island_id) {
+          for link in links.iter() {
+            self.boundary_links.remove(link);
+          }
           modified_node_refs_to_update.insert(*node_ref);
-          dropped_links.extend(links.keys().copied());
+          dropped_links.extend(links.iter().copied());
           return false;
         }
 
         let links_before = links.len();
 
-        links.retain(|&link_id, link| {
+        links.retain(|link_id| {
+          let link = self.boundary_links.get(link_id).unwrap();
           let retain =
             !changed_islands.contains(&link.destination_node.island_id);
           if !retain {
-            dropped_links.insert(link_id);
+            self.boundary_links.remove(link_id);
+            dropped_links.insert(*link_id);
           }
           retain
         });
@@ -269,6 +277,7 @@ impl NavigationData {
           &dirty_island_edge_bbh,
           edge_link_distance,
           &mut self.boundary_links,
+          &mut self.node_to_boundary_link_ids,
           &mut modified_node_refs_to_update,
           &mut thread_rng(),
         );
@@ -294,7 +303,8 @@ impl NavigationData {
       return;
     };
     // Any nodes without boundary links don't need to be modified.
-    let Some(boundary_links) = self.boundary_links.get(&node_ref) else {
+    let Some(boundary_links) = self.node_to_boundary_link_ids.get(&node_ref)
+    else {
       self.modified_nodes.remove(&node_ref);
       return;
     };
@@ -373,7 +383,8 @@ impl NavigationData {
     }
 
     let mut clip_polygons = boundary_links
-      .values()
+      .iter()
+      .map(|link_id| self.boundary_links.get(link_id).unwrap())
       .map(|link| boundary_link_to_clip_polygon(link, edge_link_distance));
 
     let mut link_clip = clip_polygons.next().unwrap();
@@ -514,8 +525,11 @@ impl NavigationData {
     *region_connections = DisjointSet::new();
 
     for (node_ref, link) in
-      self.boundary_links.iter().flat_map(|(&node_ref, links)| {
-        links.values().map(move |link| (node_ref, link))
+      self.node_to_boundary_link_ids.iter().flat_map(|(&node_ref, links)| {
+        links
+          .iter()
+          .map(|link_id| self.boundary_links.get(link_id).unwrap())
+          .map(move |link| (node_ref, link))
       })
     {
       let start_region = self.node_to_region_id(node_ref);
@@ -597,7 +611,8 @@ fn link_edges_between_islands(
   island_2: (IslandId, &Island),
   island_1_edge_bbh: &BoundingBoxHierarchy<MeshEdgeRef>,
   edge_link_distance: f32,
-  boundary_links: &mut HashMap<NodeRef, HashMap<BoundaryLinkId, BoundaryLink>>,
+  boundary_links: &mut HashMap<BoundaryLinkId, BoundaryLink>,
+  node_to_boundary_link_ids: &mut HashMap<NodeRef, HashSet<BoundaryLinkId>>,
   modified_node_refs_to_update: &mut HashSet<NodeRef>,
   id_creator: &mut impl CreateBoundaryId,
 ) {
@@ -633,7 +648,8 @@ fn link_edges_between_islands(
           polygon_index: island_2_edge_ref.polygon_index,
         };
 
-        let id = id_creator.create();
+        let id_1 = id_creator.create();
+        let id_2 = id_creator.create();
 
         let polygon_center_1 = island_1_nav_data.transform.apply(
           island_1_nav_data.nav_mesh.polygons[island_1_edge_ref.polygon_index]
@@ -648,18 +664,28 @@ fn link_edges_between_islands(
         let cost = polygon_center_1.distance(portal_center)
           + polygon_center_2.distance(portal_center);
 
-        boundary_links
-          .entry(node_1)
-          .or_default()
-          .insert(id, BoundaryLink { destination_node: node_2, portal, cost });
-        boundary_links.entry(node_2).or_default().insert(
-          id,
-          BoundaryLink {
-            destination_node: node_1,
-            portal: (portal.1, portal.0),
-            cost,
-          },
+        assert!(
+          boundary_links
+            .insert(
+              id_1,
+              BoundaryLink { destination_node: node_2, portal, cost },
+            )
+            .is_none()
         );
+        assert!(boundary_links
+          .insert(
+            id_2,
+            BoundaryLink {
+              destination_node: node_1,
+              portal: (portal.1, portal.0),
+              cost
+            },
+          )
+          .is_none());
+
+        node_to_boundary_link_ids.entry(node_1).or_default().insert(id_1);
+        node_to_boundary_link_ids.entry(node_2).or_default().insert(id_2);
+
         modified_node_refs_to_update.insert(node_1);
         modified_node_refs_to_update.insert(node_2);
       }

@@ -72,14 +72,11 @@ impl IslandSegment {
 impl BoundaryLinkSegment {
   /// Gets the endpoints of the portal for this boundary link in `nav_data`.
   fn get_portal_endpoints(&self, nav_data: &NavigationData) -> (Vec3, Vec3) {
-    let link = nav_data
+    nav_data
       .boundary_links
-      .get(&self.starting_node)
-      .expect("only called if path is still valid")
       .get(&self.boundary_link)
-      .expect("only called if path is still valid");
-
-    link.portal
+      .expect("only called if path is still valid")
+      .portal
   }
 }
 

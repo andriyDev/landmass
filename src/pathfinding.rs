@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::{borrow::Cow, collections::HashSet};
 
 use glam::Vec3;
 
@@ -48,9 +48,9 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
     let polygon = &nav_data.nav_mesh.polygons[state.polygon_index];
     let boundary_links = self
       .nav_data
-      .boundary_links
+      .node_to_boundary_link_ids
       .get(state)
-      .map_or(Cow::Owned(HashMap::new()), Cow::Borrowed);
+      .map_or(Cow::Owned(HashSet::new()), Cow::Borrowed);
 
     polygon
       .connectivity
@@ -69,8 +69,9 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
           },
         )
       })
-      .chain(boundary_links.iter().map(|(&link_id, link)| {
-        (link.cost, PathStep::BoundaryLink(link_id), link.destination_node)
+      .chain(boundary_links.iter().map(|link_id| {
+        let link = self.nav_data.boundary_links.get(link_id).unwrap();
+        (link.cost, PathStep::BoundaryLink(*link_id), link.destination_node)
       }))
       .collect()
   }
@@ -177,10 +178,8 @@ pub(crate) fn find_path(
           boundary_link,
         });
 
-        let boundary_links =
-          nav_data.boundary_links.get(&previous_node).unwrap();
-
-        let boundary_link = boundary_links.get(&boundary_link).unwrap();
+        let boundary_link =
+          nav_data.boundary_links.get(&boundary_link).unwrap();
         output_path.island_segments.push(IslandSegment {
           island_id: boundary_link.destination_node.island_id,
           corridor: vec![boundary_link.destination_node.polygon_index],
