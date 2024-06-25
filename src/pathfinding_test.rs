@@ -307,10 +307,11 @@ fn find_path_across_connected_islands() {
 
   let boundary_links = archipelago
     .nav_data
-    .boundary_links
+    .node_to_boundary_link_ids
     .iter()
-    .flat_map(|(node_ref, link_id_to_link)| {
-      link_id_to_link.iter().map(|(link_id, link)| {
+    .flat_map(|(node_ref, link_ids)| {
+      link_ids.iter().map(|link_id| {
+        let link = archipelago.nav_data.boundary_links.get(link_id).unwrap();
         ((node_ref.island_id, link.destination_node.island_id), *link_id)
       })
     })
@@ -417,10 +418,11 @@ fn finds_path_across_different_islands() {
 
   let boundary_links = archipelago
     .nav_data
-    .boundary_links
+    .node_to_boundary_link_ids
     .iter()
-    .flat_map(|(node_ref, link_id_to_link)| {
-      link_id_to_link.iter().map(|(link_id, link)| {
+    .flat_map(|(node_ref, link_ids)| {
+      link_ids.iter().map(|link_id| {
+        let link = archipelago.nav_data.boundary_links.get(link_id).unwrap();
         ((node_ref.island_id, link.destination_node.island_id), *link_id)
       })
     })

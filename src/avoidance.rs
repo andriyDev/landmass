@@ -180,7 +180,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
       nav_data.islands.get(node.island_id).unwrap().nav_data.as_ref().unwrap();
 
     let polygon = &island_data.nav_mesh.polygons[node.polygon_index];
-    let boundary_links = nav_data.boundary_links.get(&node);
+    let boundary_links = nav_data.node_to_boundary_link_ids.get(&node);
     let modified_node = nav_data.modified_nodes.get(&node);
 
     let mut remaining_edges: HashSet<usize> =
@@ -206,13 +206,16 @@ fn nav_mesh_borders_to_dodgy_obstacles(
         )
       })
       .chain(boundary_links.iter().flat_map(|boundary_links| {
-        boundary_links.values().map(|link| {
-          (
-            to_dodgy_vec2(link.portal.0.xz() - agent_point),
-            to_dodgy_vec2(link.portal.1.xz() - agent_point),
-            link.destination_node,
-          )
-        })
+        boundary_links
+          .iter()
+          .map(|link_id| nav_data.boundary_links.get(link_id).unwrap())
+          .map(|link| {
+            (
+              to_dodgy_vec2(link.portal.0.xz() - agent_point),
+              to_dodgy_vec2(link.portal.1.xz() - agent_point),
+              link.destination_node,
+            )
+          })
       }))
     {
       if !visibility_set.is_line_visible(vertex_1, vertex_2) {

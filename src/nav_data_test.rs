@@ -111,16 +111,18 @@ fn node_ref_to_num(node_ref: &NodeRef, island_order: &[IslandId]) -> u32 {
 }
 
 fn clone_sort_round_links(
-  boundary_links: &HashMap<NodeRef, HashMap<BoundaryLinkId, BoundaryLink>>,
+  boundary_links: &HashMap<BoundaryLinkId, BoundaryLink>,
+  node_to_boundary_link_ids: &HashMap<NodeRef, HashSet<BoundaryLinkId>>,
   island_order: &[IslandId],
   round_amount: f32,
 ) -> Vec<(NodeRef, Vec<BoundaryLink>)> {
-  let mut links = boundary_links
+  let mut links = node_to_boundary_link_ids
     .iter()
     .map(|(key, value)| {
       (*key, {
         let mut v = value
-          .values()
+          .iter()
+          .map(|link_id| boundary_links.get(link_id).unwrap())
           .map(|link| BoundaryLink {
             destination_node: link.destination_node,
             portal: (
@@ -228,6 +230,7 @@ fn link_edges_between_islands_links_touching_islands() {
   let island_2_edge_bbh = island_edges_bbh(island_2.nav_data.as_ref().unwrap());
 
   let mut boundary_links = HashMap::new();
+  let mut node_to_boundary_link_ids = HashMap::new();
   let mut modified_node_refs_to_update = HashSet::new();
 
   link_edges_between_islands(
@@ -236,6 +239,7 @@ fn link_edges_between_islands_links_touching_islands() {
     &island_1_edge_bbh,
     /* edge_link_distance= */ 1e-5,
     &mut boundary_links,
+    &mut node_to_boundary_link_ids,
     &mut modified_node_refs_to_update,
     &mut thread_rng(),
   );
@@ -419,7 +423,12 @@ fn link_edges_between_islands_links_touching_islands() {
     ),
   ];
   assert_eq!(
-    clone_sort_round_links(&boundary_links, &[island_1_id, island_2_id], 1e-6),
+    clone_sort_round_links(
+      &boundary_links,
+      &node_to_boundary_link_ids,
+      &[island_1_id, island_2_id],
+      1e-6
+    ),
     &expected_links
   );
 
@@ -444,6 +453,7 @@ fn link_edges_between_islands_links_touching_islands() {
   );
 
   boundary_links = HashMap::new();
+  node_to_boundary_link_ids = HashMap::new();
   modified_node_refs_to_update = HashSet::new();
 
   link_edges_between_islands(
@@ -452,11 +462,17 @@ fn link_edges_between_islands_links_touching_islands() {
     &island_2_edge_bbh,
     /* edge_link_distance= */ 1e-5,
     &mut boundary_links,
+    &mut node_to_boundary_link_ids,
     &mut modified_node_refs_to_update,
     &mut thread_rng(),
   );
   assert_eq!(
-    clone_sort_round_links(&boundary_links, &[island_1_id, island_2_id], 1e-6),
+    clone_sort_round_links(
+      &boundary_links,
+      &node_to_boundary_link_ids,
+      &[island_1_id, island_2_id],
+      1e-6
+    ),
     &expected_links
   );
 }
@@ -526,6 +542,7 @@ fn update_links_islands_and_unlinks_on_delete() {
   assert_eq!(
     clone_sort_round_links(
       &nav_data.boundary_links,
+      &nav_data.node_to_boundary_link_ids,
       &[island_1_id, island_2_id, island_3_id, island_4_id, island_5_id],
       1e-6
     ),
@@ -638,6 +655,7 @@ fn update_links_islands_and_unlinks_on_delete() {
   assert_eq!(
     clone_sort_round_links(
       &nav_data.boundary_links,
+      &nav_data.node_to_boundary_link_ids,
       &[island_1_id, island_2_id, island_3_id, island_4_id, island_5_id],
       1e-6
     ),
