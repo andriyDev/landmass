@@ -87,7 +87,7 @@ let agent_1 = archipelago.add_agent({
     /* max_velocity= */ 1.0,
   );
   agent.current_target = Some(Vec3::new(11.0, 0.0, 1.1));
-  agent.target_reached_condition = TargetReachedCondition::Distance(0.01);
+  agent.target_reached_condition = TargetReachedCondition::Distance(Some(0.01));
   agent
 });
 let agent_2 = archipelago.add_agent({
@@ -98,7 +98,7 @@ let agent_2 = archipelago.add_agent({
     /* max_velocity= */ 1.0,
   );
   agent.current_target = Some(Vec3::new(1.0, 0.0, 1.0));
-  agent.target_reached_condition = TargetReachedCondition::Distance(0.01);
+  agent.target_reached_condition = TargetReachedCondition::Distance(Some(0.01));
   agent
 });
 

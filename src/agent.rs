@@ -58,27 +58,37 @@ pub struct Agent {
 
 /// The condition to consider the agent as having reached its target. When this
 /// condition is satisfied, the agent will stop moving.
+#[derive(Clone, Copy, Debug)]
 pub enum TargetReachedCondition {
   /// The target is reached if it is within the provided (Euclidean) distance
   /// of the agent. Useful if the target is surrounded by small obstacles
   /// which don't need to be navigated around (e.g. the agent just needs to
   /// be close enough to shoot at the target, which is surrounded by cover).
   /// Alternatively, if the distance is low, this can simply mean "when the
-  /// agent is really close to the target".
-  Distance(f32),
+  /// agent is really close to the target". If None, the agent's radius is
+  /// used.
+  Distance(Option<f32>),
   /// The target is reached if it is "visible" (there is a straight line from
   /// the agent to the target), and the target is within the provided
   /// (Euclidean) distance of the agent. Useful if the agent should be able
   /// to see the target (e.g. a companion character should remain visible to
-  /// the player, but should ideally not stand too close).
-  VisibleAtDistance(f32),
+  /// the player, but should ideally not stand too close). If None, the agent's
+  /// radius is used.
+  VisibleAtDistance(Option<f32>),
   /// The target is reached if the "straight line" path from the agent to the
   /// target is less than the provided distance. "Straight line" path means if
   /// the agent's path goes around a corner, the distance will be computed
   /// going around the corner. This can be more computationally expensive, as
   /// the straight line path must be computed every update. Useful for agents
-  /// that care about the actual walking distance to the target.
-  StraightPathDistance(f32),
+  /// that care about the actual walking distance to the target. If None, the
+  /// agent's radius is used.
+  StraightPathDistance(Option<f32>),
+}
+
+impl Default for TargetReachedCondition {
+  fn default() -> Self {
+    Self::Distance(None)
+  }
 }
 
 impl Agent {
@@ -95,7 +105,7 @@ impl Agent {
       radius,
       max_velocity,
       current_target: None,
-      target_reached_condition: TargetReachedCondition::Distance(radius),
+      target_reached_condition: TargetReachedCondition::Distance(None),
       current_path: None,
       current_desired_move: Vec3::ZERO,
       state: AgentState::Idle,
@@ -128,14 +138,17 @@ impl Agent {
   ) -> bool {
     match self.target_reached_condition {
       TargetReachedCondition::Distance(distance) => {
+        let distance = distance.unwrap_or(self.radius);
         self.position.distance_squared(target_waypoint.1) < distance * distance
       }
       TargetReachedCondition::VisibleAtDistance(distance) => {
+        let distance = distance.unwrap_or(self.radius);
         next_waypoint.0 == target_waypoint.0
           && self.position.distance_squared(next_waypoint.1)
             < distance * distance
       }
       TargetReachedCondition::StraightPathDistance(distance) => 'result: {
+        let distance = distance.unwrap_or(self.radius);
         // Check Euclidean distance first so we don't do the expensive path
         // following if the agent is not even close.
         if self.position.distance_squared(target_waypoint.1)
