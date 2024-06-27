@@ -7,8 +7,8 @@ use crate::{
   does_agent_need_repath,
   nav_data::NodeRef,
   path::{IslandSegment, Path, PathIndex},
-  Agent, AgentId, AgentState, Archipelago, BoundingBox, IslandId,
-  NavigationMesh, RepathResult, Transform, ValidNavigationMesh,
+  Agent, AgentId, AgentState, Archipelago, BoundingBox, Character, CharacterId,
+  IslandId, NavigationMesh, RepathResult, Transform, ValidNavigationMesh,
 };
 
 #[test]
@@ -252,6 +252,64 @@ fn add_and_remove_agents() {
   archipelago.remove_agent(agent_1);
 
   assert_eq!(archipelago.get_agent_ids().collect::<Vec<_>>(), []);
+}
+
+#[test]
+fn add_and_remove_characters() {
+  let mut archipelago = Archipelago::new();
+
+  let character_1 =
+    archipelago.add_character(Character { radius: 1.0, ..Default::default() });
+
+  let character_2 =
+    archipelago.add_character(Character { radius: 2.0, ..Default::default() });
+
+  let character_3 =
+    archipelago.add_character(Character { radius: 3.0, ..Default::default() });
+
+  fn sorted(mut v: Vec<CharacterId>) -> Vec<CharacterId> {
+    v.sort();
+    v
+  }
+
+  assert_eq!(
+    sorted(archipelago.get_character_ids().collect::<Vec<_>>()),
+    sorted(vec![character_1, character_2, character_3]),
+  );
+  assert_eq!(
+    [
+      archipelago.get_character(character_1).radius,
+      archipelago.get_character(character_2).radius,
+      archipelago.get_character(character_3).radius,
+    ],
+    [1.0, 2.0, 3.0],
+  );
+
+  archipelago.remove_character(character_2);
+
+  assert_eq!(
+    sorted(archipelago.get_character_ids().collect::<Vec<_>>()),
+    sorted(vec![character_1, character_3]),
+  );
+  assert_eq!(
+    [
+      archipelago.get_character(character_1).radius,
+      archipelago.get_character(character_3).radius,
+    ],
+    [1.0, 3.0],
+  );
+
+  archipelago.remove_character(character_3);
+
+  assert_eq!(
+    sorted(archipelago.get_character_ids().collect::<Vec<_>>()),
+    sorted(vec![character_1]),
+  );
+  assert_eq!([archipelago.get_character(character_1).radius], [1.0]);
+
+  archipelago.remove_character(character_1);
+
+  assert_eq!(archipelago.get_character_ids().collect::<Vec<_>>(), []);
 }
 
 #[test]

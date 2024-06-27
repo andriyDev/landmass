@@ -3,6 +3,7 @@
 mod agent;
 mod astar;
 mod avoidance;
+mod character;
 mod geometry;
 mod island;
 mod nav_data;
@@ -22,6 +23,7 @@ pub use glam::Vec3;
 pub mod debug;
 
 pub use agent::{Agent, AgentId, AgentState, TargetReachedCondition};
+pub use character::{Character, CharacterId};
 pub use island::{Island, IslandId};
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh, ValidationError};
 pub use util::{BoundingBox, Transform};
@@ -32,6 +34,7 @@ pub struct Archipelago {
   pub agent_options: AgentOptions,
   nav_data: NavigationData,
   agents: HopSlotMap<AgentId, Agent>,
+  characters: HopSlotMap<CharacterId, Character>,
   pathing_results: Vec<PathingResult>,
 }
 
@@ -66,6 +69,7 @@ impl Archipelago {
       nav_data: NavigationData::new(),
       agent_options: AgentOptions::default(),
       agents: HopSlotMap::with_key(),
+      characters: HopSlotMap::with_key(),
       pathing_results: Vec::new(),
     }
   }
@@ -91,6 +95,34 @@ impl Archipelago {
 
   pub fn get_agent_ids(&self) -> impl ExactSizeIterator<Item = AgentId> + '_ {
     self.agents.keys()
+  }
+
+  pub fn add_character(&mut self, character: Character) -> CharacterId {
+    self.characters.insert(character)
+  }
+
+  pub fn remove_character(&mut self, character_id: CharacterId) {
+    self
+      .characters
+      .remove(character_id)
+      .expect("Character should be present in the archipelago");
+  }
+
+  pub fn get_character(&self, character_id: CharacterId) -> &Character {
+    self.characters.get(character_id).unwrap()
+  }
+
+  pub fn get_character_mut(
+    &mut self,
+    character_id: CharacterId,
+  ) -> &mut Character {
+    self.characters.get_mut(character_id).unwrap()
+  }
+
+  pub fn get_character_ids(
+    &self,
+  ) -> impl ExactSizeIterator<Item = CharacterId> + '_ {
+    self.characters.keys()
   }
 
   pub fn add_island(&mut self) -> IslandId {
