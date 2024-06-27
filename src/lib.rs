@@ -188,6 +188,18 @@ impl Archipelago {
       }
     }
 
+    let mut character_id_to_nav_mesh_point = HashMap::new();
+    for (character_id, character) in self.characters.iter() {
+      let character_point = match self.nav_data.sample_point(
+        character.position,
+        self.agent_options.node_sample_distance,
+      ) {
+        None => continue,
+        Some(point_and_node) => point_and_node.0,
+      };
+      character_id_to_nav_mesh_point.insert(character_id, character_point);
+    }
+
     let mut agent_id_to_follow_path_indices = HashMap::new();
 
     for (agent_id, agent) in self.agents.iter_mut() {
@@ -312,6 +324,8 @@ impl Archipelago {
     apply_avoidance_to_agents(
       &mut self.agents,
       &agent_id_to_agent_node,
+      &self.characters,
+      &character_id_to_nav_mesh_point,
       &self.nav_data,
       &self.agent_options,
       delta_time,
