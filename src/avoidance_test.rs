@@ -5,7 +5,8 @@ use slotmap::HopSlotMap;
 
 use crate::{
   avoidance::apply_avoidance_to_agents, island::Island, nav_data::NodeRef,
-  Agent, AgentId, AgentOptions, NavigationData, NavigationMesh, Transform,
+  Agent, AgentId, AgentOptions, Character, CharacterId, NavigationData,
+  NavigationMesh, Transform,
 };
 
 use super::nav_mesh_borders_to_dodgy_obstacles;
@@ -476,9 +477,11 @@ fn applies_no_avoidance_for_far_agents() {
   apply_avoidance_to_agents(
     &mut agents,
     &agent_id_to_agent_node,
+    /* characters= */ &HopSlotMap::with_key(),
+    /* character_id_to_nav_mesh_point= */ &HashMap::new(),
     &nav_data,
     &AgentOptions { neighbourhood: 5.0, ..Default::default() },
-    0.01,
+    /* delta_time= */ 0.01,
   );
 
   assert_eq!(
@@ -561,13 +564,15 @@ fn applies_avoidance_for_two_agents() {
   apply_avoidance_to_agents(
     &mut agents,
     &agent_id_to_agent_node,
+    /* characters= */ &HopSlotMap::with_key(),
+    /* character_id_to_nav_mesh_point= */ &HashMap::new(),
     &nav_data,
     &AgentOptions {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
       ..Default::default()
     },
-    0.01,
+    /* delta_time= */ 0.01,
   );
 
   // The agents each have a radius of 1, and they are separated by a distance
@@ -586,5 +591,89 @@ fn applies_avoidance_for_two_agents() {
   assert!(
     agent_2_desired_velocity.abs_diff_eq(Vec3::new(-0.98, 0.0, 0.2), 0.05),
     "left={agent_2_desired_velocity}, right=Vec3(-0.98, 0.0, 0.2)"
+  );
+}
+
+#[test]
+fn agent_avoids_character() {
+  let nav_mesh = NavigationMesh {
+    mesh_bounds: None,
+    vertices: vec![
+      Vec3::new(-1.0, 0.0, -1.0),
+      Vec3::new(13.0, 0.0, -1.0),
+      Vec3::new(13.0, 0.0, 3.0),
+      Vec3::new(-1.0, 0.0, 3.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+  }
+  .validate()
+  .expect("Validation succeeded.");
+
+  let mut nav_data = NavigationData::new();
+  let island_id = nav_data.islands.insert({
+    let mut island = Island::new();
+    island.set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      Arc::new(nav_mesh),
+    );
+    island
+  });
+
+  let mut agents = HopSlotMap::<AgentId, _>::with_key();
+  let agent = agents.insert({
+    let mut agent = Agent::create(
+      /* position= */ Vec3::new(1.0, 0.0, 1.0),
+      /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
+      /* radius= */ 1.0,
+      /* max_velocity= */ 1.0,
+    );
+    agent.current_desired_move = Vec3::new(1.0, 0.0, 0.0);
+    agent
+  });
+  let mut characters = HopSlotMap::<CharacterId, _>::with_key();
+  let character = characters.insert(Character {
+    position: Vec3::new(11.0, 0.0, 1.01),
+    velocity: Vec3::new(-1.0, 0.0, 0.0),
+    radius: 1.0,
+  });
+
+  let mut agent_id_to_agent_node = HashMap::new();
+  agent_id_to_agent_node.insert(
+    agent,
+    (
+      agents.get(agent).unwrap().position,
+      NodeRef { island_id, polygon_index: 0 },
+    ),
+  );
+  let mut character_id_to_nav_mesh_point = HashMap::new();
+  character_id_to_nav_mesh_point
+    .insert(character, characters.get(character).unwrap().position);
+
+  apply_avoidance_to_agents(
+    &mut agents,
+    &agent_id_to_agent_node,
+    &characters,
+    &character_id_to_nav_mesh_point,
+    &nav_data,
+    &AgentOptions {
+      neighbourhood: 15.0,
+      avoidance_time_horizon: 15.0,
+      ..Default::default()
+    },
+    /* delta_time= */ 0.01,
+  );
+
+  // The agent+character each have a radius of 1, and they are separated by a
+  // distance of 10 (they start at (1,0) and (11,0)). Only the agent is
+  // managed by landmass, so it must go to (6,2), since the character will go to
+  // (6,0). That's a rise over run of 2/5 or 0.4, which is our expected Z
+  // velocity. We derive the X velocity by just making the length of the
+  // vector 1 (the agent's max speed).
+  let agent_desired_velocity =
+    agents.get(agent).unwrap().get_desired_velocity();
+  assert!(
+    agent_desired_velocity
+      .abs_diff_eq(Vec3::new((1.0f32 - 0.4 * 0.4).sqrt(), 0.0, -0.4), 0.05),
+    "left={agent_desired_velocity}, right=Vec3(0.9165..., 0.0, -0.4)"
   );
 }

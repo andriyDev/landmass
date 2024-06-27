@@ -8,7 +8,8 @@ use slotmap::HopSlotMap;
 use crate::{
   island::IslandNavigationData,
   nav_data::{ModifiedNode, NodeRef},
-  Agent, AgentId, AgentOptions, IslandId, NavigationData,
+  Agent, AgentId, AgentOptions, Character, CharacterId, IslandId,
+  NavigationData,
 };
 
 /// Adjusts the velocity of `agents` to apply local avoidance. `delta_time` must
@@ -16,6 +17,8 @@ use crate::{
 pub(crate) fn apply_avoidance_to_agents(
   agents: &mut HopSlotMap<AgentId, Agent>,
   agent_id_to_agent_node: &HashMap<AgentId, (Vec3, NodeRef)>,
+  characters: &HopSlotMap<CharacterId, Character>,
+  character_id_to_nav_mesh_point: &HashMap<CharacterId, Vec3>,
   nav_data: &NavigationData,
   agent_options: &AgentOptions,
   delta_time: f32,
@@ -45,6 +48,28 @@ pub(crate) fn apply_avoidance_to_agents(
     agent_max_radius = agent_max_radius.max(agent.radius);
   }
 
+  let mut character_kdtree = KdTree::new(/* dimensions= */ 3);
+  for (character_id, character) in characters.iter() {
+    let Some(character_point) =
+      character_id_to_nav_mesh_point.get(&character_id)
+    else {
+      continue;
+    };
+    character_kdtree
+      .add(
+        [character_point.x, character_point.y, character_point.z],
+        dodgy_2d::Agent {
+          position: to_dodgy_vec2(character_point.xz()),
+          velocity: to_dodgy_vec2(character.velocity.xz()),
+          radius: character.radius,
+          // Characters are not responsible for any avoidance since landmass has
+          // no control over them.
+          avoidance_responsibility: 0.0,
+        },
+      )
+      .expect("Character point is finite");
+  }
+
   let neighbourhood = agent_max_radius + agent_options.neighbourhood;
   let neighbourhood_squared = neighbourhood * neighbourhood;
   for (agent_id, agent) in agents.iter_mut() {
@@ -54,6 +79,13 @@ pub(crate) fn apply_avoidance_to_agents(
     };
     let agent_point = agent_node.0;
     let nearby_agents = agent_kdtree
+      .within(
+        &[agent_point.x, agent_point.y, agent_point.z],
+        neighbourhood_squared,
+        &squared_euclidean,
+      )
+      .unwrap();
+    let nearby_characters = character_kdtree
       .within(
         &[agent_point.x, agent_point.y, agent_point.z],
         neighbourhood_squared,
@@ -77,6 +109,15 @@ pub(crate) fn apply_avoidance_to_agents(
           None
         }
       })
+      .chain(nearby_characters.iter().filter_map(
+        |&(distance_squared, dodgy_agent)| {
+          if distance_squared < neighbourhood_squared {
+            Some(std::borrow::Cow::Borrowed(dodgy_agent))
+          } else {
+            None
+          }
+        },
+      ))
       .collect::<Vec<_>>();
 
     let mut nearby_obstacles = nav_mesh_borders_to_dodgy_obstacles(
