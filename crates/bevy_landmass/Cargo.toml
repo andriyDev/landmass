@@ -17,7 +17,7 @@ keywords = ["navigation", "pathfinding", "avoidance", "landmass", "bevy"]
 bevy = { version = "0.13.0", default-features = false, features = [
   "bevy_asset",
 ] }
-landmass = "0.4.0"
+landmass = { path = "../landmass", version = "0.4.0" }
 
 [features]
 mesh-utils = ["bevy/bevy_render"]
