@@ -420,7 +420,7 @@ fn sync_agent_input_state(
       agent.target_reached_condition = target_reached_condition.to_landmass();
     } else {
       agent.target_reached_condition =
-        landmass::TargetReachedCondition::Distance(agent.radius);
+        landmass::TargetReachedCondition::Distance(None);
     }
   }
 }
@@ -488,14 +488,7 @@ mod tests {
       .add_plugins(AssetPlugin::default())
       .add_plugins(LandmassPlugin);
 
-    let archipelago_id = app
-      .world
-      .spawn({
-        let mut archipelago = Archipelago::new();
-        archipelago.get_agent_options_mut().obstacle_avoidance_margin = 0.0;
-        archipelago
-      })
-      .id();
+    let archipelago_id = app.world.spawn(Archipelago::new()).id();
 
     let nav_mesh = Arc::new(
       NavigationMesh {
