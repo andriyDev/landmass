@@ -63,8 +63,8 @@ pub enum TargetReachedCondition {
 }
 
 impl TargetReachedCondition {
-  pub(crate) fn to_landmass(&self) -> landmass::TargetReachedCondition {
-    match *self {
+  pub(crate) fn to_landmass(self) -> landmass::TargetReachedCondition {
+    match self {
       TargetReachedCondition::Distance(d) => {
         landmass::TargetReachedCondition::Distance(d)
       }

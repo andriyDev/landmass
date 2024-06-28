@@ -159,6 +159,12 @@ impl Archipelago {
   }
 }
 
+impl Default for Archipelago {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 fn update_archipelagos(
   time: Res<Time>,
   mut archipelago_query: Query<&mut Archipelago>,
@@ -189,13 +195,13 @@ fn add_islands_to_archipelago(
   for (archipelago_entity, mut archipelago) in archipelago_query.iter_mut() {
     let mut new_islands = archipelago_to_islands
       .remove(&archipelago_entity)
-      .unwrap_or_else(|| HashSet::new());
+      .unwrap_or_else(HashSet::new);
     let archipelago = archipelago.as_mut();
 
     // Remove any islands that aren't in the `new_islands`. Also remove any
     // islands from the `new_islands` that are in the archipelago.
     archipelago.islands.retain(|island_entity, island_id| {
-      match new_islands.remove(&island_entity) {
+      match new_islands.remove(island_entity) {
         false => {
           archipelago.archipelago.remove_island(*island_id);
           false
@@ -316,9 +322,9 @@ impl AgentTarget {
     &self,
     global_transform_query: &Query<&GlobalTransform>,
   ) -> Option<Vec3> {
-    match self {
-      &Self::Point(point) => Some(point),
-      &Self::Entity(entity) => global_transform_query
+    match *self {
+      Self::Point(point) => Some(point),
+      Self::Entity(entity) => global_transform_query
         .get(entity)
         .ok()
         .map(|transform| transform.translation()),
@@ -351,13 +357,13 @@ fn add_agents_to_archipelagos(
   for (archipelago_entity, mut archipelago) in archipelago_query.iter_mut() {
     let mut new_agent_map = archipelago_to_agents
       .remove(&archipelago_entity)
-      .unwrap_or_else(|| HashMap::new());
+      .unwrap_or_else(HashMap::new);
     let archipelago = archipelago.as_mut();
 
     // Remove any agents that aren't in the `new_agent_map`. Also remove any
     // agents from the `new_agent_map` that are in the archipelago.
     archipelago.agents.retain(|agent_entity, agent_id| {
-      match new_agent_map.remove(&agent_entity) {
+      match new_agent_map.remove(agent_entity) {
         None => {
           archipelago.archipelago.remove_agent(*agent_id);
           false
