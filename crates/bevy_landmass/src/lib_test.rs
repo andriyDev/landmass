@@ -5,7 +5,8 @@ use landmass::NavigationMesh;
 
 use crate::{
   Agent, AgentBundle, AgentDesiredVelocity, AgentState, AgentTarget,
-  Archipelago, ArchipelagoRef, Island, IslandBundle, LandmassPlugin, NavMesh,
+  Archipelago, ArchipelagoRef, Character, CharacterBundle, Island,
+  IslandBundle, LandmassPlugin, NavMesh,
 };
 
 #[test]
@@ -198,6 +199,105 @@ fn adds_and_removes_agents() {
 
   assert_eq!(archipelago.agents.keys().copied().collect::<Vec<_>>(), []);
   assert_eq!(archipelago.archipelago.get_agent_ids().len(), 0);
+}
+
+#[test]
+fn adds_and_removes_characters() {
+  let mut app = App::new();
+
+  app
+    .add_plugins(MinimalPlugins)
+    .add_plugins(AssetPlugin::default())
+    .add_plugins(LandmassPlugin);
+
+  let archipelago_id = app.world.spawn(Archipelago::new()).id();
+
+  let character_id_1 = app
+    .world
+    .spawn((
+      TransformBundle::default(),
+      CharacterBundle {
+        character: Character { radius: 0.5 },
+        archipelago_ref: ArchipelagoRef(archipelago_id),
+        velocity: Default::default(),
+      },
+    ))
+    .id();
+
+  let character_id_2 = app
+    .world
+    .spawn((
+      TransformBundle::default(),
+      CharacterBundle {
+        character: Character { radius: 0.5 },
+        archipelago_ref: ArchipelagoRef(archipelago_id),
+        velocity: Default::default(),
+      },
+    ))
+    .id();
+
+  app.update();
+
+  let archipelago =
+    app.world.get::<Archipelago>(archipelago_id).expect("archipelago exists");
+
+  fn sorted(mut v: Vec<Entity>) -> Vec<Entity> {
+    v.sort();
+    v
+  }
+
+  assert_eq!(
+    sorted(archipelago.characters.keys().copied().collect()),
+    sorted(vec![character_id_1, character_id_2]),
+  );
+  assert_eq!(archipelago.archipelago.get_character_ids().len(), 2);
+
+  let character_id_3 = app
+    .world
+    .spawn((
+      TransformBundle::default(),
+      CharacterBundle {
+        character: Character { radius: 0.5 },
+        archipelago_ref: ArchipelagoRef(archipelago_id),
+        velocity: Default::default(),
+      },
+    ))
+    .id();
+
+  app.update();
+
+  let archipelago =
+    app.world.get::<Archipelago>(archipelago_id).expect("archipelago exists");
+
+  assert_eq!(
+    sorted(archipelago.characters.keys().copied().collect()),
+    sorted(vec![character_id_1, character_id_2, character_id_3]),
+  );
+  assert_eq!(archipelago.archipelago.get_character_ids().len(), 3);
+
+  app.world.despawn(character_id_2);
+
+  app.update();
+
+  let archipelago =
+    app.world.get::<Archipelago>(archipelago_id).expect("archipelago exists");
+
+  assert_eq!(
+    sorted(archipelago.characters.keys().copied().collect()),
+    sorted(vec![character_id_1, character_id_3]),
+  );
+  assert_eq!(archipelago.archipelago.get_character_ids().len(), 2);
+
+  app.world.despawn(character_id_1);
+  app.world.despawn(character_id_3);
+
+  app.update();
+
+  let archipelago =
+    app.world.get::<Archipelago>(archipelago_id).expect("archipelago exists");
+
+  assert_eq!(archipelago.characters.keys().copied().collect::<Vec<_>>(), []);
+  assert_eq!(archipelago.archipelago.get_character_ids().len(), 0);
 }
 
 #[test]
