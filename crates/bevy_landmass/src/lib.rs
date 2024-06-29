@@ -57,11 +57,19 @@ pub mod prelude {
 /// previous bundles).
 #[derive(Bundle)]
 pub struct AgentBundle {
+  /// The agent itself.
   pub agent: Agent,
+  /// A reference pointing to the Archipelago to associate this entity with.
   pub archipelago_ref: ArchipelagoRef,
+  /// The velocity of the agent.
   pub velocity: AgentVelocity,
+  /// The target of the agent.
   pub target: AgentTarget,
+  /// The current state of the agent. This is set by `landmass` (during
+  /// [`LandmassSystemSet::Output`]).
   pub state: AgentState,
+  /// The current desired velocity of the agent. This is set by `landmass`
+  /// (during [`LandmassSystemSet::Output`]).
   pub desired_velocity: AgentDesiredVelocity,
 }
 
@@ -70,16 +78,29 @@ pub struct AgentBundle {
 /// override previous bundles).
 #[derive(Bundle)]
 pub struct IslandBundle {
+  /// An island marker component.
   pub island: Island,
+  /// A reference pointing to the Archipelago to associate this entity with.
   pub archipelago_ref: ArchipelagoRef,
+  /// A handle to the nav mesh that this island needs.
   pub nav_mesh: Handle<NavMesh>,
 }
 
+/// System set for `landmass` systems.
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 pub enum LandmassSystemSet {
+  /// Systems for syncing the existence of components with the internal
+  /// `landmass` state. Ensure your `landmass` entities are setup before this
+  /// point (and not removed until [`LandmassSystemSet::Output`]).
   SyncExistence,
+  /// Systems for syncing the values of components with the internal `landmass`
+  /// state.
   SyncValues,
+  /// The actual `landmass` updating step.
   Update,
+  /// Systems for returning the output of `landmass` back to users. Avoid
+  /// reading/mutating data from your `landmass` entities until after this
+  /// point.
   Output,
 }
 
@@ -116,14 +137,21 @@ impl Plugin for LandmassPlugin {
   }
 }
 
+/// An archipelago, holding the internal state of `landmass`.
 #[derive(Component)]
 pub struct Archipelago {
+  /// The `landmass` archipelago.
   archipelago: landmass::Archipelago,
+  /// A map from the Bevy entity to its associated island ID in
+  /// [`Archipelago::archipelago`].
   islands: HashMap<Entity, IslandId>,
+  /// A map from the Bevy entity to its associated agent ID in
+  /// [`Archipelago::archipelago`].
   agents: HashMap<Entity, AgentId>,
 }
 
 impl Archipelago {
+  /// Creates an empty archipelago.
   pub fn new() -> Self {
     Self {
       archipelago: landmass::Archipelago::new(),
@@ -132,22 +160,27 @@ impl Archipelago {
     }
   }
 
+  /// Gets the agent options.
   pub fn get_agent_options(&self) -> &landmass::AgentOptions {
     &self.archipelago.agent_options
   }
 
+  /// Gets a mutable borrow to the agent options.
   pub fn get_agent_options_mut(&mut self) -> &mut landmass::AgentOptions {
     &mut self.archipelago.agent_options
   }
 
+  /// Gets an agent.
   fn get_agent(&self, entity: Entity) -> &landmass::Agent {
     self.archipelago.get_agent(*self.agents.get(&entity).unwrap())
   }
 
+  /// Gets a mutable borrow to an agent.
   fn get_agent_mut(&mut self, entity: Entity) -> &mut landmass::Agent {
     self.archipelago.get_agent_mut(*self.agents.get(&entity).unwrap())
   }
 
+  /// Gets a mutable borrow to an island (if present).
   fn get_island_mut(
     &mut self,
     entity: Entity,
@@ -165,6 +198,7 @@ impl Default for Archipelago {
   }
 }
 
+/// Updates the archipelago.
 fn update_archipelagos(
   time: Res<Time>,
   mut archipelago_query: Query<&mut Archipelago>,
@@ -177,12 +211,15 @@ fn update_archipelagos(
   }
 }
 
+/// A marker component that an entity is an island.
 #[derive(Component)]
 pub struct Island;
 
+/// An asset holding a `landmass` nav mesh.
 #[derive(Asset, TypePath)]
 pub struct NavMesh(pub Arc<landmass::ValidNavigationMesh>);
 
+/// Ensures every Bevy island has a corresponding `landmass` island.
 fn add_islands_to_archipelago(
   mut archipelago_query: Query<(Entity, &mut Archipelago)>,
   island_query: Query<(Entity, &ArchipelagoRef), With<Island>>,
@@ -217,6 +254,7 @@ fn add_islands_to_archipelago(
   }
 }
 
+/// Ensures that the island transform and nav mesh are up to date.
 fn sync_island_nav_mesh(
   mut archipelago_query: Query<&mut Archipelago>,
   island_query: Query<
@@ -297,18 +335,37 @@ fn sync_island_nav_mesh(
   }
 }
 
+/// An agent. See [`crate::AgentBundle`] for required related components.
 #[derive(Component)]
 pub struct Agent {
+  /// The radius of the agent.
   pub radius: f32,
+  /// The max velocity of an agent.
   pub max_velocity: f32,
 }
 
+/// A reference to an archipelago.
 #[derive(Component)]
 pub struct ArchipelagoRef(pub Entity);
 
+/// The current velocity of the agent. This must be set to match whatever speed
+/// the agent is going.
 #[derive(Component, Default)]
 pub struct AgentVelocity(pub Vec3);
 
+/// The current target of the entity. Note this can be set by either reinserting
+/// the component, or dereferencing:
+///
+/// ```rust
+/// use bevy::prelude::*;
+/// use bevy_landmass::AgentTarget;
+///
+/// fn clear_targets(mut targets: Query<&mut AgentTarget>) {
+///   for mut target in targets.iter_mut() {
+///     *target = AgentTarget::None;
+///   }
+/// }
+/// ```
 #[derive(Component, Default)]
 pub enum AgentTarget {
   #[default]
@@ -318,6 +375,7 @@ pub enum AgentTarget {
 }
 
 impl AgentTarget {
+  /// Converts an agent target to a concrete world position.
   fn to_point(
     &self,
     global_transform_query: &Query<&GlobalTransform>,
@@ -333,15 +391,19 @@ impl AgentTarget {
   }
 }
 
+/// The current desired velocity of the agent. This is set by `landmass` (during
+/// [`LandmassSystemSet::Output`]).
 #[derive(Component, Default)]
 pub struct AgentDesiredVelocity(Vec3);
 
 impl AgentDesiredVelocity {
+  /// The desired velocity of the agent.
   pub fn velocity(&self) -> Vec3 {
     self.0
   }
 }
 
+/// Ensures every Bevy agent has a corresponding `landmass` agent.
 fn add_agents_to_archipelagos(
   mut archipelago_query: Query<(Entity, &mut Archipelago)>,
   agent_query: Query<(Entity, &Agent, &ArchipelagoRef), With<GlobalTransform>>,
@@ -385,6 +447,8 @@ fn add_agents_to_archipelagos(
   }
 }
 
+/// Ensures the "input state" (position, velocity, etc) of every Bevy agent
+/// matches its `landmass` counterpart.
 fn sync_agent_input_state(
   agent_query: Query<
     (
@@ -431,6 +495,7 @@ fn sync_agent_input_state(
   }
 }
 
+/// Copies the agent state from `landmass` agents to their Bevy equivalent.
 fn sync_agent_state(
   mut agent_query: Query<
     (Entity, &ArchipelagoRef, &mut AgentState),
@@ -451,6 +516,8 @@ fn sync_agent_state(
   }
 }
 
+/// Copies the agent desired velocity from `landmass` agents to their Bevy
+/// equivalent.
 fn sync_desired_velocity(
   mut agent_query: Query<
     (Entity, &ArchipelagoRef, &mut AgentDesiredVelocity),

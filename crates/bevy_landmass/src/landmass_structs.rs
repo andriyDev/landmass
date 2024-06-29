@@ -24,6 +24,7 @@ pub enum AgentState {
 }
 
 impl AgentState {
+  /// Converts from the `landmass` state to `bevy_landmass` state.
   pub(crate) fn from_landmass(state: &landmass::AgentState) -> Self {
     match state {
       landmass::AgentState::Idle => Self::Idle,
@@ -63,6 +64,7 @@ pub enum TargetReachedCondition {
 }
 
 impl TargetReachedCondition {
+  /// Converts from the `bevy_landmass` condition to `landmass` condition.
   pub(crate) fn to_landmass(self) -> landmass::TargetReachedCondition {
     match self {
       TargetReachedCondition::Distance(d) => {

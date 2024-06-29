@@ -7,10 +7,18 @@ use bevy::{
 };
 use landmass::NavigationMesh;
 
+/// A conversion error for Bevy meshes to `landmass` nav meshes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConvertMeshError {
+  /// The Bevy mesh had an unsupported topology. Only
+  /// [`PrimitiveTopology::TriangleList`] is supported.
   InvalidTopology,
+  /// The Bevy mesh does not have a [`Mesh::ATTRIBUTE_POSITION`].
   MissingVertexPositions,
+  /// The mesh has an unsupported type for its indices. This may either be
+  /// because the mesh has **no** indices, or an unknown index format is used
+  /// (currently u16 and u32 are both supported). Indices are necessary since
+  /// they inform connectivity.
   WrongTypeForIndices,
 }
 
