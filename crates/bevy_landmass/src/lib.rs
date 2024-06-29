@@ -48,8 +48,8 @@ pub mod prelude {
   pub use crate::LandmassPlugin;
   pub use crate::LandmassSystemSet;
   pub use crate::NavMesh;
-  pub use landmass::NavigationMesh;
-  pub use landmass::ValidNavigationMesh;
+  pub use crate::NavigationMesh;
+  pub use crate::ValidNavigationMesh;
 }
 
 /// A bundle to create agents. This omits the GlobalTransform component, since
@@ -217,7 +217,7 @@ pub struct Island;
 
 /// An asset holding a `landmass` nav mesh.
 #[derive(Asset, TypePath)]
-pub struct NavMesh(pub Arc<landmass::ValidNavigationMesh>);
+pub struct NavMesh(pub Arc<ValidNavigationMesh>);
 
 /// Ensures every Bevy island has a corresponding `landmass` island.
 fn add_islands_to_archipelago(

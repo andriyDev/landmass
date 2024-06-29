@@ -1,3 +1,4 @@
+use crate::NavigationMesh;
 use bevy::{
   prelude::Mesh,
   render::{
@@ -5,7 +6,6 @@ use bevy::{
     render_resource::PrimitiveTopology,
   },
 };
-use landmass::NavigationMesh;
 
 /// A conversion error for Bevy meshes to `landmass` nav meshes.
 #[derive(Debug, Clone, PartialEq, Eq)]
