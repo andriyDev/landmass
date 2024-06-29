@@ -74,6 +74,19 @@ pub struct AgentBundle {
   pub desired_velocity: AgentDesiredVelocity,
 }
 
+/// A bundle to create characters. This omits the GlobalTransform component,
+/// since this is commonly added in other bundles (which is redundant and can
+/// override previous bundles).
+#[derive(Bundle)]
+pub struct CharacterBundle {
+  /// The character itself.
+  pub character: Character,
+  /// A reference pointing to the Archipelago to associate this entity with.
+  pub archipelago_ref: ArchipelagoRef,
+  /// The velocity of the character.
+  pub velocity: Velocity,
+}
+
 /// A bundle to create islands. The GlobalTransform component is omitted, since
 /// this is commonly added in other bundles (which is redundant and can
 /// override previous bundles).
@@ -343,6 +356,13 @@ pub struct Agent {
   pub radius: f32,
   /// The max velocity of an agent.
   pub max_velocity: f32,
+}
+
+// A character. See [`crate::CharacterBundle`] for required related components.
+#[derive(Component)]
+pub struct Character {
+  /// The radius of the character.
+  pub radius: f32,
 }
 
 /// A reference to an archipelago.
