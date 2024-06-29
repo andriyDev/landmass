@@ -14,7 +14,7 @@ use bevy::{
   reflect::TypePath,
   time::Time,
 };
-use landmass::{AgentId, IslandId};
+use landmass::{AgentId, CharacterId, IslandId};
 use util::{bevy_vec3_to_landmass_vec3, landmass_vec3_to_bevy_vec3};
 
 mod landmass_structs;
@@ -131,12 +131,16 @@ impl Plugin for LandmassPlugin {
     );
     app.add_systems(
       Update,
-      (add_agents_to_archipelagos, add_islands_to_archipelago)
+      (
+        add_agents_to_archipelagos,
+        add_islands_to_archipelago,
+        add_characters_to_archipelago,
+      )
         .in_set(LandmassSystemSet::SyncExistence),
     );
     app.add_systems(
       Update,
-      (sync_agent_input_state, sync_island_nav_mesh)
+      (sync_agent_input_state, sync_island_nav_mesh, sync_character_state)
         .in_set(LandmassSystemSet::SyncValues),
     );
     app.add_systems(
@@ -162,6 +166,9 @@ pub struct Archipelago {
   /// A map from the Bevy entity to its associated agent ID in
   /// [`Archipelago::archipelago`].
   agents: HashMap<Entity, AgentId>,
+  /// A map from the Bevy entity to its associated character ID in
+  /// [`Archipelago::archipelago`].
+  characters: HashMap<Entity, CharacterId>,
 }
 
 impl Archipelago {
@@ -171,6 +178,7 @@ impl Archipelago {
       archipelago: landmass::Archipelago::new(),
       islands: HashMap::new(),
       agents: HashMap::new(),
+      characters: HashMap::new(),
     }
   }
 
@@ -192,6 +200,11 @@ impl Archipelago {
   /// Gets a mutable borrow to an agent.
   fn get_agent_mut(&mut self, entity: Entity) -> &mut landmass::Agent {
     self.archipelago.get_agent_mut(*self.agents.get(&entity).unwrap())
+  }
+
+  /// Gets a mutable borrow to a character.
+  fn get_character_mut(&mut self, entity: Entity) -> &mut landmass::Character {
+    self.archipelago.get_character_mut(*self.characters.get(&entity).unwrap())
   }
 
   /// Gets a mutable borrow to an island (if present).
@@ -557,6 +570,82 @@ fn sync_desired_velocity(
     desired_velocity.0 = landmass_vec3_to_bevy_vec3(
       archipelago.get_agent(agent_entity).get_desired_velocity(),
     );
+  }
+}
+
+/// Ensures every Bevy character has a corresponding `landmass` character.
+fn add_characters_to_archipelago(
+  mut archipelagos: Query<(Entity, &mut Archipelago)>,
+  characters: Query<
+    (Entity, &Character, &ArchipelagoRef),
+    With<GlobalTransform>,
+  >,
+) {
+  let mut archipelago_to_characters = HashMap::<_, HashMap<_, _>>::new();
+  for (entity, character, archipleago_ref) in characters.iter() {
+    archipelago_to_characters
+      .entry(archipleago_ref.0)
+      .or_default()
+      .insert(entity, character);
+  }
+  for (entity, mut archipelago) in archipelagos.iter_mut() {
+    let mut new_character_map =
+      archipelago_to_characters.remove(&entity).unwrap_or_else(HashMap::new);
+    let archipelago = archipelago.as_mut();
+
+    archipelago.characters.retain(|character_entity, character_id| {
+      if new_character_map.remove(character_entity).is_none() {
+        archipelago.archipelago.remove_character(*character_id);
+        false
+      } else {
+        true
+      }
+    });
+
+    for (new_character_entity, new_character) in new_character_map.drain() {
+      let character_id =
+        archipelago.archipelago.add_character(landmass::Character {
+          position: Vec3::ZERO,
+          velocity: Vec3::ZERO,
+          radius: new_character.radius,
+        });
+      archipelago.characters.insert(new_character_entity, character_id);
+    }
+  }
+}
+
+/// Copies Bevy character states to their associated landmass character.
+fn sync_character_state(
+  characters: Query<(
+    Entity,
+    &Character,
+    &ArchipelagoRef,
+    &GlobalTransform,
+    Option<&Velocity>,
+  )>,
+  mut archipelagos: Query<&mut Archipelago>,
+) {
+  for (
+    character_entity,
+    character,
+    &ArchipelagoRef(arch_entity),
+    transform,
+    velocity,
+  ) in characters.iter()
+  {
+    let Ok(mut archipelago) = archipelagos.get_mut(arch_entity) else {
+      continue;
+    };
+
+    let landmass_character = archipelago.get_character_mut(character_entity);
+    landmass_character.position =
+      bevy_vec3_to_landmass_vec3(transform.translation());
+    landmass_character.velocity = if let Some(Velocity(velocity)) = velocity {
+      bevy_vec3_to_landmass_vec3(*velocity)
+    } else {
+      landmass::Vec3::ZERO
+    };
+    landmass_character.radius = character.radius;
   }
 }
 
