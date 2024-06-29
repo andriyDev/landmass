@@ -23,6 +23,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.toolchain }}
+      - name: Install Dependencies
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
       - run: cargo build
       - name: cargo test
         run: cargo test --all-features --all-targets
@@ -38,6 +40,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
+      - name: Install Dependencies
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
       - uses: taiki-e/install-action@cargo-llvm-cov
       - name: cargo llvm-cov
         run: cargo llvm-cov --all-features --lcov --output-path lcov.info
