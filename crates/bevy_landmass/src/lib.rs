@@ -20,6 +20,7 @@ use util::{bevy_vec3_to_landmass_vec3, landmass_vec3_to_bevy_vec3};
 mod landmass_structs;
 mod util;
 
+pub use landmass::AgentOptions;
 pub use landmass::NavigationMesh;
 pub use landmass::ValidNavigationMesh;
 pub use landmass::ValidationError;
@@ -161,12 +162,12 @@ impl Archipelago {
   }
 
   /// Gets the agent options.
-  pub fn get_agent_options(&self) -> &landmass::AgentOptions {
+  pub fn get_agent_options(&self) -> &AgentOptions {
     &self.archipelago.agent_options
   }
 
   /// Gets a mutable borrow to the agent options.
-  pub fn get_agent_options_mut(&mut self) -> &mut landmass::AgentOptions {
+  pub fn get_agent_options_mut(&mut self) -> &mut AgentOptions {
     &mut self.archipelago.agent_options
   }
 
