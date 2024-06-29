@@ -180,7 +180,7 @@ impl AgentSpawner {
 
 /// Use the desired velocity as the agent's velocity.
 fn update_agent_velocity(
-  mut agent_query: Query<(&mut AgentVelocity, &AgentDesiredVelocity)>,
+  mut agent_query: Query<(&mut Velocity, &AgentDesiredVelocity)>,
 ) {
   for (mut velocity, desired_velocity) in agent_query.iter_mut() {
     velocity.0 = desired_velocity.velocity();
@@ -190,7 +190,7 @@ fn update_agent_velocity(
 /// Apply the agent's velocity to its position.
 fn move_agent_by_velocity(
   time: Res<Time>,
-  mut agent_query: Query<(&mut Transform, &GlobalTransform, &AgentVelocity)>,
+  mut agent_query: Query<(&mut Transform, &GlobalTransform, &Velocity)>,
 ) {
   for (mut transform, global_transform, velocity) in agent_query.iter_mut() {
     let local_velocity =
