@@ -3,10 +3,13 @@ use std::sync::Arc;
 use bevy::{prelude::*, render::mesh::CylinderMeshBuilder};
 use bevy_landmass::{nav_mesh::bevy_mesh_to_landmass_nav_mesh, prelude::*};
 
+mod debug;
+
 fn main() {
   App::new()
     .add_plugins(DefaultPlugins)
     .add_plugins(LandmassPlugin)
+    .add_plugins(debug::DebugPlugin)
     .add_systems(Startup, setup)
     .add_systems(Update, (convert_mesh, handle_clicks))
     .add_systems(
