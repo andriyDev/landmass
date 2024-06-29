@@ -8,7 +8,7 @@ fn main() {
     .add_plugins(DefaultPlugins)
     .add_plugins(LandmassPlugin)
     .add_systems(Startup, setup)
-    .add_systems(Update, convert_mesh)
+    .add_systems(Update, (convert_mesh, handle_clicks))
     .add_systems(
       Update,
       (update_agent_velocity, move_agent_by_velocity).chain(),
@@ -105,72 +105,74 @@ fn setup(
 
   // Spawn the target.
   let target_entity = commands
-    .spawn(MaterialMeshBundle {
-      transform: Transform::from_translation(Vec3::new(0.0, 0.0, 6.0)),
-      mesh: meshes.add(
-        CylinderMeshBuilder {
-          cylinder: Cylinder { radius: 0.25, half_height: 0.1 },
-          resolution: 20,
-          segments: 1,
-        }
-        .build(),
-      ),
-      material: materials.add(StandardMaterial {
-        unlit: true,
-        base_color: Color::PURPLE,
+    .spawn((
+      MaterialMeshBundle {
+        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 6.0)),
+        mesh: meshes.add(
+          CylinderMeshBuilder {
+            cylinder: Cylinder { radius: 0.25, half_height: 0.1 },
+            resolution: 20,
+            segments: 1,
+          }
+          .build(),
+        ),
+        material: materials.add(StandardMaterial {
+          unlit: true,
+          base_color: Color::PURPLE,
+          ..Default::default()
+        }),
         ..Default::default()
-      }),
-      ..Default::default()
-    })
+      },
+      Target,
+    ))
     .id();
 
-  let agent_mesh = meshes.add(
-    CylinderMeshBuilder {
-      cylinder: Cylinder { radius: 0.5, half_height: 0.1 },
-      resolution: 20,
-      segments: 1,
-    }
-    .build(),
-  );
-  let agent_material = materials.add(StandardMaterial {
-    unlit: true,
-    base_color: Color::SEA_GREEN,
-    ..Default::default()
+  commands.insert_resource(AgentSpawner {
+    mesh: meshes.add(
+      CylinderMeshBuilder {
+        cylinder: Cylinder { radius: 0.5, half_height: 0.1 },
+        resolution: 20,
+        segments: 1,
+      }
+      .build(),
+    ),
+    material: materials.add(StandardMaterial {
+      unlit: true,
+      base_color: Color::SEA_GREEN,
+      ..Default::default()
+    }),
+    archipelago_entity,
+    target_entity,
   });
+}
 
-  // Spawn the agents.
-  commands.spawn((
-    MaterialMeshBundle {
-      mesh: agent_mesh.clone(),
-      material: agent_material.clone(),
-      ..Default::default()
-    },
-    AgentBundle {
-      agent: Agent { radius: 0.5, max_velocity: 2.0 },
-      archipelago_ref: ArchipelagoRef(archipelago_entity),
-      target: AgentTarget::Entity(target_entity),
-      state: Default::default(),
-      velocity: Default::default(),
-      desired_velocity: Default::default(),
-    },
-  ));
+#[derive(Resource)]
+struct AgentSpawner {
+  mesh: Handle<Mesh>,
+  material: Handle<StandardMaterial>,
+  archipelago_entity: Entity,
+  target_entity: Entity,
+}
 
-  commands.spawn((
-    MaterialMeshBundle {
-      transform: Transform::from_translation(Vec3::new(17.0, 0.0, 5.0)),
-      mesh: agent_mesh.clone(),
-      material: agent_material.clone(),
-      ..Default::default()
-    },
-    AgentBundle {
-      agent: Agent { radius: 0.5, max_velocity: 2.0 },
-      archipelago_ref: ArchipelagoRef(archipelago_entity),
-      target: AgentTarget::Entity(target_entity),
-      state: Default::default(),
-      velocity: Default::default(),
-      desired_velocity: Default::default(),
-    },
-  ));
+impl AgentSpawner {
+  fn spawn(&self, position: Vec3, commands: &mut Commands) {
+    commands.spawn((
+      MaterialMeshBundle {
+        transform: Transform::from_translation(position),
+        mesh: self.mesh.clone(),
+        material: self.material.clone(),
+        ..Default::default()
+      },
+      AgentBundle {
+        agent: Agent { radius: 0.5, max_velocity: 2.0 },
+        archipelago_ref: ArchipelagoRef(self.archipelago_entity),
+        target: AgentTarget::Entity(self.target_entity),
+        state: Default::default(),
+        velocity: Default::default(),
+        desired_velocity: Default::default(),
+      },
+    ));
+  }
 }
 
 /// Use the desired velocity as the agent's velocity.
@@ -191,5 +193,47 @@ fn move_agent_by_velocity(
     let local_velocity =
       global_transform.affine().inverse().transform_vector3(velocity.0);
     transform.translation += local_velocity * time.delta_seconds();
+  }
+}
+
+#[derive(Component)]
+struct Target;
+
+fn handle_clicks(
+  buttons: Res<ButtonInput<MouseButton>>,
+  window_query: Query<&Window>,
+  camera_query: Query<(&Camera, &GlobalTransform)>,
+  agent_spawner: Res<AgentSpawner>,
+  target: Query<Entity, With<Target>>,
+  mut commands: Commands,
+) {
+  let left = buttons.just_pressed(MouseButton::Left);
+  let right = buttons.just_pressed(MouseButton::Right);
+  if !left && !right {
+    return;
+  }
+
+  let window = window_query.get_single().unwrap();
+  let (camera, camera_transform) = camera_query.get_single().unwrap();
+
+  let Some(world_position) = window
+    .cursor_position()
+    .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor))
+    .and_then(|ray| {
+      ray
+        .intersect_plane(Vec3::ZERO, Plane3d { normal: Direction3d::Y })
+        .map(|d| ray.get_point(d))
+    })
+  else {
+    return;
+  };
+
+  if left {
+    agent_spawner.spawn(world_position, &mut commands);
+  }
+  if right {
+    commands
+      .entity(target.single())
+      .insert(Transform::from_translation(world_position));
   }
 }
