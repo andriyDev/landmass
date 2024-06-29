@@ -41,7 +41,6 @@ pub mod prelude {
   pub use crate::AgentDesiredVelocity;
   pub use crate::AgentState;
   pub use crate::AgentTarget;
-  pub use crate::AgentVelocity;
   pub use crate::Archipelago;
   pub use crate::ArchipelagoRef;
   pub use crate::Island;
@@ -51,6 +50,7 @@ pub mod prelude {
   pub use crate::NavMesh;
   pub use crate::NavigationMesh;
   pub use crate::ValidNavigationMesh;
+  pub use crate::Velocity;
 }
 
 /// A bundle to create agents. This omits the GlobalTransform component, since
@@ -63,7 +63,7 @@ pub struct AgentBundle {
   /// A reference pointing to the Archipelago to associate this entity with.
   pub archipelago_ref: ArchipelagoRef,
   /// The velocity of the agent.
-  pub velocity: AgentVelocity,
+  pub velocity: Velocity,
   /// The target of the agent.
   pub target: AgentTarget,
   /// The current state of the agent. This is set by `landmass` (during
@@ -349,10 +349,10 @@ pub struct Agent {
 #[derive(Component)]
 pub struct ArchipelagoRef(pub Entity);
 
-/// The current velocity of the agent. This must be set to match whatever speed
-/// the agent is going.
+/// The current velocity of the agent/character. This must be set to match
+/// whatever speed the agent/character is going.
 #[derive(Component, Default)]
-pub struct AgentVelocity(pub Vec3);
+pub struct Velocity(pub Vec3);
 
 /// The current target of the entity. Note this can be set by either reinserting
 /// the component, or dereferencing:
@@ -456,7 +456,7 @@ fn sync_agent_input_state(
       Entity,
       &ArchipelagoRef,
       &GlobalTransform,
-      Option<&AgentVelocity>,
+      Option<&Velocity>,
       Option<&AgentTarget>,
       Option<&TargetReachedCondition>,
     ),
@@ -481,7 +481,7 @@ fn sync_agent_input_state(
 
     let agent = archipelago.get_agent_mut(agent_entity);
     agent.position = bevy_vec3_to_landmass_vec3(transform.translation());
-    if let Some(AgentVelocity(velocity)) = velocity {
+    if let Some(Velocity(velocity)) = velocity {
       agent.velocity = bevy_vec3_to_landmass_vec3(*velocity);
     }
     agent.current_target = target
