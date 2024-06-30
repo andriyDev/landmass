@@ -6,7 +6,7 @@ use landmass::NavigationMesh;
 use crate::{
   Agent, AgentBundle, AgentDesiredVelocity, AgentState, AgentTarget,
   Archipelago, ArchipelagoRef, Character, CharacterBundle, Island,
-  IslandBundle, LandmassPlugin, NavMesh,
+  IslandBundle, LandmassPlugin, NavMesh, Velocity,
 };
 
 #[test]
@@ -391,4 +391,58 @@ fn adds_and_removes_islands() {
 
   assert_eq!(archipelago.agents.keys().copied().collect::<Vec<_>>(), []);
   assert_eq!(archipelago.archipelago.get_agent_ids().len(), 0);
+}
+
+#[test]
+fn changing_character_fields_changes_landmass_character() {
+  let mut app = App::new();
+
+  app
+    .add_plugins(MinimalPlugins)
+    .add_plugins(TransformPlugin)
+    .add_plugins(AssetPlugin::default())
+    .add_plugins(LandmassPlugin);
+
+  let archipelago = app.world.spawn(Archipelago::new()).id();
+
+  let character = app
+    .world
+    .spawn((
+      TransformBundle {
+        local: Transform::from_translation(Vec3::new(1.0, 1.0, 1.0)),
+        ..Default::default()
+      },
+      CharacterBundle {
+        character: Character { radius: 1.0 },
+        archipelago_ref: ArchipelagoRef(archipelago),
+        velocity: Velocity(Vec3::new(2.0, 2.0, 2.0)),
+      },
+    ))
+    .id();
+
+  app.update();
+  // Update a second time so the global transform propagates correctly.
+  app.update();
+
+  let character_ref =
+    app.world.get::<Archipelago>(archipelago).unwrap().get_character(character);
+  assert_eq!(character_ref.position, Vec3::new(1.0, 1.0, 1.0));
+  assert_eq!(character_ref.velocity, Vec3::new(2.0, 2.0, 2.0));
+  assert_eq!(character_ref.radius, 1.0);
+
+  app.world.entity_mut(character).insert((
+    Transform::from_translation(Vec3::new(3.0, 3.0, 3.0)),
+    Character { radius: 2.0 },
+    Velocity(Vec3::new(4.0, 4.0, 4.0)),
+  ));
+
+  app.update();
+  // Update a second time so the global transform propagates correctly.
+  app.update();
+
+  let agent_ref =
+    app.world.get::<Archipelago>(archipelago).unwrap().get_character(character);
+  assert_eq!(agent_ref.position, Vec3::new(3.0, 3.0, 3.0));
+  assert_eq!(agent_ref.velocity, Vec3::new(4.0, 4.0, 4.0));
+  assert_eq!(agent_ref.radius, 2.0);
 }
