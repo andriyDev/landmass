@@ -1,17 +1,23 @@
 use std::sync::Arc;
 
-use bevy::{prelude::*, render::mesh::CylinderMeshBuilder};
-use bevy_landmass::{nav_mesh::bevy_mesh_to_landmass_nav_mesh, prelude::*};
-
-mod debug;
+use bevy::{
+  input::common_conditions::input_just_pressed, prelude::*,
+  render::mesh::CylinderMeshBuilder,
+};
+use bevy_landmass::{
+  debug::{EnableLandmassDebug, LandmassDebugPlugin},
+  nav_mesh::bevy_mesh_to_landmass_nav_mesh,
+  prelude::*,
+};
 
 fn main() {
   App::new()
     .add_plugins(DefaultPlugins)
     .add_plugins(LandmassPlugin)
-    .add_plugins(debug::DebugPlugin)
+    .add_plugins(LandmassDebugPlugin::default())
     .add_systems(Startup, setup)
     .add_systems(Update, (convert_mesh, handle_clicks))
+    .add_systems(Update, toggle_debug.run_if(input_just_pressed(KeyCode::F12)))
     .add_systems(
       Update,
       (update_agent_velocity, move_agent_by_velocity).chain(),
@@ -199,9 +205,11 @@ fn move_agent_by_velocity(
   }
 }
 
+/// Marker component for the target entity.
 #[derive(Component)]
 struct Target;
 
+/// Handles clicks by spawning agents with LMB and moving the target with RMB.
 fn handle_clicks(
   buttons: Res<ButtonInput<MouseButton>>,
   window_query: Query<&Window>,
@@ -239,4 +247,9 @@ fn handle_clicks(
       .entity(target.single())
       .insert(Transform::from_translation(world_position));
   }
+}
+
+/// System for toggling the `EnableLandmassDebug` resource.
+fn toggle_debug(mut debug: ResMut<EnableLandmassDebug>) {
+  **debug = !**debug;
 }
