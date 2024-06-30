@@ -203,6 +203,12 @@ impl Archipelago {
   }
 
   /// Gets a mutable borrow to a character.
+  #[allow(unused)] // Used in tests.
+  fn get_character(&self, entity: Entity) -> &landmass::Character {
+    self.archipelago.get_character(*self.characters.get(&entity).unwrap())
+  }
+
+  /// Gets a mutable borrow to a character.
   fn get_character_mut(&mut self, entity: Entity) -> &mut landmass::Character {
     self.archipelago.get_character_mut(*self.characters.get(&entity).unwrap())
   }
