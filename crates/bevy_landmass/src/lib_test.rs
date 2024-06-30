@@ -394,6 +394,82 @@ fn adds_and_removes_islands() {
 }
 
 #[test]
+fn changing_agent_fields_changes_landmass_agent() {
+  let mut app = App::new();
+
+  app
+    .add_plugins(MinimalPlugins)
+    .add_plugins(TransformPlugin)
+    .add_plugins(AssetPlugin::default())
+    .add_plugins(LandmassPlugin);
+
+  let archipelago = app.world.spawn(Archipelago::new()).id();
+
+  let agent = app
+    .world
+    .spawn((
+      TransformBundle {
+        local: Transform::from_translation(Vec3::new(1.0, 1.0, 1.0)),
+        ..Default::default()
+      },
+      AgentBundle {
+        agent: Agent { radius: 1.0, max_velocity: 1.0 },
+        archipelago_ref: ArchipelagoRef(archipelago),
+        velocity: Velocity(Vec3::new(2.0, 2.0, 2.0)),
+        target: AgentTarget::None,
+        state: Default::default(),
+        desired_velocity: Default::default(),
+      },
+      crate::TargetReachedCondition::Distance(Some(1.0)),
+    ))
+    .id();
+
+  app.update();
+  // Update a second time so the global transform propagates correctly.
+  app.update();
+
+  let agent_ref =
+    app.world.get::<Archipelago>(archipelago).unwrap().get_agent(agent);
+  assert_eq!(agent_ref.position, Vec3::new(1.0, 1.0, 1.0));
+  assert_eq!(agent_ref.velocity, Vec3::new(2.0, 2.0, 2.0));
+  assert_eq!(agent_ref.radius, 1.0);
+  assert_eq!(agent_ref.max_velocity, 1.0);
+  assert_eq!(agent_ref.current_target, None);
+  let landmass::TargetReachedCondition::Distance(dist) =
+    agent_ref.target_reached_condition
+  else {
+    panic!("Expected distance reached condition");
+  };
+  assert_eq!(dist, Some(1.0));
+
+  app.world.entity_mut(agent).insert((
+    Transform::from_translation(Vec3::new(3.0, 3.0, 3.0)),
+    Agent { radius: 2.0, max_velocity: 2.0 },
+    Velocity(Vec3::new(4.0, 4.0, 4.0)),
+    AgentTarget::Point(Vec3::new(5.0, 5.0, 5.0)),
+    crate::TargetReachedCondition::VisibleAtDistance(Some(2.0)),
+  ));
+
+  app.update();
+  // Update a second time so the global transform propagates correctly.
+  app.update();
+
+  let agent_ref =
+    app.world.get::<Archipelago>(archipelago).unwrap().get_agent(agent);
+  assert_eq!(agent_ref.position, Vec3::new(3.0, 3.0, 3.0));
+  assert_eq!(agent_ref.velocity, Vec3::new(4.0, 4.0, 4.0));
+  assert_eq!(agent_ref.radius, 2.0);
+  assert_eq!(agent_ref.max_velocity, 2.0);
+  assert_eq!(agent_ref.current_target, Some(Vec3::new(5.0, 5.0, 5.0)));
+  let landmass::TargetReachedCondition::VisibleAtDistance(dist) =
+    agent_ref.target_reached_condition
+  else {
+    panic!("Expected distance reached condition");
+  };
+  assert_eq!(dist, Some(2.0));
+}
+
+#[test]
 fn changing_character_fields_changes_landmass_character() {
   let mut app = App::new();
 

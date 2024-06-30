@@ -490,22 +490,21 @@ fn add_agents_to_archipelagos(
 /// Ensures the "input state" (position, velocity, etc) of every Bevy agent
 /// matches its `landmass` counterpart.
 fn sync_agent_input_state(
-  agent_query: Query<
-    (
-      Entity,
-      &ArchipelagoRef,
-      &GlobalTransform,
-      Option<&Velocity>,
-      Option<&AgentTarget>,
-      Option<&TargetReachedCondition>,
-    ),
-    With<Agent>,
-  >,
+  agent_query: Query<(
+    Entity,
+    &Agent,
+    &ArchipelagoRef,
+    &GlobalTransform,
+    Option<&Velocity>,
+    Option<&AgentTarget>,
+    Option<&TargetReachedCondition>,
+  )>,
   global_transform_query: Query<&GlobalTransform>,
   mut archipelago_query: Query<&mut Archipelago>,
 ) {
   for (
     agent_entity,
+    agent,
     &ArchipelagoRef(arch_entity),
     transform,
     velocity,
@@ -518,20 +517,23 @@ fn sync_agent_input_state(
       Ok(arch) => arch,
     };
 
-    let agent = archipelago.get_agent_mut(agent_entity);
-    agent.position = bevy_vec3_to_landmass_vec3(transform.translation());
+    let landmass_agent = archipelago.get_agent_mut(agent_entity);
+    landmass_agent.position =
+      bevy_vec3_to_landmass_vec3(transform.translation());
     if let Some(Velocity(velocity)) = velocity {
-      agent.velocity = bevy_vec3_to_landmass_vec3(*velocity);
+      landmass_agent.velocity = bevy_vec3_to_landmass_vec3(*velocity);
     }
-    agent.current_target = target
+    landmass_agent.radius = agent.radius;
+    landmass_agent.max_velocity = agent.max_velocity;
+    landmass_agent.current_target = target
       .and_then(|target| target.to_point(&global_transform_query))
       .map(bevy_vec3_to_landmass_vec3);
-    if let Some(target_reached_condition) = target_reached_condition {
-      agent.target_reached_condition = target_reached_condition.to_landmass();
-    } else {
-      agent.target_reached_condition =
-        landmass::TargetReachedCondition::Distance(None);
-    }
+    landmass_agent.target_reached_condition =
+      if let Some(target_reached_condition) = target_reached_condition {
+        target_reached_condition.to_landmass()
+      } else {
+        landmass::TargetReachedCondition::Distance(None)
+      };
   }
 }
 
