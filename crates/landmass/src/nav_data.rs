@@ -229,6 +229,7 @@ impl NavigationData {
         value
           .nav_data
           .as_ref()
+          .filter(|nav_data| !nav_data.nav_mesh.mesh_bounds.is_empty())
           .map(|nav_data| (nav_data.transformed_bounds, Some(key)))
       })
       .collect::<Vec<_>>();

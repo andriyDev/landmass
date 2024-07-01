@@ -25,6 +25,11 @@ impl BoundingBox {
     Self::Box { min, max }
   }
 
+  /// Returns whether the box is empty or not.
+  pub fn is_empty(&self) -> bool {
+    matches!(self, Self::Empty)
+  }
+
   /// Returns the bounds of the box, assuming it is non-empty.
   pub fn as_box(&self) -> (Vec3, Vec3) {
     match self {
