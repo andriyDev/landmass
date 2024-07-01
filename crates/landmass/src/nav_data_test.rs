@@ -893,3 +893,40 @@ fn stale_modified_nodes_are_removed() {
 
   assert_eq!(nav_data.modified_nodes.len(), 0);
 }
+
+#[test]
+fn empty_navigation_mesh_is_safe() {
+  let full_nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 1.0),
+        Vec3::new(0.0, 0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      mesh_bounds: None,
+    }
+    .validate()
+    .expect("A square nav mesh is valid."),
+  );
+
+  let mut full_island = Island::new();
+  full_island.set_nav_mesh(Transform::default(), full_nav_mesh);
+
+  let empty_nav_mesh = Arc::new(
+    NavigationMesh { vertices: vec![], polygons: vec![], mesh_bounds: None }
+      .validate()
+      .expect("An empty nav mesh is valid."),
+  );
+
+  let mut empty_island = Island::new();
+  empty_island.set_nav_mesh(Transform::default(), empty_nav_mesh);
+
+  let mut nav_data = NavigationData::new();
+  nav_data.islands.insert(full_island);
+  nav_data.islands.insert(empty_island);
+
+  // Nothing should panic here.
+  nav_data.update(/* edge_link_distance= */ 1e-6);
+}
