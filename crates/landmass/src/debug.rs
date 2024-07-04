@@ -1,6 +1,6 @@
 use glam::Vec3;
 
-use crate::{path::Path, Agent, AgentId, Archipelago};
+use crate::{nav_data::NodeRef, path::Path, Agent, AgentId, Archipelago};
 
 /// The type of debug points.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -16,10 +16,12 @@ pub enum PointType {
 /// The type of debug lines.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum LineType {
-  /// An edge of a node that is the boundary of the nav mesh.
+  /// An edge of a node that is the boundary of a nav mesh.
   BoundaryEdge,
   /// An edge of a node that is connected to another node.
   ConnectivityEdge,
+  /// A link between two islands along their boundary edge.
+  BoundaryLink,
   /// Part of an agent's current path. The corridor follows the path along
   /// nodes, not the actual path the agent will travel.
   AgentCorridor(AgentId),
@@ -49,18 +51,18 @@ pub fn draw_archipelago_debug(
   archipelago: &Archipelago,
   debug_drawer: &mut impl DebugDrawer,
 ) {
-  for island in archipelago.nav_data.islands.values() {
+  for (island_id, island) in archipelago.nav_data.islands.iter() {
     if island.dirty {
       panic!("Drawing an archipelago while things are dirty is unsafe! Update the archipelago first.");
     }
-    let Some(nav_data) = island.nav_data.as_ref() else {
+    let Some(island_nav_data) = island.nav_data.as_ref() else {
       continue;
     };
 
     for (polygon_index, polygon) in
-      nav_data.nav_mesh.polygons.iter().enumerate()
+      island_nav_data.nav_mesh.polygons.iter().enumerate()
     {
-      let center_point = nav_data.transform.apply(polygon.center);
+      let center_point = island_nav_data.transform.apply(polygon.center);
       for i in 0..polygon.vertices.len() {
         let j = (i + 1) % polygon.vertices.len();
 
@@ -70,23 +72,30 @@ pub fn draw_archipelago_debug(
         debug_drawer.add_triangle(
           TriangleType::Node,
           [
-            nav_data.transform.apply(nav_data.nav_mesh.vertices[i]),
-            nav_data.transform.apply(nav_data.nav_mesh.vertices[j]),
+            island_nav_data
+              .transform
+              .apply(island_nav_data.nav_mesh.vertices[i]),
+            island_nav_data
+              .transform
+              .apply(island_nav_data.nav_mesh.vertices[j]),
             center_point,
           ],
         );
       }
 
       for (edge_index, connection) in polygon.connectivity.iter().enumerate() {
-        let Some(connection) = connection.as_ref() else {
-          continue;
+        let line_type = match connection.as_ref() {
+          None => LineType::BoundaryEdge,
+          Some(connection) => {
+            // Ignore connections where the connected polygon has a greater
+            // index. This prevents drawing the same edge multiple
+            // times by picking one of the edges to draw.
+            if polygon_index > connection.polygon_index {
+              continue;
+            }
+            LineType::ConnectivityEdge
+          }
         };
-        // Ignore connections where the connected polygon has a greater index.
-        // This prevents drawing the same edge multiple times by picking one of
-        // the edges to draw.
-        if polygon_index > connection.polygon_index {
-          continue;
-        }
 
         let i = edge_index;
         let j = (i + 1) % polygon.vertices.len();
@@ -95,31 +104,41 @@ pub fn draw_archipelago_debug(
         let j = polygon.vertices[j];
 
         debug_drawer.add_line(
-          LineType::ConnectivityEdge,
+          line_type,
           [
-            nav_data.transform.apply(nav_data.nav_mesh.vertices[i]),
-            nav_data.transform.apply(nav_data.nav_mesh.vertices[j]),
+            island_nav_data
+              .transform
+              .apply(island_nav_data.nav_mesh.vertices[i]),
+            island_nav_data
+              .transform
+              .apply(island_nav_data.nav_mesh.vertices[j]),
           ],
         );
       }
-    }
 
-    for boundary_edge in nav_data.nav_mesh.boundary_edges.iter() {
-      let polygon_vertices =
-        &nav_data.nav_mesh.polygons[boundary_edge.polygon_index].vertices;
-      let i = boundary_edge.edge_index;
-      let j = (i + 1) % polygon_vertices.len();
+      let node_ref = NodeRef { island_id, polygon_index };
+      if let Some(boundary_link_ids) =
+        archipelago.nav_data.node_to_boundary_link_ids.get(&node_ref)
+      {
+        for &boundary_link_id in boundary_link_ids.iter() {
+          let boundary_link = archipelago
+            .nav_data
+            .boundary_links
+            .get(boundary_link_id)
+            .expect("Boundary links are present.");
+          // Ignore links where the connected node has a greater node_ref. This
+          // prevents drawing the same link multiple times by picking one of the
+          // links to draw.
+          if node_ref > boundary_link.destination_node {
+            continue;
+          }
 
-      let i = polygon_vertices[i];
-      let j = polygon_vertices[j];
-
-      debug_drawer.add_line(
-        LineType::BoundaryEdge,
-        [
-          nav_data.transform.apply(nav_data.nav_mesh.vertices[i]),
-          nav_data.transform.apply(nav_data.nav_mesh.vertices[j]),
-        ],
-      );
+          debug_drawer.add_line(
+            LineType::BoundaryLink,
+            [boundary_link.portal.0, boundary_link.portal.1],
+          );
+        }
+      }
     }
   }
 
