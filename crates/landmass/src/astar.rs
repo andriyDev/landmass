@@ -7,9 +7,9 @@ use std::{
 /// A generic A* problem.
 pub trait AStarProblem {
   /// The action that allows moving between states.
-  type ActionType;
+  type ActionType: Clone;
   /// The state that agents try to optimize.
-  type StateType;
+  type StateType: Hash + Eq + Clone;
 
   /// Creates the initial state for the problem.
   fn initial_state(&self) -> Self::StateType;
@@ -86,10 +86,7 @@ impl Ord for NodeRef {
 fn recover_path_from_node<ProblemType: AStarProblem>(
   node_ref: &NodeRef,
   nodes: Vec<Node<ProblemType>>,
-) -> Vec<ProblemType::ActionType>
-where
-  ProblemType::ActionType: Clone,
-{
+) -> Vec<ProblemType::ActionType> {
   let mut path = Vec::new();
   let mut node_index = node_ref.index;
   loop {
@@ -128,11 +125,7 @@ pub struct PathResult<ActionType> {
 /// Returns an `Err` if no path could be found.
 pub fn find_path<ProblemType: AStarProblem>(
   problem: &ProblemType,
-) -> Result<PathResult<ProblemType::ActionType>, PathStats>
-where
-  ProblemType::StateType: Hash + Eq + Clone,
-  ProblemType::ActionType: Clone,
-{
+) -> Result<PathResult<ProblemType::ActionType>, PathStats> {
   let mut stats = PathStats { explored_nodes: 0 };
 
   let mut best_estimates = HashMap::new();
@@ -146,9 +139,7 @@ where
     all_nodes: &mut Vec<Node<ProblemType>>,
     open_nodes: &mut BinaryHeap<Reverse<NodeRef>>,
     best_estimates: &mut HashMap<ProblemType::StateType, f32>,
-  ) where
-    ProblemType::StateType: Hash + Eq + Clone,
-  {
+  ) {
     let estimate = node.cost + problem.heuristic(&node.state);
     let best_estimate =
       best_estimates.entry(node.state.clone()).or_insert(f32::INFINITY);
