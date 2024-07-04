@@ -10,6 +10,7 @@ use bevy::{
   reflect::Reflect,
   render::color::Color,
   time::Time,
+  transform::components::Transform,
 };
 
 pub use landmass::debug::*;
@@ -84,12 +85,32 @@ impl<'w, 's, 'a> DebugDrawer for GizmoDrawer<'w, 's, 'a> {
   }
 
   fn add_line(&mut self, line_type: LineType, line: [landmass::Vec3; 2]) {
+    if line_type == LineType::BoundaryLink {
+      self.0.cuboid(
+        Transform::default()
+          .looking_to(
+            landmass_vec3_to_bevy_vec3(line[1] - line[0]),
+            bevy::math::Vec3::new(0.0, 1.0, 0.0),
+          )
+          .with_translation(landmass_vec3_to_bevy_vec3(
+            (line[0] + line[1]) * 0.5,
+          ))
+          .with_scale(bevy::math::Vec3::new(
+            0.01,
+            0.01,
+            line[0].distance(line[1]),
+          )),
+        Color::rgba(0.0, 1.0, 0.0, 0.6),
+      );
+      return;
+    }
     self.0.line(
       landmass_vec3_to_bevy_vec3(line[0]),
       landmass_vec3_to_bevy_vec3(line[1]),
       match line_type {
         LineType::BoundaryEdge => Color::rgba(0.0, 0.0, 1.0, 0.6),
         LineType::ConnectivityEdge => Color::rgba(0.5, 0.5, 1.0, 0.6),
+        LineType::BoundaryLink => unreachable!(),
         LineType::AgentCorridor(_) => Color::rgba(0.6, 0.0, 0.6, 0.6),
         LineType::Target(_) => Color::rgba(1.0, 1.0, 0.0, 0.6),
         LineType::Waypoint(_) => Color::rgba(0.6, 0.6, 0.6, 0.6),
