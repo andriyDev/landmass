@@ -408,3 +408,48 @@ fn draws_island_meshes_and_agents() {
     .collect::<Vec<_>>()
   );
 }
+
+#[test]
+fn draws_boundary_links() {
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec3::new(1.0, 1.0, 1.0),
+        Vec3::new(2.0, 1.0, 1.0),
+        Vec3::new(2.0, 1.0, 2.0),
+        Vec3::new(1.0, 1.0, 2.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      mesh_bounds: None,
+    }
+    .validate()
+    .expect("The mesh is valid."),
+  );
+
+  let mut archipelago = Archipelago::new();
+  let island_id_1 = archipelago.add_island();
+  let island_id_2 = archipelago.add_island();
+  archipelago
+    .get_island_mut(island_id_1)
+    .set_nav_mesh(Transform::default(), nav_mesh.clone());
+  archipelago.get_island_mut(island_id_2).set_nav_mesh(
+    Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
+    nav_mesh.clone(),
+  );
+
+  // Update so everything is in sync.
+  archipelago.update(1.0);
+
+  let mut fake_drawer = FakeDrawer::new();
+  draw_archipelago_debug(&archipelago, &mut fake_drawer);
+  fake_drawer.sort();
+
+  let lines = fake_drawer
+    .lines
+    .iter()
+    .filter(|(line_type, _)| *line_type == LineType::BoundaryLink)
+    .map(|(_, edge)| *edge)
+    .collect::<Vec<_>>();
+
+  assert_eq!(lines, [[Vec3::new(2.0, 1.0, 1.0), Vec3::new(2.0, 1.0, 2.0)]]);
+}
