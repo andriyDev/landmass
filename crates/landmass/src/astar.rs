@@ -85,7 +85,7 @@ impl Ord for NodeRef {
 /// Determines the list of actions taken by `node_ref`.
 fn recover_path_from_node<ProblemType: AStarProblem>(
   node_ref: &NodeRef,
-  nodes: Vec<Node<ProblemType>>,
+  nodes: &[Node<ProblemType>],
 ) -> Vec<ProblemType::ActionType> {
   let mut path = Vec::new();
   let mut node_index = node_ref.index;
@@ -179,7 +179,7 @@ pub fn find_path<ProblemType: AStarProblem>(
     if problem.is_goal_state(&current_node.state) {
       return Ok(PathResult {
         stats,
-        path: recover_path_from_node(&current_node_ref, all_nodes),
+        path: recover_path_from_node(&current_node_ref, &all_nodes),
       });
     }
 
