@@ -377,7 +377,7 @@ pub struct Agent {
   pub max_velocity: f32,
 }
 
-// A character. See [`crate::CharacterBundle`] for required related components.
+/// A character. See [`crate::CharacterBundle`] for required related components.
 #[derive(Component)]
 pub struct Character {
   /// The radius of the character.
