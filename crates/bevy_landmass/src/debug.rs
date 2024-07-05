@@ -1,6 +1,7 @@
 use crate::{util::landmass_vec3_to_bevy_vec3, Archipelago, LandmassSystemSet};
 use bevy::{
   app::Update,
+  color::Color,
   gizmos::AppGizmoBuilder,
   math::Quat,
   prelude::{
@@ -8,7 +9,6 @@ use bevy::{
     Plugin, Query, Res, Resource,
   },
   reflect::Reflect,
-  render::color::Color,
   time::Time,
   transform::components::Transform,
 };
@@ -50,7 +50,7 @@ impl Plugin for LandmassDebugPlugin {
           .in_set(LandmassSystemSet::Output)
           .run_if(|enable: Res<EnableLandmassDebug>| enable.0),
       )
-      .insert_gizmo_group(
+      .insert_gizmo_config(
         LandmassGizmoConfigGroup,
         GizmoConfig { depth_bias: -1.0, ..Default::default() },
       );
@@ -77,9 +77,9 @@ impl<'w, 's, 'a> DebugDrawer for GizmoDrawer<'w, 's, 'a> {
       Quat::IDENTITY,
       0.2,
       match point_type {
-        PointType::AgentPosition(_) => Color::rgba(0.0, 1.0, 0.0, 0.6),
-        PointType::TargetPosition(_) => Color::rgba(1.0, 1.0, 0.0, 0.6),
-        PointType::Waypoint(_) => Color::rgba(0.6, 0.6, 0.6, 0.6),
+        PointType::AgentPosition(_) => Color::srgba(0.0, 1.0, 0.0, 0.6),
+        PointType::TargetPosition(_) => Color::srgba(1.0, 1.0, 0.0, 0.6),
+        PointType::Waypoint(_) => Color::srgba(0.6, 0.6, 0.6, 0.6),
       },
     );
   }
@@ -100,7 +100,7 @@ impl<'w, 's, 'a> DebugDrawer for GizmoDrawer<'w, 's, 'a> {
             0.01,
             line[0].distance(line[1]),
           )),
-        Color::rgba(0.0, 1.0, 0.0, 0.6),
+        Color::srgba(0.0, 1.0, 0.0, 0.6),
       );
       return;
     }
@@ -108,12 +108,12 @@ impl<'w, 's, 'a> DebugDrawer for GizmoDrawer<'w, 's, 'a> {
       landmass_vec3_to_bevy_vec3(line[0]),
       landmass_vec3_to_bevy_vec3(line[1]),
       match line_type {
-        LineType::BoundaryEdge => Color::rgba(0.0, 0.0, 1.0, 0.6),
-        LineType::ConnectivityEdge => Color::rgba(0.5, 0.5, 1.0, 0.6),
+        LineType::BoundaryEdge => Color::srgba(0.0, 0.0, 1.0, 0.6),
+        LineType::ConnectivityEdge => Color::srgba(0.5, 0.5, 1.0, 0.6),
         LineType::BoundaryLink => unreachable!(),
-        LineType::AgentCorridor(_) => Color::rgba(0.6, 0.0, 0.6, 0.6),
-        LineType::Target(_) => Color::rgba(1.0, 1.0, 0.0, 0.6),
-        LineType::Waypoint(_) => Color::rgba(0.6, 0.6, 0.6, 0.6),
+        LineType::AgentCorridor(_) => Color::srgba(0.6, 0.0, 0.6, 0.6),
+        LineType::Target(_) => Color::srgba(1.0, 1.0, 0.0, 0.6),
+        LineType::Waypoint(_) => Color::srgba(0.6, 0.6, 0.6, 0.6),
       },
     );
   }
