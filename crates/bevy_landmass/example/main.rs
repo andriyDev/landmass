@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
 use bevy::{
-  input::common_conditions::input_just_pressed, prelude::*,
-  render::mesh::CylinderMeshBuilder,
+  color::palettes::css,
+  input::common_conditions::input_just_pressed,
+  prelude::*,
+  render::mesh::{CylinderAnchor, CylinderMeshBuilder},
 };
 use bevy_landmass::{
   debug::{EnableLandmassDebug, LandmassDebugPlugin},
@@ -45,8 +47,7 @@ fn convert_mesh(
 
     let nav_mesh = bevy_mesh_to_landmass_nav_mesh(mesh).unwrap();
     let valid_nav_mesh = nav_mesh.validate().unwrap();
-    nav_meshes
-      .insert(converter.nav_mesh.clone(), NavMesh(Arc::new(valid_nav_mesh)));
+    nav_meshes.insert(&converter.nav_mesh, NavMesh(Arc::new(valid_nav_mesh)));
     commands.entity(entity).remove::<ConvertMesh>();
   }
 }
@@ -78,7 +79,7 @@ fn setup(
       mesh: mesh_1.clone(),
       material: materials.add(StandardMaterial {
         unlit: true,
-        base_color: Color::ANTIQUE_WHITE,
+        base_color: css::ANTIQUE_WHITE.into(),
         ..Default::default()
       }),
       ..Default::default()
@@ -98,7 +99,7 @@ fn setup(
       mesh: mesh_2.clone(),
       material: materials.add(StandardMaterial {
         unlit: true,
-        base_color: Color::ANTIQUE_WHITE,
+        base_color: css::ANTIQUE_WHITE.into(),
         ..Default::default()
       }),
       transform: Transform::from_translation(Vec3::new(12.0, 0.0, 0.0)),
@@ -122,12 +123,14 @@ fn setup(
             cylinder: Cylinder { radius: 0.25, half_height: 0.1 },
             resolution: 20,
             segments: 1,
+            caps: true,
+            anchor: CylinderAnchor::MidPoint,
           }
           .build(),
         ),
         material: materials.add(StandardMaterial {
           unlit: true,
-          base_color: Color::PURPLE,
+          base_color: css::PURPLE.into(),
           ..Default::default()
         }),
         ..Default::default()
@@ -142,12 +145,14 @@ fn setup(
         cylinder: Cylinder { radius: 0.5, half_height: 0.1 },
         resolution: 20,
         segments: 1,
+        caps: true,
+        anchor: CylinderAnchor::MidPoint,
       }
       .build(),
     ),
     material: materials.add(StandardMaterial {
       unlit: true,
-      base_color: Color::SEA_GREEN,
+      base_color: css::SEA_GREEN.into(),
       ..Default::default()
     }),
     archipelago_entity,
@@ -232,7 +237,7 @@ fn handle_clicks(
     .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor))
     .and_then(|ray| {
       ray
-        .intersect_plane(Vec3::ZERO, Plane3d { normal: Direction3d::Y })
+        .intersect_plane(Vec3::ZERO, InfinitePlane3d { normal: Dir3::Y })
         .map(|d| ray.get_point(d))
     })
   else {
