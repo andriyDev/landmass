@@ -11,8 +11,10 @@ direction for characters using pathfinding.
 To use `bevy_landmass`:
 1) Add `LandmassPlugin` to your app.
 2) Spawn an entity with an `Archipelago` component.
-3) Spawn an entity with an `IslandBundle`, and an `IslandNavMesh` component.
-3) Spawn entities with the `AgentBundle` and a `TransformBundle` (or any other
+3) Spawn an entity with an `IslandBundle`, a `TransformBundle` (or any other
+bundle which includes a `Transform` and `GlobalTransform`), and an
+`IslandNavMesh` component.
+4) Spawn entities with the `AgentBundle` and a `TransformBundle` (or any other
 bundle which includes a `Transform` and `GlobalTransform`).
 
 Note the `Archipelago` can be created later, even if the agents/islands already
@@ -45,19 +47,17 @@ fn set_up_scene(
 ) {
   let archipelago_id = commands.spawn(Archipelago::new()).id();
 
-  let nav_mesh_handle = nav_meshes
-    .get_handle_provider()
-    .reserve_handle()
-    .typed::<NavMesh>();
+  let nav_mesh_handle = nav_meshes.reserve_handle();
 
   commands
-    .spawn(TransformBundle::default())
-    .insert(IslandBundle {
-      island: Island,
-      archipelago_ref: ArchipelagoRef(archipelago_id),
-      nav_mesh: Default::default(),
-    })
-    .insert(nav_mesh_handle.clone());
+    .spawn((
+      TransformBundle::default(),
+      IslandBundle {
+        island: Island,
+        archipelago_ref: ArchipelagoRef(archipelago_id),
+        nav_mesh: nav_mesh_handle.clone(),
+      },
+    ));
   
   // The nav mesh can be populated in another system, or even several frames
   // later.
@@ -79,7 +79,7 @@ fn set_up_scene(
         vec![5, 4, 6, 7],
       ],
     }.validate().expect("is valid"));
-  nav_meshes.insert(nav_mesh_handle, NavMesh(nav_mesh));
+  nav_meshes.insert(&nav_mesh_handle, NavMesh(nav_mesh));
 
   commands.spawn(TransformBundle {
     local: Transform::from_translation(Vec3::new(1.5, 0.0, 1.5)),
@@ -108,7 +108,7 @@ fn print_desired_velocity(query: Query<(Entity, &AgentDesiredVelocity)>) {
 
 fn quit(mut exit: EventWriter<AppExit>) {
   // Quit so doctests pass.
-  exit.send(AppExit);
+  exit.send(AppExit::Success);
 }
 ```
 
