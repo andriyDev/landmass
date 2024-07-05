@@ -55,57 +55,54 @@ fn finds_path_in_archipelago() {
     nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 2 },
-  )
-  .expect("found path");
+  );
 
   assert_eq!(
     path_result.path,
-    Path {
+    Some(Path {
       island_segments: vec![IslandSegment {
         island_id,
         corridor: vec![0, 1, 2],
         portal_edge_index: vec![4, 2],
       }],
       boundary_link_segments: vec![],
-    }
+    })
   );
 
   let path_result = find_path(
     nav_data,
     NodeRef { island_id, polygon_index: 2 },
     NodeRef { island_id, polygon_index: 0 },
-  )
-  .expect("found path");
+  );
 
   assert_eq!(
     path_result.path,
-    Path {
+    Some(Path {
       island_segments: vec![IslandSegment {
         island_id,
         corridor: vec![2, 1, 0],
         portal_edge_index: vec![0, 0],
       }],
       boundary_link_segments: vec![],
-    }
+    })
   );
 
   let path_result = find_path(
     nav_data,
     NodeRef { island_id, polygon_index: 3 },
     NodeRef { island_id, polygon_index: 0 },
-  )
-  .expect("found path");
+  );
 
   assert_eq!(
     path_result.path,
-    Path {
+    Some(Path {
       island_segments: vec![IslandSegment {
         island_id,
         corridor: vec![3, 1, 0],
         portal_edge_index: vec![0, 0],
       }],
       boundary_link_segments: vec![],
-    }
+    })
   );
 }
 
@@ -160,38 +157,36 @@ fn finds_paths_on_two_islands() {
     nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_1, polygon_index: 2 },
-  )
-  .expect("found path");
+  );
 
   assert_eq!(
     path_result.path,
-    Path {
+    Some(Path {
       island_segments: vec![IslandSegment {
         island_id: island_id_1,
         corridor: vec![0, 1, 2],
         portal_edge_index: vec![4, 2],
       }],
       boundary_link_segments: vec![],
-    }
+    })
   );
 
   let path_result = find_path(
     nav_data,
     NodeRef { island_id: island_id_2, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 2 },
-  )
-  .expect("found path");
+  );
 
   assert_eq!(
     path_result.path,
-    Path {
+    Some(Path {
       island_segments: vec![IslandSegment {
         island_id: island_id_2,
         corridor: vec![0, 1, 2],
         portal_edge_index: vec![4, 2],
       }],
       boundary_link_segments: vec![],
-    }
+    })
   );
 }
 
@@ -247,14 +242,16 @@ fn no_path_between_disconnected_islands() {
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 0 },
   )
-  .is_err());
+  .path
+  .is_none());
 
   assert!(find_path(
     nav_data,
     NodeRef { island_id: island_id_2, polygon_index: 0 },
     NodeRef { island_id: island_id_1, polygon_index: 0 },
   )
-  .is_err());
+  .path
+  .is_none());
 }
 
 #[test]
@@ -321,12 +318,11 @@ fn find_path_across_connected_islands() {
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_5, polygon_index: 0 },
-  )
-  .expect("found path");
+  );
 
   assert_eq!(
     path_result.path,
-    Path {
+    Some(Path {
       island_segments: vec![
         IslandSegment {
           island_id: island_id_1,
@@ -363,7 +359,7 @@ fn find_path_across_connected_islands() {
           boundary_link: boundary_links[&(island_id_4, island_id_5)],
         },
       ],
-    }
+    })
   );
 }
 
@@ -432,12 +428,11 @@ fn finds_path_across_different_islands() {
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 1 },
-  )
-  .expect("found path");
+  );
 
   assert_eq!(
     path_result.path,
-    Path {
+    Some(Path {
       island_segments: vec![
         IslandSegment {
           island_id: island_id_1,
@@ -454,7 +449,7 @@ fn finds_path_across_different_islands() {
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
         boundary_link: boundary_links[&(island_id_1, island_id_2)],
       }],
-    }
+    })
   );
 }
 
@@ -496,24 +491,25 @@ fn aborts_early_for_unconnected_regions() {
   archipelago.update(1.0);
 
   // Verify that with island_id_3, the islands are connected.
-  let _ = find_path(
+  assert!(find_path(
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 0 },
   )
-  .expect("the path is connected");
+  .path
+  .is_some());
 
   // Remove island_id_3 which will disconnect the other two islands.
   archipelago.remove_island(island_id_3);
   archipelago.update(1.0);
 
-  let path_stats = find_path(
+  let path_result = find_path(
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 0 },
-  )
-  .expect_err("the path is not connected");
+  );
 
-  assert_eq!(path_stats.explored_nodes, 0,
+  assert!(path_result.path.is_none());
+  assert_eq!(path_result.stats.explored_nodes, 0,
     "No nodes should have been explored since the regions are completely disconnected.");
 }

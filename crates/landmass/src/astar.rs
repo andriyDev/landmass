@@ -117,15 +117,15 @@ pub struct PathStats {
 pub struct PathResult<ActionType> {
   /// Stats about the pathfinding process.
   pub stats: PathStats,
-  /// The found path.
-  pub path: Vec<ActionType>,
+  /// The path if one was found.
+  pub path: Option<Vec<ActionType>>,
 }
 
 /// Finds a path in `problem` to get from the initial state to a goal state.
 /// Returns an `Err` if no path could be found.
 pub fn find_path<ProblemType: AStarProblem>(
   problem: &ProblemType,
-) -> Result<PathResult<ProblemType::ActionType>, PathStats> {
+) -> PathResult<ProblemType::ActionType> {
   let mut stats = PathStats { explored_nodes: 0 };
 
   let mut best_estimates = HashMap::new();
@@ -177,10 +177,10 @@ pub fn find_path<ProblemType: AStarProblem>(
     stats.explored_nodes += 1;
 
     if problem.is_goal_state(&current_node.state) {
-      return Ok(PathResult {
+      return PathResult {
         stats,
-        path: recover_path_from_node(&current_node_ref, &all_nodes),
-      });
+        path: Some(recover_path_from_node(&current_node_ref, &all_nodes)),
+      };
     }
 
     let current_cost = current_node.cost;
@@ -202,7 +202,7 @@ pub fn find_path<ProblemType: AStarProblem>(
     }
   }
 
-  Err(stats)
+  PathResult { stats, path: None }
 }
 
 #[cfg(test)]

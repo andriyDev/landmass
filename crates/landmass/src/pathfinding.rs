@@ -101,8 +101,8 @@ impl AStarProblem for ArchipelagoPathProblem<'_> {
 pub(crate) struct PathResult {
   /// Statistics about the pathfinding process.
   pub(crate) stats: PathStats,
-  /// The resulting path.
-  pub(crate) path: Path,
+  /// The path if one was found.
+  pub(crate) path: Option<Path>,
 }
 
 /// Finds a path in `nav_data` from `start_node` to `end_node`. Returns an `Err`
@@ -111,9 +111,9 @@ pub(crate) fn find_path(
   nav_data: &NavigationData,
   start_node: NodeRef,
   end_node: NodeRef,
-) -> Result<PathResult, PathStats> {
+) -> PathResult {
   if !nav_data.are_nodes_connected(start_node, end_node) {
-    return Err(PathStats { explored_nodes: 0 });
+    return PathResult { stats: PathStats { explored_nodes: 0 }, path: None };
   }
 
   let path_problem = ArchipelagoPathProblem {
@@ -134,7 +134,10 @@ pub(crate) fn find_path(
     },
   };
 
-  let path_result = astar::find_path(&path_problem)?;
+  let path_result = astar::find_path(&path_problem);
+  let Some(astar_path) = path_result.path else {
+    return PathResult { stats: path_result.stats, path: None };
+  };
 
   let mut output_path =
     Path { island_segments: vec![], boundary_link_segments: vec![] };
@@ -145,7 +148,7 @@ pub(crate) fn find_path(
     portal_edge_index: vec![],
   });
 
-  for path_step in path_result.path {
+  for path_step in astar_path {
     let last_segment = output_path.island_segments.last_mut().unwrap();
 
     let previous_node = *last_segment.corridor.last().unwrap();
@@ -188,7 +191,7 @@ pub(crate) fn find_path(
     }
   }
 
-  Ok(PathResult { stats: path_result.stats, path: output_path })
+  PathResult { stats: path_result.stats, path: Some(output_path) }
 }
 
 #[cfg(test)]

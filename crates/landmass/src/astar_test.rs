@@ -56,9 +56,9 @@ fn finds_simple_path_no_heuristic() {
     ],
   };
 
-  let path = find_path(&problem).expect("Path should be found.");
-  assert_eq!(path.path, [2, 5]);
-  assert_eq!(path.stats.explored_nodes, 3);
+  let result = find_path(&problem);
+  assert_eq!(result.path, Some(vec![2, 5]));
+  assert_eq!(result.stats.explored_nodes, 3);
 }
 
 #[test]
@@ -83,8 +83,9 @@ fn finds_no_path() {
     ],
   };
 
-  let stats = find_path(&problem).expect_err("Path cannot be found.");
-  assert_eq!(stats.explored_nodes, 3);
+  let result = find_path(&problem);
+  assert!(result.path.is_none());
+  assert_eq!(result.stats.explored_nodes, 3);
 }
 
 #[test]
@@ -122,21 +123,24 @@ fn grid_no_heuristic() {
     }
   }
 
-  let path = find_path(&problem).expect("Path should be found.");
-  let direction_sums = path.path.iter().fold((0, 0, 0, 0), |mut acc, elem| {
-    match elem {
-      1 => acc.0 += 1,
-      2 => acc.1 += 1,
-      3 => acc.2 += 1,
-      4 => acc.3 += 1,
-      _ => panic!("Invalid direction: {}", elem),
-    };
-    acc
-  });
+  let result = find_path(&problem);
+  let direction_sums = result.path.expect("Path should be found.").iter().fold(
+    (0, 0, 0, 0),
+    |mut acc, elem| {
+      match elem {
+        1 => acc.0 += 1,
+        2 => acc.1 += 1,
+        3 => acc.2 += 1,
+        4 => acc.3 += 1,
+        _ => panic!("Invalid direction: {}", elem),
+      };
+      acc
+    },
+  );
   assert_eq!(direction_sums, (0, 4, 0, 4));
   // All paths look equally good, so all of them must be explored to ensure we
   // get the optimal path.
-  assert_eq!(path.stats.explored_nodes, (WIDTH * WIDTH) as u32);
+  assert_eq!(result.stats.explored_nodes, (WIDTH * WIDTH) as u32);
 }
 
 #[test]
@@ -174,11 +178,11 @@ fn grid_perfect_heuristic() {
     }
   }
 
-  let path = find_path(&problem).expect("Path should be found.");
-  assert_eq!(path.path, [4, 4, 4, 4, 2, 2, 2, 2]);
+  let result = find_path(&problem);
+  assert_eq!(result.path, Some(vec![4, 4, 4, 4, 2, 2, 2, 2]));
   // Every step towards the bottom right is the optimal path, so we should
   // only explore one path.
-  assert_eq!(path.stats.explored_nodes, (WIDTH * 2 - 1) as u32);
+  assert_eq!(result.stats.explored_nodes, (WIDTH * 2 - 1) as u32);
 }
 
 #[test]
@@ -206,8 +210,8 @@ fn dead_end_wrong_heuristic() {
     ],
   };
 
-  let path = find_path(&problem).expect("Path should be found.");
-  assert_eq!(path.path, [3, 1]);
+  let path = find_path(&problem);
+  assert_eq!(path.path, Some(vec![3, 1]));
   // The dead end was explored, found to be a dead end, and then a new path
   // was found.
   assert_eq!(path.stats.explored_nodes, 4);
