@@ -391,7 +391,7 @@ pub struct ArchipelagoRef(pub Entity);
 /// The current velocity of the agent/character. This must be set to match
 /// whatever speed the agent/character is going.
 #[derive(Component, Default)]
-pub struct Velocity(pub Vec3);
+pub struct Velocity(pub bevy::math::Vec3);
 
 /// The current target of the entity. Note this can be set by either reinserting
 /// the component, or dereferencing:
@@ -410,7 +410,7 @@ pub struct Velocity(pub Vec3);
 pub enum AgentTarget {
   #[default]
   None,
-  Point(Vec3),
+  Point(bevy::math::Vec3),
   Entity(Entity),
 }
 
@@ -419,7 +419,7 @@ impl AgentTarget {
   fn to_point(
     &self,
     global_transform_query: &Query<&GlobalTransform>,
-  ) -> Option<Vec3> {
+  ) -> Option<bevy::math::Vec3> {
     match *self {
       Self::Point(point) => Some(point),
       Self::Entity(entity) => global_transform_query
@@ -434,11 +434,11 @@ impl AgentTarget {
 /// The current desired velocity of the agent. This is set by `landmass` (during
 /// [`LandmassSystemSet::Output`]).
 #[derive(Component, Default)]
-pub struct AgentDesiredVelocity(Vec3);
+pub struct AgentDesiredVelocity(bevy::math::Vec3);
 
 impl AgentDesiredVelocity {
   /// The desired velocity of the agent.
-  pub fn velocity(&self) -> Vec3 {
+  pub fn velocity(&self) -> bevy::math::Vec3 {
     self.0
   }
 }
