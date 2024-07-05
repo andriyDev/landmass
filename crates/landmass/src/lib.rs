@@ -241,28 +241,21 @@ impl Archipelago {
         RepathResult::NeedsRepath => {
           agent.current_path = None;
 
-          let new_path = match pathfinding::find_path(
+          let path_result = pathfinding::find_path(
             &self.nav_data,
             agent_node.unwrap(),
             target_node.unwrap(),
-          ) {
-            Err(stats) => {
-              agent.state = AgentState::NoPath;
-              self.pathing_results.push(PathingResult {
-                agent: agent_id,
-                success: false,
-                explored_nodes: stats.explored_nodes,
-              });
-              continue;
-            }
-            Ok(pathfinding::PathResult { path, stats }) => {
-              self.pathing_results.push(PathingResult {
-                agent: agent_id,
-                success: true,
-                explored_nodes: stats.explored_nodes,
-              });
-              path
-            }
+          );
+
+          self.pathing_results.push(PathingResult {
+            agent: agent_id,
+            success: path_result.path.is_some(),
+            explored_nodes: path_result.stats.explored_nodes,
+          });
+
+          let Some(new_path) = path_result.path else {
+            agent.state = AgentState::NoPath;
+            continue;
           };
 
           agent_id_to_follow_path_indices.insert(
