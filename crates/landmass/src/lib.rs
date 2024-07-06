@@ -36,7 +36,7 @@ pub struct Archipelago {
   pub agent_options: AgentOptions,
   nav_data: NavigationData,
   agents: HopSlotMap<AgentId, Agent<XYZ>>,
-  characters: HopSlotMap<CharacterId, Character>,
+  characters: HopSlotMap<CharacterId, Character<XYZ>>,
   pathing_results: Vec<PathingResult>,
 }
 
@@ -99,7 +99,7 @@ impl Archipelago {
     self.agents.keys()
   }
 
-  pub fn add_character(&mut self, character: Character) -> CharacterId {
+  pub fn add_character(&mut self, character: Character<XYZ>) -> CharacterId {
     self.characters.insert(character)
   }
 
@@ -110,14 +110,14 @@ impl Archipelago {
       .expect("Character should be present in the archipelago");
   }
 
-  pub fn get_character(&self, character_id: CharacterId) -> &Character {
+  pub fn get_character(&self, character_id: CharacterId) -> &Character<XYZ> {
     self.characters.get(character_id).unwrap()
   }
 
   pub fn get_character_mut(
     &mut self,
     character_id: CharacterId,
-  ) -> &mut Character {
+  ) -> &mut Character<XYZ> {
     self.characters.get_mut(character_id).unwrap()
   }
 
