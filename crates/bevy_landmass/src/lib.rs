@@ -24,10 +24,10 @@ pub use landmass::AgentOptions;
 pub use landmass::NavigationMesh;
 pub use landmass::ValidNavigationMesh;
 pub use landmass::ValidationError;
-pub use landmass::Vec3;
 
 pub use landmass_structs::*;
 
+pub mod coords;
 pub mod debug;
 
 #[cfg(feature = "mesh-utils")]
@@ -36,6 +36,9 @@ pub mod nav_mesh;
 pub struct LandmassPlugin;
 
 pub mod prelude {
+  pub use crate::coords::CoordinateSystem;
+  pub use crate::coords::ThreeD;
+  pub use crate::coords::TwoD;
   pub use crate::Agent;
   pub use crate::AgentBundle;
   pub use crate::AgentDesiredVelocity;
