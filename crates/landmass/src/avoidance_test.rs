@@ -480,15 +480,15 @@ fn applies_no_avoidance_for_far_agents() {
   );
 
   assert_eq!(
-    agents.get(agent_1).unwrap().get_desired_velocity(),
+    *agents.get(agent_1).unwrap().get_desired_velocity(),
     Vec3::new(1.0, 0.0, 0.0)
   );
   assert_eq!(
-    agents.get(agent_2).unwrap().get_desired_velocity(),
+    *agents.get(agent_2).unwrap().get_desired_velocity(),
     Vec3::new(-1.0, 0.0, 0.0)
   );
   assert_eq!(
-    agents.get(agent_3).unwrap().get_desired_velocity(),
+    *agents.get(agent_3).unwrap().get_desired_velocity(),
     Vec3::new(0.0, 1.0, 0.0)
   );
 }

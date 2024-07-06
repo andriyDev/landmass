@@ -14,7 +14,7 @@ use crate::{
 
 #[test]
 fn nothing_or_clear_path_for_no_target() {
-  let mut agent = Agent::create(
+  let mut agent = Agent::<XYZ>::create(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
@@ -49,7 +49,7 @@ fn nothing_or_clear_path_for_no_target() {
 
 #[test]
 fn clears_path_for_missing_nodes() {
-  let mut agent = Agent::create(
+  let mut agent = Agent::<XYZ>::create(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
@@ -86,7 +86,7 @@ fn clears_path_for_missing_nodes() {
 
 #[test]
 fn repaths_for_invalid_path_or_nodes_off_path() {
-  let mut agent = Agent::create(
+  let mut agent = Agent::<XYZ>::create(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
@@ -394,14 +394,20 @@ fn computes_and_follows_path() {
     AgentState::Idle
   );
 
-  assert_eq!(archipelago.get_agent(agent_1).get_desired_velocity(), Vec3::ZERO);
-  assert_eq!(archipelago.get_agent(agent_2).get_desired_velocity(), Vec3::ZERO);
   assert_eq!(
-    archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
+    *archipelago.get_agent(agent_1).get_desired_velocity(),
     Vec3::ZERO
   );
   assert_eq!(
-    archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
+    *archipelago.get_agent(agent_2).get_desired_velocity(),
+    Vec3::ZERO
+  );
+  assert_eq!(
+    *archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
+    Vec3::ZERO
+  );
+  assert_eq!(
+    *archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
     Vec3::ZERO
   );
 
@@ -428,11 +434,11 @@ fn computes_and_follows_path() {
     AgentState::AgentNotOnNavMesh
   );
   assert_eq!(
-    archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
+    *archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
     Vec3::ZERO
   );
   assert_eq!(
-    archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
+    *archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
     Vec3::ZERO
   );
 
@@ -458,11 +464,11 @@ fn computes_and_follows_path() {
     .get_desired_velocity()
     .abs_diff_eq(Vec3::new(-0.5, -1.5, 0.0).normalize() * 2.0, 1e-2));
   assert_eq!(
-    archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
+    *archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
     Vec3::ZERO
   );
   assert_eq!(
-    archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
+    *archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
     Vec3::ZERO
   );
   assert_eq!(archipelago.get_agent(agent_1).state(), AgentState::Moving);
@@ -483,18 +489,21 @@ fn computes_and_follows_path() {
 
   assert_eq!(archipelago.get_agent(agent_1).state(), AgentState::ReachedTarget);
   assert_eq!(archipelago.get_agent(agent_2).state(), AgentState::Moving);
-  assert_eq!(archipelago.get_agent(agent_1).get_desired_velocity(), Vec3::ZERO);
+  assert_eq!(
+    *archipelago.get_agent(agent_1).get_desired_velocity(),
+    Vec3::ZERO
+  );
   assert!(archipelago
     .get_agent(agent_2)
     .get_desired_velocity()
     .abs_diff_eq(Vec3::new(-0.5, -0.5, 0.0).normalize() * 2.0, 1e-2));
   // These agents don't change.
   assert_eq!(
-    archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
+    *archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
     Vec3::ZERO
   );
   assert_eq!(
-    archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
+    *archipelago.get_agent(agent_too_high_above_mesh).get_desired_velocity(),
     Vec3::ZERO
   );
   assert_eq!(

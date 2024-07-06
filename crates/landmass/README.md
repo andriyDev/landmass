@@ -108,7 +108,7 @@ for i in 0..200 {
 
   for agent_id in archipelago.get_agent_ids().collect::<Vec<_>>() {
     let agent = archipelago.get_agent_mut(agent_id);
-    agent.velocity = agent.get_desired_velocity();
+    agent.velocity = *agent.get_desired_velocity();
     agent.position += agent.velocity * delta_time;
   }
 }

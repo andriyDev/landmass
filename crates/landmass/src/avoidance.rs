@@ -9,13 +9,13 @@ use crate::{
   island::IslandNavigationData,
   nav_data::{ModifiedNode, NodeRef},
   Agent, AgentId, AgentOptions, Character, CharacterId, IslandId,
-  NavigationData,
+  NavigationData, XYZ,
 };
 
 /// Adjusts the velocity of `agents` to apply local avoidance. `delta_time` must
 /// be positive.
 pub(crate) fn apply_avoidance_to_agents(
-  agents: &mut HopSlotMap<AgentId, Agent>,
+  agents: &mut HopSlotMap<AgentId, Agent<XYZ>>,
   agent_id_to_agent_node: &HashMap<AgentId, (Vec3, NodeRef)>,
   characters: &HopSlotMap<CharacterId, Character>,
   character_id_to_nav_mesh_point: &HashMap<CharacterId, Vec3>,
