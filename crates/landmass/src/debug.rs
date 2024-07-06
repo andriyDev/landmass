@@ -1,6 +1,7 @@
-use glam::Vec3;
-
-use crate::{nav_data::NodeRef, path::Path, Agent, AgentId, Archipelago, XYZ};
+use crate::{
+  island::IslandNavigationData, nav_data::NodeRef, path::Path, Agent, AgentId,
+  Archipelago, CoordinateSystem,
+};
 
 /// The type of debug points.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -40,17 +41,30 @@ pub enum TriangleType {
 
 /// Trait to "draw" Archipelago state to. Users should implement this to
 /// visualize the state of their Archipelago.
-pub trait DebugDrawer {
-  fn add_point(&mut self, point_type: PointType, point: Vec3);
-  fn add_line(&mut self, line_type: LineType, line: [Vec3; 2]);
-  fn add_triangle(&mut self, triangle_type: TriangleType, triangle: [Vec3; 3]);
+pub trait DebugDrawer<CS: CoordinateSystem> {
+  fn add_point(&mut self, point_type: PointType, point: CS::Coordinate);
+  fn add_line(&mut self, line_type: LineType, line: [CS::Coordinate; 2]);
+  fn add_triangle(
+    &mut self,
+    triangle_type: TriangleType,
+    triangle: [CS::Coordinate; 3],
+  );
 }
 
 /// Draws all parts of `archipelago` to `debug_drawer`.
-pub fn draw_archipelago_debug(
+pub fn draw_archipelago_debug<CS: CoordinateSystem<Coordinate = glam::Vec3>>(
   archipelago: &Archipelago,
-  debug_drawer: &mut impl DebugDrawer,
+  debug_drawer: &mut impl DebugDrawer<CS>,
 ) {
+  fn index_to_vertex<CS: CoordinateSystem>(
+    index: usize,
+    nav_data: &IslandNavigationData,
+  ) -> CS::Coordinate {
+    CS::from_landmass(
+      &nav_data.transform.apply(nav_data.nav_mesh.vertices[index]),
+    )
+  }
+
   for (island_id, island) in archipelago.nav_data.islands.iter() {
     if island.dirty {
       panic!("Drawing an archipelago while things are dirty is unsafe! Update the archipelago first.");
@@ -72,13 +86,9 @@ pub fn draw_archipelago_debug(
         debug_drawer.add_triangle(
           TriangleType::Node,
           [
-            island_nav_data
-              .transform
-              .apply(island_nav_data.nav_mesh.vertices[i]),
-            island_nav_data
-              .transform
-              .apply(island_nav_data.nav_mesh.vertices[j]),
-            center_point,
+            index_to_vertex::<CS>(i, &island_nav_data),
+            index_to_vertex::<CS>(j, &island_nav_data),
+            CS::from_landmass(&center_point),
           ],
         );
       }
@@ -106,12 +116,8 @@ pub fn draw_archipelago_debug(
         debug_drawer.add_line(
           line_type,
           [
-            island_nav_data
-              .transform
-              .apply(island_nav_data.nav_mesh.vertices[i]),
-            island_nav_data
-              .transform
-              .apply(island_nav_data.nav_mesh.vertices[j]),
+            index_to_vertex::<CS>(i, island_nav_data),
+            index_to_vertex::<CS>(j, island_nav_data),
           ],
         );
       }
@@ -135,7 +141,10 @@ pub fn draw_archipelago_debug(
 
           debug_drawer.add_line(
             LineType::BoundaryLink,
-            [boundary_link.portal.0, boundary_link.portal.1],
+            [
+              CS::from_landmass(&boundary_link.portal.0),
+              CS::from_landmass(&boundary_link.portal.1),
+            ],
           );
         }
       }
@@ -143,11 +152,15 @@ pub fn draw_archipelago_debug(
   }
 
   for (agent_id, agent) in archipelago.agents.iter() {
-    debug_drawer.add_point(PointType::AgentPosition(agent_id), agent.position);
-    if let Some(target) = agent.current_target {
+    debug_drawer
+      .add_point(PointType::AgentPosition(agent_id), agent.position.clone());
+    if let Some(target) = &agent.current_target {
+      debug_drawer.add_line(
+        LineType::Target(agent_id),
+        [agent.position.clone(), target.clone()],
+      );
       debug_drawer
-        .add_line(LineType::Target(agent_id), [agent.position, target]);
-      debug_drawer.add_point(PointType::TargetPosition(agent_id), target);
+        .add_point(PointType::TargetPosition(agent_id), target.clone());
     }
     if let Some(path) = agent.current_path.as_ref() {
       draw_path(path, agent_id, agent, archipelago, debug_drawer);
@@ -157,15 +170,18 @@ pub fn draw_archipelago_debug(
 
 /// Draws `path` to `debug_drawer`. The path belongs to `agent` and both belong
 /// to `archipelago`.
-fn draw_path(
+fn draw_path<CS: CoordinateSystem<Coordinate = glam::Vec3>>(
   path: &Path,
   agent_id: AgentId,
-  agent: &Agent<XYZ>,
+  agent: &Agent<crate::XYZ>,
   archipelago: &Archipelago,
-  debug_drawer: &mut impl DebugDrawer,
+  debug_drawer: &mut impl DebugDrawer<CS>,
 ) {
-  let target =
-    agent.current_target.expect("The path is valid, so the target is valid.");
+  let target = agent
+    .current_target
+    .as_ref()
+    .map(Clone::clone)
+    .expect("The path is valid, so the target is valid.");
 
   let corridor_points = path
     .island_segments
@@ -188,20 +204,25 @@ fn draw_path(
     })
     .collect::<Vec<_>>();
   for pair in corridor_points.windows(2) {
-    debug_drawer
-      .add_line(LineType::AgentCorridor(agent_id), [pair[0], pair[1]]);
+    debug_drawer.add_line(
+      LineType::AgentCorridor(agent_id),
+      [CS::from_landmass(&pair[0]), CS::from_landmass(&pair[1])],
+    );
   }
 
   let (agent_sample_point, agent_node_ref) = archipelago
     .nav_data
     .sample_point(
-      agent.position,
+      CS::to_landmass(&agent.position),
       archipelago.agent_options.node_sample_distance,
     )
     .expect("Path exists, so sampling the agent should be fine.");
   let (target_sample_point, target_node_ref) = archipelago
     .nav_data
-    .sample_point(target, archipelago.agent_options.node_sample_distance)
+    .sample_point(
+      CS::to_landmass(&target),
+      archipelago.agent_options.node_sample_distance,
+    )
     .expect("Path exists, so sampling the agent should be fine.");
 
   let agent_corridor_index = path
@@ -220,9 +241,12 @@ fn draw_path(
       target_sample_point,
     )
     .1;
+  debug_drawer.add_line(
+    LineType::Waypoint(agent_id),
+    [agent.position.clone(), CS::from_landmass(&waypoint)],
+  );
   debug_drawer
-    .add_line(LineType::Waypoint(agent_id), [agent.position, waypoint]);
-  debug_drawer.add_point(PointType::Waypoint(agent_id), waypoint);
+    .add_point(PointType::Waypoint(agent_id), CS::from_landmass(&waypoint));
 }
 
 #[cfg(test)]
