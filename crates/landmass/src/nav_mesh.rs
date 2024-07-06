@@ -3,22 +3,26 @@ use std::{cmp::Ordering, collections::HashMap};
 use disjoint::DisjointSet;
 use glam::{swizzles::Vec3Swizzles, Vec3};
 
-use crate::BoundingBox;
+use crate::{coords::CoordinateSystem, BoundingBox};
 
 /// A navigation mesh.
-#[derive(Clone)]
-pub struct NavigationMesh {
-  /// The bounds of the mesh data itself. This should be a tight bounding box
-  /// around the vertices of the navigation mesh. This may be None to
-  /// automatically compute this from the vertices.
-  pub mesh_bounds: Option<BoundingBox>,
-  /// The vertices that make up the polygons. The Z component is considered up.
-  pub vertices: Vec<Vec3>,
+pub struct NavigationMesh<CS: CoordinateSystem> {
+  /// The vertices that make up the polygons.
+  pub vertices: Vec<CS::Coordinate>,
   /// The polygons of the mesh. Polygons are indices to the `vertices` that
   /// make up the polygon. Polygons must be convex, and oriented
   /// counterclockwise (using the right hand rule). Polygons are assumed to be
   /// not self-intersecting.
   pub polygons: Vec<Vec<usize>>,
+}
+
+impl<CS: CoordinateSystem> Clone for NavigationMesh<CS>
+where
+  CS::Coordinate: Clone,
+{
+  fn clone(&self) -> Self {
+    Self { vertices: self.vertices.clone(), polygons: self.polygons.clone() }
+  }
 }
 
 /// An error when validating a navigation mesh.
@@ -40,21 +44,18 @@ pub enum ValidationError {
   DoublyConnectedEdge(usize, usize),
 }
 
-impl NavigationMesh {
+impl<CS: CoordinateSystem> NavigationMesh<CS> {
   /// Ensures required invariants of the navigation mesh, and computes
   /// additional derived properties to produce and optimized and validated
   /// navigation mesh. Returns an error if the navigation mesh is invalid in
   /// some way.
   pub fn validate(mut self) -> Result<ValidNavigationMesh, ValidationError> {
-    if self.mesh_bounds.is_none() {
-      if self.vertices.is_empty() {
-        self.mesh_bounds = Some(BoundingBox::Empty);
-      }
-      self.mesh_bounds =
-        Some(self.vertices.iter().fold(BoundingBox::Empty, |acc, &vertex| {
-          acc.expand_to_point(vertex)
-        }));
-    }
+    let vertices =
+      self.vertices.iter().map(CS::to_landmass).collect::<Vec<_>>();
+
+    let mesh_bounds = vertices
+      .iter()
+      .fold(BoundingBox::Empty, |acc, &vertex| acc.expand_to_point(vertex));
 
     let mut region_sets = DisjointSet::with_len(self.polygons.len());
 
@@ -79,7 +80,7 @@ impl NavigationMesh {
       }
 
       for vertex_index in polygon {
-        if *vertex_index >= self.vertices.len() {
+        if *vertex_index >= vertices.len() {
           return Err(ValidationError::InvalidVertexIndexInPolygon(
             polygon_index,
           ));
@@ -134,9 +135,9 @@ impl NavigationMesh {
 
         // Check if the vertex is concave.
 
-        let left_vertex = self.vertices[left_vertex].xy();
-        let center_vertex = self.vertices[center_vertex].xy();
-        let right_vertex = self.vertices[right_vertex].xy();
+        let left_vertex = vertices[left_vertex].xy();
+        let center_vertex = vertices[center_vertex].xy();
+        let right_vertex = vertices[right_vertex].xy();
 
         let left_edge = left_vertex - center_vertex;
         let right_edge = right_vertex - center_vertex;
@@ -165,12 +166,9 @@ impl NavigationMesh {
         bounds: polygon_vertices
           .iter()
           .fold(BoundingBox::Empty, |bounds, vertex| {
-            bounds.expand_to_point(self.vertices[*vertex])
+            bounds.expand_to_point(vertices[*vertex])
           }),
-        center: polygon_vertices
-          .iter()
-          .map(|i| self.vertices[*i])
-          .sum::<Vec3>()
+        center: polygon_vertices.iter().map(|i| vertices[*i]).sum::<Vec3>()
           / polygon_vertices.len() as f32,
         connectivity: vec![None; polygon_vertices.len()],
         vertices: polygon_vertices,
@@ -203,8 +201,7 @@ impl NavigationMesh {
           edge_2,
         } => {
           let edge = polygons[polygon_1].get_edge_indices(edge_1);
-          let edge_center =
-            (self.vertices[edge.0] + self.vertices[edge.1]) / 2.0;
+          let edge_center = (vertices[edge.0] + vertices[edge.1]) / 2.0;
           let cost = polygons[polygon_1].center.distance(edge_center)
             + polygons[polygon_2].center.distance(edge_center);
           polygons[polygon_1].connectivity[edge_1] =
@@ -215,12 +212,7 @@ impl NavigationMesh {
       }
     }
 
-    Ok(ValidNavigationMesh {
-      mesh_bounds: self.mesh_bounds.unwrap(),
-      polygons,
-      vertices: self.vertices,
-      boundary_edges,
-    })
+    Ok(ValidNavigationMesh { mesh_bounds, polygons, vertices, boundary_edges })
   }
 }
 

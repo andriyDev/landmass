@@ -1,6 +1,7 @@
 use glam::{Vec2, Vec3};
 
 use crate::{
+  coords::XYZ,
   nav_mesh::{Connectivity, MeshEdgeRef, ValidPolygon},
   util::BoundingBox,
 };
@@ -8,9 +9,8 @@ use crate::{
 use super::{NavigationMesh, ValidationError};
 
 #[test]
-fn validation_computes_bounds_if_none() {
-  let mut source_mesh = NavigationMesh {
-    mesh_bounds: None,
+fn validation_computes_bounds() {
+  let source_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 1.0),
@@ -28,20 +28,11 @@ fn validation_computes_bounds_if_none() {
     valid_mesh.mesh_bounds,
     BoundingBox::new_box(Vec3::new(0.0, 0.0, -0.25), Vec3::new(2.0, 4.0, 1.0))
   );
-
-  let fake_mesh_bounds =
-    BoundingBox::new_box(Vec3::new(-5.0, -5.0, -5.0), Vec3::new(5.0, 5.0, 5.0));
-  source_mesh.mesh_bounds = Some(fake_mesh_bounds);
-
-  let valid_mesh =
-    source_mesh.clone().validate().expect("Validation succeeds.");
-  assert_eq!(valid_mesh.mesh_bounds, fake_mesh_bounds);
 }
 
 #[test]
 fn correctly_computes_bounds_for_small_number_of_points() {
-  let valid_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let valid_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(-1.0, -1.0, -1.0),
       Vec3::new(1.0, 0.0, 1.0),
@@ -60,8 +51,7 @@ fn correctly_computes_bounds_for_small_number_of_points() {
 
 #[test]
 fn polygons_derived_and_vertices_copied() {
-  let source_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let source_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 1.0),
@@ -104,8 +94,7 @@ fn polygons_derived_and_vertices_copied() {
 
 #[test]
 fn error_on_concave_polygon() {
-  let source_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let source_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 1.0, 0.0),
@@ -129,8 +118,7 @@ fn error_on_concave_polygon() {
 
 #[test]
 fn error_on_small_polygon() {
-  let source_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let source_mesh = NavigationMesh::<XYZ> {
     vertices: vec![Vec3::new(0.0, 0.0, 0.0), Vec3::new(1.0, 1.0, 0.0)],
     polygons: vec![vec![0, 1]],
   };
@@ -152,8 +140,7 @@ fn error_on_small_polygon() {
 
 #[test]
 fn error_on_bad_polygon_index() {
-  let source_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let source_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
@@ -179,8 +166,7 @@ fn error_on_bad_polygon_index() {
 
 #[test]
 fn error_on_degenerate_edge() {
-  let source_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let source_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
@@ -206,8 +192,7 @@ fn error_on_degenerate_edge() {
 
 #[test]
 fn error_on_doubly_connected_edge() {
-  let source_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let source_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
@@ -237,8 +222,7 @@ fn error_on_doubly_connected_edge() {
 
 #[test]
 fn derives_connectivity_and_boundary_edges() {
-  let source_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let source_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
@@ -312,8 +296,7 @@ fn derives_connectivity_and_boundary_edges() {
 
 #[test]
 fn finds_regions() {
-  let mesh = NavigationMesh {
-    mesh_bounds: None,
+  let mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
@@ -350,8 +333,7 @@ fn finds_regions() {
 
 #[test]
 fn sample_point_returns_none_for_far_point() {
-  let mesh = NavigationMesh {
-    mesh_bounds: None,
+  let mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
@@ -414,8 +396,7 @@ fn sample_point_returns_none_for_far_point() {
 
 #[test]
 fn sample_point_in_nodes() {
-  let mesh = NavigationMesh {
-    mesh_bounds: None,
+  let mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
@@ -491,8 +472,7 @@ fn sample_point_in_nodes() {
 
 #[test]
 fn sample_point_near_node() {
-  let mesh = NavigationMesh {
-    mesh_bounds: None,
+  let mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),

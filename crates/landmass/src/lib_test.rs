@@ -4,6 +4,7 @@ use glam::Vec3;
 use slotmap::HopSlotMap;
 
 use crate::{
+  coords::XYZ,
   does_agent_need_repath,
   nav_data::NodeRef,
   path::{IslandSegment, Path, PathIndex},
@@ -315,8 +316,7 @@ fn add_and_remove_characters() {
 #[test]
 fn computes_and_follows_path() {
   let mut archipelago = Archipelago::new();
-  let nav_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 1.0, 1.0),
       Vec3::new(2.0, 1.0, 1.0),

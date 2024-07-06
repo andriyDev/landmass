@@ -57,8 +57,7 @@ use std::sync::Arc;
 
 let mut archipelago = Archipelago::new();
 
-let nav_mesh = NavigationMesh {
-  mesh_bounds: None,
+let nav_mesh = NavigationMesh::<XYZ> {
   vertices: vec![
     Vec3::new(0.0, 0.0, 0.0),
     Vec3::new(15.0, 0.0, 0.0),
