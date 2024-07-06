@@ -23,7 +23,7 @@ use super::{
 
 #[test]
 fn samples_points() {
-  let nav_mesh = NavigationMesh::<XYZ> {
+  let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(1.0, 1.0, 1.0),
       Vec3::new(2.0, 1.0, 1.0),
@@ -153,7 +153,7 @@ fn chain_length_rounded(chain: &[Vec2], round_amount: f32) -> f32 {
 #[test]
 fn link_edges_between_islands_links_touching_islands() {
   let nav_mesh_1 = Arc::new(
-    NavigationMesh::<XYZ> {
+    NavigationMesh {
       vertices: vec![
         Vec3::new(1.0, 0.0, 1.0),
         Vec3::new(1.0, 1.0, 1.0),
@@ -183,7 +183,7 @@ fn link_edges_between_islands_links_touching_islands() {
   );
 
   let nav_mesh_2 = Arc::new(
-    NavigationMesh::<XYZ> {
+    NavigationMesh {
       vertices: vec![
         Vec3::new(-1.0, -0.5, 1.0),
         Vec3::new(-0.5, -0.5, 1.0),
@@ -475,7 +475,7 @@ fn link_edges_between_islands_links_touching_islands() {
 #[test]
 fn update_links_islands_and_unlinks_on_delete() {
   let nav_mesh = Arc::new(
-    NavigationMesh::<XYZ> {
+    NavigationMesh {
       vertices: vec![
         Vec3::new(1.0, 0.0, 1.0),
         Vec3::new(2.0, 0.0, 1.0),
@@ -773,7 +773,7 @@ fn clone_sort_round_modified_nodes(
 #[test]
 fn modifies_node_boundaries_for_linked_islands() {
   let nav_mesh = Arc::new(
-    NavigationMesh::<XYZ> {
+    NavigationMesh {
       vertices: vec![
         Vec3::new(1.0, 1.0, 1.0),
         Vec3::new(2.0, 1.0, 1.0),
@@ -850,7 +850,7 @@ fn modifies_node_boundaries_for_linked_islands() {
 #[test]
 fn stale_modified_nodes_are_removed() {
   let nav_mesh = Arc::new(
-    NavigationMesh::<XYZ> {
+    NavigationMesh {
       vertices: vec![
         Vec3::new(1.0, 1.0, 1.0),
         Vec3::new(2.0, 1.0, 1.0),
@@ -895,7 +895,7 @@ fn stale_modified_nodes_are_removed() {
 #[test]
 fn empty_navigation_mesh_is_safe() {
   let full_nav_mesh = Arc::new(
-    NavigationMesh::<XYZ> {
+    NavigationMesh {
       vertices: vec![
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(1.0, 0.0, 0.0),
@@ -912,7 +912,7 @@ fn empty_navigation_mesh_is_safe() {
   full_island.set_nav_mesh(Transform::default(), full_nav_mesh);
 
   let empty_nav_mesh = Arc::new(
-    NavigationMesh::<XYZ> { vertices: vec![], polygons: vec![] }
+    NavigationMesh { vertices: vec![], polygons: vec![] }
       .validate()
       .expect("An empty nav mesh is valid."),
   );

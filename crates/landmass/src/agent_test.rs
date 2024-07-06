@@ -10,7 +10,7 @@ use crate::{
 
 #[test]
 fn has_reached_target_at_end_node() {
-  let nav_mesh = NavigationMesh::<XYZ> { vertices: vec![], polygons: vec![] }
+  let nav_mesh = NavigationMesh { vertices: vec![], polygons: vec![] }
     .validate()
     .expect("nav mesh is valid");
   let transform =
@@ -20,7 +20,7 @@ fn has_reached_target_at_end_node() {
   archipelago
     .get_island_mut(island_id)
     .set_nav_mesh(transform.clone(), Arc::new(nav_mesh));
-  let mut agent = Agent::<XYZ>::create(
+  let mut agent = Agent::create(
     /* position= */ transform.apply(Vec3::new(1.0, 0.0, 1.0)),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
@@ -73,7 +73,7 @@ fn has_reached_target_at_end_node() {
 
 #[test]
 fn long_detour_reaches_target_in_different_ways() {
-  let nav_mesh = NavigationMesh::<XYZ> {
+  let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(1.0, 1.0, 0.0),
       Vec3::new(1.0, 11.0, 0.0),
@@ -95,7 +95,7 @@ fn long_detour_reaches_target_in_different_ways() {
     .get_island_mut(island_id)
     .set_nav_mesh(transform.clone(), Arc::new(nav_mesh));
 
-  let mut agent = Agent::<XYZ>::create(
+  let mut agent = Agent::create(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,

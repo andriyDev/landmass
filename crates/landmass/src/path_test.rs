@@ -37,7 +37,7 @@ fn collect_straight_path(
 
 #[test]
 fn finds_next_point_for_organic_map() {
-  let nav_mesh = NavigationMesh::<XYZ> {
+  let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
@@ -117,7 +117,7 @@ fn finds_next_point_for_organic_map() {
 
 #[test]
 fn finds_next_point_in_zig_zag() {
-  let nav_mesh = NavigationMesh::<XYZ> {
+  let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
@@ -231,7 +231,7 @@ fn finds_next_point_in_zig_zag() {
 
 #[test]
 fn starts_at_end_index_goes_to_end_point() {
-  let nav_mesh = NavigationMesh::<XYZ> {
+  let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
