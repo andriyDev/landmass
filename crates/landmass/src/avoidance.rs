@@ -17,7 +17,7 @@ use crate::{
 pub(crate) fn apply_avoidance_to_agents(
   agents: &mut HopSlotMap<AgentId, Agent<XYZ>>,
   agent_id_to_agent_node: &HashMap<AgentId, (Vec3, NodeRef)>,
-  characters: &HopSlotMap<CharacterId, Character>,
+  characters: &HopSlotMap<CharacterId, Character<XYZ>>,
   character_id_to_nav_mesh_point: &HashMap<CharacterId, Vec3>,
   nav_data: &NavigationData,
   agent_options: &AgentOptions,
