@@ -1,4 +1,4 @@
-use crate::NavigationMesh;
+use crate::{coords::CoordinateSystem, NavigationMesh};
 use bevy::{
   prelude::Mesh,
   render::{
@@ -27,9 +27,9 @@ pub enum ConvertMeshError {
 /// strange paths to form (agents may take turns inside if wide open regions).
 /// This function is provided as a convenience, and a better method for
 /// generating navigation meshes should be used.
-pub fn bevy_mesh_to_landmass_nav_mesh(
+pub fn bevy_mesh_to_landmass_nav_mesh<CS: CoordinateSystem>(
   mesh: &Mesh,
-) -> Result<NavigationMesh, ConvertMeshError> {
+) -> Result<NavigationMesh<CS>, ConvertMeshError> {
   let PrimitiveTopology::TriangleList = mesh.primitive_topology() else {
     return Err(ConvertMeshError::InvalidTopology);
   };
@@ -38,11 +38,8 @@ pub fn bevy_mesh_to_landmass_nav_mesh(
     return Err(ConvertMeshError::MissingVertexPositions);
   };
 
-  let vertices: Vec<landmass::Vec3> = match values {
-    Float32x3(vertices) => vertices
-      .iter()
-      .map(|vert| landmass::Vec3::new(vert[0], -vert[2], vert[1]))
-      .collect(),
+  let vertices = match values {
+    Float32x3(vertices) => vertices.iter().map(CS::from_mesh_vertex).collect(),
     _ => panic!("Mesh POSITION must be Float32x3"),
   };
 
@@ -74,7 +71,7 @@ pub fn bevy_mesh_to_landmass_nav_mesh(
     _ => return Err(ConvertMeshError::WrongTypeForIndices),
   };
 
-  Ok(NavigationMesh { mesh_bounds: None, vertices, polygons })
+  Ok(NavigationMesh { vertices, polygons })
 }
 
 #[cfg(test)]
