@@ -34,7 +34,7 @@ use crate::avoidance::apply_avoidance_to_agents;
 
 pub struct Archipelago<CS: CoordinateSystem> {
   pub agent_options: AgentOptions,
-  nav_data: NavigationData,
+  nav_data: NavigationData<CS>,
   agents: HopSlotMap<AgentId, Agent<CS>>,
   characters: HopSlotMap<CharacterId, Character<CS>>,
   pathing_results: Vec<PathingResult>,
@@ -135,11 +135,11 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     self.nav_data.remove_island(island_id)
   }
 
-  pub fn get_island(&self, island_id: IslandId) -> &Island {
+  pub fn get_island(&self, island_id: IslandId) -> &Island<CS> {
     self.nav_data.islands.get(island_id).unwrap()
   }
 
-  pub fn get_island_mut(&mut self, island_id: IslandId) -> &mut Island {
+  pub fn get_island_mut(&mut self, island_id: IslandId) -> &mut Island<CS> {
     self.nav_data.islands.get_mut(island_id).unwrap()
   }
 

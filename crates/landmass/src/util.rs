@@ -3,6 +3,8 @@ use std::mem::swap;
 use glam::{Quat, Vec3};
 use ord_subset::OrdVar;
 
+use crate::CoordinateSystem;
+
 /// A bounding box.
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum BoundingBox {
@@ -155,7 +157,10 @@ impl BoundingBox {
 
   /// Creates a conservative bounding box around `self` after transforming it by
   /// `transform`.
-  pub fn transform(&self, transform: Transform) -> Self {
+  pub fn transform<CS: CoordinateSystem>(
+    &self,
+    transform: &Transform<CS>,
+  ) -> Self {
     let (min, max) = match self {
       BoundingBox::Empty => return BoundingBox::Empty,
       BoundingBox::Box { min, max } => (min, max),
@@ -201,23 +206,61 @@ impl BoundingBox {
 }
 
 /// A transform that can be applied to Vec3's.
-#[derive(PartialEq, Clone, Copy, Debug, Default)]
-pub struct Transform {
+pub struct Transform<CS: CoordinateSystem> {
   /// The translation to apply.
-  pub translation: Vec3,
-  /// The rotation to apply.
+  pub translation: CS::Coordinate,
+  /// The rotation to apply around the "up" direction. Specifically, the up
+  /// direction is perpendicular to the plane of movement.
   pub rotation: f32,
 }
 
-impl Transform {
+// Manual Clone impl to avoid `CS` having a Clone bound itself.
+impl<CS: CoordinateSystem> Clone for Transform<CS> {
+  fn clone(&self) -> Self {
+    Self {
+      translation: self.translation.clone(),
+      rotation: self.rotation.clone(),
+    }
+  }
+}
+
+// Manual Debug impl to avoid `CS` having a Debug bound itself.
+impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
+  for Transform<CS>
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("Transform")
+      .field("translation", &self.translation)
+      .field("rotation", &self.rotation)
+      .finish()
+  }
+}
+
+// Manual Default impl to avoid `CS` having a Default bound itself.
+impl<CS: CoordinateSystem<Coordinate: Default>> Default for Transform<CS> {
+  fn default() -> Self {
+    Self { translation: Default::default(), rotation: Default::default() }
+  }
+}
+
+// Manual PartialEq impl to avoid `CS` having a PartialEq bound itself.
+impl<CS: CoordinateSystem<Coordinate: PartialEq>> PartialEq for Transform<CS> {
+  fn eq(&self, other: &Self) -> bool {
+    self.translation == other.translation && self.rotation == other.rotation
+  }
+}
+
+impl<CS: CoordinateSystem> Transform<CS> {
   /// Applies the transformation.
   pub(crate) fn apply(&self, point: Vec3) -> Vec3 {
-    Quat::from_rotation_z(self.rotation) * point + self.translation
+    Quat::from_rotation_z(self.rotation) * point
+      + CS::to_landmass(&self.translation)
   }
 
   /// Inverses the transformation.
   pub(crate) fn apply_inverse(&self, point: Vec3) -> Vec3 {
-    Quat::from_rotation_z(-self.rotation) * (point - self.translation)
+    Quat::from_rotation_z(-self.rotation)
+      * (point - CS::to_landmass(&self.translation))
   }
 }
 

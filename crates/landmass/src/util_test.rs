@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use glam::Vec3;
 
-use crate::{BoundingBox, Transform};
+use crate::{BoundingBox, Transform, XYZ};
 
 use super::BoundingBoxHierarchy;
 
@@ -179,7 +179,7 @@ fn bounding_box_detects_intersection() {
 #[test]
 fn transform_empty_does_nothing() {
   assert_eq!(
-    BoundingBox::Empty.transform(Transform {
+    BoundingBox::Empty.transform(&Transform::<XYZ> {
       translation: Vec3::new(1.0, 2.0, 3.0),
       rotation: 0.75
     }),
@@ -192,9 +192,9 @@ fn transforms_bounds() {
   let root_2 = 2.0f32.sqrt();
   let (actual_min, actual_max) =
     BoundingBox::new_box(Vec3::new(1.0, 3.0, 2.0), Vec3::new(6.0, 4.0, 5.0))
-      .transform(Transform {
+      .transform(&Transform::<XYZ> {
         translation: Vec3::new(-4.0, 1.0, -3.0),
-        rotation: -PI * 0.75,
+        rotation: PI * -0.75,
       })
       .as_box();
   let expected_min = Vec3::new(-3.0 / root_2 - 4.0, -10.0 / root_2 + 1.0, -1.0);

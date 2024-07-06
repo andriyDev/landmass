@@ -15,14 +15,14 @@ use crate::{
   island::{Island, IslandId, IslandNavigationData},
   nav_mesh::MeshEdgeRef,
   util::BoundingBoxHierarchy,
-  BoundingBox,
+  BoundingBox, CoordinateSystem,
 };
 
 /// The navigation data of a whole [`crate::Archipelago`]. This only includes
 /// "static" features.
-pub struct NavigationData {
+pub struct NavigationData<CS: CoordinateSystem> {
   /// The islands in the [`crate::Archipelago`].
-  pub islands: HopSlotMap<IslandId, Island>,
+  pub islands: HopSlotMap<IslandId, Island<CS>>,
   /// Maps a "region id" (consisting of the IslandId and the region in that
   /// island's nav mesh) to its "region number" (the number used in
   /// [`Self::region_connections`]).
@@ -82,7 +82,7 @@ pub struct ModifiedNode {
   pub new_vertices: Vec<Vec2>,
 }
 
-impl NavigationData {
+impl<CS: CoordinateSystem> NavigationData<CS> {
   /// Creates new navigation data.
   pub fn new() -> Self {
     Self {
@@ -319,9 +319,9 @@ impl NavigationData {
       Vec2::new(c.x, c.y)
     }
 
-    fn push_vertex(
+    fn push_vertex<CS: CoordinateSystem>(
       vertex: usize,
-      nav_data: &IslandNavigationData,
+      nav_data: &IslandNavigationData<CS>,
       line_string: &mut Vec<Coord<f32>>,
     ) {
       let vertex = nav_data.transform.apply(nav_data.nav_mesh.vertices[vertex]);
@@ -567,9 +567,9 @@ impl NavigationData {
   }
 }
 
-fn edge_ref_to_world_edge(
+fn edge_ref_to_world_edge<CS: CoordinateSystem>(
   edge: MeshEdgeRef,
-  nav_data: &IslandNavigationData,
+  nav_data: &IslandNavigationData<CS>,
 ) -> (Vec3, Vec3) {
   let (a, b) = nav_data.nav_mesh.get_edge_points(edge);
   (nav_data.transform.apply(a), nav_data.transform.apply(b))
@@ -579,8 +579,8 @@ fn edge_to_bbox(edge: (Vec3, Vec3)) -> BoundingBox {
   BoundingBox::new_box(edge.0, edge.0).expand_to_point(edge.1)
 }
 
-fn island_edges_bbh(
-  island_nav_data: &IslandNavigationData,
+fn island_edges_bbh<CS: CoordinateSystem>(
+  island_nav_data: &IslandNavigationData<CS>,
 ) -> BoundingBoxHierarchy<MeshEdgeRef> {
   let mut edge_bounds = island_nav_data
     .nav_mesh
@@ -596,9 +596,9 @@ fn island_edges_bbh(
   BoundingBoxHierarchy::new(&mut edge_bounds)
 }
 
-fn link_edges_between_islands(
-  island_1: (IslandId, &Island),
-  island_2: (IslandId, &Island),
+fn link_edges_between_islands<CS: CoordinateSystem>(
+  island_1: (IslandId, &Island<CS>),
+  island_2: (IslandId, &Island<CS>),
   island_1_edge_bbh: &BoundingBoxHierarchy<MeshEdgeRef>,
   edge_link_distance: f32,
   boundary_links: &mut SlotMap<BoundaryLinkId, BoundaryLink>,
