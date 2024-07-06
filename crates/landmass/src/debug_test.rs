@@ -65,7 +65,7 @@ impl FakeDrawer {
 
 #[test]
 fn draws_island_meshes_and_agents() {
-  let nav_mesh = NavigationMesh::<XYZ> {
+  let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
@@ -412,7 +412,7 @@ fn draws_island_meshes_and_agents() {
 #[test]
 fn draws_boundary_links() {
   let nav_mesh = Arc::new(
-    NavigationMesh::<XYZ> {
+    NavigationMesh {
       vertices: vec![
         Vec3::new(1.0, 1.0, 1.0),
         Vec3::new(2.0, 1.0, 1.0),

@@ -316,7 +316,7 @@ fn add_and_remove_characters() {
 #[test]
 fn computes_and_follows_path() {
   let mut archipelago = Archipelago::<XYZ>::new();
-  let nav_mesh = NavigationMesh::<XYZ> {
+  let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(1.0, 1.0, 1.0),
       Vec3::new(2.0, 1.0, 1.0),
@@ -561,6 +561,7 @@ fn new_or_changed_island_is_not_dirty_after_update() {
       boundary_edges: vec![],
       polygons: vec![],
       vertices: vec![],
+      marker: Default::default(),
     }),
   );
 

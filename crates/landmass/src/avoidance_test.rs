@@ -65,7 +65,7 @@ macro_rules! assert_obstacles_match {
 
 #[test]
 fn computes_obstacle_for_box() {
-  let nav_mesh = NavigationMesh::<XYZ> {
+  let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(1.0, 1.0, 0.0),
       Vec3::new(2.0, 1.0, 0.0),
@@ -114,7 +114,7 @@ fn computes_obstacle_for_box() {
 
 #[test]
 fn dead_end_makes_open_obstacle() {
-  let nav_mesh = NavigationMesh::<XYZ> {
+  let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(1.0, 1.0, 0.0),
       Vec3::new(2.0, 1.0, 0.0),
@@ -238,7 +238,7 @@ fn dead_end_makes_open_obstacle() {
 
 #[test]
 fn split_borders() {
-  let nav_mesh = NavigationMesh::<XYZ> {
+  let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(1.0, 1.0, 0.0),
       Vec3::new(2.0, 1.0, 0.0),
@@ -333,7 +333,7 @@ fn split_borders() {
 #[test]
 fn creates_obstacles_across_boundary_link() {
   let nav_mesh = Arc::new(
-    NavigationMesh::<XYZ> {
+    NavigationMesh {
       vertices: vec![
         Vec3::new(1.0, 1.0, 1.0),
         Vec3::new(2.0, 1.0, 1.0),
@@ -398,7 +398,7 @@ fn creates_obstacles_across_boundary_link() {
 
 #[test]
 fn applies_no_avoidance_for_far_agents() {
-  let nav_mesh = NavigationMesh::<XYZ> {
+  let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(-1.0, -1.0, 0.0),
       Vec3::new(13.0, -1.0, 0.0),
@@ -410,7 +410,7 @@ fn applies_no_avoidance_for_far_agents() {
   .validate()
   .expect("Validation succeeded.");
 
-  let mut nav_data = NavigationData::new();
+  let mut nav_data = NavigationData::<XYZ>::new();
   let island_id = nav_data.islands.insert({
     let mut island = Island::new();
     island.set_nav_mesh(
@@ -422,7 +422,7 @@ fn applies_no_avoidance_for_far_agents() {
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent_1 = agents.insert({
-    let mut agent = Agent::<XYZ>::create(
+    let mut agent = Agent::create(
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
@@ -432,7 +432,7 @@ fn applies_no_avoidance_for_far_agents() {
     agent
   });
   let agent_2 = agents.insert({
-    let mut agent = Agent::<XYZ>::create(
+    let mut agent = Agent::create(
       /* position= */ Vec3::new(11.0, 1.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
@@ -442,7 +442,7 @@ fn applies_no_avoidance_for_far_agents() {
     agent
   });
   let agent_3 = agents.insert({
-    let mut agent = Agent::<XYZ>::create(
+    let mut agent = Agent::create(
       /* position= */ Vec3::new(5.0, 4.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
@@ -495,7 +495,7 @@ fn applies_no_avoidance_for_far_agents() {
 
 #[test]
 fn applies_avoidance_for_two_agents() {
-  let nav_mesh = NavigationMesh::<XYZ> {
+  let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(-1.0, -1.0, 0.0),
       Vec3::new(13.0, -1.0, 0.0),
@@ -507,7 +507,7 @@ fn applies_avoidance_for_two_agents() {
   .validate()
   .expect("Validation succeeded.");
 
-  let mut nav_data = NavigationData::new();
+  let mut nav_data = NavigationData::<XYZ>::new();
   let island_id = nav_data.islands.insert({
     let mut island = Island::new();
     island.set_nav_mesh(
@@ -519,7 +519,7 @@ fn applies_avoidance_for_two_agents() {
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent_1 = agents.insert({
-    let mut agent = Agent::<XYZ>::create(
+    let mut agent = Agent::create(
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
       /* radius= */ 1.0,
@@ -529,7 +529,7 @@ fn applies_avoidance_for_two_agents() {
     agent
   });
   let agent_2 = agents.insert({
-    let mut agent = Agent::<XYZ>::create(
+    let mut agent = Agent::create(
       /* position= */ Vec3::new(11.0, 1.01, 0.0),
       /* velocity= */ Vec3::new(-1.0, 0.0, 0.0),
       /* radius= */ 1.0,
@@ -590,7 +590,7 @@ fn applies_avoidance_for_two_agents() {
 
 #[test]
 fn agent_avoids_character() {
-  let nav_mesh = NavigationMesh::<XYZ> {
+  let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(-1.0, -1.0, 0.0),
       Vec3::new(13.0, -1.0, 0.0),
@@ -602,7 +602,7 @@ fn agent_avoids_character() {
   .validate()
   .expect("Validation succeeded.");
 
-  let mut nav_data = NavigationData::new();
+  let mut nav_data = NavigationData::<XYZ>::new();
   let island_id = nav_data.islands.insert({
     let mut island = Island::new();
     island.set_nav_mesh(
@@ -614,7 +614,7 @@ fn agent_avoids_character() {
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent = agents.insert({
-    let mut agent = Agent::<XYZ>::create(
+    let mut agent = Agent::create(
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
       /* radius= */ 1.0,

@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::HashMap};
+use std::{cmp::Ordering, collections::HashMap, marker::PhantomData};
 
 use disjoint::DisjointSet;
 use glam::{swizzles::Vec3Swizzles, Vec3};
@@ -49,7 +49,9 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
   /// additional derived properties to produce and optimized and validated
   /// navigation mesh. Returns an error if the navigation mesh is invalid in
   /// some way.
-  pub fn validate(mut self) -> Result<ValidNavigationMesh, ValidationError> {
+  pub fn validate(
+    mut self,
+  ) -> Result<ValidNavigationMesh<CS>, ValidationError> {
     let vertices =
       self.vertices.iter().map(CS::to_landmass).collect::<Vec<_>>();
 
@@ -212,14 +214,19 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
       }
     }
 
-    Ok(ValidNavigationMesh { mesh_bounds, polygons, vertices, boundary_edges })
+    Ok(ValidNavigationMesh {
+      mesh_bounds,
+      polygons,
+      vertices,
+      boundary_edges,
+      marker: Default::default(),
+    })
   }
 }
 
 /// A navigation mesh which has been validated and derived data has been
 /// computed.
-#[derive(Debug, Clone)]
-pub struct ValidNavigationMesh {
+pub struct ValidNavigationMesh<CS: CoordinateSystem> {
   /// The bounds of the mesh data itself. This is a tight bounding box around
   /// the vertices of the navigation mesh.
   pub(crate) mesh_bounds: BoundingBox,
@@ -232,6 +239,34 @@ pub struct ValidNavigationMesh {
   /// (e.0, e.1) from e.0 to e.1 will move counter-clockwise along the
   /// boundary. The order of edges is undefined.
   pub(crate) boundary_edges: Vec<MeshEdgeRef>,
+  /// Marker for the CoordinateSystem.
+  pub(crate) marker: PhantomData<CS>,
+}
+
+// Manual Debug impl to avoid Debug bound on CoordinateSystem.
+impl<CS: CoordinateSystem> Clone for ValidNavigationMesh<CS> {
+  fn clone(&self) -> Self {
+    Self {
+      mesh_bounds: self.mesh_bounds.clone(),
+      vertices: self.vertices.clone(),
+      polygons: self.polygons.clone(),
+      boundary_edges: self.boundary_edges.clone(),
+      marker: self.marker.clone(),
+    }
+  }
+}
+
+// Manual Debug impl to avoid Debug bound on CoordinateSystem.
+impl<CS: CoordinateSystem> std::fmt::Debug for ValidNavigationMesh<CS> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ValidNavigationMesh")
+      .field("mesh_bounds", &self.mesh_bounds)
+      .field("vertices", &self.vertices)
+      .field("polygons", &self.polygons)
+      .field("boundary_edges", &self.boundary_edges)
+      .field("marker", &self.marker)
+      .finish()
+  }
 }
 
 /// A valid polygon. This means the polygon is convex and indexes the `vertices`
@@ -274,7 +309,7 @@ pub struct MeshEdgeRef {
   pub edge_index: usize,
 }
 
-impl ValidNavigationMesh {
+impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
   /// Returns the bounds of the navigation mesh.
   pub fn get_bounds(&self) -> BoundingBox {
     self.mesh_bounds

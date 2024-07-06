@@ -26,7 +26,7 @@ pub(crate) struct IslandNavigationData<CS: CoordinateSystem> {
   /// The transform from the Island's frame to the Archipelago's frame.
   pub transform: Transform<CS>,
   /// The navigation mesh for the island.
-  pub nav_mesh: Arc<ValidNavigationMesh>,
+  pub nav_mesh: Arc<ValidNavigationMesh<CS>>,
 
   // The bounds of `nav_mesh` after being transformed by `transform`.
   pub transformed_bounds: BoundingBox,
@@ -48,7 +48,7 @@ impl<CS: CoordinateSystem> Island<CS> {
   }
 
   /// Gets the current navigation mesh used by the island.
-  pub fn get_nav_mesh(&self) -> Option<Arc<ValidNavigationMesh>> {
+  pub fn get_nav_mesh(&self) -> Option<Arc<ValidNavigationMesh<CS>>> {
     self.nav_data.as_ref().map(|d| Arc::clone(&d.nav_mesh))
   }
 
@@ -56,7 +56,7 @@ impl<CS: CoordinateSystem> Island<CS> {
   pub fn set_nav_mesh(
     &mut self,
     transform: Transform<CS>,
-    nav_mesh: Arc<ValidNavigationMesh>,
+    nav_mesh: Arc<ValidNavigationMesh<CS>>,
   ) {
     self.nav_data = Some(IslandNavigationData {
       transformed_bounds: nav_mesh.get_bounds().transform(&transform),
