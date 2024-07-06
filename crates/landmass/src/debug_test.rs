@@ -15,7 +15,7 @@ struct FakeDrawer {
   lines: Vec<(LineType, [Vec3; 2])>,
   triangles: Vec<(TriangleType, [Vec3; 3])>,
 }
-impl DebugDrawer for FakeDrawer {
+impl DebugDrawer<XYZ> for FakeDrawer {
   fn add_point(&mut self, point_type: crate::debug::PointType, point: Vec3) {
     self.points.push((point_type, point));
   }
