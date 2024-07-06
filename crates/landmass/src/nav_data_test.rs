@@ -40,7 +40,7 @@ fn samples_points() {
   .expect("is valid");
   let nav_mesh = Arc::new(nav_mesh);
 
-  let mut nav_data = NavigationData::new();
+  let mut nav_data = NavigationData::<XYZ>::new();
   let island_id_1 = nav_data.islands.insert({
     let mut island = Island::new();
     island.set_nav_mesh(
@@ -220,8 +220,8 @@ fn link_edges_between_islands_links_touching_islands() {
 
   let transform =
     Transform { translation: Vec3::new(1.0, 2.0, 3.0), rotation: PI * -0.25 };
-  island_1.set_nav_mesh(transform, Arc::clone(&nav_mesh_1));
-  island_2.set_nav_mesh(transform, Arc::clone(&nav_mesh_2));
+  island_1.set_nav_mesh(transform.clone(), Arc::clone(&nav_mesh_1));
+  island_2.set_nav_mesh(transform.clone(), Arc::clone(&nav_mesh_2));
 
   let island_1_edge_bbh = island_edges_bbh(island_1.nav_data.as_ref().unwrap());
   let island_2_edge_bbh = island_edges_bbh(island_2.nav_data.as_ref().unwrap());
@@ -241,7 +241,7 @@ fn link_edges_between_islands_links_touching_islands() {
   );
 
   fn transform_and_round_portal(
-    transform: Transform,
+    transform: &Transform<XYZ>,
     a: Vec3,
     b: Vec3,
   ) -> (Vec3, Vec3) {
@@ -267,7 +267,7 @@ fn link_edges_between_islands_links_touching_islands() {
       vec![BoundaryLink {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 2 },
         portal: transform_and_round_portal(
-          transform,
+          &transform,
           Vec3::new(1.0, 0.5, 1.0),
           Vec3::new(1.0, 0.0, 1.0),
         ),
@@ -279,7 +279,7 @@ fn link_edges_between_islands_links_touching_islands() {
       vec![BoundaryLink {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 3 },
         portal: transform_and_round_portal(
-          transform,
+          &transform,
           Vec3::new(-0.5, 1.0, 1.0),
           Vec3::new(0.5, 1.0, 1.0),
         ),
@@ -291,7 +291,7 @@ fn link_edges_between_islands_links_touching_islands() {
       vec![BoundaryLink {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 0 },
         portal: transform_and_round_portal(
-          transform,
+          &transform,
           Vec3::new(-1.0, 0.0, 1.0),
           Vec3::new(-1.0, 0.5, 1.0),
         ),
@@ -303,7 +303,7 @@ fn link_edges_between_islands_links_touching_islands() {
       vec![BoundaryLink {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 0 },
         portal: transform_and_round_portal(
-          transform,
+          &transform,
           Vec3::new(-1.0, -0.5, 1.0),
           Vec3::new(-1.0, 0.0, 1.0),
         ),
@@ -315,7 +315,7 @@ fn link_edges_between_islands_links_touching_islands() {
       vec![BoundaryLink {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 4 },
         portal: transform_and_round_portal(
-          transform,
+          &transform,
           Vec3::new(0.5, -1.0, 1.0),
           Vec3::new(-0.5, -1.0, 1.0),
         ),
@@ -327,7 +327,7 @@ fn link_edges_between_islands_links_touching_islands() {
       vec![BoundaryLink {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 2 },
         portal: transform_and_round_portal(
-          transform,
+          &transform,
           Vec3::new(1.0, 0.0, 1.0),
           Vec3::new(1.0, -0.5, 1.0),
         ),
@@ -344,7 +344,7 @@ fn link_edges_between_islands_links_touching_islands() {
             polygon_index: 2,
           },
           portal: transform_and_round_portal(
-            transform,
+            &transform,
             Vec3::new(-1.0, 0.5, 1.0),
             Vec3::new(-1.0, 0.0, 1.0),
           ),
@@ -356,7 +356,7 @@ fn link_edges_between_islands_links_touching_islands() {
             polygon_index: 3,
           },
           portal: transform_and_round_portal(
-            transform,
+            &transform,
             Vec3::new(-1.0, 0.0, 1.0),
             Vec3::new(-1.0, -0.5, 1.0),
           ),
@@ -373,7 +373,7 @@ fn link_edges_between_islands_links_touching_islands() {
             polygon_index: 0,
           },
           portal: transform_and_round_portal(
-            transform,
+            &transform,
             Vec3::new(1.0, 0.0, 1.0),
             Vec3::new(1.0, 0.5, 1.0),
           ),
@@ -385,7 +385,7 @@ fn link_edges_between_islands_links_touching_islands() {
             polygon_index: 5,
           },
           portal: transform_and_round_portal(
-            transform,
+            &transform,
             Vec3::new(1.0, -0.5, 1.0),
             Vec3::new(1.0, 0.0, 1.0),
           ),
@@ -398,7 +398,7 @@ fn link_edges_between_islands_links_touching_islands() {
       vec![BoundaryLink {
         destination_node: NodeRef { island_id: island_1_id, polygon_index: 1 },
         portal: transform_and_round_portal(
-          transform,
+          &transform,
           Vec3::new(0.5, 1.0, 1.0),
           Vec3::new(-0.5, 1.0, 1.0),
         ),
@@ -410,7 +410,7 @@ fn link_edges_between_islands_links_touching_islands() {
       vec![BoundaryLink {
         destination_node: NodeRef { island_id: island_1_id, polygon_index: 4 },
         portal: transform_and_round_portal(
-          transform,
+          &transform,
           Vec3::new(-0.5, -1.0, 1.0),
           Vec3::new(0.5, -1.0, 1.0),
         ),
@@ -517,7 +517,7 @@ fn update_links_islands_and_unlinks_on_delete() {
     Arc::clone(&nav_mesh),
   );
 
-  let mut nav_data = NavigationData::new();
+  let mut nav_data = NavigationData::<XYZ>::new();
   let island_1_id = nav_data.islands.insert(island_1);
   let island_2_id = nav_data.islands.insert(island_2);
   let island_3_id = nav_data.islands.insert(island_3);
@@ -805,7 +805,7 @@ fn modifies_node_boundaries_for_linked_islands() {
     Arc::clone(&nav_mesh),
   );
 
-  let mut nav_data = NavigationData::new();
+  let mut nav_data = NavigationData::<XYZ>::new();
   let island_1_id = nav_data.islands.insert(island_1);
   let island_2_id = nav_data.islands.insert(island_2);
   let island_3_id = nav_data.islands.insert(island_3);
@@ -877,7 +877,7 @@ fn stale_modified_nodes_are_removed() {
     Arc::clone(&nav_mesh),
   );
 
-  let mut nav_data = NavigationData::new();
+  let mut nav_data = NavigationData::<XYZ>::new();
   nav_data.islands.insert(island_1);
   let island_2_id = nav_data.islands.insert(island_2);
 
@@ -920,7 +920,7 @@ fn empty_navigation_mesh_is_safe() {
   let mut empty_island = Island::new();
   empty_island.set_nav_mesh(Transform::default(), empty_nav_mesh);
 
-  let mut nav_data = NavigationData::new();
+  let mut nav_data = NavigationData::<XYZ>::new();
   nav_data.islands.insert(full_island);
   nav_data.islands.insert(empty_island);
 

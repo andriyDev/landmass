@@ -77,7 +77,7 @@ fn computes_obstacle_for_box() {
   .validate()
   .expect("Validation succeeds");
 
-  let mut nav_data = NavigationData::new();
+  let mut nav_data = NavigationData::<XYZ>::new();
 
   let island_offset = Vec3::new(130.0, -50.0, 20.0);
   let island_offset_dodgy =
@@ -140,7 +140,7 @@ fn dead_end_makes_open_obstacle() {
   .validate()
   .expect("Validation succeeds");
 
-  let mut nav_data = NavigationData::new();
+  let mut nav_data = NavigationData::<XYZ>::new();
   let island_id = nav_data.islands.insert({
     let mut island = Island::new();
     island.set_nav_mesh(
@@ -285,7 +285,7 @@ fn split_borders() {
   .validate()
   .expect("Validation succeeds");
 
-  let mut nav_data = NavigationData::new();
+  let mut nav_data = NavigationData::<XYZ>::new();
   let island_id = nav_data.islands.insert({
     let mut island = Island::new();
     island.set_nav_mesh(
@@ -346,7 +346,7 @@ fn creates_obstacles_across_boundary_link() {
     .expect("Validation succeeds"),
   );
 
-  let mut nav_data = NavigationData::new();
+  let mut nav_data = NavigationData::<XYZ>::new();
   nav_data.islands.insert({
     let mut island = Island::new();
     island.set_nav_mesh(

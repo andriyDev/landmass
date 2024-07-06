@@ -6,13 +6,13 @@ use crate::{
   astar::{self, AStarProblem, PathStats},
   nav_data::{BoundaryLinkId, NodeRef},
   path::{BoundaryLinkSegment, IslandSegment, Path},
-  NavigationData,
+  CoordinateSystem, NavigationData,
 };
 
 /// A concrete A* problem specifically for [`crate::Archipelago`]s.
-struct ArchipelagoPathProblem<'a> {
+struct ArchipelagoPathProblem<'a, CS: CoordinateSystem> {
   /// The navigation data to search.
-  nav_data: &'a NavigationData,
+  nav_data: &'a NavigationData<CS>,
   /// The node the agent is starting from.
   start_node: NodeRef,
   /// The node the target is in.
@@ -30,7 +30,7 @@ enum PathStep {
   BoundaryLink(BoundaryLinkId),
 }
 
-impl AStarProblem for ArchipelagoPathProblem<'_> {
+impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
   type ActionType = PathStep;
 
   type StateType = NodeRef;
@@ -107,8 +107,8 @@ pub(crate) struct PathResult {
 
 /// Finds a path in `nav_data` from `start_node` to `end_node`. Returns an `Err`
 /// if no path was found.
-pub(crate) fn find_path(
-  nav_data: &NavigationData,
+pub(crate) fn find_path<CS: CoordinateSystem>(
+  nav_data: &NavigationData<CS>,
   start_node: NodeRef,
   end_node: NodeRef,
 ) -> PathResult {

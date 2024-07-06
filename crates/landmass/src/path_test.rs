@@ -15,7 +15,7 @@ use super::{Path, PathIndex};
 
 fn collect_straight_path(
   path: &Path,
-  nav_data: &NavigationData,
+  nav_data: &NavigationData<XYZ>,
   start: (PathIndex, Vec3),
   end: (PathIndex, Vec3),
   iteration_limit: u32,
@@ -71,7 +71,7 @@ fn finds_next_point_for_organic_map() {
   let island_id = archipelago.add_island();
   archipelago
     .get_island_mut(island_id)
-    .set_nav_mesh(transform, Arc::new(nav_mesh));
+    .set_nav_mesh(transform.clone(), Arc::new(nav_mesh));
 
   let path = Path {
     island_segments: vec![IslandSegment {
@@ -177,7 +177,7 @@ fn finds_next_point_in_zig_zag() {
   let island_id = archipelago.add_island();
   archipelago
     .get_island_mut(island_id)
-    .set_nav_mesh(transform, Arc::new(nav_mesh));
+    .set_nav_mesh(transform.clone(), Arc::new(nav_mesh));
 
   let path = Path {
     island_segments: vec![IslandSegment {

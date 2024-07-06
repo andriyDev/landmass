@@ -132,7 +132,7 @@ impl<CS: CoordinateSystem> Agent<CS> {
   pub(crate) fn has_reached_target(
     &self,
     path: &Path,
-    nav_data: &NavigationData,
+    nav_data: &NavigationData<CS>,
     next_waypoint: (PathIndex, Vec3),
     target_waypoint: (PathIndex, Vec3),
   ) -> bool {

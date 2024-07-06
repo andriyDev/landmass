@@ -4,7 +4,7 @@ use glam::{Vec3, Vec3Swizzles};
 
 use crate::{
   nav_data::{BoundaryLinkId, NodeRef},
-  IslandId, NavigationData,
+  CoordinateSystem, IslandId, NavigationData,
 };
 
 /// A path computed on the navigation data.
@@ -44,10 +44,10 @@ pub(crate) struct BoundaryLinkSegment {
 
 impl IslandSegment {
   /// Determines the endpoints of the portal at `portal_index` in `nav_data`.
-  fn get_portal_endpoints(
+  fn get_portal_endpoints<CS: CoordinateSystem>(
     &self,
     portal_index: usize,
-    nav_data: &NavigationData,
+    nav_data: &NavigationData<CS>,
   ) -> (Vec3, Vec3) {
     let polygon_index = self.corridor[portal_index];
     let edge = self.portal_edge_index[portal_index];
@@ -71,7 +71,10 @@ impl IslandSegment {
 
 impl BoundaryLinkSegment {
   /// Gets the endpoints of the portal for this boundary link in `nav_data`.
-  fn get_portal_endpoints(&self, nav_data: &NavigationData) -> (Vec3, Vec3) {
+  fn get_portal_endpoints<CS: CoordinateSystem>(
+    &self,
+    nav_data: &NavigationData<CS>,
+  ) -> (Vec3, Vec3) {
     nav_data
       .boundary_links
       .get(self.boundary_link)
@@ -127,10 +130,10 @@ impl PathIndex {
 impl Path {
   /// Determines the endpoints of the portal at `segment_index` at
   /// `portal_index` in `nav_data`.
-  fn get_portal_endpoints(
+  fn get_portal_endpoints<CS: CoordinateSystem>(
     &self,
     path_index: PathIndex,
-    nav_data: &NavigationData,
+    nav_data: &NavigationData<CS>,
   ) -> (Vec3, Vec3) {
     if path_index.portal_index
       == self.island_segments[path_index.segment_index].portal_edge_index.len()
@@ -150,9 +153,9 @@ impl Path {
   /// next point is, and that next point. Note this can be called repeatedly by
   /// passing in the returned tuple as the `start_index` and `start_point` to
   /// generate the full straight path.
-  pub(crate) fn find_next_point_in_straight_path(
+  pub(crate) fn find_next_point_in_straight_path<CS: CoordinateSystem>(
     &self,
-    nav_data: &NavigationData,
+    nav_data: &NavigationData<CS>,
     start_index: PathIndex,
     start_point: Vec3,
     end_index: PathIndex,

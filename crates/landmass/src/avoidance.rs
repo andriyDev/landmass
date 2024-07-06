@@ -19,7 +19,7 @@ pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
   agent_id_to_agent_node: &HashMap<AgentId, (Vec3, NodeRef)>,
   characters: &HopSlotMap<CharacterId, Character<CS>>,
   character_id_to_nav_mesh_point: &HashMap<CharacterId, Vec3>,
-  nav_data: &NavigationData,
+  nav_data: &NavigationData<CS>,
   agent_options: &AgentOptions,
   delta_time: f32,
 ) {
@@ -158,9 +158,9 @@ fn to_dodgy_vec2(v: glam::Vec2) -> dodgy_2d::Vec2 {
 /// These obstacles are from the perspective of `agent_node` (to avoid problems
 /// with obstacles above/below the agent). `distance_limit` is the distance from
 /// the agent to include obstacles.
-fn nav_mesh_borders_to_dodgy_obstacles(
+fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
   agent_node: (Vec3, NodeRef),
-  nav_data: &NavigationData,
+  nav_data: &NavigationData<CS>,
   distance_limit: f32,
 ) -> Vec<dodgy_2d::Obstacle> {
   let distance_limit = distance_limit * distance_limit;
@@ -199,8 +199,8 @@ fn nav_mesh_borders_to_dodgy_obstacles(
 
   let agent_point = agent_node.0.xy();
 
-  fn vertex_index_to_dodgy_vec(
-    island_data: &IslandNavigationData,
+  fn vertex_index_to_dodgy_vec<CS: CoordinateSystem>(
+    island_data: &IslandNavigationData<CS>,
     index: usize,
     relative_point: glam::Vec2,
   ) -> dodgy_2d::Vec2 {
@@ -275,12 +275,12 @@ fn nav_mesh_borders_to_dodgy_obstacles(
 
     if let Some(modified_node) = modified_node {
       for &(left, right) in modified_node.new_boundary.iter() {
-        fn index_to_vertex_and_index(
+        fn index_to_vertex_and_index<CS: CoordinateSystem>(
           index: usize,
           island_id: IslandId,
           agent_point: glam::Vec2,
           modified_node: &ModifiedNode,
-          island_data: &IslandNavigationData,
+          island_data: &IslandNavigationData<CS>,
           new_vertices: &mut Vec<dodgy_2d::Vec2>,
         ) -> (dodgy_2d::Vec2, (Option<IslandId>, usize)) {
           if index >= island_data.nav_mesh.vertices.len() {

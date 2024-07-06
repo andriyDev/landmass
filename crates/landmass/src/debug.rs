@@ -58,7 +58,7 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
 ) {
   fn index_to_vertex<CS: CoordinateSystem>(
     index: usize,
-    nav_data: &IslandNavigationData,
+    nav_data: &IslandNavigationData<CS>,
   ) -> CS::Coordinate {
     CS::from_landmass(
       &nav_data.transform.apply(nav_data.nav_mesh.vertices[index]),
@@ -86,8 +86,8 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
         debug_drawer.add_triangle(
           TriangleType::Node,
           [
-            index_to_vertex::<CS>(i, &island_nav_data),
-            index_to_vertex::<CS>(j, &island_nav_data),
+            index_to_vertex(i, &island_nav_data),
+            index_to_vertex(j, &island_nav_data),
             CS::from_landmass(&center_point),
           ],
         );
@@ -116,8 +116,8 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
         debug_drawer.add_line(
           line_type,
           [
-            index_to_vertex::<CS>(i, island_nav_data),
-            index_to_vertex::<CS>(j, island_nav_data),
+            index_to_vertex(i, island_nav_data),
+            index_to_vertex(j, island_nav_data),
           ],
         );
       }
