@@ -187,7 +187,7 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
 
 #[test]
 fn add_and_remove_agents() {
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
 
   let agent_1 = archipelago.add_agent(Agent::create(
     /* position= */ Vec3::ZERO,
@@ -257,7 +257,7 @@ fn add_and_remove_agents() {
 
 #[test]
 fn add_and_remove_characters() {
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
 
   let character_1 =
     archipelago.add_character(Character { radius: 1.0, ..Default::default() });
@@ -315,7 +315,7 @@ fn add_and_remove_characters() {
 
 #[test]
 fn computes_and_follows_path() {
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
   let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 1.0, 1.0),
@@ -518,7 +518,7 @@ fn computes_and_follows_path() {
 
 #[test]
 fn add_and_remove_islands() {
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
 
   let island_id_1 = archipelago.add_island();
   let island_id_2 = archipelago.add_island();
@@ -544,7 +544,7 @@ fn add_and_remove_islands() {
 
 #[test]
 fn new_or_changed_island_is_not_dirty_after_update() {
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
 
   let island_id = archipelago.add_island();
 

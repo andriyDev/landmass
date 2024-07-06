@@ -67,7 +67,7 @@ fn finds_next_point_for_organic_map() {
 
   let transform =
     Transform { translation: Vec3::new(5.0, 9.0, 7.0), rotation: PI * -0.35 };
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
   let island_id = archipelago.add_island();
   archipelago
     .get_island_mut(island_id)
@@ -173,7 +173,7 @@ fn finds_next_point_in_zig_zag() {
     translation: Vec3::new(-1.0, -3.0, -10.0),
     rotation: PI * -1.8,
   };
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
   let island_id = archipelago.add_island();
   archipelago
     .get_island_mut(island_id)
@@ -245,7 +245,7 @@ fn starts_at_end_index_goes_to_end_point() {
   .validate()
   .expect("Mesh is valid.");
 
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
   let island_id = archipelago.add_island();
   archipelago.get_island_mut(island_id).set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
