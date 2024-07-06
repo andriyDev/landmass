@@ -422,7 +422,7 @@ fn applies_no_avoidance_for_far_agents() {
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent_1 = agents.insert({
-    let mut agent = Agent::create(
+    let mut agent = Agent::<XYZ>::create(
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
@@ -432,7 +432,7 @@ fn applies_no_avoidance_for_far_agents() {
     agent
   });
   let agent_2 = agents.insert({
-    let mut agent = Agent::create(
+    let mut agent = Agent::<XYZ>::create(
       /* position= */ Vec3::new(11.0, 1.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
@@ -442,7 +442,7 @@ fn applies_no_avoidance_for_far_agents() {
     agent
   });
   let agent_3 = agents.insert({
-    let mut agent = Agent::create(
+    let mut agent = Agent::<XYZ>::create(
       /* position= */ Vec3::new(5.0, 4.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
@@ -519,7 +519,7 @@ fn applies_avoidance_for_two_agents() {
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent_1 = agents.insert({
-    let mut agent = Agent::create(
+    let mut agent = Agent::<XYZ>::create(
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
       /* radius= */ 1.0,
@@ -529,7 +529,7 @@ fn applies_avoidance_for_two_agents() {
     agent
   });
   let agent_2 = agents.insert({
-    let mut agent = Agent::create(
+    let mut agent = Agent::<XYZ>::create(
       /* position= */ Vec3::new(11.0, 1.01, 0.0),
       /* velocity= */ Vec3::new(-1.0, 0.0, 0.0),
       /* radius= */ 1.0,
@@ -575,13 +575,13 @@ fn applies_avoidance_for_two_agents() {
   // over run of 1/5 or 0.2, which is our expected Z velocity. We derive the X
   // velocity by just making the length of the vector 1 (the agent's max speed).
   let agent_1_desired_velocity =
-    agents.get(agent_1).unwrap().get_desired_velocity();
+    *agents.get(agent_1).unwrap().get_desired_velocity();
   assert!(
     agent_1_desired_velocity.abs_diff_eq(Vec3::new(0.98, -0.2, 0.0), 0.05),
     "left={agent_1_desired_velocity}, right=Vec3(0.98, -0.2, 0.0)"
   );
   let agent_2_desired_velocity =
-    agents.get(agent_2).unwrap().get_desired_velocity();
+    *agents.get(agent_2).unwrap().get_desired_velocity();
   assert!(
     agent_2_desired_velocity.abs_diff_eq(Vec3::new(-0.98, 0.2, 0.0), 0.05),
     "left={agent_2_desired_velocity}, right=Vec3(-0.98, 0.2, 0.0)"
@@ -614,7 +614,7 @@ fn agent_avoids_character() {
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent = agents.insert({
-    let mut agent = Agent::create(
+    let mut agent = Agent::<XYZ>::create(
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
       /* radius= */ 1.0,
