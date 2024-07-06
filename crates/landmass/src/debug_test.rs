@@ -3,6 +3,7 @@ use std::{cmp::Ordering, sync::Arc};
 use glam::Vec3;
 
 use crate::{
+  coords::XYZ,
   debug::{DebugDrawer, LineType, PointType, TriangleType},
   Agent, Archipelago, NavigationMesh, Transform,
 };
@@ -64,8 +65,7 @@ impl FakeDrawer {
 
 #[test]
 fn draws_island_meshes_and_agents() {
-  let nav_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
@@ -412,7 +412,7 @@ fn draws_island_meshes_and_agents() {
 #[test]
 fn draws_boundary_links() {
   let nav_mesh = Arc::new(
-    NavigationMesh {
+    NavigationMesh::<XYZ> {
       vertices: vec![
         Vec3::new(1.0, 1.0, 1.0),
         Vec3::new(2.0, 1.0, 1.0),
@@ -420,7 +420,6 @@ fn draws_boundary_links() {
         Vec3::new(1.0, 2.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
-      mesh_bounds: None,
     }
     .validate()
     .expect("The mesh is valid."),

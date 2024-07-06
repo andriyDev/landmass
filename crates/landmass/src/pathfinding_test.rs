@@ -3,6 +3,7 @@ use std::{collections::HashMap, f32::consts::PI, sync::Arc};
 use glam::Vec3;
 
 use crate::{
+  coords::XYZ,
   nav_data::NodeRef,
   nav_mesh::NavigationMesh,
   path::{BoundaryLinkSegment, IslandSegment, Path},
@@ -13,8 +14,7 @@ use super::find_path;
 
 #[test]
 fn finds_path_in_archipelago() {
-  let nav_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
@@ -108,8 +108,7 @@ fn finds_path_in_archipelago() {
 
 #[test]
 fn finds_paths_on_two_islands() {
-  let nav_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
@@ -192,8 +191,7 @@ fn finds_paths_on_two_islands() {
 
 #[test]
 fn no_path_between_disconnected_islands() {
-  let nav_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
@@ -257,8 +255,7 @@ fn no_path_between_disconnected_islands() {
 #[test]
 fn find_path_across_connected_islands() {
   let nav_mesh = Arc::new(
-    NavigationMesh {
-      mesh_bounds: None,
+    NavigationMesh::<XYZ> {
       vertices: vec![
         Vec3::new(-0.5, -0.5, 0.0),
         Vec3::new(0.5, -0.5, 0.0),
@@ -366,8 +363,7 @@ fn find_path_across_connected_islands() {
 #[test]
 fn finds_path_across_different_islands() {
   let nav_mesh_1 = Arc::new(
-    NavigationMesh {
-      mesh_bounds: None,
+    NavigationMesh::<XYZ> {
       vertices: vec![
         Vec3::new(-0.5, -0.5, 0.0),
         Vec3::new(0.5, -0.5, 0.0),
@@ -380,8 +376,7 @@ fn finds_path_across_different_islands() {
     .expect("Mesh is valid."),
   );
   let nav_mesh_2 = Arc::new(
-    NavigationMesh {
-      mesh_bounds: None,
+    NavigationMesh::<XYZ> {
       vertices: vec![
         Vec3::new(-0.5, -0.5, 0.0),
         Vec3::new(0.5, -0.5, 0.0),
@@ -456,8 +451,7 @@ fn finds_path_across_different_islands() {
 #[test]
 fn aborts_early_for_unconnected_regions() {
   let nav_mesh = Arc::new(
-    NavigationMesh {
-      mesh_bounds: None,
+    NavigationMesh::<XYZ> {
       vertices: vec![
         Vec3::new(-0.5, -1.5, 0.0),
         Vec3::new(0.5, -1.5, 0.0),

@@ -3,16 +3,16 @@ use std::{f32::consts::PI, sync::Arc};
 use glam::Vec3;
 
 use crate::{
+  coords::XYZ,
   path::{IslandSegment, Path, PathIndex},
   Agent, Archipelago, NavigationMesh, TargetReachedCondition, Transform,
 };
 
 #[test]
 fn has_reached_target_at_end_node() {
-  let nav_mesh =
-    NavigationMesh { mesh_bounds: None, vertices: vec![], polygons: vec![] }
-      .validate()
-      .expect("nav mesh is valid");
+  let nav_mesh = NavigationMesh::<XYZ> { vertices: vec![], polygons: vec![] }
+    .validate()
+    .expect("nav mesh is valid");
   let transform =
     Transform { translation: Vec3::new(2.0, 3.0, 4.0), rotation: PI * 0.85 };
   let mut archipelago = Archipelago::new();
@@ -73,8 +73,7 @@ fn has_reached_target_at_end_node() {
 
 #[test]
 fn long_detour_reaches_target_in_different_ways() {
-  let nav_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 1.0, 0.0),
       Vec3::new(1.0, 11.0, 0.0),

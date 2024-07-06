@@ -4,9 +4,9 @@ use glam::Vec3;
 use slotmap::HopSlotMap;
 
 use crate::{
-  avoidance::apply_avoidance_to_agents, island::Island, nav_data::NodeRef,
-  Agent, AgentId, AgentOptions, Character, CharacterId, NavigationData,
-  NavigationMesh, Transform,
+  avoidance::apply_avoidance_to_agents, coords::XYZ, island::Island,
+  nav_data::NodeRef, Agent, AgentId, AgentOptions, Character, CharacterId,
+  NavigationData, NavigationMesh, Transform,
 };
 
 use super::nav_mesh_borders_to_dodgy_obstacles;
@@ -65,8 +65,7 @@ macro_rules! assert_obstacles_match {
 
 #[test]
 fn computes_obstacle_for_box() {
-  let nav_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 1.0, 0.0),
       Vec3::new(2.0, 1.0, 0.0),
@@ -115,8 +114,7 @@ fn computes_obstacle_for_box() {
 
 #[test]
 fn dead_end_makes_open_obstacle() {
-  let nav_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 1.0, 0.0),
       Vec3::new(2.0, 1.0, 0.0),
@@ -240,8 +238,7 @@ fn dead_end_makes_open_obstacle() {
 
 #[test]
 fn split_borders() {
-  let nav_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 1.0, 0.0),
       Vec3::new(2.0, 1.0, 0.0),
@@ -336,8 +333,7 @@ fn split_borders() {
 #[test]
 fn creates_obstacles_across_boundary_link() {
   let nav_mesh = Arc::new(
-    NavigationMesh {
-      mesh_bounds: None,
+    NavigationMesh::<XYZ> {
       vertices: vec![
         Vec3::new(1.0, 1.0, 1.0),
         Vec3::new(2.0, 1.0, 1.0),
@@ -402,8 +398,7 @@ fn creates_obstacles_across_boundary_link() {
 
 #[test]
 fn applies_no_avoidance_for_far_agents() {
-  let nav_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(-1.0, -1.0, 0.0),
       Vec3::new(13.0, -1.0, 0.0),
@@ -500,8 +495,7 @@ fn applies_no_avoidance_for_far_agents() {
 
 #[test]
 fn applies_avoidance_for_two_agents() {
-  let nav_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(-1.0, -1.0, 0.0),
       Vec3::new(13.0, -1.0, 0.0),
@@ -596,8 +590,7 @@ fn applies_avoidance_for_two_agents() {
 
 #[test]
 fn agent_avoids_character() {
-  let nav_mesh = NavigationMesh {
-    mesh_bounds: None,
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(-1.0, -1.0, 0.0),
       Vec3::new(13.0, -1.0, 0.0),
