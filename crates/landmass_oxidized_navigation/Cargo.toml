@@ -11,6 +11,8 @@ repository = "https://github.com/andriyDev/landmass"
 categories = ["game-development"]
 keywords = ["navigation", "oxidized", "navmesh", "landmass", "bevy"]
 
+exclude = ["/assets"]
+
 [lints.clippy]
 type_complexity = "allow"
 
