@@ -4,6 +4,7 @@ mod agent;
 mod astar;
 mod avoidance;
 mod character;
+mod coords;
 mod geometry;
 mod island;
 mod nav_data;
@@ -24,6 +25,7 @@ pub mod debug;
 
 pub use agent::{Agent, AgentId, AgentState, TargetReachedCondition};
 pub use character::{Character, CharacterId};
+pub use coords::{CoordinateSystem, XYZ};
 pub use island::{Island, IslandId};
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh, ValidationError};
 pub use util::{BoundingBox, Transform};
