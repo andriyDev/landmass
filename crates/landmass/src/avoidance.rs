@@ -8,16 +8,16 @@ use slotmap::HopSlotMap;
 use crate::{
   island::IslandNavigationData,
   nav_data::{ModifiedNode, NodeRef},
-  Agent, AgentId, AgentOptions, Character, CharacterId, IslandId,
-  NavigationData, XYZ,
+  Agent, AgentId, AgentOptions, Character, CharacterId, CoordinateSystem,
+  IslandId, NavigationData,
 };
 
 /// Adjusts the velocity of `agents` to apply local avoidance. `delta_time` must
 /// be positive.
-pub(crate) fn apply_avoidance_to_agents(
-  agents: &mut HopSlotMap<AgentId, Agent<XYZ>>,
+pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
+  agents: &mut HopSlotMap<AgentId, Agent<CS>>,
   agent_id_to_agent_node: &HashMap<AgentId, (Vec3, NodeRef)>,
-  characters: &HopSlotMap<CharacterId, Character<XYZ>>,
+  characters: &HopSlotMap<CharacterId, Character<CS>>,
   character_id_to_nav_mesh_point: &HashMap<CharacterId, Vec3>,
   nav_data: &NavigationData,
   agent_options: &AgentOptions,
@@ -37,7 +37,7 @@ pub(crate) fn apply_avoidance_to_agents(
       agent_id,
       dodgy_2d::Agent {
         position: to_dodgy_vec2(agent_point.xy()),
-        velocity: to_dodgy_vec2(agent.velocity.xy()),
+        velocity: to_dodgy_vec2(CS::to_landmass(&agent.velocity).xy()),
         radius: agent.radius,
         avoidance_responsibility: 1.0,
       },
@@ -60,7 +60,7 @@ pub(crate) fn apply_avoidance_to_agents(
         [character_point.x, character_point.y, character_point.z],
         dodgy_2d::Agent {
           position: to_dodgy_vec2(character_point.xy()),
-          velocity: to_dodgy_vec2(character.velocity.xy()),
+          velocity: to_dodgy_vec2(CS::to_landmass(&character.velocity).xy()),
           radius: character.radius,
           // Characters are not responsible for any avoidance since landmass has
           // no control over them.
@@ -133,7 +133,7 @@ pub(crate) fn apply_avoidance_to_agents(
         .drain(..)
         .map(std::borrow::Cow::Owned)
         .collect::<Vec<_>>(),
-      to_dodgy_vec2(agent.current_desired_move.xy()),
+      to_dodgy_vec2(CS::to_landmass(&agent.current_desired_move).xy()),
       agent.max_velocity,
       delta_time,
       &dodgy_2d::AvoidanceOptions {
@@ -146,7 +146,7 @@ pub(crate) fn apply_avoidance_to_agents(
     );
 
     agent.current_desired_move =
-      glam::Vec3::new(desired_move.x, desired_move.y, 0.0);
+      CS::from_landmass(&glam::Vec3::new(desired_move.x, desired_move.y, 0.0));
   }
 }
 
