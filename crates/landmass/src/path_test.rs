@@ -1,21 +1,21 @@
 use std::{collections::HashSet, f32::consts::PI, sync::Arc};
 
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
 
 use crate::{
-  coords::XYZ,
+  coords::{XY, XYZ},
   nav_data::{BoundaryLinkId, NavigationData, NodeRef},
   nav_mesh::NavigationMesh,
   path::{BoundaryLinkSegment, IslandSegment},
-  Archipelago, IslandId, Transform,
+  Archipelago, CoordinateSystem, IslandId, Transform,
 };
 
 use super::{Path, PathIndex};
 
-fn collect_straight_path(
+fn collect_straight_path<CS: CoordinateSystem>(
   path: &Path,
-  nav_data: &NavigationData<XYZ>,
+  nav_data: &NavigationData<CS>,
   start: (PathIndex, Vec3),
   end: (PathIndex, Vec3),
   iteration_limit: u32,
@@ -119,34 +119,34 @@ fn finds_next_point_for_organic_map() {
 fn finds_next_point_in_zig_zag() {
   let nav_mesh = NavigationMesh {
     vertices: vec![
-      Vec3::new(0.0, 0.0, 0.0),
-      Vec3::new(1.0, 0.0, 0.0),
-      Vec3::new(1.0, 1.0, 0.0),
-      Vec3::new(0.0, 1.0, 0.0),
-      Vec3::new(1.0, 2.0, 0.0),
-      Vec3::new(0.0, 2.0, 0.0),
-      Vec3::new(1.0, 3.0, 0.0),
-      Vec3::new(0.0, 3.0, 0.0),
-      Vec3::new(1.0, 4.0, 0.0),
-      Vec3::new(0.0, 4.0, 0.0),
-      Vec3::new(1.0, 5.0, 0.0), // Turn right
-      Vec3::new(2.0, 4.0, 0.0),
-      Vec3::new(2.0, 5.0, 0.0),
-      Vec3::new(3.0, 4.0, 0.0),
-      Vec3::new(3.0, 5.0, 0.0),
-      Vec3::new(4.0, 4.0, 0.0),
-      Vec3::new(4.0, 5.0, 0.0),
-      Vec3::new(5.0, 5.0, 0.0), // Turn left
-      Vec3::new(5.0, 6.0, 0.0),
-      Vec3::new(4.0, 6.0, 0.0),
-      Vec3::new(5.0, 7.0, 0.0),
-      Vec3::new(4.0, 7.0, 0.0),
-      Vec3::new(4.0, 8.0, 0.0), // Turn left
-      Vec3::new(-3.0, 8.0, 0.0),
-      Vec3::new(-3.0, 7.0, 0.0),
-      Vec3::new(-4.0, 8.0, 0.0), // Turn right
-      Vec3::new(-3.0, 15.0, 0.0),
-      Vec3::new(-4.0, 15.0, 0.0),
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+      Vec2::new(1.0, 2.0),
+      Vec2::new(0.0, 2.0),
+      Vec2::new(1.0, 3.0),
+      Vec2::new(0.0, 3.0),
+      Vec2::new(1.0, 4.0),
+      Vec2::new(0.0, 4.0),
+      Vec2::new(1.0, 5.0), // Turn right
+      Vec2::new(2.0, 4.0),
+      Vec2::new(2.0, 5.0),
+      Vec2::new(3.0, 4.0),
+      Vec2::new(3.0, 5.0),
+      Vec2::new(4.0, 4.0),
+      Vec2::new(4.0, 5.0),
+      Vec2::new(5.0, 5.0), // Turn left
+      Vec2::new(5.0, 6.0),
+      Vec2::new(4.0, 6.0),
+      Vec2::new(5.0, 7.0),
+      Vec2::new(4.0, 7.0),
+      Vec2::new(4.0, 8.0), // Turn left
+      Vec2::new(-3.0, 8.0),
+      Vec2::new(-3.0, 7.0),
+      Vec2::new(-4.0, 8.0), // Turn right
+      Vec2::new(-3.0, 15.0),
+      Vec2::new(-4.0, 15.0),
     ],
     polygons: vec![
       vec![0, 1, 2, 3],
@@ -169,11 +169,9 @@ fn finds_next_point_in_zig_zag() {
   .validate()
   .expect("Mesh is valid.");
 
-  let transform = Transform {
-    translation: Vec3::new(-1.0, -3.0, -10.0),
-    rotation: PI * -1.8,
-  };
-  let mut archipelago = Archipelago::<XYZ>::new();
+  let transform =
+    Transform { translation: Vec2::new(-1.0, -3.0), rotation: PI * -1.8 };
+  let mut archipelago = Archipelago::<XY>::new();
   let island_id = archipelago.add_island();
   archipelago
     .get_island_mut(island_id)
