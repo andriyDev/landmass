@@ -35,7 +35,7 @@ use crate::avoidance::apply_avoidance_to_agents;
 pub struct Archipelago {
   pub agent_options: AgentOptions,
   nav_data: NavigationData,
-  agents: HopSlotMap<AgentId, Agent>,
+  agents: HopSlotMap<AgentId, Agent<XYZ>>,
   characters: HopSlotMap<CharacterId, Character>,
   pathing_results: Vec<PathingResult>,
 }
@@ -76,7 +76,7 @@ impl Archipelago {
     }
   }
 
-  pub fn add_agent(&mut self, agent: Agent) -> AgentId {
+  pub fn add_agent(&mut self, agent: Agent<XYZ>) -> AgentId {
     self.agents.insert(agent)
   }
 
@@ -87,11 +87,11 @@ impl Archipelago {
       .expect("Agent should be present in the archipelago");
   }
 
-  pub fn get_agent(&self, agent_id: AgentId) -> &Agent {
+  pub fn get_agent(&self, agent_id: AgentId) -> &Agent<XYZ> {
     self.agents.get(agent_id).unwrap()
   }
 
-  pub fn get_agent_mut(&mut self, agent_id: AgentId) -> &mut Agent {
+  pub fn get_agent_mut(&mut self, agent_id: AgentId) -> &mut Agent<XYZ> {
     self.agents.get_mut(agent_id).unwrap()
   }
 
@@ -356,8 +356,8 @@ enum RepathResult {
   NeedsRepath,
 }
 
-fn does_agent_need_repath(
-  agent: &Agent,
+fn does_agent_need_repath<CS: CoordinateSystem>(
+  agent: &Agent<CS>,
   agent_node: Option<NodeRef>,
   target_node: Option<NodeRef>,
   invalidated_boundary_links: &HashSet<BoundaryLinkId>,

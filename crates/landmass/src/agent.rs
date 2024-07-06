@@ -3,7 +3,7 @@ use slotmap::new_key_type;
 
 use crate::{
   path::{Path, PathIndex},
-  NavigationData,
+  CoordinateSystem, NavigationData,
 };
 
 new_key_type! {
@@ -31,11 +31,11 @@ pub enum AgentState {
 }
 
 /// An agent in an archipelago.
-pub struct Agent {
+pub struct Agent<CS: CoordinateSystem> {
   /// The current position of the agent.
-  pub position: Vec3,
+  pub position: CS::Coordinate,
   /// The current velocity of the agent.
-  pub velocity: Vec3,
+  pub velocity: CS::Coordinate,
   /// The radius of the agent.
   pub radius: f32,
   /// The maximum velocity that the agent can move at.
@@ -44,14 +44,14 @@ pub struct Agent {
   /// Paths will be reused for target points near each other if possible.
   /// However, swapping between two distant targets every update can be
   /// detrimental to be performance.
-  pub current_target: Option<Vec3>,
+  pub current_target: Option<CS::Coordinate>,
   /// The condition to test for reaching the target.
   pub target_reached_condition: TargetReachedCondition,
   /// The current path of the agent. None if a path is unavailable or a new
   /// path has not been computed yet (i.e., no path).
   pub(crate) current_path: Option<Path>,
   /// The desired velocity of the agent to move towards its goal.
-  pub(crate) current_desired_move: Vec3,
+  pub(crate) current_desired_move: CS::Coordinate,
   /// The state of the agent.
   pub(crate) state: AgentState,
 }
@@ -91,11 +91,11 @@ impl Default for TargetReachedCondition {
   }
 }
 
-impl Agent {
+impl<CS: CoordinateSystem> Agent<CS> {
   /// Creates a new agent.
   pub fn create(
-    position: Vec3,
-    velocity: Vec3,
+    position: CS::Coordinate,
+    velocity: CS::Coordinate,
     radius: f32,
     max_velocity: f32,
   ) -> Self {
@@ -107,15 +107,15 @@ impl Agent {
       current_target: None,
       target_reached_condition: TargetReachedCondition::Distance(None),
       current_path: None,
-      current_desired_move: Vec3::ZERO,
+      current_desired_move: CS::from_landmass(&Vec3::ZERO),
       state: AgentState::Idle,
     }
   }
 
   /// Returns the desired velocity. This will only be updated if `update` was
   /// called on the associated [`crate::Archipelago`].
-  pub fn get_desired_velocity(&self) -> Vec3 {
-    self.current_desired_move
+  pub fn get_desired_velocity(&self) -> &CS::Coordinate {
+    &self.current_desired_move
   }
 
   /// Returns the state of the agent. This will only be updated if `update` was
@@ -136,24 +136,22 @@ impl Agent {
     next_waypoint: (PathIndex, Vec3),
     target_waypoint: (PathIndex, Vec3),
   ) -> bool {
+    let position = CS::to_landmass(&self.position);
     match self.target_reached_condition {
       TargetReachedCondition::Distance(distance) => {
         let distance = distance.unwrap_or(self.radius);
-        self.position.distance_squared(target_waypoint.1) < distance * distance
+        position.distance_squared(target_waypoint.1) < distance * distance
       }
       TargetReachedCondition::VisibleAtDistance(distance) => {
         let distance = distance.unwrap_or(self.radius);
         next_waypoint.0 == target_waypoint.0
-          && self.position.distance_squared(next_waypoint.1)
-            < distance * distance
+          && position.distance_squared(next_waypoint.1) < distance * distance
       }
       TargetReachedCondition::StraightPathDistance(distance) => 'result: {
         let distance = distance.unwrap_or(self.radius);
         // Check Euclidean distance first so we don't do the expensive path
         // following if the agent is not even close.
-        if self.position.distance_squared(target_waypoint.1)
-          > distance * distance
-        {
+        if position.distance_squared(target_waypoint.1) > distance * distance {
           break 'result false;
         }
 
@@ -163,8 +161,7 @@ impl Agent {
           break 'result true;
         }
 
-        let mut straight_line_distance =
-          self.position.distance(next_waypoint.1);
+        let mut straight_line_distance = position.distance(next_waypoint.1);
         let mut current_waypoint = next_waypoint;
 
         while current_waypoint.0 != target_waypoint.0

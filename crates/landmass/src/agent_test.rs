@@ -20,7 +20,7 @@ fn has_reached_target_at_end_node() {
   archipelago
     .get_island_mut(island_id)
     .set_nav_mesh(transform, Arc::new(nav_mesh));
-  let mut agent = Agent::create(
+  let mut agent = Agent::<XYZ>::create(
     /* position= */ transform.apply(Vec3::new(1.0, 0.0, 1.0)),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
@@ -95,7 +95,7 @@ fn long_detour_reaches_target_in_different_ways() {
     .get_island_mut(island_id)
     .set_nav_mesh(transform, Arc::new(nav_mesh));
 
-  let mut agent = Agent::create(
+  let mut agent = Agent::<XYZ>::create(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,

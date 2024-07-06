@@ -1,6 +1,6 @@
 use glam::Vec3;
 
-use crate::{nav_data::NodeRef, path::Path, Agent, AgentId, Archipelago};
+use crate::{nav_data::NodeRef, path::Path, Agent, AgentId, Archipelago, XYZ};
 
 /// The type of debug points.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -160,7 +160,7 @@ pub fn draw_archipelago_debug(
 fn draw_path(
   path: &Path,
   agent_id: AgentId,
-  agent: &Agent,
+  agent: &Agent<XYZ>,
   archipelago: &Archipelago,
   debug_drawer: &mut impl DebugDrawer,
 ) {
