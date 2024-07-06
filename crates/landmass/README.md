@@ -55,7 +55,7 @@ use glam::Vec3;
 use landmass::*;
 use std::sync::Arc;
 
-let mut archipelago = Archipelago::new();
+let mut archipelago = Archipelago::<XYZ>::new();
 
 let nav_mesh = NavigationMesh::<XYZ> {
   vertices: vec![

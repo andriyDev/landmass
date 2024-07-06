@@ -32,11 +32,11 @@ pub use util::{BoundingBox, Transform};
 
 use crate::avoidance::apply_avoidance_to_agents;
 
-pub struct Archipelago {
+pub struct Archipelago<CS: CoordinateSystem> {
   pub agent_options: AgentOptions,
   nav_data: NavigationData,
-  agents: HopSlotMap<AgentId, Agent<XYZ>>,
-  characters: HopSlotMap<CharacterId, Character<XYZ>>,
+  agents: HopSlotMap<AgentId, Agent<CS>>,
+  characters: HopSlotMap<CharacterId, Character<CS>>,
   pathing_results: Vec<PathingResult>,
 }
 
@@ -65,7 +65,7 @@ impl Default for AgentOptions {
   }
 }
 
-impl Archipelago {
+impl<CS: CoordinateSystem> Archipelago<CS> {
   pub fn new() -> Self {
     Self {
       nav_data: NavigationData::new(),
@@ -76,7 +76,7 @@ impl Archipelago {
     }
   }
 
-  pub fn add_agent(&mut self, agent: Agent<XYZ>) -> AgentId {
+  pub fn add_agent(&mut self, agent: Agent<CS>) -> AgentId {
     self.agents.insert(agent)
   }
 
@@ -87,11 +87,11 @@ impl Archipelago {
       .expect("Agent should be present in the archipelago");
   }
 
-  pub fn get_agent(&self, agent_id: AgentId) -> &Agent<XYZ> {
+  pub fn get_agent(&self, agent_id: AgentId) -> &Agent<CS> {
     self.agents.get(agent_id).unwrap()
   }
 
-  pub fn get_agent_mut(&mut self, agent_id: AgentId) -> &mut Agent<XYZ> {
+  pub fn get_agent_mut(&mut self, agent_id: AgentId) -> &mut Agent<CS> {
     self.agents.get_mut(agent_id).unwrap()
   }
 
@@ -99,7 +99,7 @@ impl Archipelago {
     self.agents.keys()
   }
 
-  pub fn add_character(&mut self, character: Character<XYZ>) -> CharacterId {
+  pub fn add_character(&mut self, character: Character<CS>) -> CharacterId {
     self.characters.insert(character)
   }
 
@@ -110,14 +110,14 @@ impl Archipelago {
       .expect("Character should be present in the archipelago");
   }
 
-  pub fn get_character(&self, character_id: CharacterId) -> &Character<XYZ> {
+  pub fn get_character(&self, character_id: CharacterId) -> &Character<CS> {
     self.characters.get(character_id).unwrap()
   }
 
   pub fn get_character_mut(
     &mut self,
     character_id: CharacterId,
-  ) -> &mut Character<XYZ> {
+  ) -> &mut Character<CS> {
     self.characters.get_mut(character_id).unwrap()
   }
 
@@ -163,10 +163,10 @@ impl Archipelago {
     let mut agent_id_to_target_node = HashMap::new();
 
     for (agent_id, agent) in self.agents.iter() {
-      let agent_node_and_point = match self
-        .nav_data
-        .sample_point(agent.position, self.agent_options.node_sample_distance)
-      {
+      let agent_node_and_point = match self.nav_data.sample_point(
+        CS::to_landmass(&agent.position),
+        self.agent_options.node_sample_distance,
+      ) {
         None => continue,
         Some(node_and_point) => node_and_point,
       };
@@ -174,11 +174,11 @@ impl Archipelago {
         agent_id_to_agent_node.insert(agent_id, agent_node_and_point).is_none();
       debug_assert!(inserted);
 
-      if let Some(target) = agent.current_target {
-        let target_node_and_point = match self
-          .nav_data
-          .sample_point(target, self.agent_options.node_sample_distance)
-        {
+      if let Some(target) = &agent.current_target {
+        let target_node_and_point = match self.nav_data.sample_point(
+          CS::to_landmass(target),
+          self.agent_options.node_sample_distance,
+        ) {
           None => continue,
           Some(node_and_point) => node_and_point,
         };
@@ -193,7 +193,7 @@ impl Archipelago {
     let mut character_id_to_nav_mesh_point = HashMap::new();
     for (character_id, character) in self.characters.iter() {
       let character_point = match self.nav_data.sample_point(
-        character.position,
+        CS::to_landmass(&character.position),
         self.agent_options.node_sample_distance,
       ) {
         None => continue,
@@ -272,7 +272,7 @@ impl Archipelago {
     for (agent_id, agent) in self.agents.iter_mut() {
       let path = match &agent.current_path {
         None => {
-          agent.current_desired_move = Vec3::ZERO;
+          agent.current_desired_move = CS::from_landmass(&Vec3::ZERO);
           continue;
         }
         Some(path) => path,
@@ -306,12 +306,13 @@ impl Archipelago {
         next_waypoint,
         (target_node_index_in_corridor, target_point),
       ) {
-        agent.current_desired_move = Vec3::ZERO;
+        agent.current_desired_move = CS::from_landmass(&Vec3::ZERO);
         agent.state = AgentState::ReachedTarget;
       } else {
-        agent.current_desired_move = (next_waypoint.1 - agent.position)
+        let desired_move = (next_waypoint.1 - CS::to_landmass(&agent.position))
           .normalize_or_zero()
           * agent.max_velocity;
+        agent.current_desired_move = CS::from_landmass(&desired_move);
         agent.state = AgentState::Moving;
       }
     }
@@ -328,7 +329,7 @@ impl Archipelago {
   }
 }
 
-impl Default for Archipelago {
+impl<CS: CoordinateSystem> Default for Archipelago<CS> {
   fn default() -> Self {
     Self::new()
   }

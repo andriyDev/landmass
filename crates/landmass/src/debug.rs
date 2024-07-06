@@ -52,8 +52,8 @@ pub trait DebugDrawer<CS: CoordinateSystem> {
 }
 
 /// Draws all parts of `archipelago` to `debug_drawer`.
-pub fn draw_archipelago_debug<CS: CoordinateSystem<Coordinate = glam::Vec3>>(
-  archipelago: &Archipelago,
+pub fn draw_archipelago_debug<CS: CoordinateSystem>(
+  archipelago: &Archipelago<CS>,
   debug_drawer: &mut impl DebugDrawer<CS>,
 ) {
   fn index_to_vertex<CS: CoordinateSystem>(
@@ -170,11 +170,11 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem<Coordinate = glam::Vec3>>(
 
 /// Draws `path` to `debug_drawer`. The path belongs to `agent` and both belong
 /// to `archipelago`.
-fn draw_path<CS: CoordinateSystem<Coordinate = glam::Vec3>>(
+fn draw_path<CS: CoordinateSystem>(
   path: &Path,
   agent_id: AgentId,
-  agent: &Agent<crate::XYZ>,
-  archipelago: &Archipelago,
+  agent: &Agent<CS>,
+  archipelago: &Archipelago<CS>,
   debug_drawer: &mut impl DebugDrawer<CS>,
 ) {
   let target = agent

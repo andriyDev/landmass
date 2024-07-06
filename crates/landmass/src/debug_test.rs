@@ -93,7 +93,7 @@ fn draws_island_meshes_and_agents() {
   .validate()
   .expect("Mesh is valid.");
 
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
   let island_id = archipelago.add_island();
   const TRANSLATION: Vec3 = Vec3::ONE;
   archipelago.get_island_mut(island_id).set_nav_mesh(
@@ -425,7 +425,7 @@ fn draws_boundary_links() {
     .expect("The mesh is valid."),
   );
 
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
   let island_id_1 = archipelago.add_island();
   let island_id_2 = archipelago.add_island();
   archipelago

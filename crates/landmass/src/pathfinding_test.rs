@@ -42,7 +42,7 @@ fn finds_path_in_archipelago() {
   .validate()
   .expect("Mesh is valid.");
 
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
   let island_id = archipelago.add_island();
   archipelago.get_island_mut(island_id).set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
@@ -137,7 +137,7 @@ fn finds_paths_on_two_islands() {
   .expect("Mesh is valid.");
   let nav_mesh = Arc::new(nav_mesh);
 
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
   let island_id_1 = archipelago.add_island();
   archipelago.get_island_mut(island_id_1).set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
@@ -220,7 +220,7 @@ fn no_path_between_disconnected_islands() {
   .expect("Mesh is valid.");
   let nav_mesh = Arc::new(nav_mesh);
 
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
   let island_id_1 = archipelago.add_island();
   archipelago.get_island_mut(island_id_1).set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
@@ -268,7 +268,7 @@ fn find_path_across_connected_islands() {
     .expect("Mesh is valid."),
   );
 
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
 
   let island_id_1 = archipelago.add_island();
   let island_id_2 = archipelago.add_island();
@@ -391,7 +391,7 @@ fn finds_path_across_different_islands() {
     .expect("Mesh is valid."),
   );
 
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
 
   let island_id_1 = archipelago.add_island();
   let island_id_2 = archipelago.add_island();
@@ -464,7 +464,7 @@ fn aborts_early_for_unconnected_regions() {
     .expect("Mesh is valid."),
   );
 
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
   let island_id_1 = archipelago.add_island();
   let island_id_2 = archipelago.add_island();
   let island_id_3 = archipelago.add_island();

@@ -15,7 +15,7 @@ fn has_reached_target_at_end_node() {
     .expect("nav mesh is valid");
   let transform =
     Transform { translation: Vec3::new(2.0, 3.0, 4.0), rotation: PI * 0.85 };
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
   let island_id = archipelago.add_island();
   archipelago
     .get_island_mut(island_id)
@@ -89,7 +89,7 @@ fn long_detour_reaches_target_in_different_ways() {
 
   let transform =
     Transform { translation: Vec3::new(2.0, 4.0, 3.0), rotation: PI * -0.85 };
-  let mut archipelago = Archipelago::new();
+  let mut archipelago = Archipelago::<XYZ>::new();
   let island_id = archipelago.add_island();
   archipelago
     .get_island_mut(island_id)
