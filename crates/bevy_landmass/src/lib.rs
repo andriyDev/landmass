@@ -298,7 +298,10 @@ pub struct Island;
 
 /// An asset holding a `landmass` nav mesh.
 #[derive(Asset, TypePath)]
-pub struct NavMesh<CS: CoordinateSystem>(pub Arc<ValidNavigationMesh<CS>>);
+pub struct NavMesh<CS: CoordinateSystem> {
+  pub nav_mesh: Arc<ValidNavigationMesh<CS>>,
+  // This can't be a tuple struct due to https://github.com/rust-lang/rust/issues/73191
+}
 
 pub type NavMesh2d = NavMesh<TwoD>;
 pub type NavMesh3d = NavMesh<ThreeD>;
@@ -412,13 +415,13 @@ fn sync_island_nav_mesh<CS: CoordinateSystem>(
       None => true,
       Some((current_transform, current_nav_mesh)) => {
         current_transform != &island_transform
-          || !Arc::ptr_eq(&current_nav_mesh, &island_nav_mesh.0)
+          || !Arc::ptr_eq(&current_nav_mesh, &island_nav_mesh.nav_mesh)
       }
     };
 
     if set_nav_mesh {
       landmass_island
-        .set_nav_mesh(island_transform, Arc::clone(&island_nav_mesh.0));
+        .set_nav_mesh(island_transform, Arc::clone(&island_nav_mesh.nav_mesh));
     }
   }
 }
@@ -458,14 +461,17 @@ impl<CS: CoordinateSystem> ArchipelagoRef<CS> {
 /// The current velocity of the agent/character. This must be set to match
 /// whatever speed the agent/character is going.
 #[derive(Component)]
-pub struct Velocity<CS: CoordinateSystem>(pub CS::Coordinate);
+pub struct Velocity<CS: CoordinateSystem> {
+  pub velocity: CS::Coordinate,
+  // This can't be a tuple struct due to https://github.com/rust-lang/rust/issues/73191
+}
 
 pub type Velocity2d = Velocity<TwoD>;
 pub type Velocity3d = Velocity<ThreeD>;
 
 impl<CS: CoordinateSystem> Default for Velocity<CS> {
   fn default() -> Self {
-    Self(Default::default())
+    Self { velocity: Default::default() }
   }
 }
 
@@ -617,7 +623,7 @@ fn sync_agent_input_state<CS: CoordinateSystem>(
     let landmass_agent = archipelago.get_agent_mut(agent_entity);
     landmass_agent.position =
       CS::from_transform_position(transform.translation());
-    if let Some(Velocity(velocity)) = velocity {
+    if let Some(Velocity { velocity }) = velocity {
       landmass_agent.velocity = velocity.clone();
     }
     landmass_agent.radius = agent.radius;
@@ -746,7 +752,8 @@ fn sync_character_state<CS: CoordinateSystem>(
     let landmass_character = archipelago.get_character_mut(character_entity);
     landmass_character.position =
       CS::from_transform_position(transform.translation());
-    landmass_character.velocity = if let Some(Velocity(velocity)) = velocity {
+    landmass_character.velocity = if let Some(Velocity { velocity }) = velocity
+    {
       velocity.clone()
     } else {
       CS::Coordinate::default()
