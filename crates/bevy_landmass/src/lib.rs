@@ -2,6 +2,7 @@
 
 use std::{
   collections::{HashMap, HashSet},
+  marker::PhantomData,
   sync::Arc,
 };
 
@@ -14,8 +15,8 @@ use bevy::{
   reflect::TypePath,
   time::Time,
 };
+use coords::CoordinateSystem;
 use landmass::{AgentId, CharacterId, IslandId};
-use util::{bevy_vec3_to_landmass_vec3, landmass_vec3_to_bevy_vec3};
 
 mod landmass_structs;
 mod util;
@@ -33,7 +34,8 @@ pub mod debug;
 #[cfg(feature = "mesh-utils")]
 pub mod nav_mesh;
 
-pub struct LandmassPlugin;
+#[derive(Default)]
+pub struct LandmassPlugin<CS: CoordinateSystem>(PhantomData<CS>);
 
 pub mod prelude {
   pub use crate::coords::CoordinateSystem;
@@ -60,47 +62,47 @@ pub mod prelude {
 /// this is commonly added in other bundles (which is redundant and can override
 /// previous bundles).
 #[derive(Bundle)]
-pub struct AgentBundle {
+pub struct AgentBundle<CS: CoordinateSystem> {
   /// The agent itself.
   pub agent: Agent,
   /// A reference pointing to the Archipelago to associate this entity with.
-  pub archipelago_ref: ArchipelagoRef,
+  pub archipelago_ref: ArchipelagoRef<CS>,
   /// The velocity of the agent.
-  pub velocity: Velocity,
+  pub velocity: Velocity<CS>,
   /// The target of the agent.
-  pub target: AgentTarget,
+  pub target: AgentTarget<CS>,
   /// The current state of the agent. This is set by `landmass` (during
   /// [`LandmassSystemSet::Output`]).
   pub state: AgentState,
   /// The current desired velocity of the agent. This is set by `landmass`
   /// (during [`LandmassSystemSet::Output`]).
-  pub desired_velocity: AgentDesiredVelocity,
+  pub desired_velocity: AgentDesiredVelocity<CS>,
 }
 
 /// A bundle to create characters. This omits the GlobalTransform component,
 /// since this is commonly added in other bundles (which is redundant and can
 /// override previous bundles).
 #[derive(Bundle)]
-pub struct CharacterBundle {
+pub struct CharacterBundle<CS: CoordinateSystem> {
   /// The character itself.
   pub character: Character,
   /// A reference pointing to the Archipelago to associate this entity with.
-  pub archipelago_ref: ArchipelagoRef,
+  pub archipelago_ref: ArchipelagoRef<CS>,
   /// The velocity of the character.
-  pub velocity: Velocity,
+  pub velocity: Velocity<CS>,
 }
 
 /// A bundle to create islands. The GlobalTransform component is omitted, since
 /// this is commonly added in other bundles (which is redundant and can
 /// override previous bundles).
 #[derive(Bundle)]
-pub struct IslandBundle {
+pub struct IslandBundle<CS: CoordinateSystem> {
   /// An island marker component.
   pub island: Island,
   /// A reference pointing to the Archipelago to associate this entity with.
-  pub archipelago_ref: ArchipelagoRef,
+  pub archipelago_ref: ArchipelagoRef<CS>,
   /// A handle to the nav mesh that this island needs.
-  pub nav_mesh: Handle<NavMesh>,
+  pub nav_mesh: Handle<NavMesh<CS>>,
 }
 
 /// System set for `landmass` systems.
@@ -121,9 +123,9 @@ pub enum LandmassSystemSet {
   Output,
 }
 
-impl Plugin for LandmassPlugin {
+impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
   fn build(&self, app: &mut bevy::prelude::App) {
-    app.init_asset::<NavMesh>();
+    app.init_asset::<NavMesh<CS>>();
     app.configure_sets(
       Update,
       (
@@ -135,24 +137,28 @@ impl Plugin for LandmassPlugin {
     app.add_systems(
       Update,
       (
-        add_agents_to_archipelagos,
-        add_islands_to_archipelago,
-        add_characters_to_archipelago,
+        add_agents_to_archipelagos::<CS>,
+        add_islands_to_archipelago::<CS>,
+        add_characters_to_archipelago::<CS>,
       )
         .in_set(LandmassSystemSet::SyncExistence),
     );
     app.add_systems(
       Update,
-      (sync_agent_input_state, sync_island_nav_mesh, sync_character_state)
+      (
+        sync_agent_input_state::<CS>,
+        sync_island_nav_mesh::<CS>,
+        sync_character_state::<CS>,
+      )
         .in_set(LandmassSystemSet::SyncValues),
     );
     app.add_systems(
       Update,
-      update_archipelagos.in_set(LandmassSystemSet::Update),
+      update_archipelagos::<CS>.in_set(LandmassSystemSet::Update),
     );
     app.add_systems(
       Update,
-      (sync_agent_state, sync_desired_velocity)
+      (sync_agent_state::<CS>, sync_desired_velocity::<CS>)
         .in_set(LandmassSystemSet::Output),
     );
   }
@@ -160,9 +166,9 @@ impl Plugin for LandmassPlugin {
 
 /// An archipelago, holding the internal state of `landmass`.
 #[derive(Component)]
-pub struct Archipelago {
+pub struct Archipelago<CS: CoordinateSystem> {
   /// The `landmass` archipelago.
-  archipelago: landmass::Archipelago,
+  archipelago: landmass::Archipelago<CS>,
   /// A map from the Bevy entity to its associated island ID in
   /// [`Archipelago::archipelago`].
   islands: HashMap<Entity, IslandId>,
@@ -174,7 +180,7 @@ pub struct Archipelago {
   characters: HashMap<Entity, CharacterId>,
 }
 
-impl Archipelago {
+impl<CS: CoordinateSystem> Archipelago<CS> {
   /// Creates an empty archipelago.
   pub fn new() -> Self {
     Self {
@@ -196,23 +202,26 @@ impl Archipelago {
   }
 
   /// Gets an agent.
-  fn get_agent(&self, entity: Entity) -> &landmass::Agent {
+  fn get_agent(&self, entity: Entity) -> &landmass::Agent<CS> {
     self.archipelago.get_agent(*self.agents.get(&entity).unwrap())
   }
 
   /// Gets a mutable borrow to an agent.
-  fn get_agent_mut(&mut self, entity: Entity) -> &mut landmass::Agent {
+  fn get_agent_mut(&mut self, entity: Entity) -> &mut landmass::Agent<CS> {
     self.archipelago.get_agent_mut(*self.agents.get(&entity).unwrap())
   }
 
   /// Gets a mutable borrow to a character.
   #[allow(unused)] // Used in tests.
-  fn get_character(&self, entity: Entity) -> &landmass::Character {
+  fn get_character(&self, entity: Entity) -> &landmass::Character<CS> {
     self.archipelago.get_character(*self.characters.get(&entity).unwrap())
   }
 
   /// Gets a mutable borrow to a character.
-  fn get_character_mut(&mut self, entity: Entity) -> &mut landmass::Character {
+  fn get_character_mut(
+    &mut self,
+    entity: Entity,
+  ) -> &mut landmass::Character<CS> {
     self.archipelago.get_character_mut(*self.characters.get(&entity).unwrap())
   }
 
@@ -220,7 +229,7 @@ impl Archipelago {
   fn get_island_mut(
     &mut self,
     entity: Entity,
-  ) -> Option<&mut landmass::Island> {
+  ) -> Option<&mut landmass::Island<CS>> {
     self
       .islands
       .get(&entity)
@@ -228,16 +237,16 @@ impl Archipelago {
   }
 }
 
-impl Default for Archipelago {
+impl<CS: CoordinateSystem> Default for Archipelago<CS> {
   fn default() -> Self {
     Self::new()
   }
 }
 
 /// Updates the archipelago.
-fn update_archipelagos(
+fn update_archipelagos<CS: CoordinateSystem>(
   time: Res<Time>,
-  mut archipelago_query: Query<&mut Archipelago>,
+  mut archipelago_query: Query<&mut Archipelago<CS>>,
 ) {
   if time.delta_seconds() == 0.0 {
     return;
@@ -253,16 +262,19 @@ pub struct Island;
 
 /// An asset holding a `landmass` nav mesh.
 #[derive(Asset, TypePath)]
-pub struct NavMesh(pub Arc<ValidNavigationMesh>);
+pub struct NavMesh<CS: CoordinateSystem>(pub Arc<ValidNavigationMesh<CS>>);
 
 /// Ensures every Bevy island has a corresponding `landmass` island.
-fn add_islands_to_archipelago(
-  mut archipelago_query: Query<(Entity, &mut Archipelago)>,
-  island_query: Query<(Entity, &ArchipelagoRef), With<Island>>,
+fn add_islands_to_archipelago<CS: CoordinateSystem>(
+  mut archipelago_query: Query<(Entity, &mut Archipelago<CS>)>,
+  island_query: Query<(Entity, &ArchipelagoRef<CS>), With<Island>>,
 ) {
   let mut archipelago_to_islands = HashMap::<_, HashSet<_>>::new();
   for (entity, archipleago_ref) in island_query.iter() {
-    archipelago_to_islands.entry(archipleago_ref.0).or_default().insert(entity);
+    archipelago_to_islands
+      .entry(archipleago_ref.entity)
+      .or_default()
+      .insert(entity);
   }
 
   for (archipelago_entity, mut archipelago) in archipelago_query.iter_mut() {
@@ -291,26 +303,27 @@ fn add_islands_to_archipelago(
 }
 
 /// Ensures that the island transform and nav mesh are up to date.
-fn sync_island_nav_mesh(
-  mut archipelago_query: Query<&mut Archipelago>,
+fn sync_island_nav_mesh<CS: CoordinateSystem>(
+  mut archipelago_query: Query<&mut Archipelago<CS>>,
   island_query: Query<
     (
       Entity,
-      Option<&Handle<NavMesh>>,
+      Option<&Handle<NavMesh<CS>>>,
       Option<&GlobalTransform>,
-      &ArchipelagoRef,
+      &ArchipelagoRef<CS>,
     ),
     With<Island>,
   >,
-  nav_meshes: Res<Assets<NavMesh>>,
+  nav_meshes: Res<Assets<NavMesh<CS>>>,
 ) {
   for (island_entity, island_nav_mesh, island_transform, archipelago_ref) in
     island_query.iter()
   {
-    let mut archipelago = match archipelago_query.get_mut(archipelago_ref.0) {
-      Err(_) => continue,
-      Ok(arch) => arch,
-    };
+    let mut archipelago =
+      match archipelago_query.get_mut(archipelago_ref.entity) {
+        Err(_) => continue,
+        Ok(arch) => arch,
+      };
 
     let landmass_island = match archipelago.get_island_mut(island_entity) {
       None => continue,
@@ -347,7 +360,7 @@ fn sync_island_nav_mesh(
       Some(transform) => {
         let transform = transform.compute_transform();
         landmass::Transform {
-          translation: bevy_vec3_to_landmass_vec3(transform.translation),
+          translation: CS::from_transform_position(transform.translation),
           rotation: transform.rotation.to_euler(EulerRot::YXZ).0,
         }
       }
@@ -359,7 +372,7 @@ fn sync_island_nav_mesh(
     {
       None => true,
       Some((current_transform, current_nav_mesh)) => {
-        current_transform != island_transform
+        current_transform != &island_transform
           || !Arc::ptr_eq(&current_nav_mesh, &island_nav_mesh.0)
       }
     };
@@ -389,12 +402,21 @@ pub struct Character {
 
 /// A reference to an archipelago.
 #[derive(Component)]
-pub struct ArchipelagoRef(pub Entity);
+pub struct ArchipelagoRef<CS: CoordinateSystem> {
+  pub entity: Entity,
+  pub marker: PhantomData<CS>,
+}
+
+impl<CS: CoordinateSystem> ArchipelagoRef<CS> {
+  pub fn new(entity: Entity) -> Self {
+    Self { entity, marker: Default::default() }
+  }
+}
 
 /// The current velocity of the agent/character. This must be set to match
 /// whatever speed the agent/character is going.
 #[derive(Component, Default)]
-pub struct Velocity(pub bevy::math::Vec3);
+pub struct Velocity<CS: CoordinateSystem>(pub CS::Coordinate);
 
 /// The current target of the entity. Note this can be set by either reinserting
 /// the component, or dereferencing:
@@ -410,25 +432,26 @@ pub struct Velocity(pub bevy::math::Vec3);
 /// }
 /// ```
 #[derive(Component, Default)]
-pub enum AgentTarget {
+pub enum AgentTarget<CS: CoordinateSystem> {
   #[default]
   None,
-  Point(bevy::math::Vec3),
+  Point(CS::Coordinate),
   Entity(Entity),
 }
 
-impl AgentTarget {
+impl<CS: CoordinateSystem> AgentTarget<CS> {
   /// Converts an agent target to a concrete world position.
   fn to_point(
     &self,
     global_transform_query: &Query<&GlobalTransform>,
-  ) -> Option<bevy::math::Vec3> {
-    match *self {
-      Self::Point(point) => Some(point),
-      Self::Entity(entity) => global_transform_query
+  ) -> Option<CS::Coordinate> {
+    match self {
+      Self::Point(point) => Some(point.clone()),
+      &Self::Entity(entity) => global_transform_query
         .get(entity)
         .ok()
-        .map(|transform| transform.translation()),
+        .map(|transform| transform.translation())
+        .map(CS::from_transform_position),
       _ => None,
     }
   }
@@ -437,24 +460,27 @@ impl AgentTarget {
 /// The current desired velocity of the agent. This is set by `landmass` (during
 /// [`LandmassSystemSet::Output`]).
 #[derive(Component, Default)]
-pub struct AgentDesiredVelocity(bevy::math::Vec3);
+pub struct AgentDesiredVelocity<CS: CoordinateSystem>(CS::Coordinate);
 
-impl AgentDesiredVelocity {
+impl<CS: CoordinateSystem> AgentDesiredVelocity<CS> {
   /// The desired velocity of the agent.
-  pub fn velocity(&self) -> bevy::math::Vec3 {
-    self.0
+  pub fn velocity(&self) -> CS::Coordinate {
+    self.0.clone()
   }
 }
 
 /// Ensures every Bevy agent has a corresponding `landmass` agent.
-fn add_agents_to_archipelagos(
-  mut archipelago_query: Query<(Entity, &mut Archipelago)>,
-  agent_query: Query<(Entity, &Agent, &ArchipelagoRef), With<GlobalTransform>>,
+fn add_agents_to_archipelagos<CS: CoordinateSystem>(
+  mut archipelago_query: Query<(Entity, &mut Archipelago<CS>)>,
+  agent_query: Query<
+    (Entity, &Agent, &ArchipelagoRef<CS>),
+    With<GlobalTransform>,
+  >,
 ) {
   let mut archipelago_to_agents = HashMap::<_, HashMap<_, _>>::new();
   for (entity, agent, archipleago_ref) in agent_query.iter() {
     archipelago_to_agents
-      .entry(archipleago_ref.0)
+      .entry(archipleago_ref.entity)
       .or_default()
       .insert(entity, agent);
   }
@@ -480,8 +506,8 @@ fn add_agents_to_archipelagos(
     for (new_agent_entity, new_agent) in new_agent_map.drain() {
       let agent_id =
         archipelago.archipelago.add_agent(landmass::Agent::create(
-          /* position= */ landmass::Vec3::ZERO,
-          /* velocity= */ landmass::Vec3::ZERO,
+          /* position= */ CS::from_landmass(&landmass::Vec3::ZERO),
+          /* velocity= */ CS::from_landmass(&landmass::Vec3::ZERO),
           new_agent.radius,
           new_agent.max_velocity,
         ));
@@ -492,23 +518,23 @@ fn add_agents_to_archipelagos(
 
 /// Ensures the "input state" (position, velocity, etc) of every Bevy agent
 /// matches its `landmass` counterpart.
-fn sync_agent_input_state(
+fn sync_agent_input_state<CS: CoordinateSystem>(
   agent_query: Query<(
     Entity,
     &Agent,
-    &ArchipelagoRef,
+    &ArchipelagoRef<CS>,
     &GlobalTransform,
-    Option<&Velocity>,
-    Option<&AgentTarget>,
+    Option<&Velocity<CS>>,
+    Option<&AgentTarget<CS>>,
     Option<&TargetReachedCondition>,
   )>,
   global_transform_query: Query<&GlobalTransform>,
-  mut archipelago_query: Query<&mut Archipelago>,
+  mut archipelago_query: Query<&mut Archipelago<CS>>,
 ) {
   for (
     agent_entity,
     agent,
-    &ArchipelagoRef(arch_entity),
+    &ArchipelagoRef { entity: arch_entity, .. },
     transform,
     velocity,
     target,
@@ -522,15 +548,14 @@ fn sync_agent_input_state(
 
     let landmass_agent = archipelago.get_agent_mut(agent_entity);
     landmass_agent.position =
-      bevy_vec3_to_landmass_vec3(transform.translation());
+      CS::from_transform_position(transform.translation());
     if let Some(Velocity(velocity)) = velocity {
-      landmass_agent.velocity = bevy_vec3_to_landmass_vec3(*velocity);
+      landmass_agent.velocity = velocity.clone();
     }
     landmass_agent.radius = agent.radius;
     landmass_agent.max_velocity = agent.max_velocity;
-    landmass_agent.current_target = target
-      .and_then(|target| target.to_point(&global_transform_query))
-      .map(bevy_vec3_to_landmass_vec3);
+    landmass_agent.current_target =
+      target.and_then(|target| target.to_point(&global_transform_query));
     landmass_agent.target_reached_condition =
       if let Some(target_reached_condition) = target_reached_condition {
         target_reached_condition.to_landmass()
@@ -541,14 +566,14 @@ fn sync_agent_input_state(
 }
 
 /// Copies the agent state from `landmass` agents to their Bevy equivalent.
-fn sync_agent_state(
+fn sync_agent_state<CS: CoordinateSystem>(
   mut agent_query: Query<
-    (Entity, &ArchipelagoRef, &mut AgentState),
+    (Entity, &ArchipelagoRef<CS>, &mut AgentState),
     With<Agent>,
   >,
-  archipelago_query: Query<&Archipelago>,
+  archipelago_query: Query<&Archipelago<CS>>,
 ) {
-  for (agent_entity, &ArchipelagoRef(arch_entity), mut state) in
+  for (agent_entity, &ArchipelagoRef { entity: arch_entity, .. }, mut state) in
     agent_query.iter_mut()
   {
     let archipelago = match archipelago_query.get(arch_entity).ok() {
@@ -563,39 +588,41 @@ fn sync_agent_state(
 
 /// Copies the agent desired velocity from `landmass` agents to their Bevy
 /// equivalent.
-fn sync_desired_velocity(
+fn sync_desired_velocity<CS: CoordinateSystem>(
   mut agent_query: Query<
-    (Entity, &ArchipelagoRef, &mut AgentDesiredVelocity),
+    (Entity, &ArchipelagoRef<CS>, &mut AgentDesiredVelocity<CS>),
     With<Agent>,
   >,
-  archipelago_query: Query<&Archipelago>,
+  archipelago_query: Query<&Archipelago<CS>>,
 ) {
-  for (agent_entity, &ArchipelagoRef(arch_entity), mut desired_velocity) in
-    agent_query.iter_mut()
+  for (
+    agent_entity,
+    &ArchipelagoRef { entity: arch_entity, .. },
+    mut desired_velocity,
+  ) in agent_query.iter_mut()
   {
     let archipelago = match archipelago_query.get(arch_entity).ok() {
       None => continue,
       Some(arch) => arch,
     };
 
-    desired_velocity.0 = landmass_vec3_to_bevy_vec3(
-      archipelago.get_agent(agent_entity).get_desired_velocity(),
-    );
+    desired_velocity.0 =
+      archipelago.get_agent(agent_entity).get_desired_velocity().clone();
   }
 }
 
 /// Ensures every Bevy character has a corresponding `landmass` character.
-fn add_characters_to_archipelago(
-  mut archipelagos: Query<(Entity, &mut Archipelago)>,
+fn add_characters_to_archipelago<CS: CoordinateSystem>(
+  mut archipelagos: Query<(Entity, &mut Archipelago<CS>)>,
   characters: Query<
-    (Entity, &Character, &ArchipelagoRef),
+    (Entity, &Character, &ArchipelagoRef<CS>),
     With<GlobalTransform>,
   >,
 ) {
   let mut archipelago_to_characters = HashMap::<_, HashMap<_, _>>::new();
   for (entity, character, archipleago_ref) in characters.iter() {
     archipelago_to_characters
-      .entry(archipleago_ref.0)
+      .entry(archipleago_ref.entity)
       .or_default()
       .insert(entity, character);
   }
@@ -616,8 +643,8 @@ fn add_characters_to_archipelago(
     for (new_character_entity, new_character) in new_character_map.drain() {
       let character_id =
         archipelago.archipelago.add_character(landmass::Character {
-          position: Vec3::ZERO,
-          velocity: Vec3::ZERO,
+          position: Default::default(),
+          velocity: Default::default(),
           radius: new_character.radius,
         });
       archipelago.characters.insert(new_character_entity, character_id);
@@ -626,20 +653,20 @@ fn add_characters_to_archipelago(
 }
 
 /// Copies Bevy character states to their associated landmass character.
-fn sync_character_state(
+fn sync_character_state<CS: CoordinateSystem>(
   characters: Query<(
     Entity,
     &Character,
-    &ArchipelagoRef,
+    &ArchipelagoRef<CS>,
     &GlobalTransform,
-    Option<&Velocity>,
+    Option<&Velocity<CS>>,
   )>,
-  mut archipelagos: Query<&mut Archipelago>,
+  mut archipelagos: Query<&mut Archipelago<CS>>,
 ) {
   for (
     character_entity,
     character,
-    &ArchipelagoRef(arch_entity),
+    &ArchipelagoRef { entity: arch_entity, .. },
     transform,
     velocity,
   ) in characters.iter()
@@ -650,11 +677,11 @@ fn sync_character_state(
 
     let landmass_character = archipelago.get_character_mut(character_entity);
     landmass_character.position =
-      bevy_vec3_to_landmass_vec3(transform.translation());
+      CS::from_transform_position(transform.translation());
     landmass_character.velocity = if let Some(Velocity(velocity)) = velocity {
-      bevy_vec3_to_landmass_vec3(*velocity)
+      velocity.clone()
     } else {
-      landmass::Vec3::ZERO
+      CS::Coordinate::default()
     };
     landmass_character.radius = character.radius;
   }
