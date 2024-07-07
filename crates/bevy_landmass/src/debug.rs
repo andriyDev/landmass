@@ -1,6 +1,9 @@
 use std::marker::PhantomData;
 
-use crate::{coords::CoordinateSystem, Archipelago, LandmassSystemSet};
+use crate::{
+  coords::{CoordinateSystem, ThreeD, TwoD},
+  Archipelago, LandmassSystemSet,
+};
 use bevy::{
   app::Update,
   color::Color,
@@ -37,6 +40,9 @@ pub struct LandmassDebugPlugin<CS: CoordinateSystem> {
   // Marker for the coordinate systems.
   pub marker: PhantomData<CS>,
 }
+
+pub type Landmass2dDebugPlugin = LandmassDebugPlugin<TwoD>;
+pub type Landmass3dDebugPlugin = LandmassDebugPlugin<ThreeD>;
 
 impl<CS: CoordinateSystem> Default for LandmassDebugPlugin<CS> {
   fn default() -> Self {
