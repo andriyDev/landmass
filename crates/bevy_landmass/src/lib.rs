@@ -50,21 +50,38 @@ pub mod prelude {
   pub use crate::coords::ThreeD;
   pub use crate::coords::TwoD;
   pub use crate::Agent;
-  pub use crate::AgentBundle;
-  pub use crate::AgentDesiredVelocity;
+  pub use crate::Agent2dBundle;
+  pub use crate::Agent3dBundle;
+  pub use crate::AgentDesiredVelocity2d;
+  pub use crate::AgentDesiredVelocity3d;
   pub use crate::AgentState;
-  pub use crate::AgentTarget;
-  pub use crate::Archipelago;
-  pub use crate::ArchipelagoRef;
+  pub use crate::AgentTarget2d;
+  pub use crate::AgentTarget3d;
+  pub use crate::Archipelago2d;
+  pub use crate::Archipelago3d;
+  pub use crate::ArchipelagoRef2d;
+  pub use crate::ArchipelagoRef3d;
   pub use crate::Island;
-  pub use crate::IslandBundle;
-  pub use crate::LandmassPlugin;
+  pub use crate::Island2dBundle;
+  pub use crate::Island3dBundle;
+  pub use crate::Landmass2dPlugin;
+  pub use crate::Landmass3dPlugin;
   pub use crate::LandmassSystemSet;
-  pub use crate::NavMesh;
-  pub use crate::NavigationMesh;
-  pub use crate::ValidNavigationMesh;
-  pub use crate::Velocity;
+  pub use crate::NavMesh2d;
+  pub use crate::NavMesh3d;
+  pub use crate::NavigationMesh2d;
+  pub use crate::NavigationMesh3d;
+  pub use crate::ValidNavigationMesh2d;
+  pub use crate::ValidNavigationMesh3d;
+  pub use crate::Velocity2d;
+  pub use crate::Velocity3d;
 }
+
+pub type NavigationMesh2d = NavigationMesh<TwoD>;
+pub type NavigationMesh3d = NavigationMesh<ThreeD>;
+
+pub type ValidNavigationMesh2d = ValidNavigationMesh<TwoD>;
+pub type ValidNavigationMesh3d = ValidNavigationMesh<ThreeD>;
 
 /// A bundle to create agents. This omits the GlobalTransform component, since
 /// this is commonly added in other bundles (which is redundant and can override
