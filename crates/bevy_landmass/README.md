@@ -34,7 +34,7 @@ fn main() {
     .add_plugins(MinimalPlugins)
     .add_plugins(AssetPlugin::default())
     .add_plugins(TransformPlugin)
-    .add_plugins(LandmassPlugin)
+    .add_plugins(Landmass2dPlugin::default())
     .add_systems(Startup, set_up_scene)
     .add_systems(Update, print_desired_velocity.after(LandmassSystemSet::Output))
     .add_systems(Update, quit.after(print_desired_velocity))
@@ -43,63 +43,63 @@ fn main() {
 
 fn set_up_scene(
   mut commands: Commands,
-  mut nav_meshes: ResMut<Assets<NavMesh>>,
+  mut nav_meshes: ResMut<Assets<NavMesh2d>>,
 ) {
-  let archipelago_id = commands.spawn(Archipelago::new()).id();
+  let archipelago_id = commands.spawn(Archipelago2d::new()).id();
 
   let nav_mesh_handle = nav_meshes.reserve_handle();
 
   commands
     .spawn((
       TransformBundle::default(),
-      IslandBundle {
+      Island2dBundle {
         island: Island,
-        archipelago_ref: ArchipelagoRef(archipelago_id),
+        archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
         nav_mesh: nav_mesh_handle.clone(),
       },
     ));
   
   // The nav mesh can be populated in another system, or even several frames
   // later.
-  let nav_mesh = Arc::new(NavigationMesh {
-      mesh_bounds: None,
+  let nav_mesh = Arc::new(NavigationMesh2d {
       vertices: vec![
-        // TODO: #57 - Directly creating nav meshes requires "flipping" the
-        // vertices to be (x,-z,y).
-        bevy_landmass::Vec3::new(1.0, -1.0, 0.0),
-        bevy_landmass::Vec3::new(2.0, -1.0, 0.0),
-        bevy_landmass::Vec3::new(2.0, -2.0, 0.0),
-        bevy_landmass::Vec3::new(1.0, -2.0, 0.0),
-        bevy_landmass::Vec3::new(2.0, -3.0, 0.0),
-        bevy_landmass::Vec3::new(1.0, -3.0, 0.0),
-        bevy_landmass::Vec3::new(2.0, -4.0, 0.0),
-        bevy_landmass::Vec3::new(1.0, -4.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(2.0, 1.0),
+        Vec2::new(2.0, 2.0),
+        Vec2::new(1.0, 2.0),
+        Vec2::new(2.0, 3.0),
+        Vec2::new(1.0, 3.0),
+        Vec2::new(2.0, 4.0),
+        Vec2::new(1.0, 4.0),
       ],
       polygons: vec![
-        vec![3, 2, 1, 0],
-        vec![5, 4, 2, 3],
-        vec![7, 6, 4, 5],
+        vec![0, 1, 2, 3],
+        vec![3, 2, 4, 5],
+        vec![5, 4, 6, 7],
       ],
     }.validate().expect("is valid"));
-  nav_meshes.insert(&nav_mesh_handle, NavMesh(nav_mesh));
+  nav_meshes.insert(&nav_mesh_handle, NavMesh2d{ nav_mesh });
 
-  commands.spawn(TransformBundle {
-    local: Transform::from_translation(Vec3::new(1.5, 0.0, 1.5)),
-    ..Default::default()
-  }).insert(AgentBundle {
-    agent: Agent {
-      radius: 0.5,
-      max_velocity: 1.0,
+  commands.spawn((
+    TransformBundle {
+      local: Transform::from_translation(Vec3::new(1.5, 1.5, 0.0)),
+      ..Default::default()
     },
-    archipelago_ref: ArchipelagoRef(archipelago_id),
-    target: AgentTarget::Point(Vec3::new(1.5, 0.0, 3.5)),
-    velocity: Default::default(),
-    state: Default::default(),
-    desired_velocity: Default::default(),
-  });
+    Agent2dBundle {
+      agent: Agent {
+        radius: 0.5,
+        max_velocity: 1.0,
+      },
+      archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
+      target: AgentTarget2d::Point(Vec2::new(1.5, 3.5)),
+      velocity: Default::default(),
+      state: Default::default(),
+      desired_velocity: Default::default(),
+    }
+  ));
 }
 
-fn print_desired_velocity(query: Query<(Entity, &AgentDesiredVelocity)>) {
+fn print_desired_velocity(query: Query<(Entity, &AgentDesiredVelocity2d)>) {
   for (entity, desired_velocity) in query.iter() {
     println!(
       "entity={:?}, desired_velocity={}",
