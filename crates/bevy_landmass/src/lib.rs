@@ -15,7 +15,7 @@ use bevy::{
   reflect::TypePath,
   time::Time,
 };
-use coords::CoordinateSystem;
+use coords::{CoordinateSystem, ThreeD, TwoD};
 use landmass::{AgentId, CharacterId, IslandId};
 
 mod landmass_structs;
@@ -34,8 +34,16 @@ pub mod debug;
 #[cfg(feature = "mesh-utils")]
 pub mod nav_mesh;
 
-#[derive(Default)]
 pub struct LandmassPlugin<CS: CoordinateSystem>(PhantomData<CS>);
+
+impl<CS: CoordinateSystem> Default for LandmassPlugin<CS> {
+  fn default() -> Self {
+    Self(Default::default())
+  }
+}
+
+pub type Landmass2dPlugin = LandmassPlugin<TwoD>;
+pub type Landmass3dPlugin = LandmassPlugin<ThreeD>;
 
 pub mod prelude {
   pub use crate::coords::CoordinateSystem;
@@ -79,6 +87,9 @@ pub struct AgentBundle<CS: CoordinateSystem> {
   pub desired_velocity: AgentDesiredVelocity<CS>,
 }
 
+pub type Agent2dBundle = AgentBundle<TwoD>;
+pub type Agent3dBundle = AgentBundle<ThreeD>;
+
 /// A bundle to create characters. This omits the GlobalTransform component,
 /// since this is commonly added in other bundles (which is redundant and can
 /// override previous bundles).
@@ -92,6 +103,9 @@ pub struct CharacterBundle<CS: CoordinateSystem> {
   pub velocity: Velocity<CS>,
 }
 
+pub type Character2dBundle = CharacterBundle<TwoD>;
+pub type Character3dBundle = CharacterBundle<ThreeD>;
+
 /// A bundle to create islands. The GlobalTransform component is omitted, since
 /// this is commonly added in other bundles (which is redundant and can
 /// override previous bundles).
@@ -104,6 +118,9 @@ pub struct IslandBundle<CS: CoordinateSystem> {
   /// A handle to the nav mesh that this island needs.
   pub nav_mesh: Handle<NavMesh<CS>>,
 }
+
+pub type Island2dBundle = IslandBundle<TwoD>;
+pub type Island3dBundle = IslandBundle<ThreeD>;
 
 /// System set for `landmass` systems.
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
@@ -179,6 +196,9 @@ pub struct Archipelago<CS: CoordinateSystem> {
   /// [`Archipelago::archipelago`].
   characters: HashMap<Entity, CharacterId>,
 }
+
+pub type Archipelago2d = Archipelago<TwoD>;
+pub type Archipelago3d = Archipelago<ThreeD>;
 
 impl<CS: CoordinateSystem> Archipelago<CS> {
   /// Creates an empty archipelago.
@@ -263,6 +283,9 @@ pub struct Island;
 /// An asset holding a `landmass` nav mesh.
 #[derive(Asset, TypePath)]
 pub struct NavMesh<CS: CoordinateSystem>(pub Arc<ValidNavigationMesh<CS>>);
+
+pub type NavMesh2d = NavMesh<TwoD>;
+pub type NavMesh3d = NavMesh<ThreeD>;
 
 /// Ensures every Bevy island has a corresponding `landmass` island.
 fn add_islands_to_archipelago<CS: CoordinateSystem>(
@@ -407,6 +430,9 @@ pub struct ArchipelagoRef<CS: CoordinateSystem> {
   pub marker: PhantomData<CS>,
 }
 
+pub type ArchipelagoRef2d = ArchipelagoRef<TwoD>;
+pub type ArchipelagoRef3d = ArchipelagoRef<ThreeD>;
+
 impl<CS: CoordinateSystem> ArchipelagoRef<CS> {
   pub fn new(entity: Entity) -> Self {
     Self { entity, marker: Default::default() }
@@ -415,28 +441,45 @@ impl<CS: CoordinateSystem> ArchipelagoRef<CS> {
 
 /// The current velocity of the agent/character. This must be set to match
 /// whatever speed the agent/character is going.
-#[derive(Component, Default)]
+#[derive(Component)]
 pub struct Velocity<CS: CoordinateSystem>(pub CS::Coordinate);
+
+pub type Velocity2d = Velocity<TwoD>;
+pub type Velocity3d = Velocity<ThreeD>;
+
+impl<CS: CoordinateSystem> Default for Velocity<CS> {
+  fn default() -> Self {
+    Self(Default::default())
+  }
+}
 
 /// The current target of the entity. Note this can be set by either reinserting
 /// the component, or dereferencing:
 ///
 /// ```rust
 /// use bevy::prelude::*;
-/// use bevy_landmass::AgentTarget;
+/// use bevy_landmass::AgentTarget3d;
 ///
-/// fn clear_targets(mut targets: Query<&mut AgentTarget>) {
+/// fn clear_targets(mut targets: Query<&mut AgentTarget3d>) {
 ///   for mut target in targets.iter_mut() {
-///     *target = AgentTarget::None;
+///     *target = AgentTarget3d::None;
 ///   }
 /// }
 /// ```
-#[derive(Component, Default)]
+#[derive(Component)]
 pub enum AgentTarget<CS: CoordinateSystem> {
-  #[default]
   None,
   Point(CS::Coordinate),
   Entity(Entity),
+}
+
+pub type AgentTarget2d = AgentTarget<TwoD>;
+pub type AgentTarget3d = AgentTarget<ThreeD>;
+
+impl<CS: CoordinateSystem> Default for AgentTarget<CS> {
+  fn default() -> Self {
+    Self::None
+  }
 }
 
 impl<CS: CoordinateSystem> AgentTarget<CS> {
@@ -459,8 +502,17 @@ impl<CS: CoordinateSystem> AgentTarget<CS> {
 
 /// The current desired velocity of the agent. This is set by `landmass` (during
 /// [`LandmassSystemSet::Output`]).
-#[derive(Component, Default)]
+#[derive(Component)]
 pub struct AgentDesiredVelocity<CS: CoordinateSystem>(CS::Coordinate);
+
+pub type AgentDesiredVelocity2d = AgentDesiredVelocity<TwoD>;
+pub type AgentDesiredVelocity3d = AgentDesiredVelocity<ThreeD>;
+
+impl<CS: CoordinateSystem> Default for AgentDesiredVelocity<CS> {
+  fn default() -> Self {
+    Self(Default::default())
+  }
+}
 
 impl<CS: CoordinateSystem> AgentDesiredVelocity<CS> {
   /// The desired velocity of the agent.
