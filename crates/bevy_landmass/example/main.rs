@@ -7,7 +7,7 @@ use bevy::{
   render::mesh::{CylinderAnchor, CylinderMeshBuilder},
 };
 use bevy_landmass::{
-  debug::{EnableLandmassDebug, LandmassDebugPlugin},
+  debug::{EnableLandmassDebug, Landmass2dDebugPlugin},
   nav_mesh::bevy_mesh_to_landmass_nav_mesh,
   prelude::*,
 };
@@ -15,8 +15,8 @@ use bevy_landmass::{
 fn main() {
   App::new()
     .add_plugins(DefaultPlugins)
-    .add_plugins(LandmassPlugin)
-    .add_plugins(LandmassDebugPlugin::default())
+    .add_plugins(Landmass2dPlugin::default())
+    .add_plugins(Landmass2dDebugPlugin::default())
     .add_systems(Startup, setup)
     .add_systems(Update, (convert_mesh, handle_clicks))
     .add_systems(Update, toggle_debug.run_if(input_just_pressed(KeyCode::F12)))
@@ -31,13 +31,13 @@ fn main() {
 #[derive(Component)]
 struct ConvertMesh {
   mesh: Handle<Mesh>,
-  nav_mesh: Handle<NavMesh>,
+  nav_mesh: Handle<NavMesh2d>,
 }
 
 fn convert_mesh(
   converters: Query<(Entity, &ConvertMesh)>,
   meshes: Res<Assets<Mesh>>,
-  mut nav_meshes: ResMut<Assets<NavMesh>>,
+  mut nav_meshes: ResMut<Assets<NavMesh2d>>,
   mut commands: Commands,
 ) {
   for (entity, converter) in converters.iter() {
@@ -47,7 +47,10 @@ fn convert_mesh(
 
     let nav_mesh = bevy_mesh_to_landmass_nav_mesh(mesh).unwrap();
     let valid_nav_mesh = nav_mesh.validate().unwrap();
-    nav_meshes.insert(&converter.nav_mesh, NavMesh(Arc::new(valid_nav_mesh)));
+    nav_meshes.insert(
+      &converter.nav_mesh,
+      NavMesh2d { nav_mesh: Arc::new(valid_nav_mesh) },
+    );
     commands.entity(entity).remove::<ConvertMesh>();
   }
 }
@@ -56,7 +59,7 @@ fn setup(
   mut commands: Commands,
   mut meshes: ResMut<Assets<Mesh>>,
   mut materials: ResMut<Assets<StandardMaterial>>,
-  nav_meshes: Res<Assets<NavMesh>>,
+  nav_meshes: Res<Assets<NavMesh2d>>,
   asset_server: Res<AssetServer>,
 ) {
   commands.spawn(Camera3dBundle {
@@ -69,7 +72,7 @@ fn setup(
     ..Default::default()
   });
 
-  let archipelago_entity = commands.spawn(Archipelago::new()).id();
+  let archipelago_entity = commands.spawn(Archipelago2d::new()).id();
 
   // Spawn the islands.
   let mesh_1: Handle<Mesh> = asset_server.load("nav_mesh.glb#Mesh0/Primitive0");
@@ -84,8 +87,8 @@ fn setup(
       }),
       ..Default::default()
     },
-    IslandBundle {
-      archipelago_ref: ArchipelagoRef(archipelago_entity),
+    Island2dBundle {
+      archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
       island: Island,
       nav_mesh: nav_mesh_1.clone(),
     },
@@ -105,8 +108,8 @@ fn setup(
       transform: Transform::from_translation(Vec3::new(12.0, 0.0, 0.0)),
       ..Default::default()
     },
-    IslandBundle {
-      archipelago_ref: ArchipelagoRef(archipelago_entity),
+    Island2dBundle {
+      archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
       island: Island,
       nav_mesh: nav_mesh_2.clone(),
     },
@@ -177,10 +180,10 @@ impl AgentSpawner {
         material: self.material.clone(),
         ..Default::default()
       },
-      AgentBundle {
+      Agent2dBundle {
         agent: Agent { radius: 0.5, max_velocity: 2.0 },
-        archipelago_ref: ArchipelagoRef(self.archipelago_entity),
-        target: AgentTarget::Entity(self.target_entity),
+        archipelago_ref: ArchipelagoRef2d::new(self.archipelago_entity),
+        target: AgentTarget2d::Entity(self.target_entity),
         state: Default::default(),
         velocity: Default::default(),
         desired_velocity: Default::default(),
@@ -191,21 +194,23 @@ impl AgentSpawner {
 
 /// Use the desired velocity as the agent's velocity.
 fn update_agent_velocity(
-  mut agent_query: Query<(&mut Velocity, &AgentDesiredVelocity)>,
+  mut agent_query: Query<(&mut Velocity2d, &AgentDesiredVelocity2d)>,
 ) {
   for (mut velocity, desired_velocity) in agent_query.iter_mut() {
-    velocity.0 = desired_velocity.velocity();
+    velocity.velocity = desired_velocity.velocity();
   }
 }
 
 /// Apply the agent's velocity to its position.
 fn move_agent_by_velocity(
   time: Res<Time>,
-  mut agent_query: Query<(&mut Transform, &GlobalTransform, &Velocity)>,
+  mut agent_query: Query<(&mut Transform, &GlobalTransform, &Velocity2d)>,
 ) {
   for (mut transform, global_transform, velocity) in agent_query.iter_mut() {
-    let local_velocity =
-      global_transform.affine().inverse().transform_vector3(velocity.0);
+    let local_velocity = global_transform
+      .affine()
+      .inverse()
+      .transform_vector3(velocity.velocity.extend(0.0));
     transform.translation += local_velocity * time.delta_seconds();
   }
 }
