@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
 use bevy::prelude::*;
-use landmass::NavigationMesh;
 
 use crate::{
-  Agent, AgentBundle, AgentDesiredVelocity, AgentState, AgentTarget,
-  Archipelago, ArchipelagoRef, Character, CharacterBundle, Island,
-  IslandBundle, LandmassPlugin, NavMesh, Velocity,
+  Agent, Agent3dBundle, AgentDesiredVelocity3d, AgentState, AgentTarget3d,
+  Archipelago3d, ArchipelagoRef3d, Character, Character3dBundle, Island,
+  Island3dBundle, Landmass3dPlugin, NavMesh3d, NavigationMesh3d, Velocity3d,
 };
 
 #[test]
@@ -17,22 +16,19 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
     .add_plugins(MinimalPlugins)
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
-    .add_plugins(LandmassPlugin);
+    .add_plugins(Landmass3dPlugin::default());
 
-  let archipelago_id = app.world_mut().spawn(Archipelago::new()).id();
+  let archipelago_id = app.world_mut().spawn(Archipelago3d::new()).id();
 
   let nav_mesh = Arc::new(
-    NavigationMesh {
-      mesh_bounds: None,
+    NavigationMesh3d {
       vertices: vec![
-        // These vertices are "flipped" relative to what you'd expect. We treat
-        // -Y as forward, and Z as up.
-        landmass::Vec3::new(1.0, -1.0, 0.0),
-        landmass::Vec3::new(4.0, -1.0, 0.0),
-        landmass::Vec3::new(4.0, -4.0, 0.0),
-        landmass::Vec3::new(3.0, -4.0, 0.0),
-        landmass::Vec3::new(3.0, -2.0, 0.0),
-        landmass::Vec3::new(1.0, -2.0, 0.0),
+        Vec3::new(1.0, 0.0, 1.0),
+        Vec3::new(4.0, 0.0, 1.0),
+        Vec3::new(4.0, 0.0, 4.0),
+        Vec3::new(3.0, 0.0, 4.0),
+        Vec3::new(3.0, 0.0, 2.0),
+        Vec3::new(1.0, 0.0, 2.0),
       ],
       polygons: vec![vec![5, 4, 1, 0], vec![4, 3, 2, 1]],
     }
@@ -42,10 +38,10 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
 
   let nav_mesh_handle = app
     .world()
-    .resource::<Assets<NavMesh>>()
+    .resource::<Assets<NavMesh3d>>()
     .get_handle_provider()
     .reserve_handle()
-    .typed::<NavMesh>();
+    .typed::<NavMesh3d>();
 
   app
     .world_mut()
@@ -53,17 +49,17 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
       local: Transform::from_translation(Vec3::new(1.0, 1.0, 1.0)),
       ..Default::default()
     })
-    .insert(IslandBundle {
+    .insert(Island3dBundle {
       island: Island,
-      archipelago_ref: ArchipelagoRef(archipelago_id),
+      archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       nav_mesh: Default::default(),
     })
     .insert(nav_mesh_handle.clone());
 
   app
     .world_mut()
-    .resource_mut::<Assets<NavMesh>>()
-    .insert(&nav_mesh_handle, NavMesh(nav_mesh));
+    .resource_mut::<Assets<NavMesh3d>>()
+    .insert(&nav_mesh_handle, NavMesh3d { nav_mesh });
 
   let agent_id = app
     .world_mut()
@@ -71,10 +67,10 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
       local: Transform::from_translation(Vec3::new(2.5, 1.0, 2.5)),
       ..Default::default()
     })
-    .insert(AgentBundle {
+    .insert(Agent3dBundle {
       agent: Agent { radius: 0.5, max_velocity: 1.0 },
-      archipelago_ref: ArchipelagoRef(archipelago_id),
-      target: AgentTarget::Point(Vec3::new(4.5, 1.0, 4.5)),
+      archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
+      target: AgentTarget3d::Point(Vec3::new(4.5, 1.0, 4.5)),
       velocity: Default::default(),
       state: Default::default(),
       desired_velocity: Default::default(),
@@ -94,7 +90,7 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
   assert_eq!(
     app
       .world()
-      .get::<AgentDesiredVelocity>(agent_id)
+      .get::<AgentDesiredVelocity3d>(agent_id)
       .expect("desired velocity was added")
       .0,
     Vec3::new(1.5, 0.0, 0.5).normalize(),
@@ -108,17 +104,17 @@ fn adds_and_removes_agents() {
   app
     .add_plugins(MinimalPlugins)
     .add_plugins(AssetPlugin::default())
-    .add_plugins(LandmassPlugin);
+    .add_plugins(Landmass3dPlugin::default());
 
-  let archipelago_id = app.world_mut().spawn(Archipelago::new()).id();
+  let archipelago_id = app.world_mut().spawn(Archipelago3d::new()).id();
 
   let agent_id_1 = app
     .world_mut()
     .spawn(TransformBundle::default())
-    .insert(AgentBundle {
+    .insert(Agent3dBundle {
       agent: Agent { radius: 0.5, max_velocity: 1.0 },
-      archipelago_ref: ArchipelagoRef(archipelago_id),
-      target: AgentTarget::None,
+      archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
+      target: AgentTarget3d::None,
       velocity: Default::default(),
       state: Default::default(),
       desired_velocity: Default::default(),
@@ -128,10 +124,10 @@ fn adds_and_removes_agents() {
   let agent_id_2 = app
     .world_mut()
     .spawn(TransformBundle::default())
-    .insert(AgentBundle {
+    .insert(Agent3dBundle {
       agent: Agent { radius: 0.5, max_velocity: 1.0 },
-      archipelago_ref: ArchipelagoRef(archipelago_id),
-      target: AgentTarget::None,
+      archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
+      target: AgentTarget3d::None,
       velocity: Default::default(),
       state: Default::default(),
       desired_velocity: Default::default(),
@@ -140,8 +136,10 @@ fn adds_and_removes_agents() {
 
   app.update();
 
-  let archipelago =
-    app.world().get::<Archipelago>(archipelago_id).expect("archipelago exists");
+  let archipelago = app
+    .world()
+    .get::<Archipelago3d>(archipelago_id)
+    .expect("archipelago exists");
 
   fn sorted(mut v: Vec<Entity>) -> Vec<Entity> {
     v.sort();
@@ -157,10 +155,10 @@ fn adds_and_removes_agents() {
   let agent_id_3 = app
     .world_mut()
     .spawn(TransformBundle::default())
-    .insert(AgentBundle {
+    .insert(Agent3dBundle {
       agent: Agent { radius: 0.5, max_velocity: 1.0 },
-      archipelago_ref: ArchipelagoRef(archipelago_id),
-      target: AgentTarget::None,
+      archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
+      target: AgentTarget3d::None,
       velocity: Default::default(),
       state: Default::default(),
       desired_velocity: Default::default(),
@@ -169,8 +167,10 @@ fn adds_and_removes_agents() {
 
   app.update();
 
-  let archipelago =
-    app.world().get::<Archipelago>(archipelago_id).expect("archipelago exists");
+  let archipelago = app
+    .world()
+    .get::<Archipelago3d>(archipelago_id)
+    .expect("archipelago exists");
 
   assert_eq!(
     sorted(archipelago.agents.keys().copied().collect()),
@@ -182,8 +182,10 @@ fn adds_and_removes_agents() {
 
   app.update();
 
-  let archipelago =
-    app.world().get::<Archipelago>(archipelago_id).expect("archipelago exists");
+  let archipelago = app
+    .world()
+    .get::<Archipelago3d>(archipelago_id)
+    .expect("archipelago exists");
 
   assert_eq!(
     sorted(archipelago.agents.keys().copied().collect()),
@@ -196,8 +198,10 @@ fn adds_and_removes_agents() {
 
   app.update();
 
-  let archipelago =
-    app.world().get::<Archipelago>(archipelago_id).expect("archipelago exists");
+  let archipelago = app
+    .world()
+    .get::<Archipelago3d>(archipelago_id)
+    .expect("archipelago exists");
 
   assert_eq!(archipelago.agents.keys().copied().collect::<Vec<_>>(), []);
   assert_eq!(archipelago.archipelago.get_agent_ids().len(), 0);
@@ -210,17 +214,17 @@ fn adds_and_removes_characters() {
   app
     .add_plugins(MinimalPlugins)
     .add_plugins(AssetPlugin::default())
-    .add_plugins(LandmassPlugin);
+    .add_plugins(Landmass3dPlugin::default());
 
-  let archipelago_id = app.world_mut().spawn(Archipelago::new()).id();
+  let archipelago_id = app.world_mut().spawn(Archipelago3d::new()).id();
 
   let character_id_1 = app
     .world_mut()
     .spawn((
       TransformBundle::default(),
-      CharacterBundle {
+      Character3dBundle {
         character: Character { radius: 0.5 },
-        archipelago_ref: ArchipelagoRef(archipelago_id),
+        archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
         velocity: Default::default(),
       },
     ))
@@ -230,9 +234,9 @@ fn adds_and_removes_characters() {
     .world_mut()
     .spawn((
       TransformBundle::default(),
-      CharacterBundle {
+      Character3dBundle {
         character: Character { radius: 0.5 },
-        archipelago_ref: ArchipelagoRef(archipelago_id),
+        archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
         velocity: Default::default(),
       },
     ))
@@ -240,8 +244,10 @@ fn adds_and_removes_characters() {
 
   app.update();
 
-  let archipelago =
-    app.world().get::<Archipelago>(archipelago_id).expect("archipelago exists");
+  let archipelago = app
+    .world()
+    .get::<Archipelago3d>(archipelago_id)
+    .expect("archipelago exists");
 
   fn sorted(mut v: Vec<Entity>) -> Vec<Entity> {
     v.sort();
@@ -258,9 +264,9 @@ fn adds_and_removes_characters() {
     .world_mut()
     .spawn((
       TransformBundle::default(),
-      CharacterBundle {
+      Character3dBundle {
         character: Character { radius: 0.5 },
-        archipelago_ref: ArchipelagoRef(archipelago_id),
+        archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
         velocity: Default::default(),
       },
     ))
@@ -268,8 +274,10 @@ fn adds_and_removes_characters() {
 
   app.update();
 
-  let archipelago =
-    app.world().get::<Archipelago>(archipelago_id).expect("archipelago exists");
+  let archipelago = app
+    .world()
+    .get::<Archipelago3d>(archipelago_id)
+    .expect("archipelago exists");
 
   assert_eq!(
     sorted(archipelago.characters.keys().copied().collect()),
@@ -281,8 +289,10 @@ fn adds_and_removes_characters() {
 
   app.update();
 
-  let archipelago =
-    app.world().get::<Archipelago>(archipelago_id).expect("archipelago exists");
+  let archipelago = app
+    .world()
+    .get::<Archipelago3d>(archipelago_id)
+    .expect("archipelago exists");
 
   assert_eq!(
     sorted(archipelago.characters.keys().copied().collect()),
@@ -295,8 +305,10 @@ fn adds_and_removes_characters() {
 
   app.update();
 
-  let archipelago =
-    app.world().get::<Archipelago>(archipelago_id).expect("archipelago exists");
+  let archipelago = app
+    .world()
+    .get::<Archipelago3d>(archipelago_id)
+    .expect("archipelago exists");
 
   assert_eq!(archipelago.characters.keys().copied().collect::<Vec<_>>(), []);
   assert_eq!(archipelago.archipelago.get_character_ids().len(), 0);
@@ -309,16 +321,16 @@ fn adds_and_removes_islands() {
   app
     .add_plugins(MinimalPlugins)
     .add_plugins(AssetPlugin::default())
-    .add_plugins(LandmassPlugin);
+    .add_plugins(Landmass3dPlugin::default());
 
-  let archipelago_id = app.world_mut().spawn(Archipelago::new()).id();
+  let archipelago_id = app.world_mut().spawn(Archipelago3d::new()).id();
 
   let island_id_1 = app
     .world_mut()
     .spawn(TransformBundle::default())
-    .insert(IslandBundle {
+    .insert(Island3dBundle {
       island: Island,
-      archipelago_ref: ArchipelagoRef(archipelago_id),
+      archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       nav_mesh: Default::default(),
     })
     .id();
@@ -326,17 +338,19 @@ fn adds_and_removes_islands() {
   let island_id_2 = app
     .world_mut()
     .spawn(TransformBundle::default())
-    .insert(IslandBundle {
+    .insert(Island3dBundle {
       island: Island,
-      archipelago_ref: ArchipelagoRef(archipelago_id),
+      archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       nav_mesh: Default::default(),
     })
     .id();
 
   app.update();
 
-  let archipelago =
-    app.world().get::<Archipelago>(archipelago_id).expect("archipelago exists");
+  let archipelago = app
+    .world()
+    .get::<Archipelago3d>(archipelago_id)
+    .expect("archipelago exists");
 
   fn sorted(mut v: Vec<Entity>) -> Vec<Entity> {
     v.sort();
@@ -352,17 +366,19 @@ fn adds_and_removes_islands() {
   let island_id_3 = app
     .world_mut()
     .spawn(TransformBundle::default())
-    .insert(IslandBundle {
+    .insert(Island3dBundle {
       island: Island,
-      archipelago_ref: ArchipelagoRef(archipelago_id),
+      archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       nav_mesh: Default::default(),
     })
     .id();
 
   app.update();
 
-  let archipelago =
-    app.world().get::<Archipelago>(archipelago_id).expect("archipelago exists");
+  let archipelago = app
+    .world()
+    .get::<Archipelago3d>(archipelago_id)
+    .expect("archipelago exists");
 
   assert_eq!(
     sorted(archipelago.islands.keys().copied().collect()),
@@ -374,8 +390,10 @@ fn adds_and_removes_islands() {
 
   app.update();
 
-  let archipelago =
-    app.world().get::<Archipelago>(archipelago_id).expect("archipelago exists");
+  let archipelago = app
+    .world()
+    .get::<Archipelago3d>(archipelago_id)
+    .expect("archipelago exists");
 
   assert_eq!(
     sorted(archipelago.islands.keys().copied().collect()),
@@ -388,8 +406,10 @@ fn adds_and_removes_islands() {
 
   app.update();
 
-  let archipelago =
-    app.world().get::<Archipelago>(archipelago_id).expect("archipelago exists");
+  let archipelago = app
+    .world()
+    .get::<Archipelago3d>(archipelago_id)
+    .expect("archipelago exists");
 
   assert_eq!(archipelago.agents.keys().copied().collect::<Vec<_>>(), []);
   assert_eq!(archipelago.archipelago.get_agent_ids().len(), 0);
@@ -403,9 +423,9 @@ fn changing_agent_fields_changes_landmass_agent() {
     .add_plugins(MinimalPlugins)
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
-    .add_plugins(LandmassPlugin);
+    .add_plugins(Landmass3dPlugin::default());
 
-  let archipelago = app.world_mut().spawn(Archipelago::new()).id();
+  let archipelago = app.world_mut().spawn(Archipelago3d::new()).id();
 
   let agent = app
     .world_mut()
@@ -414,11 +434,11 @@ fn changing_agent_fields_changes_landmass_agent() {
         local: Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
         ..Default::default()
       },
-      AgentBundle {
+      Agent3dBundle {
         agent: Agent { radius: 1.0, max_velocity: 1.0 },
-        archipelago_ref: ArchipelagoRef(archipelago),
-        velocity: Velocity(Vec3::new(4.0, 5.0, 6.0)),
-        target: AgentTarget::None,
+        archipelago_ref: ArchipelagoRef3d::new(archipelago),
+        velocity: Velocity3d { velocity: Vec3::new(4.0, 5.0, 6.0) },
+        target: AgentTarget3d::None,
         state: Default::default(),
         desired_velocity: Default::default(),
       },
@@ -431,9 +451,9 @@ fn changing_agent_fields_changes_landmass_agent() {
   app.update();
 
   let agent_ref =
-    app.world().get::<Archipelago>(archipelago).unwrap().get_agent(agent);
-  assert_eq!(agent_ref.position, landmass::Vec3::new(1.0, -3.0, 2.0));
-  assert_eq!(agent_ref.velocity, landmass::Vec3::new(4.0, -6.0, 5.0));
+    app.world().get::<Archipelago3d>(archipelago).unwrap().get_agent(agent);
+  assert_eq!(agent_ref.position, Vec3::new(1.0, 2.0, 3.0));
+  assert_eq!(agent_ref.velocity, Vec3::new(4.0, 5.0, 6.0));
   assert_eq!(agent_ref.radius, 1.0);
   assert_eq!(agent_ref.max_velocity, 1.0);
   assert_eq!(agent_ref.current_target, None);
@@ -447,8 +467,8 @@ fn changing_agent_fields_changes_landmass_agent() {
   app.world_mut().entity_mut(agent).insert((
     Transform::from_translation(Vec3::new(7.0, 8.0, 9.0)),
     Agent { radius: 2.0, max_velocity: 2.0 },
-    Velocity(Vec3::new(10.0, 11.0, 12.0)),
-    AgentTarget::Point(Vec3::new(13.0, 14.0, 15.0)),
+    Velocity3d { velocity: Vec3::new(10.0, 11.0, 12.0) },
+    AgentTarget3d::Point(Vec3::new(13.0, 14.0, 15.0)),
     crate::TargetReachedCondition::VisibleAtDistance(Some(2.0)),
   ));
 
@@ -457,15 +477,12 @@ fn changing_agent_fields_changes_landmass_agent() {
   app.update();
 
   let agent_ref =
-    app.world().get::<Archipelago>(archipelago).unwrap().get_agent(agent);
-  assert_eq!(agent_ref.position, landmass::Vec3::new(7.0, -9.0, 8.0));
-  assert_eq!(agent_ref.velocity, landmass::Vec3::new(10.0, -12.0, 11.0));
+    app.world().get::<Archipelago3d>(archipelago).unwrap().get_agent(agent);
+  assert_eq!(agent_ref.position, Vec3::new(7.0, 8.0, 9.0));
+  assert_eq!(agent_ref.velocity, Vec3::new(10.0, 11.0, 12.0));
   assert_eq!(agent_ref.radius, 2.0);
   assert_eq!(agent_ref.max_velocity, 2.0);
-  assert_eq!(
-    agent_ref.current_target,
-    Some(landmass::Vec3::new(13.0, -15.0, 14.0))
-  );
+  assert_eq!(agent_ref.current_target, Some(Vec3::new(13.0, 14.0, 15.0)));
   let landmass::TargetReachedCondition::VisibleAtDistance(dist) =
     agent_ref.target_reached_condition
   else {
@@ -482,9 +499,9 @@ fn changing_character_fields_changes_landmass_character() {
     .add_plugins(MinimalPlugins)
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
-    .add_plugins(LandmassPlugin);
+    .add_plugins(Landmass3dPlugin::default());
 
-  let archipelago = app.world_mut().spawn(Archipelago::new()).id();
+  let archipelago = app.world_mut().spawn(Archipelago3d::new()).id();
 
   let character = app
     .world_mut()
@@ -493,10 +510,10 @@ fn changing_character_fields_changes_landmass_character() {
         local: Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
         ..Default::default()
       },
-      CharacterBundle {
+      Character3dBundle {
         character: Character { radius: 1.0 },
-        archipelago_ref: ArchipelagoRef(archipelago),
-        velocity: Velocity(Vec3::new(4.0, 5.0, 6.0)),
+        archipelago_ref: ArchipelagoRef3d::new(archipelago),
+        velocity: Velocity3d { velocity: Vec3::new(4.0, 5.0, 6.0) },
       },
     ))
     .id();
@@ -507,17 +524,17 @@ fn changing_character_fields_changes_landmass_character() {
 
   let character_ref = app
     .world()
-    .get::<Archipelago>(archipelago)
+    .get::<Archipelago3d>(archipelago)
     .unwrap()
     .get_character(character);
-  assert_eq!(character_ref.position, landmass::Vec3::new(1.0, -3.0, 2.0));
-  assert_eq!(character_ref.velocity, landmass::Vec3::new(4.0, -6.0, 5.0));
+  assert_eq!(character_ref.position, Vec3::new(1.0, 2.0, 3.0));
+  assert_eq!(character_ref.velocity, Vec3::new(4.0, 5.0, 6.0));
   assert_eq!(character_ref.radius, 1.0);
 
   app.world_mut().entity_mut(character).insert((
     Transform::from_translation(Vec3::new(7.0, 8.0, 9.0)),
     Character { radius: 2.0 },
-    Velocity(Vec3::new(10.0, 11.0, 12.0)),
+    Velocity3d { velocity: Vec3::new(10.0, 11.0, 12.0) },
   ));
 
   app.update();
@@ -526,10 +543,10 @@ fn changing_character_fields_changes_landmass_character() {
 
   let agent_ref = app
     .world()
-    .get::<Archipelago>(archipelago)
+    .get::<Archipelago3d>(archipelago)
     .unwrap()
     .get_character(character);
-  assert_eq!(agent_ref.position, landmass::Vec3::new(7.0, -9.0, 8.0));
-  assert_eq!(agent_ref.velocity, landmass::Vec3::new(10.0, -12.0, 11.0));
+  assert_eq!(agent_ref.position, Vec3::new(7.0, 8.0, 9.0));
+  assert_eq!(agent_ref.velocity, Vec3::new(10.0, 11.0, 12.0));
   assert_eq!(agent_ref.radius, 2.0);
 }
