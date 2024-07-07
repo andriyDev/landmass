@@ -19,7 +19,6 @@ use coords::{CoordinateSystem, ThreeD, TwoD};
 use landmass::{AgentId, CharacterId, IslandId};
 
 mod landmass_structs;
-mod util;
 
 pub use landmass::AgentOptions;
 pub use landmass::NavigationMesh;
