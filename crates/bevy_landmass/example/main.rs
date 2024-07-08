@@ -4,7 +4,7 @@ use bevy::{
   color::palettes::css,
   input::common_conditions::input_just_pressed,
   prelude::*,
-  render::mesh::{CylinderAnchor, CylinderMeshBuilder},
+  sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 use bevy_landmass::{
   debug::{EnableLandmassDebug, Landmass2dDebugPlugin},
@@ -58,17 +58,17 @@ fn convert_mesh(
 fn setup(
   mut commands: Commands,
   mut meshes: ResMut<Assets<Mesh>>,
-  mut materials: ResMut<Assets<StandardMaterial>>,
+  mut materials: ResMut<Assets<ColorMaterial>>,
   nav_meshes: Res<Assets<NavMesh2d>>,
   asset_server: Res<AssetServer>,
 ) {
-  commands.spawn(Camera3dBundle {
-    transform: Transform::from_xyz(5.0, 1.0, 0.0)
-      .looking_to(Vec3::new(0.0, -1.0, 0.0), Vec3::new(0.0, 0.0, -1.0)),
-    projection: Projection::Orthographic(OrthographicProjection {
+  commands.spawn(Camera2dBundle {
+    transform: Transform::from_xyz(5.0, 0.0, 0.0),
+    projection: OrthographicProjection {
       scaling_mode: bevy::render::camera::ScalingMode::FixedVertical(16.0),
+      near: -1000.0,
       ..Default::default()
-    }),
+    },
     ..Default::default()
   });
 
@@ -78,11 +78,10 @@ fn setup(
   let mesh_1: Handle<Mesh> = asset_server.load("nav_mesh.glb#Mesh0/Primitive0");
   let nav_mesh_1 = nav_meshes.reserve_handle();
   commands.spawn((
-    MaterialMeshBundle {
-      mesh: mesh_1.clone(),
-      material: materials.add(StandardMaterial {
-        unlit: true,
-        base_color: css::ANTIQUE_WHITE.into(),
+    MaterialMesh2dBundle {
+      mesh: Mesh2dHandle(mesh_1.clone()),
+      material: materials.add(ColorMaterial {
+        color: css::ANTIQUE_WHITE.into(),
         ..Default::default()
       }),
       ..Default::default()
@@ -98,11 +97,10 @@ fn setup(
   let mesh_2: Handle<Mesh> = asset_server.load("nav_mesh.glb#Mesh1/Primitive0");
   let nav_mesh_2 = nav_meshes.reserve_handle();
   commands.spawn((
-    MaterialMeshBundle {
-      mesh: mesh_2.clone(),
-      material: materials.add(StandardMaterial {
-        unlit: true,
-        base_color: css::ANTIQUE_WHITE.into(),
+    MaterialMesh2dBundle {
+      mesh: Mesh2dHandle(mesh_2.clone()),
+      material: materials.add(ColorMaterial {
+        color: css::ANTIQUE_WHITE.into(),
         ..Default::default()
       }),
       transform: Transform::from_translation(Vec3::new(12.0, 0.0, 0.0)),
@@ -119,21 +117,11 @@ fn setup(
   // Spawn the target.
   let target_entity = commands
     .spawn((
-      MaterialMeshBundle {
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 6.0)),
-        mesh: meshes.add(
-          CylinderMeshBuilder {
-            cylinder: Cylinder { radius: 0.25, half_height: 0.1 },
-            resolution: 20,
-            segments: 1,
-            caps: true,
-            anchor: CylinderAnchor::MidPoint,
-          }
-          .build(),
-        ),
-        material: materials.add(StandardMaterial {
-          unlit: true,
-          base_color: css::PURPLE.into(),
+      MaterialMesh2dBundle {
+        transform: Transform::from_translation(Vec3::new(0.0, 6.0, 0.11)),
+        mesh: Mesh2dHandle(meshes.add(Circle { radius: 0.25 })),
+        material: materials.add(ColorMaterial {
+          color: css::PURPLE.into(),
           ..Default::default()
         }),
         ..Default::default()
@@ -143,19 +131,9 @@ fn setup(
     .id();
 
   commands.insert_resource(AgentSpawner {
-    mesh: meshes.add(
-      CylinderMeshBuilder {
-        cylinder: Cylinder { radius: 0.5, half_height: 0.1 },
-        resolution: 20,
-        segments: 1,
-        caps: true,
-        anchor: CylinderAnchor::MidPoint,
-      }
-      .build(),
-    ),
-    material: materials.add(StandardMaterial {
-      unlit: true,
-      base_color: css::SEA_GREEN.into(),
+    mesh: meshes.add(Circle { radius: 0.5 }),
+    material: materials.add(ColorMaterial {
+      color: css::SEA_GREEN.into(),
       ..Default::default()
     }),
     archipelago_entity,
@@ -166,17 +144,17 @@ fn setup(
 #[derive(Resource)]
 struct AgentSpawner {
   mesh: Handle<Mesh>,
-  material: Handle<StandardMaterial>,
+  material: Handle<ColorMaterial>,
   archipelago_entity: Entity,
   target_entity: Entity,
 }
 
 impl AgentSpawner {
-  fn spawn(&self, position: Vec3, commands: &mut Commands) {
+  fn spawn(&self, position: Vec2, commands: &mut Commands) {
     commands.spawn((
-      MaterialMeshBundle {
-        transform: Transform::from_translation(position),
-        mesh: self.mesh.clone(),
+      MaterialMesh2dBundle {
+        transform: Transform::from_translation(position.extend(0.1)),
+        mesh: Mesh2dHandle(self.mesh.clone()),
         material: self.material.clone(),
         ..Default::default()
       },
@@ -242,7 +220,7 @@ fn handle_clicks(
     .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor))
     .and_then(|ray| {
       ray
-        .intersect_plane(Vec3::ZERO, InfinitePlane3d { normal: Dir3::Y })
+        .intersect_plane(Vec3::ZERO, InfinitePlane3d { normal: Dir3::Z })
         .map(|d| ray.get_point(d))
     })
   else {
@@ -250,12 +228,12 @@ fn handle_clicks(
   };
 
   if left {
-    agent_spawner.spawn(world_position, &mut commands);
+    agent_spawner.spawn(world_position.xy(), &mut commands);
   }
   if right {
     commands
       .entity(target.single())
-      .insert(Transform::from_translation(world_position));
+      .insert(Transform::from_translation(world_position.xy().extend(0.11)));
   }
 }
 
