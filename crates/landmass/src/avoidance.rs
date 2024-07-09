@@ -36,8 +36,8 @@ pub(crate) fn apply_avoidance_to_agents(
     agent_id_to_dodgy_agent.insert(
       agent_id,
       dodgy_2d::Agent {
-        position: to_dodgy_vec2(agent_point.xz()),
-        velocity: to_dodgy_vec2(agent.velocity.xz()),
+        position: to_dodgy_vec2(agent_point.xy()),
+        velocity: to_dodgy_vec2(agent.velocity.xy()),
         radius: agent.radius,
         avoidance_responsibility: 1.0,
       },
@@ -59,8 +59,8 @@ pub(crate) fn apply_avoidance_to_agents(
       .add(
         [character_point.x, character_point.y, character_point.z],
         dodgy_2d::Agent {
-          position: to_dodgy_vec2(character_point.xz()),
-          velocity: to_dodgy_vec2(character.velocity.xz()),
+          position: to_dodgy_vec2(character_point.xy()),
+          velocity: to_dodgy_vec2(character.velocity.xy()),
           radius: character.radius,
           // Characters are not responsible for any avoidance since landmass has
           // no control over them.
@@ -133,7 +133,7 @@ pub(crate) fn apply_avoidance_to_agents(
         .drain(..)
         .map(std::borrow::Cow::Owned)
         .collect::<Vec<_>>(),
-      to_dodgy_vec2(agent.current_desired_move.xz()),
+      to_dodgy_vec2(agent.current_desired_move.xy()),
       agent.max_velocity,
       delta_time,
       &dodgy_2d::AvoidanceOptions {
@@ -146,7 +146,7 @@ pub(crate) fn apply_avoidance_to_agents(
     );
 
     agent.current_desired_move =
-      glam::Vec3::new(desired_move.x, 0.0, desired_move.y);
+      glam::Vec3::new(desired_move.x, desired_move.y, 0.0);
   }
 }
 
@@ -197,7 +197,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
   let mut next_nodes = BinaryHeap::new();
   next_nodes.push(ExploreNode { node: agent_node.1, score: 0.0 });
 
-  let agent_point = agent_node.0.xz();
+  let agent_point = agent_node.0.xy();
 
   fn vertex_index_to_dodgy_vec(
     island_data: &IslandNavigationData,
@@ -205,7 +205,7 @@ fn nav_mesh_borders_to_dodgy_obstacles(
     relative_point: glam::Vec2,
   ) -> dodgy_2d::Vec2 {
     to_dodgy_vec2(
-      island_data.transform.apply(island_data.nav_mesh.vertices[index]).xz()
+      island_data.transform.apply(island_data.nav_mesh.vertices[index]).xy()
         - relative_point,
     )
   }
@@ -252,8 +252,8 @@ fn nav_mesh_borders_to_dodgy_obstacles(
           .map(|link_id| nav_data.boundary_links.get(*link_id).unwrap())
           .map(|link| {
             (
-              to_dodgy_vec2(link.portal.0.xz() - agent_point),
-              to_dodgy_vec2(link.portal.1.xz() - agent_point),
+              to_dodgy_vec2(link.portal.0.xy() - agent_point),
+              to_dodgy_vec2(link.portal.1.xy() - agent_point),
               link.destination_node,
             )
           })
