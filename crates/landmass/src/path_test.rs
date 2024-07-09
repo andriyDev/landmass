@@ -41,19 +41,19 @@ fn finds_next_point_for_organic_map() {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
-      Vec3::new(4.0, 0.0, 1.0),
-      Vec3::new(4.0, 0.0, 2.0),
-      Vec3::new(2.0, 0.0, 3.0),
-      Vec3::new(1.0, 0.0, 3.0),
-      Vec3::new(0.0, 0.0, 2.0),
-      Vec3::new(0.0, 0.0, 1.0),
-      Vec3::new(1.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 4.0),
-      Vec3::new(3.0, 1.0, 5.0),
-      Vec3::new(3.0, 1.0, 4.0),
-      Vec3::new(3.0, -2.0, 4.0),
-      Vec3::new(3.0, -2.0, 3.0),
+      Vec3::new(4.0, 1.0, 0.0),
+      Vec3::new(4.0, 2.0, 0.0),
+      Vec3::new(2.0, 3.0, 0.0),
+      Vec3::new(1.0, 3.0, 0.0),
+      Vec3::new(0.0, 2.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 5.0, 0.0),
+      Vec3::new(2.0, 5.0, 0.0),
+      Vec3::new(2.0, 4.0, 0.0),
+      Vec3::new(3.0, 5.0, 1.0),
+      Vec3::new(3.0, 4.0, 1.0),
+      Vec3::new(3.0, 4.0, -2.0),
+      Vec3::new(3.0, 3.0, -2.0),
     ],
     polygons: vec![
       vec![0, 1, 2, 3, 4, 5, 6, 7],
@@ -66,7 +66,7 @@ fn finds_next_point_for_organic_map() {
   .expect("Mesh is valid.");
 
   let transform =
-    Transform { translation: Vec3::new(5.0, 7.0, 9.0), rotation: PI * 0.35 };
+    Transform { translation: Vec3::new(5.0, 9.0, 7.0), rotation: PI * -0.35 };
   let mut archipelago = Archipelago::new();
   let island_id = archipelago.add_island();
   archipelago
@@ -89,27 +89,27 @@ fn finds_next_point_for_organic_map() {
       /* start= */
       (
         PathIndex::from_corridor_index(0, 0),
-        transform.apply(Vec3::new(3.0, 0.0, 1.5))
+        transform.apply(Vec3::new(3.0, 1.5, 0.0))
       ),
       /* end= */
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.5, 0.5, 4.5))
+        transform.apply(Vec3::new(2.5, 4.5, 0.5))
       ),
       /* iteration_limit= */ 3,
     ),
     [
       (
         PathIndex::from_corridor_index(0, 0),
-        transform.apply(Vec3::new(2.0, 0.0, 3.0))
+        transform.apply(Vec3::new(2.0, 3.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 1),
-        transform.apply(Vec3::new(2.0, 0.0, 4.0))
+        transform.apply(Vec3::new(2.0, 4.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.5, 0.5, 4.5))
+        transform.apply(Vec3::new(2.5, 4.5, 0.5))
       ),
     ]
   );
@@ -122,32 +122,32 @@ fn finds_next_point_in_zig_zag() {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
-      Vec3::new(1.0, 0.0, 1.0),
-      Vec3::new(0.0, 0.0, 1.0),
-      Vec3::new(1.0, 0.0, 2.0),
-      Vec3::new(0.0, 0.0, 2.0),
-      Vec3::new(1.0, 0.0, 3.0),
-      Vec3::new(0.0, 0.0, 3.0),
-      Vec3::new(1.0, 0.0, 4.0),
-      Vec3::new(0.0, 0.0, 4.0),
-      Vec3::new(1.0, 0.0, 5.0), // Turn right
-      Vec3::new(2.0, 0.0, 4.0),
-      Vec3::new(2.0, 0.0, 5.0),
-      Vec3::new(3.0, 0.0, 4.0),
-      Vec3::new(3.0, 0.0, 5.0),
-      Vec3::new(4.0, 0.0, 4.0),
-      Vec3::new(4.0, 0.0, 5.0),
-      Vec3::new(5.0, 0.0, 5.0), // Turn left
-      Vec3::new(5.0, 0.0, 6.0),
-      Vec3::new(4.0, 0.0, 6.0),
-      Vec3::new(5.0, 0.0, 7.0),
-      Vec3::new(4.0, 0.0, 7.0),
-      Vec3::new(4.0, 0.0, 8.0), // Turn left
-      Vec3::new(-3.0, 0.0, 8.0),
-      Vec3::new(-3.0, 0.0, 7.0),
-      Vec3::new(-4.0, 0.0, 8.0), // Turn right
-      Vec3::new(-3.0, 0.0, 15.0),
-      Vec3::new(-4.0, 0.0, 15.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 2.0, 0.0),
+      Vec3::new(0.0, 2.0, 0.0),
+      Vec3::new(1.0, 3.0, 0.0),
+      Vec3::new(0.0, 3.0, 0.0),
+      Vec3::new(1.0, 4.0, 0.0),
+      Vec3::new(0.0, 4.0, 0.0),
+      Vec3::new(1.0, 5.0, 0.0), // Turn right
+      Vec3::new(2.0, 4.0, 0.0),
+      Vec3::new(2.0, 5.0, 0.0),
+      Vec3::new(3.0, 4.0, 0.0),
+      Vec3::new(3.0, 5.0, 0.0),
+      Vec3::new(4.0, 4.0, 0.0),
+      Vec3::new(4.0, 5.0, 0.0),
+      Vec3::new(5.0, 5.0, 0.0), // Turn left
+      Vec3::new(5.0, 6.0, 0.0),
+      Vec3::new(4.0, 6.0, 0.0),
+      Vec3::new(5.0, 7.0, 0.0),
+      Vec3::new(4.0, 7.0, 0.0),
+      Vec3::new(4.0, 8.0, 0.0), // Turn left
+      Vec3::new(-3.0, 8.0, 0.0),
+      Vec3::new(-3.0, 7.0, 0.0),
+      Vec3::new(-4.0, 8.0, 0.0), // Turn right
+      Vec3::new(-3.0, 15.0, 0.0),
+      Vec3::new(-4.0, 15.0, 0.0),
     ],
     polygons: vec![
       vec![0, 1, 2, 3],
@@ -170,8 +170,10 @@ fn finds_next_point_in_zig_zag() {
   .validate()
   .expect("Mesh is valid.");
 
-  let transform =
-    Transform { translation: Vec3::new(-1.0, -10.0, -3.0), rotation: PI * 1.8 };
+  let transform = Transform {
+    translation: Vec3::new(-1.0, -3.0, -10.0),
+    rotation: PI * -1.8,
+  };
   let mut archipelago = Archipelago::new();
   let island_id = archipelago.add_island();
   archipelago
@@ -194,35 +196,35 @@ fn finds_next_point_in_zig_zag() {
       /* start= */
       (
         PathIndex::from_corridor_index(0, 0),
-        transform.apply(Vec3::new(0.5, 0.0, 0.5))
+        transform.apply(Vec3::new(0.5, 0.5, 0.0))
       ),
       /* end= */
       (
         PathIndex::from_corridor_index(0, 14),
-        transform.apply(Vec3::new(-3.5, 0.0, 14.0))
+        transform.apply(Vec3::new(-3.5, 14.0, 0.0))
       ),
       /* iteration_limit= */ 5,
     ),
     [
       (
         PathIndex::from_corridor_index(0, 4),
-        transform.apply(Vec3::new(1.0, 0.0, 4.0))
+        transform.apply(Vec3::new(1.0, 4.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 8),
-        transform.apply(Vec3::new(4.0, 0.0, 5.0))
+        transform.apply(Vec3::new(4.0, 5.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 11),
-        transform.apply(Vec3::new(4.0, 0.0, 7.0))
+        transform.apply(Vec3::new(4.0, 7.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 13),
-        transform.apply(Vec3::new(-3.0, 0.0, 8.0))
+        transform.apply(Vec3::new(-3.0, 8.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 14),
-        transform.apply(Vec3::new(-3.5, 0.0, 14.0))
+        transform.apply(Vec3::new(-3.5, 14.0, 0.0))
       ),
     ]
   );
@@ -235,10 +237,10 @@ fn starts_at_end_index_goes_to_end_point() {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
-      Vec3::new(1.0, 0.0, 1.0),
-      Vec3::new(0.0, 0.0, 1.0),
-      Vec3::new(1.0, 0.0, 2.0),
-      Vec3::new(0.0, 0.0, 2.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 2.0, 0.0),
+      Vec3::new(0.0, 2.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
   }
@@ -265,11 +267,11 @@ fn starts_at_end_index_goes_to_end_point() {
     path.find_next_point_in_straight_path(
       &archipelago.nav_data,
       /* start_index= */ PathIndex::from_corridor_index(0, 1),
-      /* start_point= */ Vec3::new(0.25, 0.0, 1.1),
+      /* start_point= */ Vec3::new(0.25, 1.1, 0.0),
       /* end_index= */ PathIndex::from_corridor_index(0, 1),
-      /* end_point= */ Vec3::new(0.75, 0.0, 1.9),
+      /* end_point= */ Vec3::new(0.75, 1.9, 0.0),
     ),
-    (PathIndex::from_corridor_index(0, 1), Vec3::new(0.75, 0.0, 1.9))
+    (PathIndex::from_corridor_index(0, 1), Vec3::new(0.75, 1.9, 0.0))
   );
 }
 

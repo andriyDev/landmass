@@ -168,7 +168,7 @@ impl Path {
     };
 
     fn triangle_area_2(point_0: Vec3, point_1: Vec3, point_2: Vec3) -> f32 {
-      (point_1.xz() - point_0.xz()).perp_dot(point_2.xz() - point_0.xz())
+      (point_1.xy() - point_0.xy()).perp_dot(point_2.xy() - point_0.xy())
     }
 
     let mut portal_index = start_index.next(self);
