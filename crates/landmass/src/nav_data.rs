@@ -325,7 +325,7 @@ impl NavigationData {
       line_string: &mut Vec<Coord<f32>>,
     ) {
       let vertex = nav_data.transform.apply(nav_data.nav_mesh.vertices[vertex]);
-      line_string.push(vec2_to_coord(vertex.xz()));
+      line_string.push(vec2_to_coord(vertex.xy()));
     }
 
     let mut multi_line_string = vec![];
@@ -368,7 +368,7 @@ impl NavigationData {
       link: &BoundaryLink,
       edge_link_distance: f32,
     ) -> MultiPolygon<f32> {
-      let flat_portal = (link.portal.0.xz(), link.portal.1.xz());
+      let flat_portal = (link.portal.0.xy(), link.portal.1.xy());
       let portal_forward =
         (flat_portal.1 - flat_portal.0).normalize().perp() * edge_link_distance;
       MultiPolygon::new(vec![Polygon::new(
@@ -402,7 +402,7 @@ impl NavigationData {
         .apply(island_nav_data.nav_mesh.vertices[index]);
 
       original_vertices
-        .add([vertex.x, vertex.z], index)
+        .add([vertex.x, vertex.y], index)
         .expect("Vertex is valid");
     }
 
@@ -458,7 +458,7 @@ impl NavigationData {
         });
 
         let polygon_center =
-          island_nav_data.transform.apply(polygon.center).xz();
+          island_nav_data.transform.apply(polygon.center).xy();
 
         // Ensure the winding order of the modified node boundary matches the
         // polygon edges.

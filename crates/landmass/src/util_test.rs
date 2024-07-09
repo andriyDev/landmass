@@ -191,20 +191,22 @@ fn transform_empty_does_nothing() {
 fn transforms_bounds() {
   let root_2 = 2.0f32.sqrt();
   let (actual_min, actual_max) =
-    BoundingBox::new_box(Vec3::new(1.0, 2.0, 3.0), Vec3::new(6.0, 5.0, 4.0))
+    BoundingBox::new_box(Vec3::new(1.0, 3.0, 2.0), Vec3::new(6.0, 4.0, 5.0))
       .transform(Transform {
-        translation: Vec3::new(-4.0, -3.0, 1.0),
-        rotation: PI * 0.75,
+        translation: Vec3::new(-4.0, 1.0, -3.0),
+        rotation: -PI * 0.75,
       })
       .as_box();
-  assert!(actual_min.abs_diff_eq(
-    Vec3::new(-3.0 / root_2 - 4.0, -1.0, -10.0 / root_2 + 1.0),
-    1e-6
-  ));
-  assert!(actual_max.abs_diff_eq(
-    Vec3::new(3.0 / root_2 - 4.0, 2.0, -4.0 / root_2 + 1.0),
-    1e-6
-  ));
+  let expected_min = Vec3::new(-3.0 / root_2 - 4.0, -10.0 / root_2 + 1.0, -1.0);
+  assert!(
+    actual_min.abs_diff_eq(expected_min, 1e-6),
+    "actual_min={actual_min} expected_min={expected_min}"
+  );
+  let expected_max = Vec3::new(3.0 / root_2 - 4.0, -4.0 / root_2 + 1.0, 2.0);
+  assert!(
+    actual_max.abs_diff_eq(expected_max, 1e-6),
+    "actual_max={actual_max} expected_max={expected_max}"
+  );
 }
 
 #[test]

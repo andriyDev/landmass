@@ -160,12 +160,12 @@ impl BoundingBox {
       BoundingBox::Empty => return BoundingBox::Empty,
       BoundingBox::Box { min, max } => (min, max),
     };
-    let flat_max = Vec3::new(max.x, min.y, max.z);
+    let flat_max = Vec3::new(max.x, max.y, min.z);
 
     let points = [
       transform.apply(*min),
       transform.apply(flat_max),
-      transform.apply(Vec3::new(min.x, min.y, max.z)),
+      transform.apply(Vec3::new(min.x, max.y, min.z)),
       transform.apply(Vec3::new(max.x, min.y, min.z)),
     ];
 
@@ -176,12 +176,12 @@ impl BoundingBox {
           .map(|p| p.x)
           .min_by(|a, b| a.partial_cmp(b).unwrap())
           .unwrap(),
-        points[0].y,
         points
           .iter()
-          .map(|p| p.z)
+          .map(|p| p.y)
           .min_by(|a, b| a.partial_cmp(b).unwrap())
           .unwrap(),
+        points[0].z,
       ),
       max: Vec3::new(
         points
@@ -189,12 +189,12 @@ impl BoundingBox {
           .map(|p| p.x)
           .max_by(|a, b| a.partial_cmp(b).unwrap())
           .unwrap(),
-        points[0].y + (max.y - min.y),
         points
           .iter()
-          .map(|p| p.z)
+          .map(|p| p.y)
           .max_by(|a, b| a.partial_cmp(b).unwrap())
           .unwrap(),
+        points[0].z + (max.z - min.z),
       ),
     }
   }
@@ -212,12 +212,12 @@ pub struct Transform {
 impl Transform {
   /// Applies the transformation.
   pub(crate) fn apply(&self, point: Vec3) -> Vec3 {
-    Quat::from_rotation_y(self.rotation) * point + self.translation
+    Quat::from_rotation_z(self.rotation) * point + self.translation
   }
 
   /// Inverses the transformation.
   pub(crate) fn apply_inverse(&self, point: Vec3) -> Vec3 {
-    Quat::from_rotation_y(-self.rotation) * (point - self.translation)
+    Quat::from_rotation_z(-self.rotation) * (point - self.translation)
   }
 }
 

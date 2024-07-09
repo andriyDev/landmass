@@ -29,10 +29,10 @@ fn samples_points() {
       Vec3::new(2.0, 1.0, 1.0),
       Vec3::new(3.0, 1.0, 1.0),
       Vec3::new(4.0, 1.0, 1.0),
-      Vec3::new(4.0, 1.0, 2.0),
-      Vec3::new(3.0, 1.0, 2.0),
-      Vec3::new(2.0, 1.0, 2.0),
-      Vec3::new(1.0, 1.0, 2.0),
+      Vec3::new(4.0, 2.0, 1.0),
+      Vec3::new(3.0, 2.0, 1.0),
+      Vec3::new(2.0, 2.0, 1.0),
+      Vec3::new(1.0, 2.0, 1.0),
     ],
     polygons: vec![vec![0, 1, 6, 7], vec![1, 2, 5, 6], vec![2, 3, 4, 5]],
   }
@@ -52,7 +52,7 @@ fn samples_points() {
   let island_id_2 = nav_data.islands.insert({
     let mut island = Island::new();
     island.set_nav_mesh(
-      Transform { translation: Vec3::new(5.0, 0.1, 0.0), rotation: PI * -0.5 },
+      Transform { translation: Vec3::new(5.0, 0.0, 0.1), rotation: PI * 0.5 },
       Arc::clone(&nav_mesh),
     );
     island
@@ -61,11 +61,11 @@ fn samples_points() {
   // Just above island 1 node.
   assert_eq!(
     nav_data.sample_point(
-      Vec3::new(1.5, 1.09, 1.5),
+      Vec3::new(1.5, 1.5, 1.09),
       /* distance_to_node= */ 0.1,
     ),
     Some((
-      Vec3::new(1.5, 1.0, 1.5),
+      Vec3::new(1.5, 1.5, 1.0),
       NodeRef { island_id: island_id_1, polygon_index: 0 }
     )),
   );
@@ -83,21 +83,21 @@ fn samples_points() {
   // At overlap, but closer to island 1.
   assert_eq!(
     nav_data.sample_point(
-      Vec3::new(3.5, 1.04, 1.5),
+      Vec3::new(3.5, 1.5, 1.04),
       /* distance_to_node= */ 0.1,
     ),
     Some((
-      Vec3::new(3.5, 1.0, 1.5),
+      Vec3::new(3.5, 1.5, 1.0),
       NodeRef { island_id: island_id_1, polygon_index: 2 }
     )),
   );
   // At overlap, but closer to island 2.
   assert_eq!(
     nav_data
-      .sample_point(Vec3::new(3.5, 1.06, 1.5), /* distance_to_node= */ 0.1,)
+      .sample_point(Vec3::new(3.5, 1.5, 1.06), /* distance_to_node= */ 0.1,)
       .map(|(p, n)| ((p * 1e6).round() / 1e6, n)),
     Some((
-      Vec3::new(3.5, 1.1, 1.5),
+      Vec3::new(3.5, 1.5, 1.1),
       NodeRef { island_id: island_id_2, polygon_index: 0 }
     )),
   );
@@ -156,19 +156,19 @@ fn link_edges_between_islands_links_touching_islands() {
     NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
-        Vec3::new(1.0, 1.0, 0.0),
+        Vec3::new(1.0, 0.0, 1.0),
         Vec3::new(1.0, 1.0, 1.0),
         Vec3::new(-1.0, 1.0, 1.0),
-        Vec3::new(-1.0, 1.0, 0.0),
-        Vec3::new(-1.0, 1.0, -1.0),
-        Vec3::new(1.0, 1.0, -1.0),
+        Vec3::new(-1.0, 0.0, 1.0),
+        Vec3::new(-1.0, -1.0, 1.0),
+        Vec3::new(1.0, -1.0, 1.0),
         //
-        Vec3::new(2.0, 1.0, 0.0),
-        Vec3::new(2.0, 1.0, 2.0),
-        Vec3::new(-2.0, 1.0, 2.0),
-        Vec3::new(-2.0, 1.0, 0.0),
-        Vec3::new(-2.0, 1.0, -2.0),
-        Vec3::new(2.0, 1.0, -2.0),
+        Vec3::new(2.0, 0.0, 1.0),
+        Vec3::new(2.0, 2.0, 1.0),
+        Vec3::new(-2.0, 2.0, 1.0),
+        Vec3::new(-2.0, 0.0, 1.0),
+        Vec3::new(-2.0, -2.0, 1.0),
+        Vec3::new(2.0, -2.0, 1.0),
       ],
       polygons: vec![
         vec![0, 6, 7, 1],
@@ -187,18 +187,18 @@ fn link_edges_between_islands_links_touching_islands() {
     NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
-        Vec3::new(-1.0, 1.0, -0.5),
-        Vec3::new(-0.5, 1.0, -0.5),
-        Vec3::new(0.5, 1.0, -0.5),
-        Vec3::new(1.0, 1.0, -0.5),
-        Vec3::new(-1.0, 1.0, 0.5),
-        Vec3::new(-0.5, 1.0, 0.5),
-        Vec3::new(0.5, 1.0, 0.5),
-        Vec3::new(1.0, 1.0, 0.5),
+        Vec3::new(-1.0, -0.5, 1.0),
+        Vec3::new(-0.5, -0.5, 1.0),
+        Vec3::new(0.5, -0.5, 1.0),
+        Vec3::new(1.0, -0.5, 1.0),
+        Vec3::new(-1.0, 0.5, 1.0),
+        Vec3::new(-0.5, 0.5, 1.0),
+        Vec3::new(0.5, 0.5, 1.0),
+        Vec3::new(1.0, 0.5, 1.0),
         Vec3::new(-0.5, 1.0, 1.0),
         Vec3::new(0.5, 1.0, 1.0),
-        Vec3::new(-0.5, 1.0, -1.0),
-        Vec3::new(0.5, 1.0, -1.0),
+        Vec3::new(-0.5, -1.0, 1.0),
+        Vec3::new(0.5, -1.0, 1.0),
       ],
       polygons: vec![
         vec![5, 4, 0, 1],
@@ -221,7 +221,7 @@ fn link_edges_between_islands_links_touching_islands() {
   let mut island_2 = Island::new();
 
   let transform =
-    Transform { translation: Vec3::new(1.0, 2.0, 3.0), rotation: PI * 0.25 };
+    Transform { translation: Vec3::new(1.0, 2.0, 3.0), rotation: PI * -0.25 };
   island_1.set_nav_mesh(transform, Arc::clone(&nav_mesh_1));
   island_2.set_nav_mesh(transform, Arc::clone(&nav_mesh_2));
 
@@ -270,8 +270,8 @@ fn link_edges_between_islands_links_touching_islands() {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 2 },
         portal: transform_and_round_portal(
           transform,
-          Vec3::new(1.0, 1.0, 0.5),
-          Vec3::new(1.0, 1.0, 0.0),
+          Vec3::new(1.0, 0.5, 1.0),
+          Vec3::new(1.0, 0.0, 1.0),
         ),
         cost: diagonal_link_cost,
       }],
@@ -294,8 +294,8 @@ fn link_edges_between_islands_links_touching_islands() {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 0 },
         portal: transform_and_round_portal(
           transform,
-          Vec3::new(-1.0, 1.0, 0.0),
-          Vec3::new(-1.0, 1.0, 0.5),
+          Vec3::new(-1.0, 0.0, 1.0),
+          Vec3::new(-1.0, 0.5, 1.0),
         ),
         cost: diagonal_link_cost,
       }],
@@ -306,8 +306,8 @@ fn link_edges_between_islands_links_touching_islands() {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 0 },
         portal: transform_and_round_portal(
           transform,
-          Vec3::new(-1.0, 1.0, -0.5),
-          Vec3::new(-1.0, 1.0, 0.0),
+          Vec3::new(-1.0, -0.5, 1.0),
+          Vec3::new(-1.0, 0.0, 1.0),
         ),
         cost: diagonal_link_cost,
       }],
@@ -318,8 +318,8 @@ fn link_edges_between_islands_links_touching_islands() {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 4 },
         portal: transform_and_round_portal(
           transform,
-          Vec3::new(0.5, 1.0, -1.0),
-          Vec3::new(-0.5, 1.0, -1.0),
+          Vec3::new(0.5, -1.0, 1.0),
+          Vec3::new(-0.5, -1.0, 1.0),
         ),
         cost: vertical_link_cost,
       }],
@@ -330,8 +330,8 @@ fn link_edges_between_islands_links_touching_islands() {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 2 },
         portal: transform_and_round_portal(
           transform,
-          Vec3::new(1.0, 1.0, 0.0),
-          Vec3::new(1.0, 1.0, -0.5),
+          Vec3::new(1.0, 0.0, 1.0),
+          Vec3::new(1.0, -0.5, 1.0),
         ),
         cost: diagonal_link_cost,
       }],
@@ -347,8 +347,8 @@ fn link_edges_between_islands_links_touching_islands() {
           },
           portal: transform_and_round_portal(
             transform,
-            Vec3::new(-1.0, 1.0, 0.5),
-            Vec3::new(-1.0, 1.0, 0.0),
+            Vec3::new(-1.0, 0.5, 1.0),
+            Vec3::new(-1.0, 0.0, 1.0),
           ),
           cost: diagonal_link_cost,
         },
@@ -359,8 +359,8 @@ fn link_edges_between_islands_links_touching_islands() {
           },
           portal: transform_and_round_portal(
             transform,
-            Vec3::new(-1.0, 1.0, 0.0),
-            Vec3::new(-1.0, 1.0, -0.5),
+            Vec3::new(-1.0, 0.0, 1.0),
+            Vec3::new(-1.0, -0.5, 1.0),
           ),
           cost: diagonal_link_cost,
         },
@@ -376,8 +376,8 @@ fn link_edges_between_islands_links_touching_islands() {
           },
           portal: transform_and_round_portal(
             transform,
-            Vec3::new(1.0, 1.0, 0.0),
-            Vec3::new(1.0, 1.0, 0.5),
+            Vec3::new(1.0, 0.0, 1.0),
+            Vec3::new(1.0, 0.5, 1.0),
           ),
           cost: diagonal_link_cost,
         },
@@ -388,8 +388,8 @@ fn link_edges_between_islands_links_touching_islands() {
           },
           portal: transform_and_round_portal(
             transform,
-            Vec3::new(1.0, 1.0, -0.5),
-            Vec3::new(1.0, 1.0, 0.0),
+            Vec3::new(1.0, -0.5, 1.0),
+            Vec3::new(1.0, 0.0, 1.0),
           ),
           cost: diagonal_link_cost,
         },
@@ -413,8 +413,8 @@ fn link_edges_between_islands_links_touching_islands() {
         destination_node: NodeRef { island_id: island_1_id, polygon_index: 4 },
         portal: transform_and_round_portal(
           transform,
-          Vec3::new(-0.5, 1.0, -1.0),
-          Vec3::new(0.5, 1.0, -1.0),
+          Vec3::new(-0.5, -1.0, 1.0),
+          Vec3::new(0.5, -1.0, 1.0),
         ),
         cost: vertical_link_cost,
       }],
@@ -480,10 +480,10 @@ fn update_links_islands_and_unlinks_on_delete() {
     NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
-        Vec3::new(1.0, 1.0, 0.0),
-        Vec3::new(2.0, 1.0, 0.0),
-        Vec3::new(2.0, 1.0, 2.0),
-        Vec3::new(0.0, 1.0, 2.0),
+        Vec3::new(1.0, 0.0, 1.0),
+        Vec3::new(2.0, 0.0, 1.0),
+        Vec3::new(2.0, 2.0, 1.0),
+        Vec3::new(0.0, 2.0, 1.0),
         Vec3::new(0.0, 1.0, 1.0),
         Vec3::new(1.0, 1.0, 1.0),
       ],
@@ -504,7 +504,7 @@ fn update_links_islands_and_unlinks_on_delete() {
     Arc::clone(&nav_mesh),
   );
   island_2.set_nav_mesh(
-    Transform { translation: Vec3::ZERO, rotation: PI * -0.5 },
+    Transform { translation: Vec3::ZERO, rotation: PI * 0.5 },
     Arc::clone(&nav_mesh),
   );
   island_3.set_nav_mesh(
@@ -516,7 +516,7 @@ fn update_links_islands_and_unlinks_on_delete() {
     Arc::clone(&nav_mesh),
   );
   island_5.set_nav_mesh(
-    Transform { translation: Vec3::new(2.0, 0.0, 3.0), rotation: PI * 0.5 },
+    Transform { translation: Vec3::new(2.0, 3.0, 0.0), rotation: PI * -0.5 },
     Arc::clone(&nav_mesh),
   );
 
@@ -552,7 +552,7 @@ fn update_links_islands_and_unlinks_on_delete() {
               island_id: island_4_id,
               polygon_index: 0,
             },
-            portal: (Vec3::new(1.0, 1.0, 0.0), Vec3::new(2.0, 1.0, 0.0)),
+            portal: (Vec3::new(1.0, 0.0, 1.0), Vec3::new(2.0, 0.0, 1.0)),
             cost: lined_up_cost,
           },
           BoundaryLink {
@@ -560,7 +560,7 @@ fn update_links_islands_and_unlinks_on_delete() {
               island_id: island_5_id,
               polygon_index: 0,
             },
-            portal: (Vec3::new(2.0, 1.0, 1.0), Vec3::new(2.0, 1.0, 2.0)),
+            portal: (Vec3::new(2.0, 1.0, 1.0), Vec3::new(2.0, 2.0, 1.0)),
             cost: offset_cost,
           },
         ],
@@ -572,7 +572,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             island_id: island_2_id,
             polygon_index: 0,
           },
-          portal: (Vec3::new(0.0, 1.0, 2.0), Vec3::new(0.0, 1.0, 1.0)),
+          portal: (Vec3::new(0.0, 2.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
           cost: lined_up_cost,
         }],
       ),
@@ -583,7 +583,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             island_id: island_1_id,
             polygon_index: 1,
           },
-          portal: (Vec3::new(0.0, 1.0, 1.0), Vec3::new(0.0, 1.0, 2.0)),
+          portal: (Vec3::new(0.0, 1.0, 1.0), Vec3::new(0.0, 2.0, 1.0)),
           cost: lined_up_cost,
         }],
       ),
@@ -594,7 +594,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             island_id: island_3_id,
             polygon_index: 0,
           },
-          portal: (Vec3::new(-2.0, 1.0, 0.0), Vec3::new(-1.0, 1.0, 0.0)),
+          portal: (Vec3::new(-2.0, 0.0, 1.0), Vec3::new(-1.0, 0.0, 1.0)),
           cost: lined_up_cost,
         }],
       ),
@@ -605,7 +605,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             island_id: island_2_id,
             polygon_index: 1,
           },
-          portal: (Vec3::new(-1.0, 1.0, 0.0), Vec3::new(-2.0, 1.0, 0.0)),
+          portal: (Vec3::new(-1.0, 0.0, 1.0), Vec3::new(-2.0, 0.0, 1.0)),
           cost: lined_up_cost,
         }],
       ),
@@ -616,7 +616,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             island_id: island_1_id,
             polygon_index: 0,
           },
-          portal: (Vec3::new(2.0, 1.0, 0.0), Vec3::new(1.0, 1.0, 0.0)),
+          portal: (Vec3::new(2.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
           cost: lined_up_cost,
         }],
       ),
@@ -627,7 +627,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             island_id: island_1_id,
             polygon_index: 0,
           },
-          portal: (Vec3::new(2.0, 1.0, 2.0), Vec3::new(2.0, 1.0, 1.0)),
+          portal: (Vec3::new(2.0, 2.0, 1.0), Vec3::new(2.0, 1.0, 1.0)),
           cost: offset_cost,
         }],
       ),
@@ -643,7 +643,7 @@ fn update_links_islands_and_unlinks_on_delete() {
     .get_mut(island_5_id)
     .expect("island_5 still exists")
     .set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: PI * -0.5 },
+      Transform { translation: Vec3::ZERO, rotation: PI * 0.5 },
       Arc::clone(&nav_mesh),
     );
 
@@ -664,7 +664,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             island_id: island_5_id,
             polygon_index: 0,
           },
-          portal: (Vec3::new(0.0, 1.0, 2.0), Vec3::new(0.0, 1.0, 1.0)),
+          portal: (Vec3::new(0.0, 2.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
           cost: lined_up_cost,
         }],
       ),
@@ -675,7 +675,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             island_id: island_5_id,
             polygon_index: 1,
           },
-          portal: (Vec3::new(-1.0, 1.0, 0.0), Vec3::new(-2.0, 1.0, 0.0)),
+          portal: (Vec3::new(-1.0, 0.0, 1.0), Vec3::new(-2.0, 0.0, 1.0)),
           cost: lined_up_cost,
         }],
       ),
@@ -686,7 +686,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             island_id: island_1_id,
             polygon_index: 1,
           },
-          portal: (Vec3::new(0.0, 1.0, 1.0), Vec3::new(0.0, 1.0, 2.0)),
+          portal: (Vec3::new(0.0, 1.0, 1.0), Vec3::new(0.0, 2.0, 1.0)),
           cost: lined_up_cost,
         }],
       ),
@@ -697,7 +697,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             island_id: island_3_id,
             polygon_index: 0,
           },
-          portal: (Vec3::new(-2.0, 1.0, 0.0), Vec3::new(-1.0, 1.0, 0.0)),
+          portal: (Vec3::new(-2.0, 0.0, 1.0), Vec3::new(-1.0, 0.0, 1.0)),
           cost: lined_up_cost,
         }],
       ),
@@ -781,10 +781,10 @@ fn modifies_node_boundaries_for_linked_islands() {
       vertices: vec![
         Vec3::new(1.0, 1.0, 1.0),
         Vec3::new(2.0, 1.0, 1.0),
-        Vec3::new(2.0, 1.0, 2.0),
-        Vec3::new(1.0, 1.0, 2.0),
-        Vec3::new(2.0, 1.0, 3.0),
-        Vec3::new(1.0, 1.0, 3.0),
+        Vec3::new(2.0, 2.0, 1.0),
+        Vec3::new(1.0, 2.0, 1.0),
+        Vec3::new(2.0, 3.0, 1.0),
+        Vec3::new(1.0, 3.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
     }
@@ -801,11 +801,11 @@ fn modifies_node_boundaries_for_linked_islands() {
     Arc::clone(&nav_mesh),
   );
   island_2.set_nav_mesh(
-    Transform { translation: Vec3::new(1.0, 0.0, -1.0), rotation: 0.0 },
+    Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
     Arc::clone(&nav_mesh),
   );
   island_3.set_nav_mesh(
-    Transform { translation: Vec3::new(2.0, 0.0, 3.5), rotation: PI * 0.5 },
+    Transform { translation: Vec3::new(2.0, 3.5, 0.0), rotation: PI * -0.5 },
     Arc::clone(&nav_mesh),
   );
 
@@ -815,6 +815,9 @@ fn modifies_node_boundaries_for_linked_islands() {
   let island_3_id = nav_data.islands.insert(island_3);
 
   nav_data.update(/* edge_link_distance= */ 1e-6);
+
+  dbg!(&nav_data.node_to_boundary_link_ids);
+  dbg!(&nav_data.boundary_links);
 
   let expected_modified_nodes = [
     (
@@ -856,10 +859,10 @@ fn stale_modified_nodes_are_removed() {
       vertices: vec![
         Vec3::new(1.0, 1.0, 1.0),
         Vec3::new(2.0, 1.0, 1.0),
-        Vec3::new(2.0, 1.0, 2.0),
-        Vec3::new(1.0, 1.0, 2.0),
-        Vec3::new(2.0, 1.0, 3.0),
-        Vec3::new(1.0, 1.0, 3.0),
+        Vec3::new(2.0, 2.0, 1.0),
+        Vec3::new(1.0, 2.0, 1.0),
+        Vec3::new(2.0, 3.0, 1.0),
+        Vec3::new(1.0, 3.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
     }
@@ -875,7 +878,7 @@ fn stale_modified_nodes_are_removed() {
     Arc::clone(&nav_mesh),
   );
   island_2.set_nav_mesh(
-    Transform { translation: Vec3::new(1.0, 0.0, -1.0), rotation: 0.0 },
+    Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
     Arc::clone(&nav_mesh),
   );
 
@@ -901,8 +904,8 @@ fn empty_navigation_mesh_is_safe() {
       vertices: vec![
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(1.0, 0.0, 0.0),
-        Vec3::new(1.0, 0.0, 1.0),
-        Vec3::new(0.0, 0.0, 1.0),
+        Vec3::new(1.0, 1.0, 0.0),
+        Vec3::new(0.0, 1.0, 0.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       mesh_bounds: None,
