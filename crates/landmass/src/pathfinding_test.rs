@@ -18,19 +18,19 @@ fn finds_path_in_archipelago() {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
-      Vec3::new(4.0, 0.0, 1.0),
-      Vec3::new(4.0, 0.0, 2.0),
-      Vec3::new(2.0, 0.0, 3.0),
-      Vec3::new(1.0, 0.0, 3.0),
-      Vec3::new(0.0, 0.0, 2.0),
-      Vec3::new(0.0, 0.0, 1.0),
-      Vec3::new(1.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 4.0),
-      Vec3::new(3.0, 1.0, 5.0),
-      Vec3::new(3.0, 1.0, 4.0),
-      Vec3::new(3.0, -2.0, 4.0),
-      Vec3::new(3.0, -2.0, 3.0),
+      Vec3::new(4.0, 1.0, 0.0),
+      Vec3::new(4.0, 2.0, 0.0),
+      Vec3::new(2.0, 3.0, 0.0),
+      Vec3::new(1.0, 3.0, 0.0),
+      Vec3::new(0.0, 2.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 5.0, 0.0),
+      Vec3::new(2.0, 5.0, 0.0),
+      Vec3::new(2.0, 4.0, 0.0),
+      Vec3::new(3.0, 5.0, 1.0),
+      Vec3::new(3.0, 4.0, 1.0),
+      Vec3::new(3.0, 4.0, -2.0),
+      Vec3::new(3.0, 3.0, -2.0),
     ],
     polygons: vec![
       vec![0, 1, 2, 3, 4, 5, 6, 7],
@@ -113,19 +113,19 @@ fn finds_paths_on_two_islands() {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
-      Vec3::new(4.0, 0.0, 1.0),
-      Vec3::new(4.0, 0.0, 2.0),
-      Vec3::new(2.0, 0.0, 3.0),
-      Vec3::new(1.0, 0.0, 3.0),
-      Vec3::new(0.0, 0.0, 2.0),
-      Vec3::new(0.0, 0.0, 1.0),
-      Vec3::new(1.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 4.0),
-      Vec3::new(3.0, 1.0, 5.0),
-      Vec3::new(3.0, 1.0, 4.0),
-      Vec3::new(3.0, -2.0, 4.0),
-      Vec3::new(3.0, -2.0, 3.0),
+      Vec3::new(4.0, 1.0, 0.0),
+      Vec3::new(4.0, 2.0, 0.0),
+      Vec3::new(2.0, 3.0, 0.0),
+      Vec3::new(1.0, 3.0, 0.0),
+      Vec3::new(0.0, 2.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 5.0, 0.0),
+      Vec3::new(2.0, 5.0, 0.0),
+      Vec3::new(2.0, 4.0, 0.0),
+      Vec3::new(3.0, 5.0, 1.0),
+      Vec3::new(3.0, 4.0, 1.0),
+      Vec3::new(3.0, 4.0, -2.0),
+      Vec3::new(3.0, 3.0, -2.0),
     ],
     polygons: vec![
       vec![0, 1, 2, 3, 4, 5, 6, 7],
@@ -147,7 +147,7 @@ fn finds_paths_on_two_islands() {
 
   let island_id_2 = archipelago.add_island();
   archipelago.get_island_mut(island_id_2).set_nav_mesh(
-    Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * 0.5 },
+    Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * -0.5 },
     Arc::clone(&nav_mesh),
   );
 
@@ -197,19 +197,19 @@ fn no_path_between_disconnected_islands() {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
-      Vec3::new(4.0, 0.0, 1.0),
-      Vec3::new(4.0, 0.0, 2.0),
-      Vec3::new(2.0, 0.0, 3.0),
-      Vec3::new(1.0, 0.0, 3.0),
-      Vec3::new(0.0, 0.0, 2.0),
-      Vec3::new(0.0, 0.0, 1.0),
-      Vec3::new(1.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 4.0),
-      Vec3::new(3.0, 1.0, 5.0),
-      Vec3::new(3.0, 1.0, 4.0),
-      Vec3::new(3.0, -2.0, 4.0),
-      Vec3::new(3.0, -2.0, 3.0),
+      Vec3::new(4.0, 1.0, 0.0),
+      Vec3::new(4.0, 2.0, 0.0),
+      Vec3::new(2.0, 3.0, 0.0),
+      Vec3::new(1.0, 3.0, 0.0),
+      Vec3::new(0.0, 2.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 5.0, 0.0),
+      Vec3::new(2.0, 5.0, 0.0),
+      Vec3::new(2.0, 4.0, 0.0),
+      Vec3::new(3.0, 5.0, 1.0),
+      Vec3::new(3.0, 4.0, 1.0),
+      Vec3::new(3.0, 4.0, -2.0),
+      Vec3::new(3.0, 3.0, -2.0),
     ],
     polygons: vec![
       vec![0, 1, 2, 3, 4, 5, 6, 7],
@@ -231,7 +231,7 @@ fn no_path_between_disconnected_islands() {
 
   let island_id_2 = archipelago.add_island();
   archipelago.get_island_mut(island_id_2).set_nav_mesh(
-    Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * 0.5 },
+    Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * -0.5 },
     Arc::clone(&nav_mesh),
   );
 
@@ -260,10 +260,10 @@ fn find_path_across_connected_islands() {
     NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
-        Vec3::new(-0.5, 0.0, -0.5),
-        Vec3::new(0.5, 0.0, -0.5),
-        Vec3::new(0.5, 0.0, 0.5),
-        Vec3::new(-0.5, 0.0, 0.5),
+        Vec3::new(-0.5, -0.5, 0.0),
+        Vec3::new(0.5, -0.5, 0.0),
+        Vec3::new(0.5, 0.5, 0.0),
+        Vec3::new(-0.5, 0.5, 0.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
     }
@@ -288,15 +288,15 @@ fn find_path_across_connected_islands() {
     Arc::clone(&nav_mesh),
   );
   archipelago.get_island_mut(island_id_3).set_nav_mesh(
-    Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, -1.0) },
+    Transform { rotation: 0.0, translation: Vec3::new(1.0, -1.0, 0.0) },
     Arc::clone(&nav_mesh),
   );
   archipelago.get_island_mut(island_id_4).set_nav_mesh(
-    Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 1.0) },
+    Transform { rotation: 0.0, translation: Vec3::new(1.0, 1.0, 0.0) },
     Arc::clone(&nav_mesh),
   );
   archipelago.get_island_mut(island_id_5).set_nav_mesh(
-    Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 2.0) },
+    Transform { rotation: 0.0, translation: Vec3::new(1.0, 2.0, 0.0) },
     Arc::clone(&nav_mesh),
   );
 
@@ -369,10 +369,10 @@ fn finds_path_across_different_islands() {
     NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
-        Vec3::new(-0.5, 0.0, -0.5),
-        Vec3::new(0.5, 0.0, -0.5),
-        Vec3::new(0.5, 0.0, 0.5),
-        Vec3::new(-0.5, 0.0, 0.5),
+        Vec3::new(-0.5, -0.5, 0.0),
+        Vec3::new(0.5, -0.5, 0.0),
+        Vec3::new(0.5, 0.5, 0.0),
+        Vec3::new(-0.5, 0.5, 0.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
     }
@@ -383,12 +383,12 @@ fn finds_path_across_different_islands() {
     NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
-        Vec3::new(-0.5, 0.0, -0.5),
-        Vec3::new(0.5, 0.0, -0.5),
-        Vec3::new(0.5, 0.0, 0.5),
-        Vec3::new(-0.5, 0.0, 0.5),
-        Vec3::new(1.5, 0.0, -0.5),
-        Vec3::new(1.5, 0.0, 0.5),
+        Vec3::new(-0.5, -0.5, 0.0),
+        Vec3::new(0.5, -0.5, 0.0),
+        Vec3::new(0.5, 0.5, 0.0),
+        Vec3::new(-0.5, 0.5, 0.0),
+        Vec3::new(1.5, -0.5, 0.0),
+        Vec3::new(1.5, 0.5, 0.0),
       ],
       polygons: vec![vec![0, 1, 2, 3], vec![2, 1, 4, 5]],
     }
@@ -459,10 +459,10 @@ fn aborts_early_for_unconnected_regions() {
     NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
-        Vec3::new(-0.5, 0.0, -1.5),
-        Vec3::new(0.5, 0.0, -1.5),
-        Vec3::new(0.5, 0.0, 1.5),
-        Vec3::new(-0.5, 0.0, 1.5),
+        Vec3::new(-0.5, -1.5, 0.0),
+        Vec3::new(0.5, -1.5, 0.0),
+        Vec3::new(0.5, 1.5, 0.0),
+        Vec3::new(-0.5, 1.5, 0.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
     }
@@ -484,7 +484,7 @@ fn aborts_early_for_unconnected_regions() {
     nav_mesh.clone(),
   );
   archipelago.get_island_mut(island_id_3).set_nav_mesh(
-    Transform { translation: Vec3::new(1.5, 0.0, 2.0), rotation: PI * 0.5 },
+    Transform { translation: Vec3::new(1.5, 2.0, 0.0), rotation: PI * 0.5 },
     nav_mesh.clone(),
   );
 
