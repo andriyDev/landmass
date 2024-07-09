@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cmp::Ordering, collections::HashMap};
 
 use disjoint::DisjointSet;
 use glam::{swizzles::Vec3Swizzles, Vec3};
@@ -140,10 +140,16 @@ impl NavigationMesh {
         let left_edge = left_vertex - center_vertex;
         let right_edge = right_vertex - center_vertex;
 
-        // If right_edge is to the left of the left_edge, then the polygon is
-        // concave. This is the equation for a 2D cross product.
-        if right_edge.perp_dot(left_edge) < 0.0 {
-          return Err(ValidationError::ConcavePolygon(polygon_index));
+        match right_edge.perp_dot(left_edge).partial_cmp(&0.0) {
+          // The right edge is to the right of the left edge.
+          Some(Ordering::Greater) => {}
+          // The right edge is parallel to the left edge, but they point in
+          // opposite directions.
+          Some(Ordering::Equal) if right_edge.dot(left_edge) < 0.0 => {}
+          // right_edge is to the left of the left_edge (or they are parallel
+          // and point in the same direciton), so the polygon is
+          // concave.
+          _ => return Err(ValidationError::ConcavePolygon(polygon_index)),
         }
       }
     }
