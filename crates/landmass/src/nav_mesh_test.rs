@@ -13,11 +13,11 @@ fn validation_computes_bounds_if_none() {
     mesh_bounds: None,
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
-      Vec3::new(1.0, 1.0, 0.0),
-      Vec3::new(2.0, 0.0, 1.0),
-      Vec3::new(0.5, 0.5, 3.0),
-      Vec3::new(0.75, -0.25, 4.0),
-      Vec3::new(0.25, 0.0, 4.0),
+      Vec3::new(1.0, 0.0, 1.0),
+      Vec3::new(2.0, 1.0, 0.0),
+      Vec3::new(0.5, 3.0, 0.5),
+      Vec3::new(0.75, 4.0, -0.25),
+      Vec3::new(0.25, 4.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2], vec![3, 4, 5]],
   };
@@ -26,7 +26,7 @@ fn validation_computes_bounds_if_none() {
     source_mesh.clone().validate().expect("Validation succeeds.");
   assert_eq!(
     valid_mesh.mesh_bounds,
-    BoundingBox::new_box(Vec3::new(0.0, -0.25, 0.0), Vec3::new(2.0, 1.0, 4.0))
+    BoundingBox::new_box(Vec3::new(0.0, 0.0, -0.25), Vec3::new(2.0, 4.0, 1.0))
   );
 
   let fake_mesh_bounds =
@@ -44,8 +44,8 @@ fn correctly_computes_bounds_for_small_number_of_points() {
     mesh_bounds: None,
     vertices: vec![
       Vec3::new(-1.0, -1.0, -1.0),
-      Vec3::new(1.0, 1.0, 0.0),
-      Vec3::new(2.0, 0.0, 1.0),
+      Vec3::new(1.0, 0.0, 1.0),
+      Vec3::new(2.0, 1.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2]],
   }
@@ -64,11 +64,11 @@ fn polygons_derived_and_vertices_copied() {
     mesh_bounds: None,
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
-      Vec3::new(1.0, 1.0, 0.0),
-      Vec3::new(2.0, 0.0, 1.0),
-      Vec3::new(0.5, 0.5, 3.0),
-      Vec3::new(0.75, -0.25, 4.0),
-      Vec3::new(0.25, 0.0, 4.0),
+      Vec3::new(1.0, 0.0, 1.0),
+      Vec3::new(2.0, 1.0, 0.0),
+      Vec3::new(0.5, 3.0, 0.5),
+      Vec3::new(0.75, 4.0, -0.25),
+      Vec3::new(0.25, 4.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2], vec![3, 4, 5]],
   };
@@ -89,10 +89,10 @@ fn polygons_derived_and_vertices_copied() {
       connectivity: vec![None, None, None],
       region: 1,
       bounds: BoundingBox::new_box(
-        Vec3::new(0.25, -0.25, 3.0),
-        Vec3::new(0.75, 0.5, 4.0),
+        Vec3::new(0.25, 3.0, -0.25),
+        Vec3::new(0.75, 4.0, 0.5),
       ),
-      center: Vec3::new(1.5, 0.25, 11.0) / 3.0,
+      center: Vec3::new(1.5, 11.0, 0.25) / 3.0,
     },
   ];
 
@@ -108,7 +108,7 @@ fn error_on_concave_polygon() {
     mesh_bounds: None,
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
-      Vec3::new(1.0, 0.0, 1.0),
+      Vec3::new(1.0, 1.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2]],
@@ -131,7 +131,7 @@ fn error_on_concave_polygon() {
 fn error_on_small_polygon() {
   let source_mesh = NavigationMesh {
     mesh_bounds: None,
-    vertices: vec![Vec3::new(0.0, 0.0, 0.0), Vec3::new(1.0, 0.0, 1.0)],
+    vertices: vec![Vec3::new(0.0, 0.0, 0.0), Vec3::new(1.0, 1.0, 0.0)],
     polygons: vec![vec![0, 1]],
   };
 
@@ -157,7 +157,7 @@ fn error_on_bad_polygon_index() {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
-      Vec3::new(1.0, 0.0, 1.0),
+      Vec3::new(1.0, 1.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 3]],
   };
@@ -184,7 +184,7 @@ fn error_on_degenerate_edge() {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
-      Vec3::new(1.0, 0.0, 1.0),
+      Vec3::new(1.0, 1.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 1, 2]],
   };
@@ -211,10 +211,10 @@ fn error_on_doubly_connected_edge() {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
-      Vec3::new(1.0, 0.0, 1.0),
+      Vec3::new(1.0, 1.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
-      Vec3::new(2.0, 0.0, 1.0),
       Vec3::new(2.0, 1.0, 0.0),
+      Vec3::new(2.0, 0.0, 1.0),
       Vec3::new(2.0, 1.0, 1.0),
     ],
     polygons: vec![vec![0, 1, 2], vec![1, 3, 4, 2], vec![1, 5, 6, 2]],
@@ -242,13 +242,13 @@ fn derives_connectivity_and_boundary_edges() {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
-      Vec3::new(1.0, 0.0, 1.0),
+      Vec3::new(1.0, 1.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
-      Vec3::new(2.0, 0.0, 1.0),
-      Vec3::new(3.0, 1.0, 0.0),
+      Vec3::new(2.0, 1.0, 0.0),
+      Vec3::new(3.0, 0.0, 1.0),
       Vec3::new(3.0, 1.0, 1.0),
-      Vec3::new(1.0, 1.0, 2.0),
-      Vec3::new(2.0, 1.0, 2.0),
+      Vec3::new(1.0, 2.0, 1.0),
+      Vec3::new(2.0, 2.0, 1.0),
     ],
     polygons: vec![
       vec![0, 1, 2],
@@ -271,9 +271,9 @@ fn derives_connectivity_and_boundary_edges() {
   let cost_01 =
     0.5 + Vec2::new(2.0 / 3.0, 1.0 / 3.0).distance(Vec2::new(1.0, 0.5));
   let cost_12 =
-    0.5 + Vec3::new(2.5, 0.5, 0.5).distance(Vec3::new(2.0, 0.0, 0.5));
+    0.5 + Vec3::new(2.5, 0.5, 0.5).distance(Vec3::new(2.0, 0.5, 0.0));
   let cost_13 =
-    0.5 + Vec3::new(1.5, 0.5, 1.5).distance(Vec3::new(1.5, 0.0, 1.0));
+    0.5 + Vec3::new(1.5, 1.5, 0.5).distance(Vec3::new(1.5, 1.0, 0.0));
 
   let expected_connectivity: [&[_]; 4] = [
     &[None, Some(Connectivity { polygon_index: 1, cost: cost_01 }), None],
@@ -317,19 +317,19 @@ fn finds_regions() {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
-      Vec3::new(1.0, 0.0, 1.0),
-      Vec3::new(0.0, 0.0, 1.0),
-      Vec3::new(1.0, 0.0, 2.0),
-      Vec3::new(0.0, 0.0, 2.0),
-      Vec3::new(1.0, 0.0, 3.0),
-      Vec3::new(0.0, 0.0, 3.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 2.0, 0.0),
+      Vec3::new(0.0, 2.0, 0.0),
+      Vec3::new(1.0, 3.0, 0.0),
+      Vec3::new(0.0, 3.0, 0.0),
       //
       Vec3::new(2.0, 0.0, 0.0),
       Vec3::new(3.0, 0.0, 0.0),
-      Vec3::new(3.0, 0.0, 1.0),
-      Vec3::new(2.0, 0.0, 1.0),
-      Vec3::new(3.0, 0.0, 2.0),
-      Vec3::new(2.0, 0.0, 2.0),
+      Vec3::new(3.0, 1.0, 0.0),
+      Vec3::new(2.0, 1.0, 0.0),
+      Vec3::new(3.0, 2.0, 0.0),
+      Vec3::new(2.0, 2.0, 0.0),
     ],
     polygons: vec![
       vec![0, 1, 2, 3],
@@ -355,19 +355,19 @@ fn sample_point_returns_none_for_far_point() {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
-      Vec3::new(4.0, 0.0, 1.0),
-      Vec3::new(4.0, 0.0, 2.0),
-      Vec3::new(2.0, 0.0, 3.0),
-      Vec3::new(1.0, 0.0, 3.0),
-      Vec3::new(0.0, 0.0, 2.0),
-      Vec3::new(0.0, 0.0, 1.0),
-      Vec3::new(1.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 4.0),
-      Vec3::new(3.0, 1.0, 5.0),
-      Vec3::new(3.0, 1.0, 4.0),
-      Vec3::new(3.0, -2.0, 4.0),
-      Vec3::new(3.0, -2.0, 3.0),
+      Vec3::new(4.0, 1.0, 0.0),
+      Vec3::new(4.0, 2.0, 0.0),
+      Vec3::new(2.0, 3.0, 0.0),
+      Vec3::new(1.0, 3.0, 0.0),
+      Vec3::new(0.0, 2.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 5.0, 0.0),
+      Vec3::new(2.0, 5.0, 0.0),
+      Vec3::new(2.0, 4.0, 0.0),
+      Vec3::new(3.0, 5.0, 1.0),
+      Vec3::new(3.0, 4.0, 1.0),
+      Vec3::new(3.0, 4.0, -2.0),
+      Vec3::new(3.0, 3.0, -2.0),
     ],
     polygons: vec![
       vec![0, 1, 2, 3, 4, 5, 6, 7],
@@ -397,7 +397,7 @@ fn sample_point_returns_none_for_far_point() {
 
   assert_eq!(
     mesh.sample_point(
-      /* point= */ Vec3::new(0.0, -3.0, 0.0),
+      /* point= */ Vec3::new(0.0, 0.0, -3.0),
       /* distance_to_node= */ 0.1
     ),
     None
@@ -405,7 +405,7 @@ fn sample_point_returns_none_for_far_point() {
 
   assert_eq!(
     mesh.sample_point(
-      /* point= */ Vec3::new(0.0, 2.0, 0.0),
+      /* point= */ Vec3::new(0.0, 0.0, 2.0),
       /* distance_to_node= */ 0.1
     ),
     None
@@ -419,19 +419,19 @@ fn sample_point_in_nodes() {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
-      Vec3::new(4.0, 0.0, 1.0),
-      Vec3::new(4.0, 0.0, 2.0),
-      Vec3::new(2.0, 0.0, 3.0),
-      Vec3::new(1.0, 0.0, 3.0),
-      Vec3::new(0.0, 0.0, 2.0),
-      Vec3::new(0.0, 0.0, 1.0),
-      Vec3::new(1.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 4.0),
-      Vec3::new(3.0, 1.0, 5.0),
-      Vec3::new(3.0, 1.0, 4.0),
-      Vec3::new(3.0, -2.0, 4.0),
-      Vec3::new(3.0, -2.0, 3.0),
+      Vec3::new(4.0, 1.0, 0.0),
+      Vec3::new(4.0, 2.0, 0.0),
+      Vec3::new(2.0, 3.0, 0.0),
+      Vec3::new(1.0, 3.0, 0.0),
+      Vec3::new(0.0, 2.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 5.0, 0.0),
+      Vec3::new(2.0, 5.0, 0.0),
+      Vec3::new(2.0, 4.0, 0.0),
+      Vec3::new(3.0, 5.0, 1.0),
+      Vec3::new(3.0, 4.0, 1.0),
+      Vec3::new(3.0, 4.0, -2.0),
+      Vec3::new(3.0, 3.0, -2.0),
     ],
     polygons: vec![
       vec![0, 1, 2, 3, 4, 5, 6, 7],
@@ -447,45 +447,45 @@ fn sample_point_in_nodes() {
 
   assert_eq!(
     mesh.sample_point(
-      /* point= */ Vec3::new(1.5, 0.95, 1.5),
+      /* point= */ Vec3::new(1.5, 1.5, 0.95),
       /* distance_to_node= */ 1.0,
     ),
-    Some((Vec3::new(1.5, 0.0, 1.5), 0))
+    Some((Vec3::new(1.5, 1.5, 0.0), 0))
   );
 
   assert_eq!(
     mesh.sample_point(
-      /* point= */ Vec3::new(1.5, -0.95, 4.0),
+      /* point= */ Vec3::new(1.5, 4.0, -0.95),
       /* distance_to_node= */ 1.0,
     ),
-    Some((Vec3::new(1.5, 0.0, 4.0), 1))
+    Some((Vec3::new(1.5, 4.0, 0.0), 1))
   );
 
   assert_eq!(
     mesh.sample_point(
-      /* point= */ Vec3::new(1.5, -0.95, 4.0),
+      /* point= */ Vec3::new(1.5, 4.0, -0.95),
       /* distance_to_node= */ 1.0,
     ),
-    Some((Vec3::new(1.5, 0.0, 4.0), 1))
+    Some((Vec3::new(1.5, 4.0, 0.0), 1))
   );
 
   // Angled nodes
 
   assert_eq!(
     mesh.sample_point(
-      /* point= */ Vec3::new(2.5, -0.55, 3.5),
+      /* point= */ Vec3::new(2.5, 3.5, -0.55),
       /* distance_to_node = */ 5.0
     ),
-    Some((Vec3::new(2.5, -1.0, 3.5), 3))
+    Some((Vec3::new(2.5, 3.5, -1.0), 3))
   );
   assert_eq!(
     mesh
       .sample_point(
-        /* point= */ Vec3::new(2.5, 0.1, 4.5),
+        /* point= */ Vec3::new(2.5, 4.5, 0.1),
         /* distance_to_node = */ 5.0
       )
       .map(|(point, node)| ((point * 1000.0).round() / 1000.0, node)),
-    Some((Vec3::new(2.5, 0.5, 4.5), 2))
+    Some((Vec3::new(2.5, 4.5, 0.5), 2))
   );
 }
 
@@ -496,19 +496,19 @@ fn sample_point_near_node() {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
-      Vec3::new(4.0, 0.0, 1.0),
-      Vec3::new(4.0, 0.0, 2.0),
-      Vec3::new(2.0, 0.0, 3.0),
-      Vec3::new(1.0, 0.0, 3.0),
-      Vec3::new(0.0, 0.0, 2.0),
-      Vec3::new(0.0, 0.0, 1.0),
-      Vec3::new(1.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 4.0),
-      Vec3::new(3.0, 1.0, 5.0),
-      Vec3::new(3.0, 1.0, 4.0),
-      Vec3::new(3.0, -2.0, 4.0),
-      Vec3::new(3.0, -2.0, 3.0),
+      Vec3::new(4.0, 1.0, 0.0),
+      Vec3::new(4.0, 2.0, 0.0),
+      Vec3::new(2.0, 3.0, 0.0),
+      Vec3::new(1.0, 3.0, 0.0),
+      Vec3::new(0.0, 2.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 5.0, 0.0),
+      Vec3::new(2.0, 5.0, 0.0),
+      Vec3::new(2.0, 4.0, 0.0),
+      Vec3::new(3.0, 5.0, 1.0),
+      Vec3::new(3.0, 4.0, 1.0),
+      Vec3::new(3.0, 4.0, -2.0),
+      Vec3::new(3.0, 3.0, -2.0),
     ],
     polygons: vec![
       vec![0, 1, 2, 3, 4, 5, 6, 7],
@@ -524,36 +524,36 @@ fn sample_point_near_node() {
 
   assert_eq!(
     mesh.sample_point(
-      /* point= */ Vec3::new(-0.5, 0.25, 1.5),
+      /* point= */ Vec3::new(-0.5, 1.5, 0.25),
       /* distance_to_node= */ 1.0,
     ),
-    Some((Vec3::new(0.0, 0.0, 1.5), 0))
+    Some((Vec3::new(0.0, 1.5, 0.0), 0))
   );
 
   assert_eq!(
     mesh.sample_point(
-      /* point= */ Vec3::new(0.5, -0.25, 5.5),
+      /* point= */ Vec3::new(0.5, 5.5, -0.25),
       /* distance_to_node= */ 1.0,
     ),
-    Some((Vec3::new(1.0, 0.0, 5.0), 1))
+    Some((Vec3::new(1.0, 5.0, 0.0), 1))
   );
 
   assert_eq!(
     mesh.sample_point(
-      /* point= */ Vec3::new(4.5, -0.25, 1.5),
+      /* point= */ Vec3::new(4.5, 1.5, -0.25),
       /* distance_to_node= */ 1.0,
     ),
-    Some((Vec3::new(4.0, 0.0, 1.5), 0))
+    Some((Vec3::new(4.0, 1.5, 0.0), 0))
   );
 
   // Angled nodes
 
   assert_eq!(
     mesh.sample_point(
-      /* point= */ Vec3::new(2.5, 0.5, 5.5),
+      /* point= */ Vec3::new(2.5, 5.5, 0.5),
       /* distance_to_node = */ 5.0
     ),
-    Some((Vec3::new(2.5, 0.5, 5.0), 2))
+    Some((Vec3::new(2.5, 5.0, 0.5), 2))
   );
 }
 

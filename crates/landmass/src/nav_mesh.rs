@@ -133,16 +133,16 @@ impl NavigationMesh {
 
         // Check if the vertex is concave.
 
-        let left_vertex = self.vertices[left_vertex].xz();
-        let center_vertex = self.vertices[center_vertex].xz();
-        let right_vertex = self.vertices[right_vertex].xz();
+        let left_vertex = self.vertices[left_vertex].xy();
+        let center_vertex = self.vertices[center_vertex].xy();
+        let right_vertex = self.vertices[right_vertex].xy();
 
         let left_edge = left_vertex - center_vertex;
         let right_edge = right_vertex - center_vertex;
 
         // If right_edge is to the left of the left_edge, then the polygon is
         // concave. This is the equation for a 2D cross product.
-        if right_edge.x * left_edge.y - right_edge.y * left_edge.x < 0.0 {
+        if right_edge.perp_dot(left_edge) < 0.0 {
           return Err(ValidationError::ConcavePolygon(polygon_index));
         }
       }
@@ -315,30 +315,30 @@ impl ValidNavigationMesh {
         triangle.0 - triangle.2,
       );
       let triangle_deltas_flat = (
-        triangle_deltas.0.xz(),
-        triangle_deltas.1.xz(),
-        triangle_deltas.2.xz(),
+        triangle_deltas.0.xy(),
+        triangle_deltas.1.xy(),
+        triangle_deltas.2.xy(),
       );
 
-      if triangle_deltas_flat.0.perp_dot(point.xz() - triangle.0.xz()) < 0.0 {
-        let s = triangle_deltas_flat.0.dot(point.xz() - triangle.0.xz())
+      if triangle_deltas_flat.0.perp_dot(point.xy() - triangle.0.xy()) < 0.0 {
+        let s = triangle_deltas_flat.0.dot(point.xy() - triangle.0.xy())
           / triangle_deltas_flat.0.length_squared();
         return triangle_deltas.0 * s.clamp(0.0, 1.0) + triangle.0;
       }
-      if triangle_deltas_flat.1.perp_dot(point.xz() - triangle.1.xz()) < 0.0 {
-        let s = triangle_deltas_flat.1.dot(point.xz() - triangle.1.xz())
+      if triangle_deltas_flat.1.perp_dot(point.xy() - triangle.1.xy()) < 0.0 {
+        let s = triangle_deltas_flat.1.dot(point.xy() - triangle.1.xy())
           / triangle_deltas_flat.1.length_squared();
         return triangle_deltas.1 * s.clamp(0.0, 1.0) + triangle.1;
       }
-      if triangle_deltas_flat.2.perp_dot(point.xz() - triangle.2.xz()) < 0.0 {
-        let s = triangle_deltas_flat.2.dot(point.xz() - triangle.2.xz())
+      if triangle_deltas_flat.2.perp_dot(point.xy() - triangle.2.xy()) < 0.0 {
+        let s = triangle_deltas_flat.2.dot(point.xy() - triangle.2.xy())
           / triangle_deltas_flat.2.length_squared();
         return triangle_deltas.2 * s.clamp(0.0, 1.0) + triangle.2;
       }
 
       let normal = -triangle_deltas.0.cross(triangle_deltas.2).normalize();
-      let height = normal.dot(point - triangle.0) / normal.y;
-      Vec3::new(point.x, point.y - height, point.z)
+      let height = normal.dot(point - triangle.0) / normal.z;
+      Vec3::new(point.x, point.y, point.z - height)
     }
 
     let mut best_node = None;
