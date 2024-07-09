@@ -53,12 +53,12 @@ macro_rules! assert_obstacles_match {
           continue 'outer;
         }
       }
-      panic!("Failed to match left obstacle: index={} obstacle={:?} left_obstacles={:?} remaining_obstacles={:?}",
+      panic!("Failed to match left obstacle: index={} obstacle={:?}\n\nleft_obstacles={:?}\n\nremaining_obstacles={:?}\n",
         left_index, left_obstacle, left, right);
     }
 
     if !right.is_empty() {
-      panic!("Failed to match right obstacles: left_obstacles={:?} remaining_obstacles={:?}", left, right);
+      panic!("Failed to match right obstacles:\n\nleft_obstacles={:?}\n\nremaining_obstacles={:?}\n", left, right);
     }
   }};
 }
@@ -68,10 +68,10 @@ fn computes_obstacle_for_box() {
   let nav_mesh = NavigationMesh {
     mesh_bounds: None,
     vertices: vec![
-      Vec3::new(1.0, 0.0, 1.0),
-      Vec3::new(2.0, 0.0, 1.0),
-      Vec3::new(2.0, 0.0, 2.0),
-      Vec3::new(1.0, 0.0, 2.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(2.0, 1.0, 0.0),
+      Vec3::new(2.0, 2.0, 0.0),
+      Vec3::new(1.0, 2.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2, 3]],
   }
@@ -80,9 +80,9 @@ fn computes_obstacle_for_box() {
 
   let mut nav_data = NavigationData::new();
 
-  let island_offset = Vec3::new(130.0, 20.0, -50.0);
+  let island_offset = Vec3::new(130.0, -50.0, 20.0);
   let island_offset_dodgy =
-    dodgy_2d::Vec2::new(island_offset.x, island_offset.z);
+    dodgy_2d::Vec2::new(island_offset.x, island_offset.y);
 
   let island_id = nav_data.islands.insert({
     let mut island = Island::new();
@@ -96,7 +96,7 @@ fn computes_obstacle_for_box() {
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
       (
-        Vec3::new(1.5, 0.0, 1.5) + island_offset,
+        Vec3::new(1.5, 1.5, 0.0) + island_offset,
         NodeRef { island_id, polygon_index: 0 }
       ),
       &nav_data,
@@ -118,18 +118,18 @@ fn dead_end_makes_open_obstacle() {
   let nav_mesh = NavigationMesh {
     mesh_bounds: None,
     vertices: vec![
-      Vec3::new(1.0, 0.0, 1.0),
-      Vec3::new(2.0, 0.0, 1.0),
-      Vec3::new(2.0, 0.0, 2.0),
-      Vec3::new(1.0, 0.0, 2.0),
-      Vec3::new(3.0, 0.0, 1.0),
-      Vec3::new(3.0, 0.0, 2.0),
-      Vec3::new(4.0, 0.0, 1.0),
-      Vec3::new(4.0, 0.0, 2.0),
-      Vec3::new(4.0, 0.0, 3.0),
-      Vec3::new(3.0, 0.0, 3.0),
-      Vec3::new(4.0, 0.0, 4.0),
-      Vec3::new(3.0, 0.0, 4.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(2.0, 1.0, 0.0),
+      Vec3::new(2.0, 2.0, 0.0),
+      Vec3::new(1.0, 2.0, 0.0),
+      Vec3::new(3.0, 1.0, 0.0),
+      Vec3::new(3.0, 2.0, 0.0),
+      Vec3::new(4.0, 1.0, 0.0),
+      Vec3::new(4.0, 2.0, 0.0),
+      Vec3::new(4.0, 3.0, 0.0),
+      Vec3::new(3.0, 3.0, 0.0),
+      Vec3::new(4.0, 4.0, 0.0),
+      Vec3::new(3.0, 4.0, 0.0),
     ],
     polygons: vec![
       vec![0, 1, 2, 3],
@@ -154,7 +154,7 @@ fn dead_end_makes_open_obstacle() {
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
-      (Vec3::new(1.5, 0.0, 1.5), NodeRef { island_id, polygon_index: 0 }),
+      (Vec3::new(1.5, 1.5, 0.0), NodeRef { island_id, polygon_index: 0 }),
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
@@ -175,7 +175,7 @@ fn dead_end_makes_open_obstacle() {
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
-      (Vec3::new(3.5, 0.0, 3.5), NodeRef { island_id, polygon_index: 4 }),
+      (Vec3::new(3.5, 3.5, 0.0), NodeRef { island_id, polygon_index: 4 }),
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
@@ -197,7 +197,7 @@ fn dead_end_makes_open_obstacle() {
   // Decrease the distance limit to limit the size of the open obstacle.
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
-      (Vec3::new(3.5, 0.0, 3.5), NodeRef { island_id, polygon_index: 4 }),
+      (Vec3::new(3.5, 3.5, 0.0), NodeRef { island_id, polygon_index: 4 }),
       &nav_data,
       /* distance_limit= */ 1.0,
     ),
@@ -215,7 +215,7 @@ fn dead_end_makes_open_obstacle() {
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
-      (Vec3::new(3.5, 0.0, 1.5), NodeRef { island_id, polygon_index: 2 }),
+      (Vec3::new(3.5, 1.5, 0.0), NodeRef { island_id, polygon_index: 2 }),
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
@@ -243,18 +243,18 @@ fn split_borders() {
   let nav_mesh = NavigationMesh {
     mesh_bounds: None,
     vertices: vec![
-      Vec3::new(1.0, 0.0, 1.0),
-      Vec3::new(2.0, 0.0, 1.0),
-      Vec3::new(3.0, 0.0, 1.0),
-      Vec3::new(4.0, 0.0, 1.0),
-      Vec3::new(5.0, 0.0, 1.0),
-      Vec3::new(5.0, 0.0, 2.0),
-      Vec3::new(5.0, 0.0, 3.0),
-      Vec3::new(5.0, 0.0, 4.0),
-      Vec3::new(6.0, 0.0, 4.0),
-      Vec3::new(6.0, 0.0, 3.0),
-      Vec3::new(6.0, 0.0, 2.0),
-      Vec3::new(6.0, 0.0, 1.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(2.0, 1.0, 0.0),
+      Vec3::new(3.0, 1.0, 0.0),
+      Vec3::new(4.0, 1.0, 0.0),
+      Vec3::new(5.0, 1.0, 0.0),
+      Vec3::new(5.0, 2.0, 0.0),
+      Vec3::new(5.0, 3.0, 0.0),
+      Vec3::new(5.0, 4.0, 0.0),
+      Vec3::new(6.0, 4.0, 0.0),
+      Vec3::new(6.0, 3.0, 0.0),
+      Vec3::new(6.0, 2.0, 0.0),
+      Vec3::new(6.0, 1.0, 0.0),
       Vec3::new(6.0, 0.0, 0.0),
       Vec3::new(5.0, 0.0, 0.0),
       Vec3::new(4.0, 0.0, 0.0),
@@ -262,13 +262,13 @@ fn split_borders() {
       Vec3::new(2.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(0.0, 0.0, 0.0),
-      Vec3::new(0.0, 0.0, 1.0),
-      Vec3::new(0.0, 0.0, 2.0),
-      Vec3::new(0.0, 0.0, 3.0),
-      Vec3::new(0.0, 0.0, 4.0),
-      Vec3::new(1.0, 0.0, 4.0),
-      Vec3::new(1.0, 0.0, 3.0),
-      Vec3::new(1.0, 0.0, 2.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(0.0, 2.0, 0.0),
+      Vec3::new(0.0, 3.0, 0.0),
+      Vec3::new(0.0, 4.0, 0.0),
+      Vec3::new(1.0, 4.0, 0.0),
+      Vec3::new(1.0, 3.0, 0.0),
+      Vec3::new(1.0, 2.0, 0.0),
     ],
     polygons: vec![
       vec![0, 17, 16, 1],
@@ -300,7 +300,7 @@ fn split_borders() {
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
-      (Vec3::new(3.0, 0.0, 0.9), NodeRef { island_id, polygon_index: 0 }),
+      (Vec3::new(3.0, 0.9, 0.0), NodeRef { island_id, polygon_index: 0 }),
       &nav_data,
       /* distance_limit= */ 10.0,
     ),
@@ -341,8 +341,8 @@ fn creates_obstacles_across_boundary_link() {
       vertices: vec![
         Vec3::new(1.0, 1.0, 1.0),
         Vec3::new(2.0, 1.0, 1.0),
-        Vec3::new(2.0, 1.0, 2.0),
-        Vec3::new(1.0, 1.0, 2.0),
+        Vec3::new(2.0, 2.0, 1.0),
+        Vec3::new(1.0, 2.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
     }
@@ -373,7 +373,7 @@ fn creates_obstacles_across_boundary_link() {
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
       (
-        Vec3::new(2.5, 1.0, 1.5),
+        Vec3::new(2.5, 1.5, 1.0),
         NodeRef { island_id: island_id_2, polygon_index: 0 }
       ),
       &nav_data,
@@ -405,10 +405,10 @@ fn applies_no_avoidance_for_far_agents() {
   let nav_mesh = NavigationMesh {
     mesh_bounds: None,
     vertices: vec![
-      Vec3::new(-1.0, 0.0, -1.0),
-      Vec3::new(13.0, 0.0, -1.0),
-      Vec3::new(13.0, 0.0, 3.0),
-      Vec3::new(-1.0, 0.0, 3.0),
+      Vec3::new(-1.0, -1.0, 0.0),
+      Vec3::new(13.0, -1.0, 0.0),
+      Vec3::new(13.0, 3.0, 0.0),
+      Vec3::new(-1.0, 3.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2, 3]],
   }
@@ -428,7 +428,7 @@ fn applies_no_avoidance_for_far_agents() {
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent_1 = agents.insert({
     let mut agent = Agent::create(
-      /* position= */ Vec3::new(1.0, 0.0, 1.0),
+      /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
       /* max_velocity= */ 1.0,
@@ -438,7 +438,7 @@ fn applies_no_avoidance_for_far_agents() {
   });
   let agent_2 = agents.insert({
     let mut agent = Agent::create(
-      /* position= */ Vec3::new(11.0, 0.0, 1.0),
+      /* position= */ Vec3::new(11.0, 1.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
       /* max_velocity= */ 1.0,
@@ -448,12 +448,12 @@ fn applies_no_avoidance_for_far_agents() {
   });
   let agent_3 = agents.insert({
     let mut agent = Agent::create(
-      /* position= */ Vec3::new(5.0, 0.0, 4.0),
+      /* position= */ Vec3::new(5.0, 4.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
       /* max_velocity= */ 1.0,
     );
-    agent.current_desired_move = Vec3::new(0.0, 0.0, 1.0);
+    agent.current_desired_move = Vec3::new(0.0, 1.0, 0.0);
     agent
   });
 
@@ -494,7 +494,7 @@ fn applies_no_avoidance_for_far_agents() {
   );
   assert_eq!(
     agents.get(agent_3).unwrap().get_desired_velocity(),
-    Vec3::new(0.0, 0.0, 1.0)
+    Vec3::new(0.0, 1.0, 0.0)
   );
 }
 
@@ -503,10 +503,10 @@ fn applies_avoidance_for_two_agents() {
   let nav_mesh = NavigationMesh {
     mesh_bounds: None,
     vertices: vec![
-      Vec3::new(-1.0, 0.0, -1.0),
-      Vec3::new(13.0, 0.0, -1.0),
-      Vec3::new(13.0, 0.0, 3.0),
-      Vec3::new(-1.0, 0.0, 3.0),
+      Vec3::new(-1.0, -1.0, 0.0),
+      Vec3::new(13.0, -1.0, 0.0),
+      Vec3::new(13.0, 3.0, 0.0),
+      Vec3::new(-1.0, 3.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2, 3]],
   }
@@ -526,7 +526,7 @@ fn applies_avoidance_for_two_agents() {
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent_1 = agents.insert({
     let mut agent = Agent::create(
-      /* position= */ Vec3::new(1.0, 0.0, 1.0),
+      /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
       /* radius= */ 1.0,
       /* max_velocity= */ 1.0,
@@ -536,7 +536,7 @@ fn applies_avoidance_for_two_agents() {
   });
   let agent_2 = agents.insert({
     let mut agent = Agent::create(
-      /* position= */ Vec3::new(11.0, 0.0, 1.01),
+      /* position= */ Vec3::new(11.0, 1.01, 0.0),
       /* velocity= */ Vec3::new(-1.0, 0.0, 0.0),
       /* radius= */ 1.0,
       /* max_velocity= */ 1.0,
@@ -583,14 +583,14 @@ fn applies_avoidance_for_two_agents() {
   let agent_1_desired_velocity =
     agents.get(agent_1).unwrap().get_desired_velocity();
   assert!(
-    agent_1_desired_velocity.abs_diff_eq(Vec3::new(0.98, 0.0, -0.2), 0.05),
-    "left={agent_1_desired_velocity}, right=Vec3(0.98, 0.0, -0.2)"
+    agent_1_desired_velocity.abs_diff_eq(Vec3::new(0.98, -0.2, 0.0), 0.05),
+    "left={agent_1_desired_velocity}, right=Vec3(0.98, -0.2, 0.0)"
   );
   let agent_2_desired_velocity =
     agents.get(agent_2).unwrap().get_desired_velocity();
   assert!(
-    agent_2_desired_velocity.abs_diff_eq(Vec3::new(-0.98, 0.0, 0.2), 0.05),
-    "left={agent_2_desired_velocity}, right=Vec3(-0.98, 0.0, 0.2)"
+    agent_2_desired_velocity.abs_diff_eq(Vec3::new(-0.98, 0.2, 0.0), 0.05),
+    "left={agent_2_desired_velocity}, right=Vec3(-0.98, 0.2, 0.0)"
   );
 }
 
@@ -599,10 +599,10 @@ fn agent_avoids_character() {
   let nav_mesh = NavigationMesh {
     mesh_bounds: None,
     vertices: vec![
-      Vec3::new(-1.0, 0.0, -1.0),
-      Vec3::new(13.0, 0.0, -1.0),
-      Vec3::new(13.0, 0.0, 3.0),
-      Vec3::new(-1.0, 0.0, 3.0),
+      Vec3::new(-1.0, -1.0, 0.0),
+      Vec3::new(13.0, -1.0, 0.0),
+      Vec3::new(13.0, 3.0, 0.0),
+      Vec3::new(-1.0, 3.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2, 3]],
   }
@@ -622,7 +622,7 @@ fn agent_avoids_character() {
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent = agents.insert({
     let mut agent = Agent::create(
-      /* position= */ Vec3::new(1.0, 0.0, 1.0),
+      /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
       /* radius= */ 1.0,
       /* max_velocity= */ 1.0,
@@ -632,7 +632,7 @@ fn agent_avoids_character() {
   });
   let mut characters = HopSlotMap::<CharacterId, _>::with_key();
   let character = characters.insert(Character {
-    position: Vec3::new(11.0, 0.0, 1.01),
+    position: Vec3::new(11.0, 1.01, 0.0),
     velocity: Vec3::new(-1.0, 0.0, 0.0),
     radius: 1.0,
   });
@@ -673,7 +673,7 @@ fn agent_avoids_character() {
     agents.get(agent).unwrap().get_desired_velocity();
   assert!(
     agent_desired_velocity
-      .abs_diff_eq(Vec3::new((1.0f32 - 0.4 * 0.4).sqrt(), 0.0, -0.4), 0.05),
-    "left={agent_desired_velocity}, right=Vec3(0.9165..., 0.0, -0.4)"
+      .abs_diff_eq(Vec3::new((1.0f32 - 0.4 * 0.4).sqrt(), -0.4, 0.0), 0.05),
+    "left={agent_desired_velocity}, right=Vec3(0.9165..., -0.4, 0.0)"
   );
 }
