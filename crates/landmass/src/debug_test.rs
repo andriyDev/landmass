@@ -69,19 +69,19 @@ fn draws_island_meshes_and_agents() {
     vertices: vec![
       Vec3::new(1.0, 0.0, 0.0),
       Vec3::new(2.0, 0.0, 0.0),
-      Vec3::new(4.0, 0.0, 1.0),
-      Vec3::new(4.0, 0.0, 2.0),
-      Vec3::new(2.0, 0.0, 3.0),
-      Vec3::new(1.0, 0.0, 3.0),
-      Vec3::new(0.0, 0.0, 2.0),
-      Vec3::new(0.0, 0.0, 1.0),
-      Vec3::new(1.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 5.0),
-      Vec3::new(2.0, 0.0, 4.0),
-      Vec3::new(3.0, 1.0, 5.0),
-      Vec3::new(3.0, 1.0, 4.0),
-      Vec3::new(3.0, -2.0, 4.0),
-      Vec3::new(3.0, -2.0, 3.0),
+      Vec3::new(4.0, 1.0, 0.0),
+      Vec3::new(4.0, 2.0, 0.0),
+      Vec3::new(2.0, 3.0, 0.0),
+      Vec3::new(1.0, 3.0, 0.0),
+      Vec3::new(0.0, 2.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 5.0, 0.0),
+      Vec3::new(2.0, 5.0, 0.0),
+      Vec3::new(2.0, 4.0, 0.0),
+      Vec3::new(3.0, 5.0, 1.0),
+      Vec3::new(3.0, 4.0, 1.0),
+      Vec3::new(3.0, 4.0, -2.0),
+      Vec3::new(3.0, 3.0, -2.0),
     ],
     polygons: vec![
       vec![0, 1, 2, 3, 4, 5, 6, 7],
@@ -102,13 +102,13 @@ fn draws_island_meshes_and_agents() {
   );
 
   let agent_id = archipelago.add_agent(Agent::create(
-    /* position= */ Vec3::new(3.9, 0.0, 1.5) + TRANSLATION,
+    /* position= */ Vec3::new(3.9, 1.5, 0.0) + TRANSLATION,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 1.0,
     /* max_velocity= */ 1.0,
   ));
   archipelago.get_agent_mut(agent_id).current_target =
-    Some(Vec3::new(1.5, 0.0, 4.5) + TRANSLATION);
+    Some(Vec3::new(1.5, 4.5, 0.0) + TRANSLATION);
 
   // Update so everything is in sync.
   archipelago.update(1.0);
@@ -121,9 +121,9 @@ fn draws_island_meshes_and_agents() {
   assert_eq!(
     fake_drawer.points,
     [
-      (PointType::AgentPosition(agent_id), Vec3::new(3.9, 0.0, 1.5)),
-      (PointType::TargetPosition(agent_id), Vec3::new(1.5, 0.0, 4.5)),
-      (PointType::Waypoint(agent_id), Vec3::new(2.0, 0.0, 3.0)),
+      (PointType::AgentPosition(agent_id), Vec3::new(3.9, 1.5, 0.0)),
+      (PointType::TargetPosition(agent_id), Vec3::new(1.5, 4.5, 0.0)),
+      (PointType::Waypoint(agent_id), Vec3::new(2.0, 3.0, 0.0)),
     ]
     .iter()
     .copied()
@@ -135,11 +135,11 @@ fn draws_island_meshes_and_agents() {
     [
       (
         LineType::BoundaryEdge,
-        [Vec3::new(0.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 0.0)]
+        [Vec3::new(0.0, 1.0, 0.0), Vec3::new(1.0, 0.0, 0.0)]
       ),
       (
         LineType::BoundaryEdge,
-        [Vec3::new(0.0, 0.0, 2.0), Vec3::new(0.0, 0.0, 1.0)]
+        [Vec3::new(0.0, 2.0, 0.0), Vec3::new(0.0, 1.0, 0.0)]
       ),
       (
         LineType::BoundaryEdge,
@@ -147,79 +147,79 @@ fn draws_island_meshes_and_agents() {
       ),
       (
         LineType::BoundaryEdge,
-        [Vec3::new(1.0, 0.0, 3.0), Vec3::new(0.0, 0.0, 2.0)]
+        [Vec3::new(1.0, 3.0, 0.0), Vec3::new(0.0, 2.0, 0.0)]
       ),
       (
         LineType::BoundaryEdge,
-        [Vec3::new(1.0, 0.0, 5.0), Vec3::new(1.0, 0.0, 3.0)]
+        [Vec3::new(1.0, 5.0, 0.0), Vec3::new(1.0, 3.0, 0.0)]
       ),
       (
         LineType::BoundaryEdge,
-        [Vec3::new(2.0, 0.0, 0.0), Vec3::new(4.0, 0.0, 1.0)]
+        [Vec3::new(2.0, 0.0, 0.0), Vec3::new(4.0, 1.0, 0.0)]
       ),
       (
         LineType::BoundaryEdge,
-        [Vec3::new(2.0, 0.0, 3.0), Vec3::new(3.0, -2.0, 3.0)]
+        [Vec3::new(2.0, 3.0, 0.0), Vec3::new(3.0, 3.0, -2.0)]
       ),
       (
         LineType::BoundaryEdge,
-        [Vec3::new(2.0, 0.0, 4.0), Vec3::new(3.0, 1.0, 4.0)]
+        [Vec3::new(2.0, 4.0, 0.0), Vec3::new(3.0, 4.0, 1.0)]
       ),
       (
         LineType::BoundaryEdge,
-        [Vec3::new(2.0, 0.0, 5.0), Vec3::new(1.0, 0.0, 5.0)]
+        [Vec3::new(2.0, 5.0, 0.0), Vec3::new(1.0, 5.0, 0.0)]
       ),
       (
         LineType::BoundaryEdge,
-        [Vec3::new(3.0, -2.0, 3.0), Vec3::new(3.0, -2.0, 4.0)]
+        [Vec3::new(3.0, 3.0, -2.0), Vec3::new(3.0, 4.0, -2.0)]
       ),
       (
         LineType::BoundaryEdge,
-        [Vec3::new(3.0, -2.0, 4.0), Vec3::new(2.0, 0.0, 4.0)]
+        [Vec3::new(3.0, 4.0, -2.0), Vec3::new(2.0, 4.0, 0.0)]
       ),
       (
         LineType::BoundaryEdge,
-        [Vec3::new(3.0, 1.0, 4.0), Vec3::new(3.0, 1.0, 5.0)]
+        [Vec3::new(3.0, 4.0, 1.0), Vec3::new(3.0, 5.0, 1.0)]
       ),
       (
         LineType::BoundaryEdge,
-        [Vec3::new(3.0, 1.0, 5.0), Vec3::new(2.0, 0.0, 5.0)]
+        [Vec3::new(3.0, 5.0, 1.0), Vec3::new(2.0, 5.0, 0.0)]
       ),
       (
         LineType::BoundaryEdge,
-        [Vec3::new(4.0, 0.0, 1.0), Vec3::new(4.0, 0.0, 2.0)]
+        [Vec3::new(4.0, 1.0, 0.0), Vec3::new(4.0, 2.0, 0.0)]
       ),
       (
         LineType::BoundaryEdge,
-        [Vec3::new(4.0, 0.0, 2.0), Vec3::new(2.0, 0.0, 3.0)]
+        [Vec3::new(4.0, 2.0, 0.0), Vec3::new(2.0, 3.0, 0.0)]
       ),
       //
       (
         LineType::ConnectivityEdge,
-        [Vec3::new(2.0, 0.0, 3.0), Vec3::new(1.0, 0.0, 3.0)]
+        [Vec3::new(2.0, 3.0, 0.0), Vec3::new(1.0, 3.0, 0.0)]
       ),
       (
         LineType::ConnectivityEdge,
-        [Vec3::new(2.0, 0.0, 3.0), Vec3::new(2.0, 0.0, 4.0)]
+        [Vec3::new(2.0, 3.0, 0.0), Vec3::new(2.0, 4.0, 0.0)]
       ),
       (
         LineType::ConnectivityEdge,
-        [Vec3::new(2.0, 0.0, 4.0), Vec3::new(2.0, 0.0, 5.0)]
+        [Vec3::new(2.0, 4.0, 0.0), Vec3::new(2.0, 5.0, 0.0)]
       ),
       //
       (
         LineType::AgentCorridor(agent_id),
-        [Vec3::new(1.75, 0.0, 1.5), Vec3::new(1.6, 0.0, 4.0)]
+        [Vec3::new(1.75, 1.5, 0.0), Vec3::new(1.6, 4.0, 0.0)]
       ),
       //
       (
         LineType::Target(agent_id),
-        [Vec3::new(3.9, 0.0, 1.5), Vec3::new(1.5, 0.0, 4.5)]
+        [Vec3::new(3.9, 1.5, 0.0), Vec3::new(1.5, 4.5, 0.0)]
       ),
       //
       (
         LineType::Waypoint(agent_id),
-        [Vec3::new(3.9, 0.0, 1.5), Vec3::new(2.0, 0.0, 3.0)]
+        [Vec3::new(3.9, 1.5, 0.0), Vec3::new(2.0, 3.0, 0.0)]
       ),
     ]
     .iter()
@@ -233,17 +233,17 @@ fn draws_island_meshes_and_agents() {
       (
         TriangleType::Node,
         [
-          Vec3::new(0.0, 0.0, 1.0),
+          Vec3::new(0.0, 1.0, 0.0),
           Vec3::new(1.0, 0.0, 0.0),
-          Vec3::new(1.75, 0.0, 1.5)
+          Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(0.0, 0.0, 2.0),
-          Vec3::new(0.0, 0.0, 1.0),
-          Vec3::new(1.75, 0.0, 1.5)
+          Vec3::new(0.0, 2.0, 0.0),
+          Vec3::new(0.0, 1.0, 0.0),
+          Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
       (
@@ -251,151 +251,151 @@ fn draws_island_meshes_and_agents() {
         [
           Vec3::new(1.0, 0.0, 0.0),
           Vec3::new(2.0, 0.0, 0.0),
-          Vec3::new(1.75, 0.0, 1.5)
+          Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(1.0, 0.0, 3.0),
-          Vec3::new(0.0, 0.0, 2.0),
-          Vec3::new(1.75, 0.0, 1.5)
+          Vec3::new(1.0, 3.0, 0.0),
+          Vec3::new(0.0, 2.0, 0.0),
+          Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(1.0, 0.0, 3.0),
-          Vec3::new(2.0, 0.0, 3.0),
-          Vec3::new(1.6, 0.0, 4.0)
+          Vec3::new(1.0, 3.0, 0.0),
+          Vec3::new(2.0, 3.0, 0.0),
+          Vec3::new(1.6, 4.0, 0.0)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(1.0, 0.0, 5.0),
-          Vec3::new(1.0, 0.0, 3.0),
-          Vec3::new(1.6, 0.0, 4.0)
+          Vec3::new(1.0, 5.0, 0.0),
+          Vec3::new(1.0, 3.0, 0.0),
+          Vec3::new(1.6, 4.0, 0.0)
         ]
       ),
       (
         TriangleType::Node,
         [
           Vec3::new(2.0, 0.0, 0.0),
-          Vec3::new(4.0, 0.0, 1.0),
-          Vec3::new(1.75, 0.0, 1.5)
+          Vec3::new(4.0, 1.0, 0.0),
+          Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(2.0, 0.0, 3.0),
-          Vec3::new(1.0, 0.0, 3.0),
-          Vec3::new(1.75, 0.0, 1.5)
+          Vec3::new(2.0, 3.0, 0.0),
+          Vec3::new(1.0, 3.0, 0.0),
+          Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(2.0, 0.0, 3.0),
-          Vec3::new(2.0, 0.0, 4.0),
-          Vec3::new(1.6, 0.0, 4.0)
+          Vec3::new(2.0, 3.0, 0.0),
+          Vec3::new(2.0, 4.0, 0.0),
+          Vec3::new(1.6, 4.0, 0.0)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(2.0, 0.0, 3.0),
-          Vec3::new(3.0, -2.0, 3.0),
-          Vec3::new(2.5, -1.0, 3.5)
+          Vec3::new(2.0, 3.0, 0.0),
+          Vec3::new(3.0, 3.0, -2.0),
+          Vec3::new(2.5, 3.5, -1.0)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(2.0, 0.0, 4.0),
-          Vec3::new(2.0, 0.0, 3.0),
-          Vec3::new(2.5, -1.0, 3.5)
+          Vec3::new(2.0, 4.0, 0.0),
+          Vec3::new(2.0, 3.0, 0.0),
+          Vec3::new(2.5, 3.5, -1.0)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(2.0, 0.0, 4.0),
-          Vec3::new(2.0, 0.0, 5.0),
-          Vec3::new(1.6, 0.0, 4.0)
+          Vec3::new(2.0, 4.0, 0.0),
+          Vec3::new(2.0, 5.0, 0.0),
+          Vec3::new(1.6, 4.0, 0.0)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(2.0, 0.0, 4.0),
-          Vec3::new(3.0, 1.0, 4.0),
-          Vec3::new(2.5, 0.5, 4.5)
+          Vec3::new(2.0, 4.0, 0.0),
+          Vec3::new(3.0, 4.0, 1.0),
+          Vec3::new(2.5, 4.5, 0.5)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(2.0, 0.0, 5.0),
-          Vec3::new(1.0, 0.0, 5.0),
-          Vec3::new(1.6, 0.0, 4.0)
+          Vec3::new(2.0, 5.0, 0.0),
+          Vec3::new(1.0, 5.0, 0.0),
+          Vec3::new(1.6, 4., 0.00)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(2.0, 0.0, 5.0),
-          Vec3::new(2.0, 0.0, 4.0),
-          Vec3::new(2.5, 0.5, 4.5)
+          Vec3::new(2.0, 5.0, 0.0),
+          Vec3::new(2.0, 4.0, 0.0),
+          Vec3::new(2.5, 4.5, 0.5)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(3.0, -2.0, 3.0),
-          Vec3::new(3.0, -2.0, 4.0),
-          Vec3::new(2.5, -1.0, 3.5)
+          Vec3::new(3.0, 3.0, -2.0),
+          Vec3::new(3.0, 4.0, -2.0),
+          Vec3::new(2.5, 3.5, -1.0)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(3.0, -2.0, 4.0),
-          Vec3::new(2.0, 0.0, 4.0),
-          Vec3::new(2.5, -1.0, 3.5)
+          Vec3::new(3.0, 4.0, -2.0),
+          Vec3::new(2.0, 4.0, 0.0),
+          Vec3::new(2.5, 3.5, -1.0)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(3.0, 1.0, 4.0),
-          Vec3::new(3.0, 1.0, 5.0),
-          Vec3::new(2.5, 0.5, 4.5)
+          Vec3::new(3.0, 4.0, 1.0),
+          Vec3::new(3.0, 5.0, 1.0),
+          Vec3::new(2.5, 4.5, 0.5)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(3.0, 1.0, 5.0),
-          Vec3::new(2.0, 0.0, 5.0),
-          Vec3::new(2.5, 0.5, 4.5)
+          Vec3::new(3.0, 5.0, 1.0),
+          Vec3::new(2.0, 5.0, 0.0),
+          Vec3::new(2.5, 4.5, 0.5)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(4.0, 0.0, 1.0),
-          Vec3::new(4.0, 0.0, 2.0),
-          Vec3::new(1.75, 0.0, 1.5)
+          Vec3::new(4.0, 1.0, 0.0),
+          Vec3::new(4.0, 2.0, 0.0),
+          Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
       (
         TriangleType::Node,
         [
-          Vec3::new(4.0, 0.0, 2.0),
-          Vec3::new(2.0, 0.0, 3.0),
-          Vec3::new(1.75, 0.0, 1.5)
+          Vec3::new(4.0, 2.0, 0.0),
+          Vec3::new(2.0, 3.0, 0.0),
+          Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
     ]
@@ -416,8 +416,8 @@ fn draws_boundary_links() {
       vertices: vec![
         Vec3::new(1.0, 1.0, 1.0),
         Vec3::new(2.0, 1.0, 1.0),
-        Vec3::new(2.0, 1.0, 2.0),
-        Vec3::new(1.0, 1.0, 2.0),
+        Vec3::new(2.0, 2.0, 1.0),
+        Vec3::new(1.0, 2.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       mesh_bounds: None,
@@ -451,5 +451,5 @@ fn draws_boundary_links() {
     .map(|(_, edge)| *edge)
     .collect::<Vec<_>>();
 
-  assert_eq!(lines, [[Vec3::new(2.0, 1.0, 1.0), Vec3::new(2.0, 1.0, 2.0)]]);
+  assert_eq!(lines, [[Vec3::new(2.0, 1.0, 1.0), Vec3::new(2.0, 2.0, 1.0)]]);
 }
