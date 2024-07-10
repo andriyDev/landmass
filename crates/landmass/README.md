@@ -62,8 +62,8 @@ let nav_mesh = NavigationMesh {
   vertices: vec![
     Vec3::new(0.0, 0.0, 0.0),
     Vec3::new(15.0, 0.0, 0.0),
-    Vec3::new(15.0, 0.0, 15.0),
-    Vec3::new(0.0, 0.0, 15.0),
+    Vec3::new(15.0, 15.0, 0.0),
+    Vec3::new(0.0, 15.0, 0.0),
   ],
   polygons: vec![vec![0, 1, 2, 3]],
 };
@@ -82,23 +82,23 @@ archipelago
 
 let agent_1 = archipelago.add_agent({
   let mut agent = Agent::create(
-    /* position= */ Vec3::new(1.0, 0.0, 1.0),
+    /* position= */ Vec3::new(1.0, 1.0, 0.0),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 1.0,
     /* max_velocity= */ 1.0,
   );
-  agent.current_target = Some(Vec3::new(11.0, 0.0, 1.1));
+  agent.current_target = Some(Vec3::new(11.0, 1.1, 0.0));
   agent.target_reached_condition = TargetReachedCondition::Distance(Some(0.01));
   agent
 });
 let agent_2 = archipelago.add_agent({
   let mut agent = Agent::create(
-    /* position= */ Vec3::new(11.0, 0.0, 1.1),
+    /* position= */ Vec3::new(11.0, 1.1, 0.0),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 1.0,
     /* max_velocity= */ 1.0,
   );
-  agent.current_target = Some(Vec3::new(1.0, 0.0, 1.0));
+  agent.current_target = Some(Vec3::new(1.0, 1.0, 0.0));
   agent.target_reached_condition = TargetReachedCondition::Distance(Some(0.01));
   agent
 });
@@ -117,11 +117,11 @@ for i in 0..200 {
 assert!(archipelago
   .get_agent(agent_1)
   .position
-  .abs_diff_eq(Vec3::new(11.0, 0.0, 1.1), 0.1));
+  .abs_diff_eq(Vec3::new(11.0, 1.1, 0.0), 0.1));
 assert!(archipelago
   .get_agent(agent_2)
   .position
-  .abs_diff_eq(Vec3::new(1.0, 0.0, 1.0), 0.1));
+  .abs_diff_eq(Vec3::new(1.0, 1.0, 0.0), 0.1));
 ```
 
 ## License
