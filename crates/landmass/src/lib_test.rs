@@ -322,14 +322,14 @@ fn computes_and_follows_path() {
       Vec3::new(2.0, 1.0, 1.0),
       Vec3::new(3.0, 1.0, 1.0),
       Vec3::new(4.0, 1.0, 1.0),
-      Vec3::new(4.0, 1.0, 2.0),
-      Vec3::new(4.0, 1.0, 3.0),
-      Vec3::new(4.0, 1.0, 4.0),
-      Vec3::new(3.0, 1.0, 4.0),
-      Vec3::new(3.0, 1.0, 3.0),
-      Vec3::new(3.0, 1.0, 2.0),
-      Vec3::new(2.0, 1.0, 2.0),
-      Vec3::new(1.0, 1.0, 2.0),
+      Vec3::new(4.0, 2.0, 1.0),
+      Vec3::new(4.0, 3.0, 1.0),
+      Vec3::new(4.0, 4.0, 1.0),
+      Vec3::new(3.0, 4.0, 1.0),
+      Vec3::new(3.0, 3.0, 1.0),
+      Vec3::new(3.0, 2.0, 1.0),
+      Vec3::new(2.0, 2.0, 1.0),
+      Vec3::new(1.0, 2.0, 1.0),
     ],
     polygons: vec![
       vec![0, 1, 10, 11],
@@ -352,38 +352,38 @@ fn computes_and_follows_path() {
   archipelago.agent_options.obstacle_avoidance_time_horizon = 0.01;
 
   let agent_1 = archipelago.add_agent(Agent::create(
-    /* position= */ Vec3::new(1.5, 1.09, 1.5),
+    /* position= */ Vec3::new(1.5, 1.5, 1.09),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.5,
     /* max_velocity= */ 2.0,
   ));
   let agent_2 = archipelago.add_agent(Agent::create(
-    /* position= */ Vec3::new(3.5, 0.95, 3.5),
+    /* position= */ Vec3::new(3.5, 3.5, 0.95),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.5,
     /* max_velocity= */ 2.0,
   ));
   let agent_off_mesh = archipelago.add_agent(Agent::create(
-    /* position= */ Vec3::new(1.5, 1.0, 2.5),
+    /* position= */ Vec3::new(1.5, 2.5, 1.0),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.5,
     /* max_velocity= */ 2.0,
   ));
   let agent_too_high_above_mesh = archipelago.add_agent(Agent::create(
-    /* position= */ Vec3::new(1.5, 1.11, 1.5),
+    /* position= */ Vec3::new(1.5, 1.5, 1.11),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.5,
     /* max_velocity= */ 2.0,
   ));
 
   archipelago.get_agent_mut(agent_1).current_target =
-    Some(Vec3::new(3.5, 0.95, 3.5));
+    Some(Vec3::new(3.5, 3.5, 0.95));
   archipelago.get_agent_mut(agent_off_mesh).current_target =
-    Some(Vec3::new(3.5, 0.95, 3.5));
+    Some(Vec3::new(3.5, 3.5, 0.95));
   archipelago.get_agent_mut(agent_too_high_above_mesh).current_target =
-    Some(Vec3::new(3.5, 0.95, 3.5));
+    Some(Vec3::new(3.5, 3.5, 0.95));
   archipelago.get_agent_mut(agent_2).current_target =
-    Some(Vec3::new(1.5, 1.09, 1.5));
+    Some(Vec3::new(1.5, 1.5, 1.09));
 
   // Nothing has happened yet.
   assert_eq!(archipelago.get_agent(agent_1).state(), AgentState::Idle);
@@ -413,11 +413,11 @@ fn computes_and_follows_path() {
   assert!(archipelago
     .get_agent(agent_1)
     .get_desired_velocity()
-    .abs_diff_eq(Vec3::new(1.5, 0.0, 0.5).normalize() * 2.0, 1e-2));
+    .abs_diff_eq(Vec3::new(1.5, 0.5, 0.0).normalize() * 2.0, 1e-2));
   assert!(archipelago
     .get_agent(agent_2)
     .get_desired_velocity()
-    .abs_diff_eq(Vec3::new(-0.5, 0.0, -1.5).normalize() * 2.0, 1e-2));
+    .abs_diff_eq(Vec3::new(-0.5, -1.5, 0.0).normalize() * 2.0, 1e-2));
   // These agents are not on the nav mesh, so they don't do anything.
   assert_eq!(
     archipelago.get_agent(agent_off_mesh).state(),
@@ -445,18 +445,18 @@ fn computes_and_follows_path() {
   assert!(path_result_2.explored_nodes > 0);
 
   // Move agent_1 forward.
-  archipelago.get_agent_mut(agent_1).position = Vec3::new(2.5, 1.0, 1.5);
+  archipelago.get_agent_mut(agent_1).position = Vec3::new(2.5, 1.5, 1.0);
   archipelago.update(/* delta_time= */ 0.01);
 
   assert!(archipelago
     .get_agent(agent_1)
     .get_desired_velocity()
-    .abs_diff_eq(Vec3::new(0.5, 0.0, 0.5).normalize() * 2.0, 1e-7));
+    .abs_diff_eq(Vec3::new(0.5, 0.5, 0.0).normalize() * 2.0, 1e-7));
   // These agents don't change.
   assert!(archipelago
     .get_agent(agent_2)
     .get_desired_velocity()
-    .abs_diff_eq(Vec3::new(-0.5, 0.0, -1.5).normalize() * 2.0, 1e-2));
+    .abs_diff_eq(Vec3::new(-0.5, -1.5, 0.0).normalize() * 2.0, 1e-2));
   assert_eq!(
     archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
     Vec3::ZERO
@@ -477,8 +477,8 @@ fn computes_and_follows_path() {
   );
 
   // Move agent_1 close enough to destination and agent_2 forward.
-  archipelago.get_agent_mut(agent_1).position = Vec3::new(3.4, 1.0, 3.4);
-  archipelago.get_agent_mut(agent_2).position = Vec3::new(3.5, 1.0, 2.5);
+  archipelago.get_agent_mut(agent_1).position = Vec3::new(3.4, 3.4, 1.0);
+  archipelago.get_agent_mut(agent_2).position = Vec3::new(3.5, 2.5, 1.0);
   archipelago.update(/* delta_time= */ 0.01);
 
   assert_eq!(archipelago.get_agent(agent_1).state(), AgentState::ReachedTarget);
@@ -487,7 +487,7 @@ fn computes_and_follows_path() {
   assert!(archipelago
     .get_agent(agent_2)
     .get_desired_velocity()
-    .abs_diff_eq(Vec3::new(-0.5, 0.0, -0.5).normalize() * 2.0, 1e-2));
+    .abs_diff_eq(Vec3::new(-0.5, -0.5, 0.0).normalize() * 2.0, 1e-2));
   // These agents don't change.
   assert_eq!(
     archipelago.get_agent(agent_off_mesh).get_desired_velocity(),
