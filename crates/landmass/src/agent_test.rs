@@ -76,12 +76,12 @@ fn long_detour_reaches_target_in_different_ways() {
   let nav_mesh = NavigationMesh {
     mesh_bounds: None,
     vertices: vec![
-      Vec3::new(1.0, 0.0, 1.0),
-      Vec3::new(1.0, 0.0, 11.0),
-      Vec3::new(0.0, 0.0, 12.0),
-      Vec3::new(2.0, 0.0, 11.0),
-      Vec3::new(3.0, 0.0, 12.0),
-      Vec3::new(2.0, 0.0, 1.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(1.0, 11.0, 0.0),
+      Vec3::new(0.0, 12.0, 0.0),
+      Vec3::new(2.0, 11.0, 0.0),
+      Vec3::new(3.0, 12.0, 0.0),
+      Vec3::new(2.0, 1.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2], vec![2, 1, 3, 4], vec![4, 3, 5]],
   }
@@ -89,7 +89,7 @@ fn long_detour_reaches_target_in_different_ways() {
   .expect("nav mesh is valid");
 
   let transform =
-    Transform { translation: Vec3::new(2.0, 3.0, 4.0), rotation: PI * 0.85 };
+    Transform { translation: Vec3::new(2.0, 4.0, 3.0), rotation: PI * -0.85 };
   let mut archipelago = Archipelago::new();
   let island_id = archipelago.add_island();
   archipelago
@@ -113,7 +113,7 @@ fn long_detour_reaches_target_in_different_ways() {
   };
 
   {
-    agent.position = transform.apply(Vec3::new(1.0, 0.0, 1.0));
+    agent.position = transform.apply(Vec3::new(1.0, 1.0, 0.0));
     agent.target_reached_condition =
       TargetReachedCondition::Distance(Some(1.1));
 
@@ -124,27 +124,27 @@ fn long_detour_reaches_target_in_different_ways() {
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 1),
-        transform.apply(Vec3::new(1.0, 0.0, 11.0))
+        transform.apply(Vec3::new(1.0, 11.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+        transform.apply(Vec3::new(2.0, 1.0, 0.0))
       ),
     ));
 
     // Agent is just outside of 1.1 units, so they still have not reached the
     // end.
-    agent.position = transform.apply(Vec3::new(1.0, 0.0, 2.0));
+    agent.position = transform.apply(Vec3::new(1.0, 2.0, 0.0));
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 1),
-        transform.apply(Vec3::new(1.0, 0.0, 11.0))
+        transform.apply(Vec3::new(1.0, 11.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+        transform.apply(Vec3::new(2.0, 1.0, 0.0))
       ),
     ));
   }
@@ -154,64 +154,64 @@ fn long_detour_reaches_target_in_different_ways() {
       TargetReachedCondition::VisibleAtDistance(Some(15.0));
 
     // The agent cannot see the target and its path is still too long.
-    agent.position = transform.apply(Vec3::new(1.0, 0.0, 1.0));
+    agent.position = transform.apply(Vec3::new(1.0, 1.0, 0.0));
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 1),
-        transform.apply(Vec3::new(1.0, 0.0, 11.0))
+        transform.apply(Vec3::new(1.0, 11.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+        transform.apply(Vec3::new(2.0, 1.0, 0.0))
       ),
     ));
 
     // The agent only has 12 units left to travel to the target, and yet the
     // agent still hasn't reached the target, since the target is not visible.
-    agent.position = transform.apply(Vec3::new(1.0, 0.0, 10.0));
+    agent.position = transform.apply(Vec3::new(1.0, 10.0, 0.0));
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 1),
-        transform.apply(Vec3::new(1.0, 0.0, 11.0))
+        transform.apply(Vec3::new(1.0, 11.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+        transform.apply(Vec3::new(2.0, 1.0, 0.0))
       ),
     ));
 
     // The agent has now "rounded the corner", and so can see the target (and
     // is within the correct distance).
-    agent.position = transform.apply(Vec3::new(2.0, 0.0, 11.0));
+    agent.position = transform.apply(Vec3::new(2.0, 11.0, 0.0));
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+        transform.apply(Vec3::new(2.0, 1.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+        transform.apply(Vec3::new(2.0, 1.0, 0.0))
       ),
     ));
 
     // The agent can see the target but is still too far away.
-    agent.position = transform.apply(Vec3::new(2.0, 0.0, 20.0));
+    agent.position = transform.apply(Vec3::new(2.0, 20.0, 0.0));
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+        transform.apply(Vec3::new(2.0, 1.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+        transform.apply(Vec3::new(2.0, 1.0, 0.0))
       ),
     ));
   }
@@ -221,48 +221,48 @@ fn long_detour_reaches_target_in_different_ways() {
       TargetReachedCondition::StraightPathDistance(Some(15.0));
 
     // The agent's path is too long (21 units).
-    agent.position = transform.apply(Vec3::new(1.0, 0.0, 1.0));
+    agent.position = transform.apply(Vec3::new(1.0, 1.0, 0.0));
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 1),
-        transform.apply(Vec3::new(1.0, 0.0, 11.0))
+        transform.apply(Vec3::new(1.0, 11.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+        transform.apply(Vec3::new(2.0, 1.0, 0.0))
       ),
     ));
 
     // The agent only has 12 units left to travel to the target, so they have
     // reached the target.
-    agent.position = transform.apply(Vec3::new(1.0, 0.0, 10.0));
+    agent.position = transform.apply(Vec3::new(1.0, 10.0, 0.0));
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 1),
-        transform.apply(Vec3::new(1.0, 0.0, 11.0))
+        transform.apply(Vec3::new(1.0, 11.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+        transform.apply(Vec3::new(2.0, 1.0, 0.0))
       ),
     ));
 
     // The agent can see the target but is still too far away.
-    agent.position = transform.apply(Vec3::new(2.0, 0.0, 20.0));
+    agent.position = transform.apply(Vec3::new(2.0, 20.0, 0.0));
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+        transform.apply(Vec3::new(2.0, 1.0, 0.0))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 0.0, 1.0))
+        transform.apply(Vec3::new(2.0, 1.0, 0.0))
       ),
     ));
   }
