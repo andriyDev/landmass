@@ -64,19 +64,21 @@ fn set_up_scene(
   let nav_mesh = Arc::new(NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
-        bevy_landmass::Vec3::new(1.0, 0.0, 1.0),
-        bevy_landmass::Vec3::new(2.0, 0.0, 1.0),
-        bevy_landmass::Vec3::new(2.0, 0.0, 2.0),
-        bevy_landmass::Vec3::new(1.0, 0.0, 2.0),
-        bevy_landmass::Vec3::new(2.0, 0.0, 3.0),
-        bevy_landmass::Vec3::new(1.0, 0.0, 3.0),
-        bevy_landmass::Vec3::new(2.0, 0.0, 4.0),
-        bevy_landmass::Vec3::new(1.0, 0.0, 4.0),
+        // TODO: #57 - Directly creating nav meshes requires "flipping" the
+        // vertices to be (x,-z,y).
+        bevy_landmass::Vec3::new(1.0, -1.0, 0.0),
+        bevy_landmass::Vec3::new(2.0, -1.0, 0.0),
+        bevy_landmass::Vec3::new(2.0, -2.0, 0.0),
+        bevy_landmass::Vec3::new(1.0, -2.0, 0.0),
+        bevy_landmass::Vec3::new(2.0, -3.0, 0.0),
+        bevy_landmass::Vec3::new(1.0, -3.0, 0.0),
+        bevy_landmass::Vec3::new(2.0, -4.0, 0.0),
+        bevy_landmass::Vec3::new(1.0, -4.0, 0.0),
       ],
       polygons: vec![
-        vec![0, 1, 2, 3],
-        vec![3, 2, 4, 5],
-        vec![5, 4, 6, 7],
+        vec![3, 2, 1, 0],
+        vec![5, 4, 2, 3],
+        vec![7, 6, 4, 5],
       ],
     }.validate().expect("is valid"));
   nav_meshes.insert(&nav_mesh_handle, NavMesh(nav_mesh));
