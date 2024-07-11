@@ -45,26 +45,26 @@ fn converts_u16_indices() {
   assert_eq!(
     nav_mesh.vertices,
     [
-      landmass::Vec3::new(1.0, 1.0, 1.0),
-      landmass::Vec3::new(2.0, 1.0, 1.0),
-      landmass::Vec3::new(2.0, 1.0, 2.0),
-      landmass::Vec3::new(1.0, 1.0, 2.0),
-      landmass::Vec3::new(2.0, 1.0, 3.0),
-      landmass::Vec3::new(1.0, 1.0, 3.0),
-      landmass::Vec3::new(3.0, 1.0, 2.0),
-      landmass::Vec3::new(3.0, 1.0, 3.0),
+      landmass::Vec3::new(1.0, -1.0, 1.0),
+      landmass::Vec3::new(2.0, -1.0, 1.0),
+      landmass::Vec3::new(2.0, -2.0, 1.0),
+      landmass::Vec3::new(1.0, -2.0, 1.0),
+      landmass::Vec3::new(2.0, -3.0, 1.0),
+      landmass::Vec3::new(1.0, -3.0, 1.0),
+      landmass::Vec3::new(3.0, -2.0, 1.0),
+      landmass::Vec3::new(3.0, -3.0, 1.0),
     ]
   );
 
   assert_eq!(
     nav_mesh.polygons,
     vec![
-      vec![0, 2, 1],
-      vec![2, 0, 3],
-      vec![3, 4, 2],
-      vec![3, 5, 4],
-      vec![4, 6, 2],
-      vec![4, 7, 6],
+      vec![0, 1, 2],
+      vec![2, 3, 0],
+      vec![3, 2, 4],
+      vec![3, 4, 5],
+      vec![4, 2, 6],
+      vec![4, 6, 7],
     ]
   );
 }
@@ -95,26 +95,26 @@ fn converts_u32_indices() {
   assert_eq!(
     nav_mesh.vertices,
     [
-      landmass::Vec3::new(1.0, 1.0, 1.0),
-      landmass::Vec3::new(2.0, 1.0, 1.0),
-      landmass::Vec3::new(2.0, 1.0, 2.0),
-      landmass::Vec3::new(1.0, 1.0, 2.0),
-      landmass::Vec3::new(2.0, 1.0, 3.0),
-      landmass::Vec3::new(1.0, 1.0, 3.0),
-      landmass::Vec3::new(3.0, 1.0, 2.0),
-      landmass::Vec3::new(3.0, 1.0, 3.0),
+      landmass::Vec3::new(1.0, -1.0, 1.0),
+      landmass::Vec3::new(2.0, -1.0, 1.0),
+      landmass::Vec3::new(2.0, -2.0, 1.0),
+      landmass::Vec3::new(1.0, -2.0, 1.0),
+      landmass::Vec3::new(2.0, -3.0, 1.0),
+      landmass::Vec3::new(1.0, -3.0, 1.0),
+      landmass::Vec3::new(3.0, -2.0, 1.0),
+      landmass::Vec3::new(3.0, -3.0, 1.0),
     ]
   );
 
   assert_eq!(
     nav_mesh.polygons,
     vec![
-      vec![0, 2, 1],
-      vec![2, 0, 3],
-      vec![3, 4, 2],
-      vec![3, 5, 4],
-      vec![4, 6, 2],
-      vec![4, 7, 6],
+      vec![0, 1, 2],
+      vec![2, 3, 0],
+      vec![3, 2, 4],
+      vec![3, 4, 5],
+      vec![4, 2, 6],
+      vec![4, 6, 7],
     ]
   );
 }

@@ -41,7 +41,7 @@ pub fn bevy_mesh_to_landmass_nav_mesh(
   let vertices: Vec<landmass::Vec3> = match values {
     Float32x3(vertices) => vertices
       .iter()
-      .map(|vert| landmass::Vec3::new(vert[0], vert[1], vert[2]))
+      .map(|vert| landmass::Vec3::new(vert[0], -vert[2], vert[1]))
       .collect(),
     _ => panic!("Mesh POSITION must be Float32x3"),
   };
@@ -53,8 +53,8 @@ pub fn bevy_mesh_to_landmass_nav_mesh(
       for i in (0..indices.len()).step_by(3) {
         polygons.push(vec![
           indices[i] as usize,
-          indices[i + 2] as usize,
           indices[i + 1] as usize,
+          indices[i + 2] as usize,
         ]);
       }
       polygons
@@ -65,8 +65,8 @@ pub fn bevy_mesh_to_landmass_nav_mesh(
       for i in (0..indices.len()).step_by(3) {
         polygons.push(vec![
           indices[i] as usize,
-          indices[i + 2] as usize,
           indices[i + 1] as usize,
+          indices[i + 2] as usize,
         ]);
       }
       polygons

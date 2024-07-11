@@ -25,14 +25,16 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
     NavigationMesh {
       mesh_bounds: None,
       vertices: vec![
-        landmass::Vec3::new(1.0, 0.0, 1.0),
-        landmass::Vec3::new(4.0, 0.0, 1.0),
-        landmass::Vec3::new(4.0, 0.0, 4.0),
-        landmass::Vec3::new(3.0, 0.0, 4.0),
-        landmass::Vec3::new(3.0, 0.0, 2.0),
-        landmass::Vec3::new(1.0, 0.0, 2.0),
+        // These vertices are "flipped" relative to what you'd expect. We treat
+        // -Y as forward, and Z as up.
+        landmass::Vec3::new(1.0, -1.0, 0.0),
+        landmass::Vec3::new(4.0, -1.0, 0.0),
+        landmass::Vec3::new(4.0, -4.0, 0.0),
+        landmass::Vec3::new(3.0, -4.0, 0.0),
+        landmass::Vec3::new(3.0, -2.0, 0.0),
+        landmass::Vec3::new(1.0, -2.0, 0.0),
       ],
-      polygons: vec![vec![0, 1, 4, 5], vec![1, 2, 3, 4]],
+      polygons: vec![vec![5, 4, 1, 0], vec![4, 3, 2, 1]],
     }
     .validate()
     .expect("is valid"),
@@ -409,13 +411,13 @@ fn changing_agent_fields_changes_landmass_agent() {
     .world_mut()
     .spawn((
       TransformBundle {
-        local: Transform::from_translation(Vec3::new(1.0, 1.0, 1.0)),
+        local: Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
         ..Default::default()
       },
       AgentBundle {
         agent: Agent { radius: 1.0, max_velocity: 1.0 },
         archipelago_ref: ArchipelagoRef(archipelago),
-        velocity: Velocity(Vec3::new(2.0, 2.0, 2.0)),
+        velocity: Velocity(Vec3::new(4.0, 5.0, 6.0)),
         target: AgentTarget::None,
         state: Default::default(),
         desired_velocity: Default::default(),
@@ -430,8 +432,8 @@ fn changing_agent_fields_changes_landmass_agent() {
 
   let agent_ref =
     app.world().get::<Archipelago>(archipelago).unwrap().get_agent(agent);
-  assert_eq!(agent_ref.position, landmass::Vec3::new(1.0, 1.0, 1.0));
-  assert_eq!(agent_ref.velocity, landmass::Vec3::new(2.0, 2.0, 2.0));
+  assert_eq!(agent_ref.position, landmass::Vec3::new(1.0, -3.0, 2.0));
+  assert_eq!(agent_ref.velocity, landmass::Vec3::new(4.0, -6.0, 5.0));
   assert_eq!(agent_ref.radius, 1.0);
   assert_eq!(agent_ref.max_velocity, 1.0);
   assert_eq!(agent_ref.current_target, None);
@@ -443,10 +445,10 @@ fn changing_agent_fields_changes_landmass_agent() {
   assert_eq!(dist, Some(1.0));
 
   app.world_mut().entity_mut(agent).insert((
-    Transform::from_translation(Vec3::new(3.0, 3.0, 3.0)),
+    Transform::from_translation(Vec3::new(7.0, 8.0, 9.0)),
     Agent { radius: 2.0, max_velocity: 2.0 },
-    Velocity(Vec3::new(4.0, 4.0, 4.0)),
-    AgentTarget::Point(Vec3::new(5.0, 5.0, 5.0)),
+    Velocity(Vec3::new(10.0, 11.0, 12.0)),
+    AgentTarget::Point(Vec3::new(13.0, 14.0, 15.0)),
     crate::TargetReachedCondition::VisibleAtDistance(Some(2.0)),
   ));
 
@@ -456,13 +458,13 @@ fn changing_agent_fields_changes_landmass_agent() {
 
   let agent_ref =
     app.world().get::<Archipelago>(archipelago).unwrap().get_agent(agent);
-  assert_eq!(agent_ref.position, landmass::Vec3::new(3.0, 3.0, 3.0));
-  assert_eq!(agent_ref.velocity, landmass::Vec3::new(4.0, 4.0, 4.0));
+  assert_eq!(agent_ref.position, landmass::Vec3::new(7.0, -9.0, 8.0));
+  assert_eq!(agent_ref.velocity, landmass::Vec3::new(10.0, -12.0, 11.0));
   assert_eq!(agent_ref.radius, 2.0);
   assert_eq!(agent_ref.max_velocity, 2.0);
   assert_eq!(
     agent_ref.current_target,
-    Some(landmass::Vec3::new(5.0, 5.0, 5.0))
+    Some(landmass::Vec3::new(13.0, -15.0, 14.0))
   );
   let landmass::TargetReachedCondition::VisibleAtDistance(dist) =
     agent_ref.target_reached_condition
@@ -488,13 +490,13 @@ fn changing_character_fields_changes_landmass_character() {
     .world_mut()
     .spawn((
       TransformBundle {
-        local: Transform::from_translation(Vec3::new(1.0, 1.0, 1.0)),
+        local: Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
         ..Default::default()
       },
       CharacterBundle {
         character: Character { radius: 1.0 },
         archipelago_ref: ArchipelagoRef(archipelago),
-        velocity: Velocity(Vec3::new(2.0, 2.0, 2.0)),
+        velocity: Velocity(Vec3::new(4.0, 5.0, 6.0)),
       },
     ))
     .id();
@@ -508,14 +510,14 @@ fn changing_character_fields_changes_landmass_character() {
     .get::<Archipelago>(archipelago)
     .unwrap()
     .get_character(character);
-  assert_eq!(character_ref.position, landmass::Vec3::new(1.0, 1.0, 1.0));
-  assert_eq!(character_ref.velocity, landmass::Vec3::new(2.0, 2.0, 2.0));
+  assert_eq!(character_ref.position, landmass::Vec3::new(1.0, -3.0, 2.0));
+  assert_eq!(character_ref.velocity, landmass::Vec3::new(4.0, -6.0, 5.0));
   assert_eq!(character_ref.radius, 1.0);
 
   app.world_mut().entity_mut(character).insert((
-    Transform::from_translation(Vec3::new(3.0, 3.0, 3.0)),
+    Transform::from_translation(Vec3::new(7.0, 8.0, 9.0)),
     Character { radius: 2.0 },
-    Velocity(Vec3::new(4.0, 4.0, 4.0)),
+    Velocity(Vec3::new(10.0, 11.0, 12.0)),
   ));
 
   app.update();
@@ -527,7 +529,7 @@ fn changing_character_fields_changes_landmass_character() {
     .get::<Archipelago>(archipelago)
     .unwrap()
     .get_character(character);
-  assert_eq!(agent_ref.position, landmass::Vec3::new(3.0, 3.0, 3.0));
-  assert_eq!(agent_ref.velocity, landmass::Vec3::new(4.0, 4.0, 4.0));
+  assert_eq!(agent_ref.position, landmass::Vec3::new(7.0, -9.0, 8.0));
+  assert_eq!(agent_ref.velocity, landmass::Vec3::new(10.0, -12.0, 11.0));
   assert_eq!(agent_ref.radius, 2.0);
 }
