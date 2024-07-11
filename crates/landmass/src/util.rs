@@ -217,10 +217,7 @@ pub struct Transform<CS: CoordinateSystem> {
 // Manual Clone impl to avoid `CS` having a Clone bound itself.
 impl<CS: CoordinateSystem> Clone for Transform<CS> {
   fn clone(&self) -> Self {
-    Self {
-      translation: self.translation.clone(),
-      rotation: self.rotation.clone(),
-    }
+    Self { translation: self.translation.clone(), rotation: self.rotation }
   }
 }
 

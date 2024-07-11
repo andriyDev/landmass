@@ -247,11 +247,11 @@ pub struct ValidNavigationMesh<CS: CoordinateSystem> {
 impl<CS: CoordinateSystem> Clone for ValidNavigationMesh<CS> {
   fn clone(&self) -> Self {
     Self {
-      mesh_bounds: self.mesh_bounds.clone(),
+      mesh_bounds: self.mesh_bounds,
       vertices: self.vertices.clone(),
       polygons: self.polygons.clone(),
       boundary_edges: self.boundary_edges.clone(),
-      marker: self.marker.clone(),
+      marker: self.marker,
     }
   }
 }

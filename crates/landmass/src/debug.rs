@@ -86,8 +86,8 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
         debug_drawer.add_triangle(
           TriangleType::Node,
           [
-            index_to_vertex(i, &island_nav_data),
-            index_to_vertex(j, &island_nav_data),
+            index_to_vertex(i, island_nav_data),
+            index_to_vertex(j, island_nav_data),
             CS::from_landmass(&center_point),
           ],
         );
@@ -179,8 +179,7 @@ fn draw_path<CS: CoordinateSystem>(
 ) {
   let target = agent
     .current_target
-    .as_ref()
-    .map(Clone::clone)
+    .clone()
     .expect("The path is valid, so the target is valid.");
 
   let corridor_points = path
