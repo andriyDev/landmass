@@ -146,7 +146,7 @@ fn draw_archipelagos_default<CS: CoordinateSystem>(
   if time.delta_seconds() == 0.0 {
     return;
   }
-  let mut drawer = GizmoDrawer(&mut gizmos, PhantomData::<CS>::default());
+  let mut drawer = GizmoDrawer(&mut gizmos, PhantomData::<CS>);
   for archipelago in archipelagos.iter() {
     draw_archipelago_debug(archipelago, &mut drawer);
   }
