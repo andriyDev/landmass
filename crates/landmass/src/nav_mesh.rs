@@ -12,11 +12,12 @@ pub struct NavigationMesh {
   /// around the vertices of the navigation mesh. This may be None to
   /// automatically compute this from the vertices.
   pub mesh_bounds: Option<BoundingBox>,
-  /// The vertices that make up the polygons. The Y component is considered up.
+  /// The vertices that make up the polygons. The Z component is considered up.
   pub vertices: Vec<Vec3>,
   /// The polygons of the mesh. Polygons are indices to the `vertices` that
   /// make up the polygon. Polygons must be convex, and oriented
-  /// counterclockwise. Polygons are assumed to be not self-intersecting.
+  /// counterclockwise (using the right hand rule). Polygons are assumed to be
+  /// not self-intersecting.
   pub polygons: Vec<Vec<usize>>,
 }
 
