@@ -1,7 +1,8 @@
 use std::{
   collections::{HashMap, HashSet},
   mem::swap,
-  sync::Mutex,
+  ops::{Deref, DerefMut},
+  sync::{Arc, Mutex},
 };
 
 use disjoint::DisjointSet;
@@ -15,7 +16,7 @@ use crate::{
   island::{Island, IslandId, IslandNavigationData},
   nav_mesh::MeshEdgeRef,
   util::BoundingBoxHierarchy,
-  BoundingBox, CoordinateSystem,
+  BoundingBox, CoordinateSystem, Transform, ValidNavigationMesh,
 };
 
 /// The navigation data of a whole [`crate::Archipelago`]. This only includes
@@ -97,8 +98,22 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   }
 
   /// Adds a new (empty) island to the navigation data.
-  pub fn add_island(&mut self) -> IslandId {
-    self.islands.insert(Island::new())
+  pub fn add_island(&mut self) -> IslandMut<'_, CS> {
+    let island_id = self.islands.insert(Island::new());
+    IslandMut {
+      id: island_id,
+      island: self.islands.get_mut(island_id).unwrap(),
+    }
+  }
+
+  /// Gets a borrow to the island with `id`.
+  pub fn get_island(&self, id: IslandId) -> Option<&Island<CS>> {
+    self.islands.get(id)
+  }
+
+  /// Gets a mutable borrow to the island with `id`.
+  pub fn get_island_mut(&mut self, id: IslandId) -> Option<IslandMut<'_, CS>> {
+    self.islands.get_mut(id).map(|island| IslandMut { id, island })
   }
 
   /// Removes the island with `island_id`. Panics if the island ID is not in the
@@ -564,6 +579,48 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       self.update_regions();
     }
     (dropped_links, changed_islands)
+  }
+}
+
+/// A mutable borrow to an island.
+pub struct IslandMut<'nav_data, CS: CoordinateSystem> {
+  /// The ID of the island.
+  id: IslandId,
+  /// The borrow.
+  island: &'nav_data mut Island<CS>,
+}
+
+impl<CS: CoordinateSystem> Deref for IslandMut<'_, CS> {
+  type Target = Island<CS>;
+
+  fn deref(&self) -> &Self::Target {
+    self.island
+  }
+}
+
+impl<CS: CoordinateSystem> DerefMut for IslandMut<'_, CS> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    // TODO: Mark dirty.
+    self.island
+  }
+}
+
+impl<CS: CoordinateSystem> IslandMut<'_, CS> {
+  /// Returns the ID of the borrowed island.
+  pub fn id(&self) -> IslandId {
+    self.id
+  }
+
+  /// Sets the navigation mesh and the transform of the island. This matches
+  /// [`crate::Island::set_nav_mesh`], but returns self for convenience.
+  pub fn set_nav_mesh(
+    &mut self,
+    transform: Transform<CS>,
+    nav_mesh: Arc<ValidNavigationMesh<CS>>,
+  ) -> &mut Self {
+    // Deref so we automatically trigger any change detection stuff.
+    self.deref_mut().set_nav_mesh(transform, nav_mesh);
+    self
   }
 }
 

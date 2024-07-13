@@ -16,10 +16,10 @@ fn has_reached_target_at_end_node() {
   let transform =
     Transform { translation: Vec3::new(2.0, 3.0, 4.0), rotation: PI * 0.85 };
   let mut archipelago = Archipelago::<XYZ>::new();
-  let island_id = archipelago.add_island();
-  archipelago
-    .get_island_mut(island_id)
-    .set_nav_mesh(transform.clone(), Arc::new(nav_mesh));
+  let island_id = archipelago
+    .add_island()
+    .set_nav_mesh(transform.clone(), Arc::new(nav_mesh))
+    .id();
   let mut agent = Agent::create(
     /* position= */ transform.apply(Vec3::new(1.0, 0.0, 1.0)),
     /* velocity= */ Vec3::ZERO,
@@ -90,10 +90,10 @@ fn long_detour_reaches_target_in_different_ways() {
   let transform =
     Transform { translation: Vec3::new(2.0, 4.0, 3.0), rotation: PI * -0.85 };
   let mut archipelago = Archipelago::<XYZ>::new();
-  let island_id = archipelago.add_island();
-  archipelago
-    .get_island_mut(island_id)
-    .set_nav_mesh(transform.clone(), Arc::new(nav_mesh));
+  let island_id = archipelago
+    .add_island()
+    .set_nav_mesh(transform.clone(), Arc::new(nav_mesh))
+    .id();
 
   let mut agent = Agent::create(
     /* position= */ Vec3::ZERO,

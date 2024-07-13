@@ -342,8 +342,7 @@ fn computes_and_follows_path() {
   .validate()
   .expect("is valid");
 
-  let island_id = archipelago.add_island();
-  archipelago.get_island_mut(island_id).set_nav_mesh(
+  archipelago.add_island().set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::new(nav_mesh),
   );
@@ -520,9 +519,9 @@ fn computes_and_follows_path() {
 fn add_and_remove_islands() {
   let mut archipelago = Archipelago::<XYZ>::new();
 
-  let island_id_1 = archipelago.add_island();
-  let island_id_2 = archipelago.add_island();
-  let island_id_3 = archipelago.add_island();
+  let island_id_1 = archipelago.add_island().id();
+  let island_id_2 = archipelago.add_island().id();
+  let island_id_3 = archipelago.add_island().id();
 
   fn sorted(mut v: Vec<IslandId>) -> Vec<IslandId> {
     v.sort();
@@ -546,15 +545,15 @@ fn add_and_remove_islands() {
 fn new_or_changed_island_is_not_dirty_after_update() {
   let mut archipelago = Archipelago::<XYZ>::new();
 
-  let island_id = archipelago.add_island();
+  let island_id = archipelago.add_island().id();
 
-  assert!(archipelago.get_island(island_id).dirty);
+  assert!(archipelago.get_island(island_id).unwrap().dirty);
 
   archipelago.update(/* delta_time= */ 0.01);
 
-  assert!(!archipelago.get_island(island_id).dirty);
+  assert!(!archipelago.get_island(island_id).unwrap().dirty);
 
-  archipelago.get_island_mut(island_id).set_nav_mesh(
+  archipelago.get_island_mut(island_id).unwrap().set_nav_mesh(
     Transform::default(),
     Arc::new(ValidNavigationMesh {
       mesh_bounds: BoundingBox::Empty,
@@ -565,9 +564,9 @@ fn new_or_changed_island_is_not_dirty_after_update() {
     }),
   );
 
-  assert!(archipelago.get_island(island_id).dirty);
+  assert!(archipelago.get_island(island_id).unwrap().dirty);
 
   archipelago.update(/* delta_time= */ 0.01);
 
-  assert!(!archipelago.get_island(island_id).dirty);
+  assert!(!archipelago.get_island(island_id).unwrap().dirty);
 }
