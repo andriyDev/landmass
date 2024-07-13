@@ -65,10 +65,9 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
     )
   }
 
-  for (island_id, island) in archipelago.nav_data.islands.iter() {
-    if island.dirty {
-      panic!("Drawing an archipelago while things are dirty is unsafe! Update the archipelago first.");
-    }
+  for island_id in archipelago.get_island_ids() {
+    let island = archipelago.get_island(island_id).unwrap();
+    assert!(!island.dirty, "Drawing an archipelago while things are dirty is unsafe! Update the archipelago first.");
     let Some(island_nav_data) = island.nav_data.as_ref() else {
       continue;
     };
@@ -189,8 +188,7 @@ fn draw_path<CS: CoordinateSystem>(
       island_segment.corridor.iter().copied().map(|polygon_index| {
         let island = archipelago
           .nav_data
-          .islands
-          .get(island_segment.island_id)
+          .get_island(island_segment.island_id)
           .expect("Island in corridor should be valid.");
         let nav_data = island
           .nav_data

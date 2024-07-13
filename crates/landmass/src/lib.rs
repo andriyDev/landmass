@@ -151,7 +151,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   }
 
   pub fn get_island_ids(&self) -> impl ExactSizeIterator<Item = IslandId> + '_ {
-    self.nav_data.islands.keys()
+    self.nav_data.get_island_ids()
   }
 
   /// Gets the pathing results from the last [`Self::update`] call.

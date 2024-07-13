@@ -23,7 +23,7 @@ use crate::{
 /// "static" features.
 pub struct NavigationData<CS: CoordinateSystem> {
   /// The islands in the [`crate::Archipelago`].
-  pub islands: HopSlotMap<IslandId, Island<CS>>,
+  islands: HopSlotMap<IslandId, Island<CS>>,
   /// Maps a "region id" (consisting of the IslandId and the region in that
   /// island's nav mesh) to its "region number" (the number used in
   /// [`Self::region_connections`]).
@@ -114,6 +114,10 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   /// Gets a mutable borrow to the island with `id`.
   pub fn get_island_mut(&mut self, id: IslandId) -> Option<IslandMut<'_, CS>> {
     self.islands.get_mut(id).map(|island| IslandMut { id, island })
+  }
+
+  pub fn get_island_ids(&self) -> impl ExactSizeIterator<Item = IslandId> + '_ {
+    self.islands.keys()
   }
 
   /// Removes the island with `island_id`. Panics if the island ID is not in the
