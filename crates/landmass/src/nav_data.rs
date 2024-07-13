@@ -24,6 +24,9 @@ use crate::{
 pub struct NavigationData<CS: CoordinateSystem> {
   /// The islands in the [`crate::Archipelago`].
   islands: HopSlotMap<IslandId, Island<CS>>,
+  /// Whether the navigation data has been mutated since the last update.
+  /// Reading should not occur unless the navigation data is not dirty.
+  pub dirty: bool,
   /// Maps a "region id" (consisting of the IslandId and the region in that
   /// island's nav mesh) to its "region number" (the number used in
   /// [`Self::region_connections`]).
@@ -88,6 +91,9 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   pub fn new() -> Self {
     Self {
       islands: HopSlotMap::with_key(),
+      // The navigation data is empty, so there's nothing to update (so not
+      // dirty).
+      dirty: false,
       region_id_to_number: HashMap::new(),
       region_connections: Mutex::new(DisjointSet::new()),
       boundary_links: SlotMap::with_key(),
@@ -99,10 +105,12 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
   /// Adds a new (empty) island to the navigation data.
   pub fn add_island(&mut self) -> IslandMut<'_, CS> {
+    // Don't set the dirty flag since a new island doesn't need to be updated.
     let island_id = self.islands.insert(Island::new());
     IslandMut {
       id: island_id,
       island: self.islands.get_mut(island_id).unwrap(),
+      dirty_flag: &mut self.dirty,
     }
   }
 
@@ -113,7 +121,11 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
   /// Gets a mutable borrow to the island with `id`.
   pub fn get_island_mut(&mut self, id: IslandId) -> Option<IslandMut<'_, CS>> {
-    self.islands.get_mut(id).map(|island| IslandMut { id, island })
+    self.islands.get_mut(id).map(|island| IslandMut {
+      id,
+      island,
+      dirty_flag: &mut self.dirty,
+    })
   }
 
   pub fn get_island_ids(&self) -> impl ExactSizeIterator<Item = IslandId> + '_ {
@@ -123,6 +135,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   /// Removes the island with `island_id`. Panics if the island ID is not in the
   /// navigation data.
   pub fn remove_island(&mut self, island_id: IslandId) {
+    self.dirty = true;
     self
       .islands
       .remove(island_id)
@@ -574,6 +587,11 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     &mut self,
     edge_link_distance: f32,
   ) -> (HashSet<BoundaryLinkId>, HashSet<IslandId>) {
+    if !self.dirty {
+      return (HashSet::new(), HashSet::new());
+    }
+    self.dirty = false;
+
     let (dropped_links, changed_islands, modified_node_refs_to_update) =
       self.update_islands(edge_link_distance);
     for node_ref in modified_node_refs_to_update {
@@ -592,6 +610,9 @@ pub struct IslandMut<'nav_data, CS: CoordinateSystem> {
   id: IslandId,
   /// The borrow.
   island: &'nav_data mut Island<CS>,
+  /// A borrow to the navigation data's dirty flag. Mutating the island should
+  /// set this flag.
+  dirty_flag: &'nav_data mut bool,
 }
 
 impl<CS: CoordinateSystem> Deref for IslandMut<'_, CS> {
@@ -604,7 +625,7 @@ impl<CS: CoordinateSystem> Deref for IslandMut<'_, CS> {
 
 impl<CS: CoordinateSystem> DerefMut for IslandMut<'_, CS> {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    // TODO: Mark dirty.
+    *self.dirty_flag = true;
     self.island
   }
 }
