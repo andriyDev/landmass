@@ -51,11 +51,23 @@ pub trait DebugDrawer<CS: CoordinateSystem> {
   );
 }
 
+/// An error resulting from trying to debug draw an archipelago.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DebugDrawError {
+  /// The navigation data of the archipelago has been mutated since the last
+  /// update. Drawing requires an up-to-date archipelago.
+  NavDataDirty,
+}
+
 /// Draws all parts of `archipelago` to `debug_drawer`.
 pub fn draw_archipelago_debug<CS: CoordinateSystem>(
   archipelago: &Archipelago<CS>,
   debug_drawer: &mut impl DebugDrawer<CS>,
-) {
+) -> Result<(), DebugDrawError> {
+  if archipelago.nav_data.dirty {
+    return Err(DebugDrawError::NavDataDirty);
+  }
+
   fn index_to_vertex<CS: CoordinateSystem>(
     index: usize,
     nav_data: &IslandNavigationData<CS>,
@@ -165,6 +177,8 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
       draw_path(path, agent_id, agent, archipelago, debug_drawer);
     }
   }
+
+  Ok(())
 }
 
 /// Draws `path` to `debug_drawer`. The path belongs to `agent` and both belong

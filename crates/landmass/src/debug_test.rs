@@ -4,7 +4,7 @@ use glam::Vec3;
 
 use crate::{
   coords::XYZ,
-  debug::{DebugDrawer, LineType, PointType, TriangleType},
+  debug::{DebugDrawError, DebugDrawer, LineType, PointType, TriangleType},
   Agent, Archipelago, NavigationMesh, Transform,
 };
 
@@ -116,7 +116,8 @@ fn draws_island_meshes_and_agents() {
   archipelago.update(1.0);
 
   let mut fake_drawer = FakeDrawer::new();
-  draw_archipelago_debug(&archipelago, &mut fake_drawer);
+  draw_archipelago_debug(&archipelago, &mut fake_drawer)
+    .expect("the archipelago can be debug-drawed");
 
   fake_drawer.sort();
 
@@ -444,7 +445,8 @@ fn draws_boundary_links() {
   archipelago.update(1.0);
 
   let mut fake_drawer = FakeDrawer::new();
-  draw_archipelago_debug(&archipelago, &mut fake_drawer);
+  draw_archipelago_debug(&archipelago, &mut fake_drawer)
+    .expect("the archipelago can be debug-drawed");
   fake_drawer.sort();
 
   let lines = fake_drawer
@@ -455,4 +457,55 @@ fn draws_boundary_links() {
     .collect::<Vec<_>>();
 
   assert_eq!(lines, [[Vec3::new(2.0, 1.0, 1.0), Vec3::new(2.0, 2.0, 1.0)]]);
+}
+
+#[test]
+fn fails_to_draw_dirty_archipelago() {
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec3::new(1.0, 1.0, 1.0),
+        Vec3::new(2.0, 1.0, 1.0),
+        Vec3::new(2.0, 2.0, 1.0),
+        Vec3::new(1.0, 2.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+    }
+    .validate()
+    .expect("The mesh is valid."),
+  );
+
+  let mut fake_drawer = FakeDrawer::new();
+
+  // A brand new archipelago is considered clean.
+  let mut archipelago = Archipelago::<XYZ>::new();
+  assert_eq!(draw_archipelago_debug(&archipelago, &mut fake_drawer), Ok(()));
+
+  // Creating an island doesn't mark the nav data as dirty.
+  let island_id = archipelago.add_island().id();
+  assert_eq!(draw_archipelago_debug(&archipelago, &mut fake_drawer), Ok(()));
+
+  // Setting a nav mesh marks the nav data as dirty.
+  archipelago.get_island_mut(island_id).unwrap().set_nav_mesh(
+    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    nav_mesh.clone(),
+  );
+  assert_eq!(
+    draw_archipelago_debug(&archipelago, &mut fake_drawer),
+    Err(DebugDrawError::NavDataDirty)
+  );
+
+  archipelago.update(1.0);
+  // Nav data is clean again.
+  assert_eq!(draw_archipelago_debug(&archipelago, &mut fake_drawer), Ok(()));
+
+  // Changing the transform/nav mesh marks the nav data as dirty.
+  archipelago.get_island_mut(island_id).unwrap().set_nav_mesh(
+    Transform { translation: Vec3::ZERO, rotation: 1.0 },
+    nav_mesh,
+  );
+  assert_eq!(
+    draw_archipelago_debug(&archipelago, &mut fake_drawer),
+    Err(DebugDrawError::NavDataDirty)
+  );
 }
