@@ -53,8 +53,7 @@ impl IslandSegment {
     let edge = self.portal_edge_index[portal_index];
 
     let island_data = nav_data
-      .islands
-      .get(self.island_id)
+      .get_island(self.island_id)
       .expect("only called if path is still valid")
       .nav_data
       .as_ref()
