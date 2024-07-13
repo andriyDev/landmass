@@ -41,22 +41,20 @@ fn samples_points() {
   let nav_mesh = Arc::new(nav_mesh);
 
   let mut nav_data = NavigationData::<XYZ>::new();
-  let island_id_1 = nav_data.islands.insert({
-    let mut island = Island::new();
-    island.set_nav_mesh(
+  let island_id_1 = nav_data
+    .add_island()
+    .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::clone(&nav_mesh),
-    );
-    island
-  });
-  let island_id_2 = nav_data.islands.insert({
-    let mut island = Island::new();
-    island.set_nav_mesh(
+    )
+    .id();
+  let island_id_2 = nav_data
+    .add_island()
+    .set_nav_mesh(
       Transform { translation: Vec3::new(5.0, 0.0, 0.1), rotation: PI * 0.5 },
       Arc::clone(&nav_mesh),
-    );
-    island
-  });
+    )
+    .id();
 
   // Just above island 1 node.
   assert_eq!(
@@ -490,39 +488,43 @@ fn update_links_islands_and_unlinks_on_delete() {
     .expect("is valid."),
   );
 
-  let mut island_1 = Island::new();
-  let mut island_2 = Island::new();
-  let mut island_3 = Island::new();
-  let mut island_4 = Island::new();
-  let mut island_5 = Island::new();
-
-  island_1.set_nav_mesh(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::clone(&nav_mesh),
-  );
-  island_2.set_nav_mesh(
-    Transform { translation: Vec3::ZERO, rotation: PI * 0.5 },
-    Arc::clone(&nav_mesh),
-  );
-  island_3.set_nav_mesh(
-    Transform { translation: Vec3::ZERO, rotation: PI },
-    Arc::clone(&nav_mesh),
-  );
-  island_4.set_nav_mesh(
-    Transform { translation: Vec3::new(3.0, 0.0, 0.0), rotation: PI },
-    Arc::clone(&nav_mesh),
-  );
-  island_5.set_nav_mesh(
-    Transform { translation: Vec3::new(2.0, 3.0, 0.0), rotation: PI * -0.5 },
-    Arc::clone(&nav_mesh),
-  );
-
   let mut nav_data = NavigationData::<XYZ>::new();
-  let island_1_id = nav_data.islands.insert(island_1);
-  let island_2_id = nav_data.islands.insert(island_2);
-  let island_3_id = nav_data.islands.insert(island_3);
-  let island_4_id = nav_data.islands.insert(island_4);
-  let island_5_id = nav_data.islands.insert(island_5);
+
+  let island_1_id = nav_data
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
+  let island_2_id = nav_data
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: PI * 0.5 },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
+  let island_3_id = nav_data
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: PI },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
+  let island_4_id = nav_data
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::new(3.0, 0.0, 0.0), rotation: PI },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
+  let island_5_id = nav_data
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::new(2.0, 3.0, 0.0), rotation: PI * -0.5 },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
 
   nav_data.update(/* edge_link_distance= */ 0.01);
 
@@ -788,27 +790,29 @@ fn modifies_node_boundaries_for_linked_islands() {
     .expect("is valid."),
   );
 
-  let mut island_1 = Island::new();
-  let mut island_2 = Island::new();
-  let mut island_3 = Island::new();
-
-  island_1.set_nav_mesh(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::clone(&nav_mesh),
-  );
-  island_2.set_nav_mesh(
-    Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
-    Arc::clone(&nav_mesh),
-  );
-  island_3.set_nav_mesh(
-    Transform { translation: Vec3::new(2.0, 3.5, 0.0), rotation: PI * -0.5 },
-    Arc::clone(&nav_mesh),
-  );
-
   let mut nav_data = NavigationData::<XYZ>::new();
-  let island_1_id = nav_data.islands.insert(island_1);
-  let island_2_id = nav_data.islands.insert(island_2);
-  let island_3_id = nav_data.islands.insert(island_3);
+
+  let island_1_id = nav_data
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
+  let island_2_id = nav_data
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
+  let island_3_id = nav_data
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::new(2.0, 3.5, 0.0), rotation: PI * -0.5 },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
 
   nav_data.update(/* edge_link_distance= */ 1e-6);
 
@@ -862,21 +866,19 @@ fn stale_modified_nodes_are_removed() {
     .expect("is valid."),
   );
 
-  let mut island_1 = Island::new();
-  let mut island_2 = Island::new();
+  let mut nav_data = NavigationData::<XYZ>::new();
 
-  island_1.set_nav_mesh(
+  nav_data.add_island().set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::clone(&nav_mesh),
   );
-  island_2.set_nav_mesh(
-    Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
-    Arc::clone(&nav_mesh),
-  );
-
-  let mut nav_data = NavigationData::<XYZ>::new();
-  nav_data.islands.insert(island_1);
-  let island_2_id = nav_data.islands.insert(island_2);
+  let island_2_id = nav_data
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
 
   nav_data.update(/* edge_link_distance= */ 1e-6);
 
@@ -905,21 +907,15 @@ fn empty_navigation_mesh_is_safe() {
     .expect("A square nav mesh is valid."),
   );
 
-  let mut full_island = Island::new();
-  full_island.set_nav_mesh(Transform::default(), full_nav_mesh);
-
   let empty_nav_mesh = Arc::new(
     NavigationMesh { vertices: vec![], polygons: vec![] }
       .validate()
       .expect("An empty nav mesh is valid."),
   );
 
-  let mut empty_island = Island::new();
-  empty_island.set_nav_mesh(Transform::default(), empty_nav_mesh);
-
   let mut nav_data = NavigationData::<XYZ>::new();
-  nav_data.islands.insert(full_island);
-  nav_data.islands.insert(empty_island);
+  nav_data.add_island().set_nav_mesh(Transform::default(), full_nav_mesh);
+  nav_data.add_island().set_nav_mesh(Transform::default(), empty_nav_mesh);
 
   // Nothing should panic here.
   nav_data.update(/* edge_link_distance= */ 1e-6);
