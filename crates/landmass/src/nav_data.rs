@@ -554,7 +554,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   fn update_regions(&mut self) {
     self.region_id_to_number.clear();
     let mut region_connections = self.region_connections.lock().unwrap();
-    *region_connections = DisjointSet::new();
+    region_connections.clear();
 
     for (node_ref, link) in
       self.node_to_boundary_link_ids.iter().flat_map(|(&node_ref, links)| {
@@ -567,17 +567,15 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       let start_region = self.node_to_region_id(node_ref);
       let end_region = self.node_to_region_id(link.destination_node);
 
-      let start_region =
-        *self.region_id_to_number.entry(start_region).or_insert_with(|| {
-          region_connections.add_singleton();
-          region_connections.len() - 1
-        });
+      let start_region = *self
+        .region_id_to_number
+        .entry(start_region)
+        .or_insert_with(|| region_connections.add_singleton());
 
-      let end_region =
-        *self.region_id_to_number.entry(end_region).or_insert_with(|| {
-          region_connections.add_singleton();
-          region_connections.len() - 1
-        });
+      let end_region = *self
+        .region_id_to_number
+        .entry(end_region)
+        .or_insert_with(|| region_connections.add_singleton());
 
       region_connections.join(start_region, end_region);
     }
