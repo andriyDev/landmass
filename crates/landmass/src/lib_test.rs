@@ -585,14 +585,10 @@ fn add_and_remove_islands() {
 }
 
 #[test]
-fn new_or_changed_island_is_not_dirty_after_update() {
+fn changed_island_is_not_dirty_after_update() {
   let mut archipelago = Archipelago::<XYZ>::new();
 
   let island_id = archipelago.add_island().id();
-
-  assert!(archipelago.get_island(island_id).unwrap().dirty);
-
-  archipelago.update(/* delta_time= */ 0.01);
 
   assert!(!archipelago.get_island(island_id).unwrap().dirty);
 
