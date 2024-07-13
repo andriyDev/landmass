@@ -1,3 +1,5 @@
+use thiserror::Error;
+
 use crate::{
   island::IslandNavigationData, nav_data::NodeRef, path::Path, Agent, AgentId,
   Archipelago, CoordinateSystem,
@@ -52,10 +54,9 @@ pub trait DebugDrawer<CS: CoordinateSystem> {
 }
 
 /// An error resulting from trying to debug draw an archipelago.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub enum DebugDrawError {
-  /// The navigation data of the archipelago has been mutated since the last
-  /// update. Drawing requires an up-to-date archipelago.
+  #[error("The navigation data of the archipelago has been mutated since the last update.")]
   NavDataDirty,
 }
 
