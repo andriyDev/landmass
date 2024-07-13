@@ -88,12 +88,12 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       .expect("Agent should be present in the archipelago");
   }
 
-  pub fn get_agent(&self, agent_id: AgentId) -> &Agent<CS> {
-    self.agents.get(agent_id).unwrap()
+  pub fn get_agent(&self, agent_id: AgentId) -> Option<&Agent<CS>> {
+    self.agents.get(agent_id)
   }
 
-  pub fn get_agent_mut(&mut self, agent_id: AgentId) -> &mut Agent<CS> {
-    self.agents.get_mut(agent_id).unwrap()
+  pub fn get_agent_mut(&mut self, agent_id: AgentId) -> Option<&mut Agent<CS>> {
+    self.agents.get_mut(agent_id)
   }
 
   pub fn get_agent_ids(&self) -> impl ExactSizeIterator<Item = AgentId> + '_ {
@@ -111,15 +111,18 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       .expect("Character should be present in the archipelago");
   }
 
-  pub fn get_character(&self, character_id: CharacterId) -> &Character<CS> {
-    self.characters.get(character_id).unwrap()
+  pub fn get_character(
+    &self,
+    character_id: CharacterId,
+  ) -> Option<&Character<CS>> {
+    self.characters.get(character_id)
   }
 
   pub fn get_character_mut(
     &mut self,
     character_id: CharacterId,
-  ) -> &mut Character<CS> {
-    self.characters.get_mut(character_id).unwrap()
+  ) -> Option<&mut Character<CS>> {
+    self.characters.get_mut(character_id)
   }
 
   pub fn get_character_ids(

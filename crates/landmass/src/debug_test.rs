@@ -109,7 +109,7 @@ fn draws_island_meshes_and_agents() {
     /* radius= */ 1.0,
     /* max_velocity= */ 1.0,
   ));
-  archipelago.get_agent_mut(agent_id).current_target =
+  archipelago.get_agent_mut(agent_id).unwrap().current_target =
     Some(Vec3::new(1.5, 4.5, 0.0) + TRANSLATION);
 
   // Update so everything is in sync.

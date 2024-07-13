@@ -107,7 +107,7 @@ for i in 0..200 {
   archipelago.update(delta_time);
 
   for agent_id in archipelago.get_agent_ids().collect::<Vec<_>>() {
-    let agent = archipelago.get_agent_mut(agent_id);
+    let agent = archipelago.get_agent_mut(agent_id).unwrap();
     agent.velocity = *agent.get_desired_velocity();
     agent.position += agent.velocity * delta_time;
   }
@@ -115,10 +115,12 @@ for i in 0..200 {
 
 assert!(archipelago
   .get_agent(agent_1)
+  .unwrap()
   .position
   .abs_diff_eq(Vec3::new(11.0, 1.1, 0.0), 0.1));
 assert!(archipelago
   .get_agent(agent_2)
+  .unwrap()
   .position
   .abs_diff_eq(Vec3::new(1.0, 1.0, 0.0), 0.1));
 ```
