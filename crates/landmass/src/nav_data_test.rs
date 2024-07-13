@@ -812,9 +812,6 @@ fn modifies_node_boundaries_for_linked_islands() {
 
   nav_data.update(/* edge_link_distance= */ 1e-6);
 
-  dbg!(&nav_data.node_to_boundary_link_ids);
-  dbg!(&nav_data.boundary_links);
-
   let expected_modified_nodes = [
     (
       NodeRef { island_id: island_1_id, polygon_index: 0 },
