@@ -43,11 +43,13 @@ fn finds_path_in_archipelago() {
   .expect("Mesh is valid.");
 
   let mut archipelago = Archipelago::<XYZ>::new();
-  let island_id = archipelago.add_island();
-  archipelago.get_island_mut(island_id).set_nav_mesh(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::new(nav_mesh),
-  );
+  let island_id = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      Arc::new(nav_mesh),
+    )
+    .id();
 
   let nav_data = &archipelago.nav_data;
 
@@ -138,17 +140,21 @@ fn finds_paths_on_two_islands() {
   let nav_mesh = Arc::new(nav_mesh);
 
   let mut archipelago = Archipelago::<XYZ>::new();
-  let island_id_1 = archipelago.add_island();
-  archipelago.get_island_mut(island_id_1).set_nav_mesh(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::clone(&nav_mesh),
-  );
+  let island_id_1 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
 
-  let island_id_2 = archipelago.add_island();
-  archipelago.get_island_mut(island_id_2).set_nav_mesh(
-    Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * -0.5 },
-    Arc::clone(&nav_mesh),
-  );
+  let island_id_2 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * -0.5 },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
 
   let nav_data = &archipelago.nav_data;
 
@@ -221,17 +227,21 @@ fn no_path_between_disconnected_islands() {
   let nav_mesh = Arc::new(nav_mesh);
 
   let mut archipelago = Archipelago::<XYZ>::new();
-  let island_id_1 = archipelago.add_island();
-  archipelago.get_island_mut(island_id_1).set_nav_mesh(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::clone(&nav_mesh),
-  );
+  let island_id_1 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
 
-  let island_id_2 = archipelago.add_island();
-  archipelago.get_island_mut(island_id_2).set_nav_mesh(
-    Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * -0.5 },
-    Arc::clone(&nav_mesh),
-  );
+  let island_id_2 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * -0.5 },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
 
   let nav_data = &archipelago.nav_data;
 
@@ -270,32 +280,39 @@ fn find_path_across_connected_islands() {
 
   let mut archipelago = Archipelago::<XYZ>::new();
 
-  let island_id_1 = archipelago.add_island();
-  let island_id_2 = archipelago.add_island();
-  let island_id_3 = archipelago.add_island();
-  let island_id_4 = archipelago.add_island();
-  let island_id_5 = archipelago.add_island();
-
-  archipelago.get_island_mut(island_id_1).set_nav_mesh(
-    Transform { rotation: 0.0, translation: Vec3::ZERO },
-    Arc::clone(&nav_mesh),
-  );
-  archipelago.get_island_mut(island_id_2).set_nav_mesh(
-    Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 0.0) },
-    Arc::clone(&nav_mesh),
-  );
-  archipelago.get_island_mut(island_id_3).set_nav_mesh(
+  let island_id_1 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { rotation: 0.0, translation: Vec3::ZERO },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
+  let island_id_2 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 0.0) },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
+  // island_id_3 is unused.
+  archipelago.add_island().set_nav_mesh(
     Transform { rotation: 0.0, translation: Vec3::new(1.0, -1.0, 0.0) },
     Arc::clone(&nav_mesh),
   );
-  archipelago.get_island_mut(island_id_4).set_nav_mesh(
-    Transform { rotation: 0.0, translation: Vec3::new(1.0, 1.0, 0.0) },
-    Arc::clone(&nav_mesh),
-  );
-  archipelago.get_island_mut(island_id_5).set_nav_mesh(
-    Transform { rotation: 0.0, translation: Vec3::new(1.0, 2.0, 0.0) },
-    Arc::clone(&nav_mesh),
-  );
+  let island_id_4 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { rotation: 0.0, translation: Vec3::new(1.0, 1.0, 0.0) },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
+  let island_id_5 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { rotation: 0.0, translation: Vec3::new(1.0, 2.0, 0.0) },
+      Arc::clone(&nav_mesh),
+    )
+    .id();
 
   archipelago.update(1.0);
 
@@ -393,17 +410,20 @@ fn finds_path_across_different_islands() {
 
   let mut archipelago = Archipelago::<XYZ>::new();
 
-  let island_id_1 = archipelago.add_island();
-  let island_id_2 = archipelago.add_island();
-
-  archipelago.get_island_mut(island_id_1).set_nav_mesh(
-    Transform { rotation: 0.0, translation: Vec3::ZERO },
-    nav_mesh_1,
-  );
-  archipelago.get_island_mut(island_id_2).set_nav_mesh(
-    Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 0.0) },
-    nav_mesh_2,
-  );
+  let island_id_1 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { rotation: 0.0, translation: Vec3::ZERO },
+      nav_mesh_1,
+    )
+    .id();
+  let island_id_2 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 0.0) },
+      nav_mesh_2,
+    )
+    .id();
 
   archipelago.update(1.0);
 
@@ -465,22 +485,28 @@ fn aborts_early_for_unconnected_regions() {
   );
 
   let mut archipelago = Archipelago::<XYZ>::new();
-  let island_id_1 = archipelago.add_island();
-  let island_id_2 = archipelago.add_island();
-  let island_id_3 = archipelago.add_island();
 
-  archipelago.get_island_mut(island_id_1).set_nav_mesh(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    nav_mesh.clone(),
-  );
-  archipelago.get_island_mut(island_id_2).set_nav_mesh(
-    Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
-    nav_mesh.clone(),
-  );
-  archipelago.get_island_mut(island_id_3).set_nav_mesh(
-    Transform { translation: Vec3::new(1.5, 2.0, 0.0), rotation: PI * 0.5 },
-    nav_mesh.clone(),
-  );
+  let island_id_1 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::ZERO, rotation: 0.0 },
+      nav_mesh.clone(),
+    )
+    .id();
+  let island_id_2 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
+      nav_mesh.clone(),
+    )
+    .id();
+  let island_id_3 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::new(1.5, 2.0, 0.0), rotation: PI * 0.5 },
+      nav_mesh.clone(),
+    )
+    .id();
 
   archipelago.update(1.0);
 

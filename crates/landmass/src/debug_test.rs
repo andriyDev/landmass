@@ -94,12 +94,14 @@ fn draws_island_meshes_and_agents() {
   .expect("Mesh is valid.");
 
   let mut archipelago = Archipelago::<XYZ>::new();
-  let island_id = archipelago.add_island();
   const TRANSLATION: Vec3 = Vec3::ONE;
-  archipelago.get_island_mut(island_id).set_nav_mesh(
-    Transform { translation: TRANSLATION, rotation: 0.0 },
-    Arc::new(nav_mesh),
-  );
+  archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: TRANSLATION, rotation: 0.0 },
+      Arc::new(nav_mesh),
+    )
+    .id();
 
   let agent_id = archipelago.add_agent(Agent::create(
     /* position= */ Vec3::new(3.9, 1.5, 0.0) + TRANSLATION,
@@ -426,15 +428,17 @@ fn draws_boundary_links() {
   );
 
   let mut archipelago = Archipelago::<XYZ>::new();
-  let island_id_1 = archipelago.add_island();
-  let island_id_2 = archipelago.add_island();
   archipelago
-    .get_island_mut(island_id_1)
-    .set_nav_mesh(Transform::default(), nav_mesh.clone());
-  archipelago.get_island_mut(island_id_2).set_nav_mesh(
-    Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
-    nav_mesh.clone(),
-  );
+    .add_island()
+    .set_nav_mesh(Transform::default(), nav_mesh.clone())
+    .id();
+  archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
+      nav_mesh.clone(),
+    )
+    .id();
 
   // Update so everything is in sync.
   archipelago.update(1.0);

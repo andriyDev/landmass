@@ -71,13 +71,13 @@ let valid_nav_mesh = Arc::new(
   nav_mesh.validate().expect("Validation succeeds")
 );
 
-let island_id = archipelago.add_island();
-archipelago
-  .get_island_mut(island_id)
+let island_id = archipelago
+  .add_island()
   .set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     valid_nav_mesh,
-  );
+  )
+  .id();
 
 let agent_1 = archipelago.add_agent({
   let mut agent = Agent::create(

@@ -27,6 +27,7 @@ pub use agent::{Agent, AgentId, AgentState, TargetReachedCondition};
 pub use character::{Character, CharacterId};
 pub use coords::{CoordinateSystem, XYZ};
 pub use island::{Island, IslandId};
+pub use nav_data::IslandMut;
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh, ValidationError};
 pub use util::{BoundingBox, Transform};
 
@@ -127,7 +128,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     self.characters.keys()
   }
 
-  pub fn add_island(&mut self) -> IslandId {
+  pub fn add_island(&mut self) -> IslandMut<'_, CS> {
     self.nav_data.add_island()
   }
 
@@ -135,12 +136,15 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     self.nav_data.remove_island(island_id)
   }
 
-  pub fn get_island(&self, island_id: IslandId) -> &Island<CS> {
-    self.nav_data.islands.get(island_id).unwrap()
+  pub fn get_island(&self, island_id: IslandId) -> Option<&Island<CS>> {
+    self.nav_data.get_island(island_id)
   }
 
-  pub fn get_island_mut(&mut self, island_id: IslandId) -> &mut Island<CS> {
-    self.nav_data.islands.get_mut(island_id).unwrap()
+  pub fn get_island_mut(
+    &mut self,
+    island_id: IslandId,
+  ) -> Option<IslandMut<'_, CS>> {
+    self.nav_data.get_island_mut(island_id)
   }
 
   pub fn get_island_ids(&self) -> impl ExactSizeIterator<Item = IslandId> + '_ {
