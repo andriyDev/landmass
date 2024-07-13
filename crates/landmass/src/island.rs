@@ -35,11 +35,7 @@ pub(crate) struct IslandNavigationData<CS: CoordinateSystem> {
 impl<CS: CoordinateSystem> Island<CS> {
   /// Creates a new island.
   pub(crate) fn new() -> Self {
-    Self {
-      nav_data: None,
-      // The island is dirty in case an island is removed then added back.
-      dirty: true,
-    }
+    Self { nav_data: None, dirty: false }
   }
 
   /// Gets the current transform of the island.
