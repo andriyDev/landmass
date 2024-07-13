@@ -2,6 +2,7 @@ use std::{cmp::Ordering, collections::HashMap, marker::PhantomData};
 
 use disjoint::DisjointSet;
 use glam::{swizzles::Vec3Swizzles, Vec3};
+use thiserror::Error;
 
 use crate::{coords::CoordinateSystem, BoundingBox};
 
@@ -26,21 +27,26 @@ where
 }
 
 /// An error when validating a navigation mesh.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Error)]
 pub enum ValidationError {
-  /// A polygon is concave (or has edges in clockwise order). Stores the index
-  /// of the polygon.
+  /// Stores the index of the polygon.
+  #[error(
+    "The polygon at index {0} is concave or has edges in clockwise order."
+  )]
   ConcavePolygon(usize),
-  /// A polygon was not big enough (less than 3 vertices). Stores the index of
-  /// the polygon.
+  /// Stores the index of the polygon.
+  #[error("The polygon at index {0} does not have at least 3 vertices.")]
   NotEnoughVerticesInPolygon(usize),
-  /// A polygon indexed an invalid vertex. Stores the index of the polygon.
+  /// Stores the index of the polygon.
+  #[error("The polygon at index {0} references an out-of-bounds vertex.")]
   InvalidVertexIndexInPolygon(usize),
-  /// A polygon contains a degenerate edge (an edge using the same vertex for
-  /// both endpoints). Stores the index of the polygon.
+  /// Stores the index of the polygon.
+  #[error("The polygon at index {0} contains a degenerate edge (an edge with zero length).")]
   DegenerateEdgeInPolygon(usize),
-  /// An edge is used by more than two polygons. Stores the indices of the two
-  /// vertices that make up the edge.
+  /// Stores the indices of the two vertices that make up the edge.
+  #[error(
+    "The edge made from vertices {0} and {1} is used by more than two polygons."
+  )]
   DoublyConnectedEdge(usize, usize),
 }
 
