@@ -459,24 +459,30 @@ fn samples_point() {
   archipelago.update(1.0);
 
   assert_eq!(
-    archipelago.sample_point(
-      /* point= */ offset + Vec2::new(-0.5, 0.5),
-      /* distance_to_node= */ 0.6
-    ),
+    archipelago
+      .sample_point(
+        /* point= */ offset + Vec2::new(-0.5, 0.5),
+        /* distance_to_node= */ 0.6
+      )
+      .map(|p| p.point()),
     Ok(offset + Vec2::new(0.0, 0.5))
   );
   assert_eq!(
-    archipelago.sample_point(
-      /* point= */ offset + Vec2::new(0.5, 0.5),
-      /* distance_to_node= */ 0.6
-    ),
+    archipelago
+      .sample_point(
+        /* point= */ offset + Vec2::new(0.5, 0.5),
+        /* distance_to_node= */ 0.6
+      )
+      .map(|p| p.point()),
     Ok(offset + Vec2::new(0.5, 0.5))
   );
   assert_eq!(
-    archipelago.sample_point(
-      /* point= */ offset + Vec2::new(1.2, 1.2),
-      /* distance_to_node= */ 0.6
-    ),
+    archipelago
+      .sample_point(
+        /* point= */ offset + Vec2::new(1.2, 1.2),
+        /* distance_to_node= */ 0.6
+      )
+      .map(|p| p.point()),
     Ok(offset + Vec2::new(1.0, 1.0))
   );
 }

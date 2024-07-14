@@ -31,7 +31,7 @@ pub use coords::{CoordinateSystem, XYZ};
 pub use island::{Island, IslandId};
 pub use nav_data::IslandMut;
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh, ValidationError};
-pub use query::SamplePointError;
+pub use query::{SamplePointError, SampledPoint};
 pub use util::Transform;
 
 use crate::avoidance::apply_avoidance_to_agents;
@@ -168,7 +168,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     &self,
     point: CS::Coordinate,
     distance_to_node: f32,
-  ) -> Result<CS::Coordinate, SamplePointError> {
+  ) -> Result<SampledPoint<'_, CS>, SamplePointError> {
     query::sample_point(self, point, distance_to_node)
   }
 

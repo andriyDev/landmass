@@ -32,7 +32,8 @@ fn error_on_dirty_nav_mesh() {
       &archipelago,
       /* point= */ Vec2::new(0.5, 0.5),
       /* distance_to_node= */ 1.0
-    ),
+    )
+    .map(|p| p.point()),
     Err(SamplePointError::NavDataDirty)
   );
 }
@@ -63,7 +64,8 @@ fn error_on_out_of_range() {
       &archipelago,
       /* point= */ Vec2::new(-0.5, 0.5),
       /* distance_to_node= */ 0.1
-    ),
+    )
+    .map(|p| p.point()),
     Err(SamplePointError::OutOfRange)
   );
 }
@@ -97,7 +99,8 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
       &archipelago,
       /* point= */ offset + Vec2::new(-0.5, 0.5),
       /* distance_to_node= */ 0.6
-    ),
+    )
+    .map(|p| p.point()),
     Ok(offset + Vec2::new(0.0, 0.5))
   );
   assert_eq!(
@@ -105,7 +108,8 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
       &archipelago,
       /* point= */ offset + Vec2::new(0.5, 0.5),
       /* distance_to_node= */ 0.6
-    ),
+    )
+    .map(|p| p.point()),
     Ok(offset + Vec2::new(0.5, 0.5))
   );
   assert_eq!(
@@ -113,7 +117,8 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
       &archipelago,
       /* point= */ offset + Vec2::new(1.2, 1.2),
       /* distance_to_node= */ 0.6
-    ),
+    )
+    .map(|p| p.point()),
     Ok(offset + Vec2::new(1.0, 1.0))
   );
 }
