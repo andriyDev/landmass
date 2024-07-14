@@ -31,7 +31,7 @@ pub use coords::{CoordinateSystem, XYZ};
 pub use island::{Island, IslandId};
 pub use nav_data::IslandMut;
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh, ValidationError};
-pub use query::{SamplePointError, SampledPoint};
+pub use query::{FindPathError, SamplePointError, SampledPoint};
 pub use util::Transform;
 
 use crate::avoidance::apply_avoidance_to_agents;
@@ -170,6 +170,19 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     distance_to_node: f32,
   ) -> Result<SampledPoint<'_, CS>, SamplePointError> {
     query::sample_point(self, point, distance_to_node)
+  }
+
+  /// Finds a path from `start_point` and `end_point` along the navigation
+  /// meshes. Only [`SampledPoint`]s from this archipelago are supported. This
+  /// should only be used for querying (e.g., finding the walking distance to an
+  /// object), not for controlling movement. For controlling movement, use
+  /// agents.
+  pub fn find_path(
+    &self,
+    start_point: &SampledPoint<'_, CS>,
+    end_point: &SampledPoint<'_, CS>,
+  ) -> Result<Vec<CS::Coordinate>, FindPathError> {
+    query::find_path(self, start_point, end_point)
   }
 
   pub fn update(&mut self, delta_time: f32) {
