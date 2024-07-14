@@ -33,6 +33,7 @@ impl BoundingBox {
   }
 
   /// Returns the bounds of the box, assuming it is non-empty.
+  #[allow(unused)] // Used by tests.
   pub(crate) fn as_box(&self) -> (Vec3, Vec3) {
     match self {
       Self::Empty => panic!("BoundingBox is not a box."),
@@ -118,6 +119,7 @@ impl BoundingBox {
   }
 
   /// Determines if `other` is fully contained by `self`.
+  #[allow(unused)] // Used by tests.
   pub(crate) fn contains_bounds(&self, other: &Self) -> bool {
     let (other_min, other_max) = match other {
       Self::Empty => return false,
