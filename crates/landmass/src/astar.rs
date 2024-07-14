@@ -5,7 +5,7 @@ use std::{
 };
 
 /// A generic A* problem.
-pub trait AStarProblem {
+pub(crate) trait AStarProblem {
   /// The action that allows moving between states.
   type ActionType: Clone;
   /// The state that agents try to optimize.
@@ -106,24 +106,24 @@ fn recover_path_from_node<ProblemType: AStarProblem>(
 
 /// Stats about the pathfinding process.
 #[derive(Debug)]
-pub struct PathStats {
+pub(crate) struct PathStats {
   /// The number of nodes that were explored. This can exceed the number of
   /// states if there are faster paths than the heuristic "predicts".
-  pub explored_nodes: u32,
+  pub(crate) explored_nodes: u32,
 }
 
 /// The result of pathfinding.
 #[derive(Debug)]
-pub struct PathResult<ActionType> {
+pub(crate) struct PathResult<ActionType> {
   /// Stats about the pathfinding process.
-  pub stats: PathStats,
+  pub(crate) stats: PathStats,
   /// The path if one was found.
-  pub path: Option<Vec<ActionType>>,
+  pub(crate) path: Option<Vec<ActionType>>,
 }
 
 /// Finds a path in `problem` to get from the initial state to a goal state.
 /// Returns an `Err` if no path could be found.
-pub fn find_path<ProblemType: AStarProblem>(
+pub(crate) fn find_path<ProblemType: AStarProblem>(
   problem: &ProblemType,
 ) -> PathResult<ProblemType::ActionType> {
   let mut stats = PathStats { explored_nodes: 0 };

@@ -15,42 +15,43 @@ use crate::{
   geometry::edge_intersection,
   island::{Island, IslandId, IslandNavigationData},
   nav_mesh::MeshEdgeRef,
-  util::BoundingBoxHierarchy,
-  BoundingBox, CoordinateSystem, Transform, ValidNavigationMesh,
+  util::{BoundingBox, BoundingBoxHierarchy},
+  CoordinateSystem, Transform, ValidNavigationMesh,
 };
 
 /// The navigation data of a whole [`crate::Archipelago`]. This only includes
 /// "static" features.
-pub struct NavigationData<CS: CoordinateSystem> {
+pub(crate) struct NavigationData<CS: CoordinateSystem> {
   /// The islands in the [`crate::Archipelago`].
   islands: HopSlotMap<IslandId, Island<CS>>,
   /// Whether the navigation data has been mutated since the last update.
   /// Reading should not occur unless the navigation data is not dirty.
-  pub dirty: bool,
+  pub(crate) dirty: bool,
   /// Maps a "region id" (consisting of the IslandId and the region in that
   /// island's nav mesh) to its "region number" (the number used in
   /// [`Self::region_connections`]).
-  pub region_id_to_number: HashMap<(IslandId, usize), usize>,
+  pub(crate) region_id_to_number: HashMap<(IslandId, usize), usize>,
   /// Connectedness of regions based on their "region number" in
   /// [`Self::region_id_to_number`].
-  pub region_connections: Mutex<DisjointSet>,
+  pub(crate) region_connections: Mutex<DisjointSet>,
   /// The links to other islands by [`crate::NodeRef`]
-  pub boundary_links: SlotMap<BoundaryLinkId, BoundaryLink>,
+  pub(crate) boundary_links: SlotMap<BoundaryLinkId, BoundaryLink>,
   /// The links that can be taken from a particular node ref.
-  pub node_to_boundary_link_ids: HashMap<NodeRef, HashSet<BoundaryLinkId>>,
+  pub(crate) node_to_boundary_link_ids:
+    HashMap<NodeRef, HashSet<BoundaryLinkId>>,
   /// The nodes that have been modified.
-  pub modified_nodes: HashMap<NodeRef, ModifiedNode>,
+  pub(crate) modified_nodes: HashMap<NodeRef, ModifiedNode>,
   /// The islands that have been deleted since the last update.
-  pub deleted_islands: HashSet<IslandId>,
+  pub(crate) deleted_islands: HashSet<IslandId>,
 }
 
 /// A reference to a node in the navigation data.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
-pub struct NodeRef {
+pub(crate) struct NodeRef {
   /// The island of the node.
-  pub island_id: IslandId,
+  pub(crate) island_id: IslandId,
   /// The index of the node in the island.
-  pub polygon_index: usize,
+  pub(crate) polygon_index: usize,
 }
 
 new_key_type! {
@@ -60,35 +61,35 @@ new_key_type! {
 
 /// A single link between two nodes on the boundary of an island.
 #[derive(PartialEq, Debug, Clone)]
-pub struct BoundaryLink {
+pub(crate) struct BoundaryLink {
   /// The node that taking this link leads to.
-  pub destination_node: NodeRef,
+  pub(crate) destination_node: NodeRef,
   /// The portal that this link occupies on the boundary of the source node.
   /// This is essentially the intersection of the linked islands' linkable
   /// edges.
-  pub portal: (Vec3, Vec3),
+  pub(crate) portal: (Vec3, Vec3),
   /// The cost of travelling across this link.
-  pub cost: f32,
+  pub(crate) cost: f32,
 }
 
 /// A node that has been modified (e.g., by being connected with a boundary link
 /// to another island).
 #[derive(PartialEq, Debug, Clone)]
-pub struct ModifiedNode {
+pub(crate) struct ModifiedNode {
   /// The new (2D) edges that make up the boundary of this node. These are
   /// indices in the nav mesh this corresponds to. Indices larger than the nav
   /// mesh vertices refer to [`ModifiedNode::new_vertices`]. Note the boundary
   /// winds in the same direction as nav mesh polygons (CCW).
-  pub new_boundary: Vec<(usize, usize)>,
+  pub(crate) new_boundary: Vec<(usize, usize)>,
   /// The "new" vertices (in world space) that are needed for the modified
   /// node. These are not vertices in the original nav mesh and should only
   /// be used by a single boundary edge.
-  pub new_vertices: Vec<Vec2>,
+  pub(crate) new_vertices: Vec<Vec2>,
 }
 
 impl<CS: CoordinateSystem> NavigationData<CS> {
   /// Creates new navigation data.
-  pub fn new() -> Self {
+  pub(crate) fn new() -> Self {
     Self {
       islands: HopSlotMap::with_key(),
       // The navigation data is empty, so there's nothing to update (so not
@@ -104,7 +105,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   }
 
   /// Adds a new (empty) island to the navigation data.
-  pub fn add_island(&mut self) -> IslandMut<'_, CS> {
+  pub(crate) fn add_island(&mut self) -> IslandMut<'_, CS> {
     // Don't set the dirty flag since a new island doesn't need to be updated.
     let island_id = self.islands.insert(Island::new());
     IslandMut {
@@ -115,12 +116,15 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   }
 
   /// Gets a borrow to the island with `id`.
-  pub fn get_island(&self, id: IslandId) -> Option<&Island<CS>> {
+  pub(crate) fn get_island(&self, id: IslandId) -> Option<&Island<CS>> {
     self.islands.get(id)
   }
 
   /// Gets a mutable borrow to the island with `id`.
-  pub fn get_island_mut(&mut self, id: IslandId) -> Option<IslandMut<'_, CS>> {
+  pub(crate) fn get_island_mut(
+    &mut self,
+    id: IslandId,
+  ) -> Option<IslandMut<'_, CS>> {
     self.islands.get_mut(id).map(|island| IslandMut {
       id,
       island,
@@ -128,13 +132,15 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     })
   }
 
-  pub fn get_island_ids(&self) -> impl ExactSizeIterator<Item = IslandId> + '_ {
+  pub(crate) fn get_island_ids(
+    &self,
+  ) -> impl ExactSizeIterator<Item = IslandId> + '_ {
     self.islands.keys()
   }
 
   /// Removes the island with `island_id`. Panics if the island ID is not in the
   /// navigation data.
-  pub fn remove_island(&mut self, island_id: IslandId) {
+  pub(crate) fn remove_island(&mut self, island_id: IslandId) {
     self.dirty = true;
     self
       .islands
@@ -146,7 +152,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   /// Finds the node nearest to (and within `distance_to_node` of) `point`.
   /// Returns the point on the nav data nearest to `point` and the reference to
   /// the corresponding node.
-  pub fn sample_point(
+  pub(crate) fn sample_point(
     &self,
     point: Vec3,
     distance_to_node: f32,
@@ -521,7 +527,11 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   }
 
   /// Determines whether `node_1` and `node_2` can be connected by some path.
-  pub fn are_nodes_connected(&self, node_1: NodeRef, node_2: NodeRef) -> bool {
+  pub(crate) fn are_nodes_connected(
+    &self,
+    node_1: NodeRef,
+    node_2: NodeRef,
+  ) -> bool {
     let region_id_1 = self.node_to_region_id(node_1);
     let region_id_2 = self.node_to_region_id(node_2);
     if region_id_1 == region_id_2 {
@@ -581,7 +591,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     }
   }
 
-  pub fn update(
+  pub(crate) fn update(
     &mut self,
     edge_link_distance: f32,
   ) -> (HashSet<BoundaryLinkId>, HashSet<IslandId>) {

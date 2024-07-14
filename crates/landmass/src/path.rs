@@ -23,23 +23,23 @@ pub struct Path {
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub(crate) struct IslandSegment {
   /// The island that the nodes belong to.
-  pub island_id: IslandId,
+  pub(crate) island_id: IslandId,
   /// The nodes belonging to the path as their polygon index. Must have at
   /// least one element.
-  pub corridor: Vec<usize>,
+  pub(crate) corridor: Vec<usize>,
   /// The "portals" used between each node in [`IslandSegment::corridor`]. The
   /// portals are the edges that the agent must cross along its path. Must
   /// have exactly one less element than [`IslandSegment::corridor`].
-  pub portal_edge_index: Vec<usize>,
+  pub(crate) portal_edge_index: Vec<usize>,
 }
 
 /// Part of a path taking a BoundaryLink.
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub(crate) struct BoundaryLinkSegment {
   /// The node that the boundary link starts from.
-  pub starting_node: NodeRef,
+  pub(crate) starting_node: NodeRef,
   /// The link to be used.
-  pub boundary_link: BoundaryLinkId,
+  pub(crate) boundary_link: BoundaryLinkId,
 }
 
 impl IslandSegment {
@@ -85,15 +85,18 @@ impl BoundaryLinkSegment {
 /// An index in a path.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub(crate) struct PathIndex {
-  /// The
+  /// The index of the segment this belongs to.
   segment_index: usize,
+  /// The index of the portal in the corridor. The last index in a corrider
+  /// either corresponds to the boundary link to the next segment or the target
+  /// node.
   portal_index: usize,
 }
 
 impl PathIndex {
   /// Creates a `PathIndex` starting at the `island_segment_index` at the
   /// `corridor_index`.
-  pub fn from_corridor_index(
+  pub(crate) fn from_corridor_index(
     island_segment_index: usize,
     corridor_index: usize,
   ) -> Self {

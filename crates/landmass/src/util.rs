@@ -7,7 +7,7 @@ use crate::CoordinateSystem;
 
 /// A bounding box.
 #[derive(PartialEq, Clone, Copy, Debug)]
-pub enum BoundingBox {
+pub(crate) enum BoundingBox {
   /// The bounding box has no points in it.
   Empty,
   /// The bounding box has some points in it.
@@ -23,24 +23,24 @@ pub enum BoundingBox {
 impl BoundingBox {
   /// Creates a box already with some data in it. `min` and `max` must already
   /// be valid - this is unchecked.
-  pub fn new_box(min: Vec3, max: Vec3) -> Self {
+  pub(crate) fn new_box(min: Vec3, max: Vec3) -> Self {
     Self::Box { min, max }
   }
 
   /// Returns whether the box is empty or not.
-  pub fn is_empty(&self) -> bool {
+  pub(crate) fn is_empty(&self) -> bool {
     matches!(self, Self::Empty)
   }
 
   /// Returns the bounds of the box, assuming it is non-empty.
-  pub fn as_box(&self) -> (Vec3, Vec3) {
+  pub(crate) fn as_box(&self) -> (Vec3, Vec3) {
     match self {
       Self::Empty => panic!("BoundingBox is not a box."),
       &Self::Box { min, max } => (min, max),
     }
   }
 
-  pub fn center(&self) -> Option<Vec3> {
+  pub(crate) fn center(&self) -> Option<Vec3> {
     match self {
       Self::Empty => None,
       &Self::Box { min, max } => Some((min + max) * 0.5),
@@ -48,7 +48,7 @@ impl BoundingBox {
   }
 
   /// Computes the size of the bounding box. Returns 0 if the bounds are empty.
-  pub fn size(&self) -> Vec3 {
+  pub(crate) fn size(&self) -> Vec3 {
     match self {
       Self::Empty => Vec3::ZERO,
       &Self::Box { min, max } => max - min,
@@ -56,13 +56,13 @@ impl BoundingBox {
   }
 
   /// Determines if the bounding box is valid (min <= max).
-  pub fn is_valid(&self) -> bool {
+  pub(crate) fn is_valid(&self) -> bool {
     let size = self.size();
     size.x >= 0.0 && size.y >= 0.0 && size.z >= 0.0
   }
 
   /// Expands the bounding box to contain the `other`.
-  pub fn expand_to_bounds(&self, other: &Self) -> Self {
+  pub(crate) fn expand_to_bounds(&self, other: &Self) -> Self {
     match (self, other) {
       (Self::Empty, Self::Empty) => Self::Empty,
       (Self::Box { .. }, Self::Empty) => *self,
@@ -76,7 +76,7 @@ impl BoundingBox {
 
   /// Expands the bounding box to contain `point`. If the box was empty, it will
   /// now hold only the `point`.
-  pub fn expand_to_point(&self, point: Vec3) -> Self {
+  pub(crate) fn expand_to_point(&self, point: Vec3) -> Self {
     match self {
       Self::Empty => Self::Box { min: point, max: point },
       &Self::Box { min, max } => {
@@ -87,7 +87,7 @@ impl BoundingBox {
 
   /// Expands the bounding box by `size`. An empty bounding box will still be
   /// empty after this.
-  pub fn expand_by_size(&self, size: Vec3) -> BoundingBox {
+  pub(crate) fn expand_by_size(&self, size: Vec3) -> BoundingBox {
     let expanded_box = match self {
       BoundingBox::Empty => BoundingBox::Empty,
       &BoundingBox::Box { min, max } => {
@@ -103,7 +103,7 @@ impl BoundingBox {
   }
 
   /// Determines if `point` is in `self`.
-  pub fn contains_point(&self, point: Vec3) -> bool {
+  pub(crate) fn contains_point(&self, point: Vec3) -> bool {
     match self {
       Self::Empty => false,
       Self::Box { min, max } => {
@@ -118,7 +118,7 @@ impl BoundingBox {
   }
 
   /// Determines if `other` is fully contained by `self`.
-  pub fn contains_bounds(&self, other: &Self) -> bool {
+  pub(crate) fn contains_bounds(&self, other: &Self) -> bool {
     let (other_min, other_max) = match other {
       Self::Empty => return false,
       Self::Box { min, max } => (min, max),
@@ -137,7 +137,7 @@ impl BoundingBox {
   }
 
   /// Detemrines if `other` intersects `self` at all.
-  pub fn intersects_bounds(&self, other: &Self) -> bool {
+  pub(crate) fn intersects_bounds(&self, other: &Self) -> bool {
     let (other_min, other_max) = match other {
       Self::Empty => return false,
       Self::Box { min, max } => (min, max),
@@ -157,7 +157,7 @@ impl BoundingBox {
 
   /// Creates a conservative bounding box around `self` after transforming it by
   /// `transform`.
-  pub fn transform<CS: CoordinateSystem>(
+  pub(crate) fn transform<CS: CoordinateSystem>(
     &self,
     transform: &Transform<CS>,
   ) -> Self {
@@ -262,7 +262,7 @@ impl<CS: CoordinateSystem> Transform<CS> {
 }
 
 #[derive(Clone)]
-pub enum BoundingBoxHierarchy<ValueType> {
+pub(crate) enum BoundingBoxHierarchy<ValueType> {
   Leaf {
     bounds: BoundingBox,
     value: ValueType,
@@ -278,7 +278,7 @@ impl<ValueType> BoundingBoxHierarchy<ValueType> {
   /// Creates a hierarchy from values and their bounding boxes. The values are
   /// all expected to be Some, and the values will be moved into the hierarchy
   /// (leaving behind None).
-  pub fn new(values: &mut [(BoundingBox, Option<ValueType>)]) -> Self {
+  pub(crate) fn new(values: &mut [(BoundingBox, Option<ValueType>)]) -> Self {
     assert!(!values.is_empty());
     if values.len() == 1 {
       let mut value = (BoundingBox::Empty, None);
@@ -320,7 +320,7 @@ impl<ValueType> BoundingBoxHierarchy<ValueType> {
     }
   }
 
-  pub fn query_box(&self, query: BoundingBox) -> Vec<&ValueType> {
+  pub(crate) fn query_box(&self, query: BoundingBox) -> Vec<&ValueType> {
     let mut result = Vec::new();
     if let BoundingBox::Box { .. } = &query {
       self.query_box_recursive(&query, &mut result);

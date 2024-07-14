@@ -4,7 +4,7 @@ use disjoint::DisjointSet;
 use glam::{swizzles::Vec3Swizzles, Vec3};
 use thiserror::Error;
 
-use crate::{coords::CoordinateSystem, BoundingBox};
+use crate::{coords::CoordinateSystem, util::BoundingBox};
 
 /// A navigation mesh.
 pub struct NavigationMesh<CS: CoordinateSystem> {
@@ -299,30 +299,30 @@ pub(crate) struct ValidPolygon {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct Connectivity {
+pub(crate) struct Connectivity {
   /// The index of the polygon that this edge leads to.
-  pub polygon_index: usize,
+  pub(crate) polygon_index: usize,
   /// The cost of travelling across this connection.
-  pub cost: f32,
+  pub(crate) cost: f32,
 }
 
 /// A reference to an edge on a navigation mesh.
 #[derive(PartialEq, Eq, Debug, Clone, Hash, Default)]
-pub struct MeshEdgeRef {
+pub(crate) struct MeshEdgeRef {
   /// The index of the polygon that this edge belongs to.
-  pub polygon_index: usize,
+  pub(crate) polygon_index: usize,
   /// The index of the edge within the polygon.
-  pub edge_index: usize,
+  pub(crate) edge_index: usize,
 }
 
 impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
   /// Returns the bounds of the navigation mesh.
-  pub fn get_bounds(&self) -> BoundingBox {
+  pub(crate) fn get_bounds(&self) -> BoundingBox {
     self.mesh_bounds
   }
 
   // Gets the points that make up the specified edge.
-  pub fn get_edge_points(&self, edge_ref: MeshEdgeRef) -> (Vec3, Vec3) {
+  pub(crate) fn get_edge_points(&self, edge_ref: MeshEdgeRef) -> (Vec3, Vec3) {
     let polygon = &self.polygons[edge_ref.polygon_index];
     let left_vertex_index = polygon.vertices[edge_ref.edge_index];
 

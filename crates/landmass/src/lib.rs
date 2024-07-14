@@ -29,7 +29,7 @@ pub use coords::{CoordinateSystem, XYZ};
 pub use island::{Island, IslandId};
 pub use nav_data::IslandMut;
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh, ValidationError};
-pub use util::{BoundingBox, Transform};
+pub use util::Transform;
 
 use crate::avoidance::apply_avoidance_to_agents;
 

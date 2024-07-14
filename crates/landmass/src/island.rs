@@ -3,7 +3,8 @@ use std::sync::Arc;
 use slotmap::new_key_type;
 
 use crate::{
-  util::Transform, BoundingBox, CoordinateSystem, ValidNavigationMesh,
+  util::{BoundingBox, Transform},
+  CoordinateSystem, ValidNavigationMesh,
 };
 
 new_key_type! {
@@ -24,12 +25,12 @@ pub struct Island<CS: CoordinateSystem> {
 /// The navigation data of an island.
 pub(crate) struct IslandNavigationData<CS: CoordinateSystem> {
   /// The transform from the Island's frame to the Archipelago's frame.
-  pub transform: Transform<CS>,
+  pub(crate) transform: Transform<CS>,
   /// The navigation mesh for the island.
-  pub nav_mesh: Arc<ValidNavigationMesh<CS>>,
+  pub(crate) nav_mesh: Arc<ValidNavigationMesh<CS>>,
 
   // The bounds of `nav_mesh` after being transformed by `transform`.
-  pub transformed_bounds: BoundingBox,
+  pub(crate) transformed_bounds: BoundingBox,
 }
 
 impl<CS: CoordinateSystem> Island<CS> {

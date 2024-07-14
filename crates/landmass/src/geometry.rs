@@ -1,6 +1,6 @@
 use glam::Vec3;
 
-pub fn edge_intersection(
+pub(crate) fn edge_intersection(
   edge_1: (Vec3, Vec3),
   edge_2: (Vec3, Vec3),
   intersection_distance_squared: f32,
