@@ -8,8 +8,9 @@ use crate::{
   does_agent_need_repath,
   nav_data::NodeRef,
   path::{IslandSegment, Path, PathIndex},
-  Agent, AgentId, AgentState, Archipelago, BoundingBox, Character, CharacterId,
-  IslandId, NavigationMesh, RepathResult, Transform, ValidNavigationMesh,
+  util::BoundingBox,
+  Agent, AgentId, AgentState, Archipelago, Character, CharacterId, IslandId,
+  NavigationMesh, RepathResult, Transform, ValidNavigationMesh,
 };
 
 #[test]
