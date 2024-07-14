@@ -11,6 +11,7 @@ mod nav_data;
 mod nav_mesh;
 mod path;
 mod pathfinding;
+mod query;
 mod util;
 
 use path::PathIndex;
@@ -29,6 +30,7 @@ pub use coords::{CoordinateSystem, XYZ};
 pub use island::{Island, IslandId};
 pub use nav_data::IslandMut;
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh, ValidationError};
+pub use query::SamplePointError;
 pub use util::Transform;
 
 use crate::avoidance::apply_avoidance_to_agents;
@@ -157,6 +159,16 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   /// Gets the pathing results from the last [`Self::update`] call.
   pub fn get_pathing_results(&self) -> &[PathingResult] {
     &self.pathing_results
+  }
+
+  /// Finds the nearest point on the navigation meshes to (and within
+  /// `distance_to_node` of) `point`.
+  pub fn sample_point(
+    &self,
+    point: CS::Coordinate,
+    distance_to_node: f32,
+  ) -> Result<CS::Coordinate, SamplePointError> {
+    query::sample_point(self, point, distance_to_node)
   }
 
   pub fn update(&mut self, delta_time: f32) {
