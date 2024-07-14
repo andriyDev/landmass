@@ -241,38 +241,52 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   }
 
   /// Gets an agent.
-  fn get_agent(&self, entity: Entity) -> &landmass::Agent<CS> {
-    self.archipelago.get_agent(*self.agents.get(&entity).unwrap())
+  fn get_agent(&self, entity: Entity) -> Option<&landmass::Agent<CS>> {
+    self
+      .agents
+      .get(&entity)
+      .and_then(|&agent_id| self.archipelago.get_agent(agent_id))
   }
 
   /// Gets a mutable borrow to an agent.
-  fn get_agent_mut(&mut self, entity: Entity) -> &mut landmass::Agent<CS> {
-    self.archipelago.get_agent_mut(*self.agents.get(&entity).unwrap())
+  fn get_agent_mut(
+    &mut self,
+    entity: Entity,
+  ) -> Option<&mut landmass::Agent<CS>> {
+    self
+      .agents
+      .get(&entity)
+      .and_then(|&agent_id| self.archipelago.get_agent_mut(agent_id))
   }
 
   /// Gets a mutable borrow to a character.
   #[allow(unused)] // Used in tests.
-  fn get_character(&self, entity: Entity) -> &landmass::Character<CS> {
-    self.archipelago.get_character(*self.characters.get(&entity).unwrap())
+  fn get_character(&self, entity: Entity) -> Option<&landmass::Character<CS>> {
+    self
+      .characters
+      .get(&entity)
+      .and_then(|&character_id| self.archipelago.get_character(character_id))
   }
 
   /// Gets a mutable borrow to a character.
   fn get_character_mut(
     &mut self,
     entity: Entity,
-  ) -> &mut landmass::Character<CS> {
-    self.archipelago.get_character_mut(*self.characters.get(&entity).unwrap())
+  ) -> Option<&mut landmass::Character<CS>> {
+    self.characters.get(&entity).and_then(|&character_id| {
+      self.archipelago.get_character_mut(character_id)
+    })
   }
 
   /// Gets a mutable borrow to an island (if present).
   fn get_island_mut(
     &mut self,
     entity: Entity,
-  ) -> Option<&mut landmass::Island<CS>> {
+  ) -> Option<landmass::IslandMut<CS>> {
     self
       .islands
       .get(&entity)
-      .map(|island_id| self.archipelago.get_island_mut(*island_id))
+      .and_then(|&island_id| self.archipelago.get_island_mut(island_id))
   }
 }
 
@@ -341,7 +355,7 @@ fn add_islands_to_archipelago<CS: CoordinateSystem>(
     });
 
     for new_island_entity in new_islands.drain() {
-      let island_id = archipelago.archipelago.add_island();
+      let island_id = archipelago.archipelago.add_island().id();
       archipelago.islands.insert(new_island_entity, island_id);
     }
   }
@@ -370,7 +384,7 @@ fn sync_island_nav_mesh<CS: CoordinateSystem>(
         Ok(arch) => arch,
       };
 
-    let landmass_island = match archipelago.get_island_mut(island_entity) {
+    let mut landmass_island = match archipelago.get_island_mut(island_entity) {
       None => continue,
       Some(island) => island,
     };
@@ -623,7 +637,9 @@ fn sync_agent_input_state<CS: CoordinateSystem>(
       Ok(arch) => arch,
     };
 
-    let landmass_agent = archipelago.get_agent_mut(agent_entity);
+    let landmass_agent = archipelago
+      .get_agent_mut(agent_entity)
+      .expect("this agent is in the archipelago");
     landmass_agent.position =
       CS::from_transform_position(transform.translation());
     if let Some(Velocity { velocity }) = velocity {
@@ -658,8 +674,12 @@ fn sync_agent_state<CS: CoordinateSystem>(
       Some(arch) => arch,
     };
 
-    *state =
-      AgentState::from_landmass(&archipelago.get_agent(agent_entity).state());
+    *state = AgentState::from_landmass(
+      &archipelago
+        .get_agent(agent_entity)
+        .expect("the agent is in the archipelago")
+        .state(),
+    );
   }
 }
 
@@ -683,8 +703,11 @@ fn sync_desired_velocity<CS: CoordinateSystem>(
       Some(arch) => arch,
     };
 
-    desired_velocity.0 =
-      archipelago.get_agent(agent_entity).get_desired_velocity().clone();
+    desired_velocity.0 = archipelago
+      .get_agent(agent_entity)
+      .expect("the agent is in the archipelago")
+      .get_desired_velocity()
+      .clone();
   }
 }
 
@@ -752,7 +775,9 @@ fn sync_character_state<CS: CoordinateSystem>(
       continue;
     };
 
-    let landmass_character = archipelago.get_character_mut(character_entity);
+    let landmass_character = archipelago
+      .get_character_mut(character_entity)
+      .expect("the characters is in the archipelago");
     landmass_character.position =
       CS::from_transform_position(transform.translation());
     landmass_character.velocity = if let Some(Velocity { velocity }) = velocity

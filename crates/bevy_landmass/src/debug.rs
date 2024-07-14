@@ -26,7 +26,7 @@ pub use landmass::debug::*;
 pub fn draw_archipelago_debug<CS: CoordinateSystem>(
   archipelago: &crate::Archipelago<CS>,
   debug_drawer: &mut impl DebugDrawer<CS>,
-) {
+) -> Result<(), DebugDrawError> {
   landmass::debug::draw_archipelago_debug(
     &archipelago.archipelago,
     debug_drawer,
@@ -148,6 +148,7 @@ fn draw_archipelagos_default<CS: CoordinateSystem>(
   }
   let mut drawer = GizmoDrawer(&mut gizmos, PhantomData::<CS>);
   for archipelago in archipelagos.iter() {
-    draw_archipelago_debug(archipelago, &mut drawer);
+    draw_archipelago_debug(archipelago, &mut drawer)
+      .expect("the archipelago can be debug-drawn");
   }
 }
