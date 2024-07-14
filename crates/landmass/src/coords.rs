@@ -41,6 +41,6 @@ impl CoordinateSystem for XY {
   }
 
   fn from_landmass(v: &Vec3) -> Self::Coordinate {
-    Vec2::new(v.x, v.z)
+    Vec2::new(v.x, v.y)
   }
 }
