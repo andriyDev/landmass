@@ -1,9 +1,12 @@
+use std::collections::HashSet;
+
 use glam::Vec3;
 use slotmap::new_key_type;
 
 use crate::{
+  nav_data::{BoundaryLinkId, NodeRef},
   path::{Path, PathIndex},
-  CoordinateSystem, NavigationData,
+  CoordinateSystem, IslandId, NavigationData,
 };
 
 new_key_type! {
@@ -184,6 +187,76 @@ impl<CS: CoordinateSystem> Agent<CS> {
       }
     }
   }
+}
+
+/// The determination of what to do in regards to an agent's path.
+#[derive(PartialEq, Eq, Debug)]
+pub(crate) enum RepathResult {
+  /// Do nothing.
+  DoNothing,
+  /// The existing path should be followed. Stores the index in a path for the
+  /// first portal and the target point.
+  FollowPath(PathIndex, PathIndex),
+  /// Clear the path and don't repath, since there is no longer a target.
+  ClearPathNoTarget,
+  /// Clear the path and don't repath, since the agent is not on a valid node.
+  ClearPathBadAgent,
+  /// Clear the path and don't repath, since the target is not on a valid node.
+  ClearPathBadTarget,
+  /// Recompute the path.
+  NeedsRepath,
+}
+
+pub(crate) fn does_agent_need_repath<CS: CoordinateSystem>(
+  agent: &Agent<CS>,
+  agent_node: Option<NodeRef>,
+  target_node: Option<NodeRef>,
+  invalidated_boundary_links: &HashSet<BoundaryLinkId>,
+  invalidated_islands: &HashSet<IslandId>,
+) -> RepathResult {
+  if agent.current_target.is_none() {
+    if agent.current_path.is_some() {
+      return RepathResult::ClearPathNoTarget;
+    } else {
+      return RepathResult::DoNothing;
+    }
+  }
+
+  let agent_node = match agent_node {
+    None => return RepathResult::ClearPathBadAgent,
+    Some(result) => result,
+  };
+  let target_node = match target_node {
+    None => return RepathResult::ClearPathBadTarget,
+    Some(result) => result,
+  };
+
+  let current_path = match &agent.current_path {
+    None => return RepathResult::NeedsRepath,
+    Some(current_path) => current_path,
+  };
+
+  if !current_path.is_valid(invalidated_boundary_links, invalidated_islands) {
+    return RepathResult::NeedsRepath;
+  }
+
+  let Some(agent_node_index_in_path) =
+    current_path.find_index_of_node(agent_node)
+  else {
+    return RepathResult::NeedsRepath;
+  };
+
+  let Some(target_node_index_in_path) =
+    current_path.find_index_of_node_rev(target_node)
+  else {
+    return RepathResult::NeedsRepath;
+  };
+
+  if agent_node_index_in_path > target_node_index_in_path {
+    return RepathResult::NeedsRepath;
+  }
+
+  RepathResult::FollowPath(agent_node_index_in_path, target_node_index_in_path)
 }
 
 #[cfg(test)]

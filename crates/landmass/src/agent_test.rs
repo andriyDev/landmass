@@ -1,11 +1,15 @@
-use std::{f32::consts::PI, sync::Arc};
+use std::{collections::HashSet, f32::consts::PI, sync::Arc};
 
 use glam::Vec3;
+use slotmap::HopSlotMap;
 
 use crate::{
+  agent::{does_agent_need_repath, RepathResult},
   coords::XYZ,
+  nav_data::NodeRef,
   path::{IslandSegment, Path, PathIndex},
-  Agent, Archipelago, NavigationMesh, TargetReachedCondition, Transform,
+  Agent, Archipelago, IslandId, NavigationMesh, TargetReachedCondition,
+  Transform,
 };
 
 #[test]
@@ -265,4 +269,177 @@ fn long_detour_reaches_target_in_different_ways() {
       ),
     ));
   }
+}
+
+#[test]
+fn nothing_or_clear_path_for_no_target() {
+  let mut agent = Agent::<XYZ>::create(
+    /* position= */ Vec3::ZERO,
+    /* velocity= */ Vec3::ZERO,
+    /* radius= */ 0.0,
+    /* max_velocity= */ 0.0,
+  );
+
+  assert_eq!(
+    does_agent_need_repath(
+      &agent,
+      None,
+      None,
+      &HashSet::new(),
+      &HashSet::new()
+    ),
+    RepathResult::DoNothing
+  );
+
+  agent.current_path =
+    Some(Path { island_segments: vec![], boundary_link_segments: vec![] });
+
+  assert_eq!(
+    does_agent_need_repath(
+      &agent,
+      None,
+      None,
+      &HashSet::new(),
+      &HashSet::new()
+    ),
+    RepathResult::ClearPathNoTarget,
+  );
+}
+
+#[test]
+fn clears_path_for_missing_nodes() {
+  let mut agent = Agent::<XYZ>::create(
+    /* position= */ Vec3::ZERO,
+    /* velocity= */ Vec3::ZERO,
+    /* radius= */ 0.0,
+    /* max_velocity= */ 0.0,
+  );
+  agent.current_target = Some(Vec3::ZERO);
+
+  // Create an unused slotmap just to get `IslandId`s.
+  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let island_id = slotmap.insert(0);
+
+  assert_eq!(
+    does_agent_need_repath(
+      &agent,
+      None,
+      Some(NodeRef { island_id, polygon_index: 0 }),
+      &HashSet::new(),
+      &HashSet::new(),
+    ),
+    RepathResult::ClearPathBadAgent,
+  );
+
+  assert_eq!(
+    does_agent_need_repath(
+      &agent,
+      Some(NodeRef { island_id, polygon_index: 0 }),
+      None,
+      &HashSet::new(),
+      &HashSet::new(),
+    ),
+    RepathResult::ClearPathBadTarget,
+  );
+}
+
+#[test]
+fn repaths_for_invalid_path_or_nodes_off_path() {
+  let mut agent = Agent::<XYZ>::create(
+    /* position= */ Vec3::ZERO,
+    /* velocity= */ Vec3::ZERO,
+    /* radius= */ 0.0,
+    /* max_velocity= */ 0.0,
+  );
+  agent.current_target = Some(Vec3::ZERO);
+
+  // Create an unused slotmap just to get `IslandId`s.
+  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let island_id = slotmap.insert(0);
+  let missing_island_id = slotmap.insert(0);
+
+  // No path.
+  assert_eq!(
+    does_agent_need_repath(
+      &agent,
+      Some(NodeRef { island_id, polygon_index: 1 }),
+      Some(NodeRef { island_id, polygon_index: 3 }),
+      &HashSet::new(),
+      &HashSet::new(),
+    ),
+    RepathResult::NeedsRepath,
+  );
+
+  agent.current_path = Some(Path {
+    island_segments: vec![IslandSegment {
+      island_id,
+      corridor: vec![2, 3, 4, 1, 0],
+      portal_edge_index: vec![],
+    }],
+    boundary_link_segments: vec![],
+  });
+
+  // Invalidated island.
+  assert_eq!(
+    does_agent_need_repath(
+      &agent,
+      Some(NodeRef { island_id, polygon_index: 3 }),
+      Some(NodeRef { island_id, polygon_index: 1 }),
+      &HashSet::new(),
+      &HashSet::from([island_id]),
+    ),
+    RepathResult::NeedsRepath
+  );
+
+  // Missing agent node in path.
+  assert_eq!(
+    does_agent_need_repath(
+      &agent,
+      Some(NodeRef { island_id, polygon_index: 5 }),
+      Some(NodeRef { island_id, polygon_index: 1 }),
+      &HashSet::new(),
+      &HashSet::new(),
+    ),
+    RepathResult::NeedsRepath,
+  );
+
+  // Missing target node.
+  assert_eq!(
+    does_agent_need_repath(
+      &agent,
+      Some(NodeRef { island_id, polygon_index: 3 }),
+      Some(NodeRef { island_id, polygon_index: 6 }),
+      &HashSet::new(),
+      &HashSet::new(),
+    ),
+    RepathResult::NeedsRepath,
+  );
+
+  // Agent and target are in the wrong order.
+  assert_eq!(
+    does_agent_need_repath(
+      &agent,
+      Some(NodeRef { island_id, polygon_index: 1 }),
+      Some(NodeRef { island_id, polygon_index: 3 }),
+      &HashSet::new(),
+      &HashSet::new(),
+    ),
+    RepathResult::NeedsRepath,
+  );
+
+  // Following is now fine.
+  assert_eq!(
+    does_agent_need_repath(
+      &agent,
+      Some(NodeRef { island_id, polygon_index: 3 }),
+      Some(NodeRef { island_id, polygon_index: 1 }),
+      &HashSet::new(),
+      // This island is not involved in the path, so the path is still valid.
+      &HashSet::from([missing_island_id]),
+    ),
+    RepathResult::FollowPath(
+      PathIndex::from_corridor_index(0, 1),
+      PathIndex::from_corridor_index(0, 3)
+    ),
+  );
 }
