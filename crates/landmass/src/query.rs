@@ -2,7 +2,10 @@ use std::marker::PhantomData;
 
 use thiserror::Error;
 
-use crate::{nav_data::NodeRef, Archipelago, CoordinateSystem};
+use crate::{
+  nav_data::NodeRef, path::PathIndex, pathfinding, Archipelago,
+  CoordinateSystem,
+};
 
 /// A point on the navigation meshes.
 pub struct SampledPoint<'archipelago, CS: CoordinateSystem> {
@@ -66,6 +69,59 @@ pub(crate) fn sample_point<CS: CoordinateSystem>(
     node_ref,
     marker: PhantomData,
   })
+}
+
+/// An error from finding a path between two sampled points.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
+pub enum FindPathError {
+  #[error("No path was found between the start and end points.")]
+  NoPathFound,
+}
+
+/// Finds a straight-line path across the navigation meshes from `start_point`
+/// to `end_point`.
+pub(crate) fn find_path<'a, CS: CoordinateSystem>(
+  archipelago: &'a Archipelago<CS>,
+  start_point: &SampledPoint<'a, CS>,
+  end_point: &SampledPoint<'a, CS>,
+) -> Result<Vec<CS::Coordinate>, FindPathError> {
+  // This assert can actually be triggered. This can happen if a user samples
+  // points from one archipelago, but finds a path in a **different**
+  // archipelago. This seems almost malicious though, so I don't think we should
+  // handle it at all. I'd rather the "wins" we get from avoiding
+  // double-sampling (in cases where the user samples a point to check for
+  // validity and then finds a path).
+  assert!(!archipelago.nav_data.dirty, "The navigation data has been mutated, but we have SampledPoints, so this should be impossible.");
+
+  let Some(path) = pathfinding::find_path(
+    &archipelago.nav_data,
+    start_point.node_ref,
+    end_point.node_ref,
+  )
+  .path
+  else {
+    return Err(FindPathError::NoPathFound);
+  };
+
+  let mut current_index = PathIndex::from_corridor_index(0, 0);
+  let mut current_point = CS::to_landmass(&start_point.point());
+
+  let last_index = path.last_index();
+  let last_point = CS::to_landmass(&end_point.point());
+
+  let mut path_points = vec![start_point.point()];
+  while current_index != last_index {
+    (current_index, current_point) = path.find_next_point_in_straight_path(
+      &archipelago.nav_data,
+      current_index,
+      current_point,
+      last_index,
+      last_point,
+    );
+    path_points.push(CS::from_landmass(&current_point));
+  }
+
+  Ok(path_points)
 }
 
 #[cfg(test)]
