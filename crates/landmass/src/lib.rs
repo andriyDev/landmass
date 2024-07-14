@@ -14,11 +14,12 @@ mod pathfinding;
 mod query;
 mod util;
 
+use agent::{does_agent_need_repath, RepathResult};
 use path::PathIndex;
 use slotmap::HopSlotMap;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-use nav_data::{BoundaryLinkId, NavigationData, NodeRef};
+use nav_data::NavigationData;
 
 pub use glam::Vec3;
 
@@ -364,68 +365,6 @@ pub struct PathingResult {
   /// The number of "nodes" explored while finding the path. Note this may be
   /// zero if the start and end point are known to be disconnected.
   pub explored_nodes: u32,
-}
-
-#[derive(PartialEq, Eq, Debug)]
-enum RepathResult {
-  DoNothing,
-  FollowPath(PathIndex, PathIndex),
-  ClearPathNoTarget,
-  ClearPathBadAgent,
-  ClearPathBadTarget,
-  NeedsRepath,
-}
-
-fn does_agent_need_repath<CS: CoordinateSystem>(
-  agent: &Agent<CS>,
-  agent_node: Option<NodeRef>,
-  target_node: Option<NodeRef>,
-  invalidated_boundary_links: &HashSet<BoundaryLinkId>,
-  invalidated_islands: &HashSet<IslandId>,
-) -> RepathResult {
-  if agent.current_target.is_none() {
-    if agent.current_path.is_some() {
-      return RepathResult::ClearPathNoTarget;
-    } else {
-      return RepathResult::DoNothing;
-    }
-  }
-
-  let agent_node = match agent_node {
-    None => return RepathResult::ClearPathBadAgent,
-    Some(result) => result,
-  };
-  let target_node = match target_node {
-    None => return RepathResult::ClearPathBadTarget,
-    Some(result) => result,
-  };
-
-  let current_path = match &agent.current_path {
-    None => return RepathResult::NeedsRepath,
-    Some(current_path) => current_path,
-  };
-
-  if !current_path.is_valid(invalidated_boundary_links, invalidated_islands) {
-    return RepathResult::NeedsRepath;
-  }
-
-  let Some(agent_node_index_in_path) =
-    current_path.find_index_of_node(agent_node)
-  else {
-    return RepathResult::NeedsRepath;
-  };
-
-  let Some(target_node_index_in_path) =
-    current_path.find_index_of_node_rev(target_node)
-  else {
-    return RepathResult::NeedsRepath;
-  };
-
-  if agent_node_index_in_path > target_node_index_in_path {
-    return RepathResult::NeedsRepath;
-  }
-
-  RepathResult::FollowPath(agent_node_index_in_path, target_node_index_in_path)
 }
 
 #[cfg(test)]
