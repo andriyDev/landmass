@@ -450,8 +450,12 @@ fn changing_agent_fields_changes_landmass_agent() {
   // Update a second time so the global transform propagates correctly.
   app.update();
 
-  let agent_ref =
-    app.world().get::<Archipelago3d>(archipelago).unwrap().get_agent(agent);
+  let agent_ref = app
+    .world()
+    .get::<Archipelago3d>(archipelago)
+    .unwrap()
+    .get_agent(agent)
+    .unwrap();
   assert_eq!(agent_ref.position, Vec3::new(1.0, 2.0, 3.0));
   assert_eq!(agent_ref.velocity, Vec3::new(4.0, 5.0, 6.0));
   assert_eq!(agent_ref.radius, 1.0);
@@ -476,8 +480,12 @@ fn changing_agent_fields_changes_landmass_agent() {
   // Update a second time so the global transform propagates correctly.
   app.update();
 
-  let agent_ref =
-    app.world().get::<Archipelago3d>(archipelago).unwrap().get_agent(agent);
+  let agent_ref = app
+    .world()
+    .get::<Archipelago3d>(archipelago)
+    .unwrap()
+    .get_agent(agent)
+    .unwrap();
   assert_eq!(agent_ref.position, Vec3::new(7.0, 8.0, 9.0));
   assert_eq!(agent_ref.velocity, Vec3::new(10.0, 11.0, 12.0));
   assert_eq!(agent_ref.radius, 2.0);
@@ -526,7 +534,8 @@ fn changing_character_fields_changes_landmass_character() {
     .world()
     .get::<Archipelago3d>(archipelago)
     .unwrap()
-    .get_character(character);
+    .get_character(character)
+    .unwrap();
   assert_eq!(character_ref.position, Vec3::new(1.0, 2.0, 3.0));
   assert_eq!(character_ref.velocity, Vec3::new(4.0, 5.0, 6.0));
   assert_eq!(character_ref.radius, 1.0);
@@ -545,7 +554,8 @@ fn changing_character_fields_changes_landmass_character() {
     .world()
     .get::<Archipelago3d>(archipelago)
     .unwrap()
-    .get_character(character);
+    .get_character(character)
+    .unwrap();
   assert_eq!(agent_ref.position, Vec3::new(7.0, 8.0, 9.0));
   assert_eq!(agent_ref.velocity, Vec3::new(10.0, 11.0, 12.0));
   assert_eq!(agent_ref.radius, 2.0);
