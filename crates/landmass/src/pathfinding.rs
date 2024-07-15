@@ -4,6 +4,7 @@ use glam::Vec3;
 
 use crate::{
   astar::{self, AStarProblem, PathStats},
+  island::IslandNavigationData,
   nav_data::{BoundaryLinkId, NodeRef},
   path::{BoundaryLinkSegment, IslandSegment, Path},
   CoordinateSystem, NavigationData,
@@ -44,13 +45,33 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
     state: &Self::StateType,
   ) -> Vec<(f32, Self::ActionType, Self::StateType)> {
     let island = self.nav_data.get_island(state.island_id).unwrap();
-    let nav_data = island.nav_data.as_ref().unwrap();
-    let polygon = &nav_data.nav_mesh.polygons[state.polygon_index];
+    let island_nav_data = island.nav_data.as_ref().unwrap();
+    let polygon = &island_nav_data.nav_mesh.polygons[state.polygon_index];
     let boundary_links = self
       .nav_data
       .node_to_boundary_link_ids
       .get(state)
       .map_or(Cow::Owned(HashSet::new()), Cow::Borrowed);
+
+    fn type_index_to_node_cost<CS: CoordinateSystem>(
+      type_index: usize,
+      island_nav_data: &IslandNavigationData<CS>,
+      nav_data: &NavigationData<CS>,
+    ) -> f32 {
+      island_nav_data
+        .type_index_to_node_type
+        .get(&type_index)
+        .map(|node_type| {
+          nav_data.get_node_type_cost(*node_type).expect("NodeType exists")
+        })
+        .unwrap_or(1.0)
+    }
+
+    let current_node_cost = type_index_to_node_cost(
+      polygon.type_index,
+      island_nav_data,
+      self.nav_data,
+    );
 
     polygon
       .connectivity
@@ -60,8 +81,17 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
         conn.as_ref().map(|conn| (edge_index, conn))
       })
       .map(|(edge_index, conn)| {
+        let target_node_cost = type_index_to_node_cost(
+          island_nav_data.nav_mesh.polygons[conn.polygon_index].type_index,
+          island_nav_data,
+          self.nav_data,
+        );
+
+        let cost = conn.travel_distances.0 * current_node_cost
+          + conn.travel_distances.1 * target_node_cost;
+
         (
-          conn.cost,
+          cost,
           PathStep::NodeConnection(edge_index),
           NodeRef {
             island_id: state.island_id,

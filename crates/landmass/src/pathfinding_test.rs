@@ -1,9 +1,9 @@
 use std::{collections::HashMap, f32::consts::PI, sync::Arc};
 
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 
 use crate::{
-  coords::XYZ,
+  coords::{XY, XYZ},
   nav_data::NodeRef,
   nav_mesh::NavigationMesh,
   path::{BoundaryLinkSegment, IslandSegment, Path},
@@ -554,4 +554,84 @@ fn aborts_early_for_unconnected_regions() {
   assert!(path_result.path.is_none());
   assert_eq!(path_result.stats.explored_nodes, 0,
     "No nodes should have been explored since the regions are completely disconnected.");
+}
+
+#[test]
+fn detour_for_high_cost_path() {
+  let mut archipelago = Archipelago::<XY>::new();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        // Extrude right.
+        Vec2::new(2.0, 0.0),
+        Vec2::new(2.0, 1.0),
+        // Extrude right.
+        Vec2::new(3.0, 0.0),
+        Vec2::new(3.0, 1.0),
+        // Extrude up.
+        Vec2::new(2.0, 2.0),
+        Vec2::new(3.0, 2.0),
+        // Extrude up.
+        Vec2::new(2.0, 3.0),
+        Vec2::new(3.0, 3.0),
+        // Extrude left.
+        Vec2::new(1.0, 2.0),
+        Vec2::new(1.0, 3.0),
+        // Extrude left.
+        Vec2::new(0.0, 2.0),
+        Vec2::new(0.0, 3.0),
+      ],
+      polygons: vec![
+        // The bottom row.
+        vec![0, 1, 2, 3],
+        vec![2, 1, 4, 5],
+        vec![5, 4, 6, 7],
+        // The right two cells.
+        vec![5, 7, 9, 8],
+        vec![8, 9, 11, 10],
+        // The top two cells.
+        vec![8, 10, 13, 12],
+        vec![12, 13, 15, 14],
+        // The "slow" bridge.
+        vec![3, 2, 12, 14],
+      ],
+      polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 1],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let slow_node_type = archipelago.create_node_type(10.0);
+
+  let island_id = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform::default(),
+      nav_mesh,
+      HashMap::from([(1, slow_node_type)]),
+    )
+    .id();
+
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id, polygon_index: 0 },
+    NodeRef { island_id, polygon_index: 6 },
+  );
+
+  assert_eq!(
+    path_result.path,
+    Some(Path {
+      island_segments: vec![IslandSegment {
+        island_id,
+        corridor: vec![0, 1, 2, 3, 4, 5, 6],
+        portal_edge_index: vec![1, 2, 3, 2, 3, 2],
+      }],
+      boundary_link_segments: vec![],
+    })
+  );
 }

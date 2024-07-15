@@ -294,23 +294,57 @@ fn derives_connectivity_and_boundary_edges() {
 
   // Each edge has a cost of node 1 to its edge (always 0.5), and each other
   // node to its edge.
-  let cost_01 =
-    0.5 + Vec2::new(2.0 / 3.0, 1.0 / 3.0).distance(Vec2::new(1.0, 0.5));
-  let cost_12 =
-    0.5 + Vec3::new(2.5, 0.5, 0.5).distance(Vec3::new(2.0, 0.5, 0.0));
-  let cost_13 =
-    0.5 + Vec3::new(1.5, 1.5, 0.5).distance(Vec3::new(1.5, 1.0, 0.0));
+  let travel_distances_01 =
+    (Vec2::new(2.0 / 3.0, 1.0 / 3.0).distance(Vec2::new(1.0, 0.5)), 0.5);
+  let travel_distances_12 =
+    (0.5, Vec3::new(2.5, 0.5, 0.5).distance(Vec3::new(2.0, 0.5, 0.0)));
+  let travel_distances_13 =
+    (0.5, Vec3::new(1.5, 1.5, 0.5).distance(Vec3::new(1.5, 1.0, 0.0)));
+
+  let flip = |(a, b): (f32, f32)| (b, a);
 
   let expected_connectivity: [&[_]; 4] = [
-    &[None, Some(Connectivity { polygon_index: 1, cost: cost_01 }), None],
     &[
       None,
-      Some(Connectivity { polygon_index: 2, cost: cost_12 }),
-      Some(Connectivity { polygon_index: 3, cost: cost_13 }),
-      Some(Connectivity { polygon_index: 0, cost: cost_01 }),
+      Some(Connectivity {
+        polygon_index: 1,
+        travel_distances: travel_distances_01,
+      }),
+      None,
     ],
-    &[None, None, None, Some(Connectivity { polygon_index: 1, cost: cost_12 })],
-    &[Some(Connectivity { polygon_index: 1, cost: cost_13 }), None, None, None],
+    &[
+      None,
+      Some(Connectivity {
+        polygon_index: 2,
+        travel_distances: travel_distances_12,
+      }),
+      Some(Connectivity {
+        polygon_index: 3,
+        travel_distances: travel_distances_13,
+      }),
+      Some(Connectivity {
+        polygon_index: 0,
+        travel_distances: flip(travel_distances_01),
+      }),
+    ],
+    &[
+      None,
+      None,
+      None,
+      Some(Connectivity {
+        polygon_index: 1,
+        travel_distances: flip(travel_distances_12),
+      }),
+    ],
+    &[
+      Some(Connectivity {
+        polygon_index: 1,
+        travel_distances: flip(travel_distances_13),
+      }),
+      None,
+      None,
+      None,
+    ],
   ];
   assert_eq!(
     valid_mesh
