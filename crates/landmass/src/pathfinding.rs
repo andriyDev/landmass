@@ -101,7 +101,18 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
       })
       .chain(boundary_links.iter().map(|link_id| {
         let link = self.nav_data.boundary_links.get(*link_id).unwrap();
-        (link.cost, PathStep::BoundaryLink(*link_id), link.destination_node)
+        let destination_node_cost = link
+          .destination_node_type
+          .map(|node_type| {
+            self
+              .nav_data
+              .get_node_type_cost(node_type)
+              .expect("Node type exists.")
+          })
+          .unwrap_or(1.0);
+        let cost = link.travel_distances.0 * current_node_cost
+          + link.travel_distances.1 * destination_node_cost;
+        (cost, PathStep::BoundaryLink(*link_id), link.destination_node)
       }))
       .collect()
   }

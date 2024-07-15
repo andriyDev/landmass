@@ -72,12 +72,19 @@ new_key_type! {
 pub(crate) struct BoundaryLink {
   /// The node that taking this link leads to.
   pub(crate) destination_node: NodeRef,
+  /// The node type of the destination node. This is stored for convenience
+  /// since it is stable once the boundary link is created. [`None`] if the
+  /// destination node is the "default" node type.
+  pub(crate) destination_node_type: Option<NodeType>,
   /// The portal that this link occupies on the boundary of the source node.
   /// This is essentially the intersection of the linked islands' linkable
   /// edges.
   pub(crate) portal: (Vec3, Vec3),
-  /// The cost of travelling across this link.
-  pub(crate) cost: f32,
+  /// The distances of travelling across this link. The first is the distance
+  /// travelled across the starting node, and the second is the
+  /// distance travelled across the destination node. These must be multiplied
+  /// by the actual node costs.
+  pub(crate) travel_distances: (f32, f32),
 }
 
 /// A node that has been modified (e.g., by being connected with a boundary link
@@ -811,28 +818,42 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
           polygon_index: island_2_edge_ref.polygon_index,
         };
 
-        let polygon_center_1 = island_1_nav_data.transform.apply(
-          island_1_nav_data.nav_mesh.polygons[island_1_edge_ref.polygon_index]
-            .center,
-        );
-        let polygon_center_2 = island_2_nav_data.transform.apply(
-          island_2_nav_data.nav_mesh.polygons[island_2_edge_ref.polygon_index]
-            .center,
-        );
+        let polygon_1 =
+          &island_1_nav_data.nav_mesh.polygons[island_1_edge_ref.polygon_index];
+        let polygon_2 =
+          &island_2_nav_data.nav_mesh.polygons[island_2_edge_ref.polygon_index];
+
+        let polygon_center_1 =
+          island_1_nav_data.transform.apply(polygon_1.center);
+        let polygon_center_2 =
+          island_2_nav_data.transform.apply(polygon_2.center);
         let portal_center = (portal.0 + portal.1) / 2.0;
 
-        let cost = polygon_center_1.distance(portal_center)
-          + polygon_center_2.distance(portal_center);
+        let travel_distances = (
+          polygon_center_1.distance(portal_center),
+          polygon_center_2.distance(portal_center),
+        );
+
+        let node_type_1 = island_1_nav_data
+          .type_index_to_node_type
+          .get(&polygon_1.type_index)
+          .copied();
+        let node_type_2 = island_2_nav_data
+          .type_index_to_node_type
+          .get(&polygon_2.type_index)
+          .copied();
 
         let id_1 = boundary_links.insert(BoundaryLink {
           destination_node: node_2,
+          destination_node_type: node_type_2,
           portal,
-          cost,
+          travel_distances,
         });
         let id_2 = boundary_links.insert(BoundaryLink {
           destination_node: node_1,
+          destination_node_type: node_type_1,
           portal: (portal.1, portal.0),
-          cost,
+          travel_distances: (travel_distances.1, travel_distances.0),
         });
 
         node_to_boundary_link_ids.entry(node_1).or_default().insert(id_1);

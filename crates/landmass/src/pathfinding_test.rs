@@ -635,3 +635,112 @@ fn detour_for_high_cost_path() {
     })
   );
 }
+
+#[test]
+fn detour_for_high_cost_path_across_boundary_links() {
+  let mut archipelago = Archipelago::<XY>::new();
+
+  let nav_mesh_1 = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        //
+        Vec2::new(2.0, 0.0),
+        Vec2::new(2.0, 1.0),
+        //
+        Vec2::new(3.0, 0.0),
+        Vec2::new(3.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3], vec![2, 1, 4, 5], vec![5, 4, 6, 7]],
+      polygon_type_indices: vec![0, 0, 0],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let nav_mesh_2 = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 2.0),
+        Vec2::new(1.0, 2.0),
+        Vec2::new(1.0, 3.0),
+        Vec2::new(0.0, 3.0),
+        //
+        Vec2::new(2.0, 2.0),
+        Vec2::new(2.0, 3.0),
+        //
+        Vec2::new(3.0, 2.0),
+        Vec2::new(3.0, 3.0),
+        //
+        Vec2::new(0.0, 1.0),
+        Vec2::new(1.0, 1.0),
+        //
+        Vec2::new(2.0, 1.0),
+        Vec2::new(3.0, 1.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 2, 3],
+        vec![2, 1, 4, 5],
+        vec![5, 4, 6, 7],
+        vec![1, 0, 8, 9],
+        vec![6, 4, 10, 11],
+      ],
+      polygon_type_indices: vec![0, 0, 0, 1, 0],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let slow_node_type = archipelago.create_node_type(5.1);
+
+  let island_id_1 = archipelago
+    .add_island()
+    .set_nav_mesh(Transform::default(), nav_mesh_1, HashMap::new())
+    .id();
+  let island_id_2 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform::default(),
+      nav_mesh_2,
+      HashMap::from([(1, slow_node_type)]),
+    )
+    .id();
+
+  archipelago.update(1.0);
+
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id: island_id_1, polygon_index: 0 },
+    NodeRef { island_id: island_id_2, polygon_index: 0 },
+  );
+
+  assert_eq!(
+    path_result.path,
+    Some(Path {
+      island_segments: vec![
+        IslandSegment {
+          island_id: island_id_1,
+          corridor: vec![0, 1, 2],
+          portal_edge_index: vec![1, 2],
+        },
+        IslandSegment {
+          island_id: island_id_2,
+          corridor: vec![4, 2, 1, 0],
+          portal_edge_index: vec![0, 0, 0],
+        }
+      ],
+      boundary_link_segments: vec![BoundaryLinkSegment {
+        boundary_link: archipelago.nav_data.node_to_boundary_link_ids
+          [&NodeRef { island_id: island_id_1, polygon_index: 2 }]
+          .iter()
+          .next()
+          .unwrap()
+          .clone(),
+        starting_node: NodeRef { island_id: island_id_1, polygon_index: 2 },
+      }]
+    })
+  )
+}
