@@ -4,9 +4,8 @@ use glam::{Vec2, Vec3};
 
 use crate::{
   coords::{XY, XYZ},
-  util::BoundingBox,
   Agent, AgentId, AgentState, Archipelago, Character, CharacterId, IslandId,
-  NavigationMesh, Transform, ValidNavigationMesh,
+  NavigationMesh, Transform,
 };
 
 #[test]
@@ -418,13 +417,9 @@ fn changed_island_is_not_dirty_after_update() {
 
   archipelago.get_island_mut(island_id).unwrap().set_nav_mesh(
     Transform::default(),
-    Arc::new(ValidNavigationMesh {
-      mesh_bounds: BoundingBox::Empty,
-      boundary_edges: vec![],
-      polygons: vec![],
-      vertices: vec![],
-      marker: Default::default(),
-    }),
+    Arc::new(
+      NavigationMesh { polygons: vec![], vertices: vec![] }.validate().unwrap(),
+    ),
   );
 
   assert!(archipelago.get_island(island_id).unwrap().dirty);
