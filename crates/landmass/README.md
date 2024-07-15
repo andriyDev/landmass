@@ -53,7 +53,7 @@ be confusing.
 ```rust
 use glam::Vec3;
 use landmass::*;
-use std::sync::Arc;
+use std::{sync::Arc, collections::HashMap};
 
 let mut archipelago = Archipelago::<XYZ>::new();
 
@@ -77,6 +77,7 @@ let island_id = archipelago
   .set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     valid_nav_mesh,
+    HashMap::new(),
   )
   .id();
 

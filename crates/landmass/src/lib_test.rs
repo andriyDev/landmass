@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use glam::{Vec2, Vec3};
 
@@ -169,6 +169,7 @@ fn computes_and_follows_path() {
   archipelago.add_island().set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::new(nav_mesh),
+    HashMap::new(),
   );
 
   archipelago.agent_options.neighbourhood = 0.0;
@@ -427,6 +428,7 @@ fn changed_island_is_not_dirty_after_update() {
       .validate()
       .unwrap(),
     ),
+    HashMap::new(),
   );
 
   assert!(archipelago.get_island(island_id).unwrap().dirty);
@@ -456,9 +458,11 @@ fn samples_point() {
   );
 
   let offset = Vec2::new(10.0, 10.0);
-  archipelago
-    .add_island()
-    .set_nav_mesh(Transform { translation: offset, rotation: 0.0 }, nav_mesh);
+  archipelago.add_island().set_nav_mesh(
+    Transform { translation: offset, rotation: 0.0 },
+    nav_mesh,
+    HashMap::new(),
+  );
   archipelago.update(1.0);
 
   assert_eq!(
@@ -513,14 +517,17 @@ fn finds_path() {
   archipelago.add_island().set_nav_mesh(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh.clone(),
+    HashMap::new(),
   );
   archipelago.add_island().set_nav_mesh(
     Transform { translation: offset + Vec2::new(1.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
+    HashMap::new(),
   );
   archipelago.add_island().set_nav_mesh(
     Transform { translation: offset + Vec2::new(2.0, 0.5), rotation: 0.0 },
     nav_mesh,
+    HashMap::new(),
   );
   archipelago.update(1.0);
 

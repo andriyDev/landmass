@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, sync::Arc};
+use std::{cmp::Ordering, collections::HashMap, sync::Arc};
 
 use glam::Vec3;
 
@@ -101,6 +101,7 @@ fn draws_island_meshes_and_agents() {
     .set_nav_mesh(
       Transform { translation: TRANSLATION, rotation: 0.0 },
       Arc::new(nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -433,13 +434,14 @@ fn draws_boundary_links() {
   let mut archipelago = Archipelago::<XYZ>::new();
   archipelago
     .add_island()
-    .set_nav_mesh(Transform::default(), nav_mesh.clone())
+    .set_nav_mesh(Transform::default(), nav_mesh.clone(), HashMap::new())
     .id();
   archipelago
     .add_island()
     .set_nav_mesh(
       Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
       nav_mesh.clone(),
+      HashMap::new(),
     )
     .id();
 
@@ -492,6 +494,7 @@ fn fails_to_draw_dirty_archipelago() {
   archipelago.get_island_mut(island_id).unwrap().set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     nav_mesh.clone(),
+    HashMap::new(),
   );
   assert_eq!(
     draw_archipelago_debug(&archipelago, &mut fake_drawer),
@@ -506,6 +509,7 @@ fn fails_to_draw_dirty_archipelago() {
   archipelago.get_island_mut(island_id).unwrap().set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 1.0 },
     nav_mesh,
+    HashMap::new(),
   );
   assert_eq!(
     draw_archipelago_debug(&archipelago, &mut fake_drawer),
