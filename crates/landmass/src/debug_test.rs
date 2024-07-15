@@ -89,6 +89,7 @@ fn draws_island_meshes_and_agents() {
       vec![9, 10, 12, 11],
       vec![10, 4, 14, 13],
     ],
+    polygon_type_indices: vec![0, 0, 0, 0],
   }
   .validate()
   .expect("Mesh is valid.");
@@ -423,6 +424,7 @@ fn draws_boundary_links() {
         Vec3::new(1.0, 2.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("The mesh is valid."),
@@ -470,6 +472,7 @@ fn fails_to_draw_dirty_archipelago() {
         Vec3::new(1.0, 2.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("The mesh is valid."),

@@ -22,6 +22,7 @@ fn error_on_dirty_nav_mesh() {
         Vec2::new(0.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -52,6 +53,7 @@ fn error_on_out_of_range() {
         Vec2::new(0.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -84,6 +86,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
         Vec2::new(0.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -137,6 +140,7 @@ fn no_path() {
         Vec2::new(0.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -178,6 +182,7 @@ fn finds_path() {
         Vec2::new(0.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("nav mesh is valid"),

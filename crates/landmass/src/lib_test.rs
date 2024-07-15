@@ -161,6 +161,7 @@ fn computes_and_follows_path() {
       vec![4, 5, 8, 9],
       vec![5, 6, 7, 8],
     ],
+    polygon_type_indices: vec![0, 0, 0, 0, 0],
   }
   .validate()
   .expect("is valid");
@@ -418,7 +419,13 @@ fn changed_island_is_not_dirty_after_update() {
   archipelago.get_island_mut(island_id).unwrap().set_nav_mesh(
     Transform::default(),
     Arc::new(
-      NavigationMesh { polygons: vec![], vertices: vec![] }.validate().unwrap(),
+      NavigationMesh {
+        vertices: vec![],
+        polygons: vec![],
+        polygon_type_indices: vec![],
+      }
+      .validate()
+      .unwrap(),
     ),
   );
 
@@ -442,6 +449,7 @@ fn samples_point() {
         Vec2::new(0.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -495,6 +503,7 @@ fn finds_path() {
         Vec2::new(0.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("nav mesh is valid"),
