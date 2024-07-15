@@ -24,6 +24,9 @@ use crate::{
 pub(crate) struct NavigationData<CS: CoordinateSystem> {
   /// The islands in the [`crate::Archipelago`].
   islands: HopSlotMap<IslandId, Island<CS>>,
+  /// The "default" cost of each node type. This also defines the node types
+  /// (excluding the `None` type which has an implicit cost of 0.0).
+  node_type_to_cost: HopSlotMap<NodeType, f32>,
   /// Whether the navigation data has been mutated since the last update.
   /// Reading should not occur unless the navigation data is not dirty.
   pub(crate) dirty: bool,
@@ -43,6 +46,11 @@ pub(crate) struct NavigationData<CS: CoordinateSystem> {
   pub(crate) modified_nodes: HashMap<NodeRef, ModifiedNode>,
   /// The islands that have been deleted since the last update.
   pub(crate) deleted_islands: HashSet<IslandId>,
+}
+
+new_key_type! {
+  /// A unique type of node.
+  pub struct NodeType;
 }
 
 /// A reference to a node in the navigation data.
@@ -92,6 +100,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   pub(crate) fn new() -> Self {
     Self {
       islands: HopSlotMap::with_key(),
+      node_type_to_cost: HopSlotMap::with_key(),
       // The navigation data is empty, so there's nothing to update (so not
       // dirty).
       dirty: false,
@@ -102,6 +111,54 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       modified_nodes: HashMap::new(),
       deleted_islands: HashSet::new(),
     }
+  }
+
+  /// Creates a new node type with the specified `cost`. The cost is a
+  /// multiplier on the distance travelled along this node (essentially the cost
+  /// per meter). Agents will prefer to travel along low-cost terrain. This node
+  /// type is distinct from all other node types.
+  pub(crate) fn create_node_type(&mut self, cost: f32) -> NodeType {
+    self.node_type_to_cost.insert(cost)
+  }
+
+  /// Sets the cost of `node_type` to `cost`. See
+  /// [`NavigationData::create_node_type`] for the meaning of cost. Returns
+  /// false if the node type does not exist in this nav data. Otherwise,
+  /// returns true.
+  pub(crate) fn set_node_type_cost(
+    &mut self,
+    node_type: NodeType,
+    cost: f32,
+  ) -> bool {
+    let Some(node_type_cost) = self.node_type_to_cost.get_mut(node_type) else {
+      return false;
+    };
+    *node_type_cost = cost;
+    true
+  }
+
+  /// Gets the cost of `node_type`. Returns [`None`] if `node_type` is not in
+  /// this nav data.
+  pub(crate) fn get_node_type_cost(&self, node_type: NodeType) -> Option<f32> {
+    self.node_type_to_cost.get(node_type).copied()
+  }
+
+  /// Removes the node type from the navigation data. Returns false if any
+  /// islands still use this node type (so the node type cannot be removed).
+  /// Otherwise, returns true.
+  pub(crate) fn remove_node_type(&mut self, node_type: NodeType) -> bool {
+    if !self.node_type_to_cost.contains_key(node_type) {
+      return false;
+    }
+
+    todo!()
+  }
+
+  /// Gets the current node types and their costs.
+  pub(crate) fn get_node_types(
+    &self,
+  ) -> impl Iterator<Item = (NodeType, f32)> + '_ {
+    self.node_type_to_cost.iter().map(|(node_type, &cost)| (node_type, cost))
   }
 
   /// Adds a new (empty) island to the navigation data.

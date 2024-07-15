@@ -29,7 +29,7 @@ pub use agent::{Agent, AgentId, AgentState, TargetReachedCondition};
 pub use character::{Character, CharacterId};
 pub use coords::{CoordinateSystem, XYZ};
 pub use island::{Island, IslandId};
-pub use nav_data::IslandMut;
+pub use nav_data::{IslandMut, NodeType};
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh, ValidationError};
 pub use query::{FindPathError, SamplePointError, SampledPoint};
 pub use util::Transform;
@@ -155,6 +155,36 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
 
   pub fn get_island_ids(&self) -> impl ExactSizeIterator<Item = IslandId> + '_ {
     self.nav_data.get_island_ids()
+  }
+
+  /// Creates a new node type with the specified `cost`. The cost is a
+  /// multiplier on the distance travelled along this node (essentially the cost
+  /// per meter). Agents will prefer to travel along low-cost terrain. The
+  /// returned node type is distinct from all other node types (for this
+  /// archipelago).
+  pub fn create_node_type(&mut self, cost: f32) -> NodeType {
+    self.nav_data.create_node_type(cost)
+  }
+
+  /// Sets the cost of `node_type` to `cost`. See
+  /// [`Archipelago::create_node_type`] for the meaning of cost. Returns
+  /// false if the node type does not exist in this archipelago. Otherwise,
+  /// returns true.
+  pub fn set_node_type_cost(&mut self, node_type: NodeType, cost: f32) -> bool {
+    self.nav_data.set_node_type_cost(node_type, cost)
+  }
+
+  /// Gets the cost of `node_type`. Returns [`None`] if `node_type` is not in
+  /// this archipelago.
+  pub fn get_node_type_cost(&self, node_type: NodeType) -> Option<f32> {
+    self.nav_data.get_node_type_cost(node_type)
+  }
+
+  /// Removes the node type from the archipelago. Returns false if this
+  /// archipelago does not contain `node_type` or any islands still use this
+  /// node type (so the node type cannot be removed). Otherwise, returns true.
+  pub fn remove_node_type(&mut self, node_type: NodeType) -> bool {
+    self.nav_data.remove_node_type(node_type)
   }
 
   /// Gets the pathing results from the last [`Self::update`] call.

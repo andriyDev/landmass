@@ -20,8 +20,8 @@ pub struct NavigationMesh<CS: CoordinateSystem> {
   /// not self-intersecting.
   pub polygons: Vec<Vec<usize>>,
   /// The type index of each polygon. This type index is translated into a real
-  /// "node type" when assigned to an [`crate::Archipelago`]. Must be the same
-  /// length as [`Self::polygons`].
+  /// [`crate::NodeType`] when assigned to an [`crate::Archipelago`]. Must be
+  /// the same length as [`Self::polygons`].
   pub polygon_type_indices: Vec<usize>,
 }
 
