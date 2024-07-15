@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use glam::Vec2;
 
@@ -28,7 +28,11 @@ fn error_on_dirty_nav_mesh() {
     .expect("nav mesh is valid"),
   );
 
-  archipelago.add_island().set_nav_mesh(Transform::default(), nav_mesh);
+  archipelago.add_island().set_nav_mesh(
+    Transform::default(),
+    nav_mesh,
+    HashMap::new(),
+  );
   assert_eq!(
     sample_point(
       &archipelago,
@@ -59,7 +63,11 @@ fn error_on_out_of_range() {
     .expect("nav mesh is valid"),
   );
 
-  archipelago.add_island().set_nav_mesh(Transform::default(), nav_mesh);
+  archipelago.add_island().set_nav_mesh(
+    Transform::default(),
+    nav_mesh,
+    HashMap::new(),
+  );
   archipelago.update(1.0);
 
   assert_eq!(
@@ -93,9 +101,11 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
   );
 
   let offset = Vec2::new(10.0, 10.0);
-  archipelago
-    .add_island()
-    .set_nav_mesh(Transform { translation: offset, rotation: 0.0 }, nav_mesh);
+  archipelago.add_island().set_nav_mesh(
+    Transform { translation: offset, rotation: 0.0 },
+    nav_mesh,
+    HashMap::new(),
+  );
   archipelago.update(1.0);
 
   assert_eq!(
@@ -150,10 +160,12 @@ fn no_path() {
   archipelago.add_island().set_nav_mesh(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh.clone(),
+    HashMap::new(),
   );
   archipelago.add_island().set_nav_mesh(
     Transform { translation: offset + Vec2::new(2.0, 0.0), rotation: 0.0 },
     nav_mesh,
+    HashMap::new(),
   );
   archipelago.update(1.0);
 
@@ -192,14 +204,17 @@ fn finds_path() {
   archipelago.add_island().set_nav_mesh(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh.clone(),
+    HashMap::new(),
   );
   archipelago.add_island().set_nav_mesh(
     Transform { translation: offset + Vec2::new(1.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
+    HashMap::new(),
   );
   archipelago.add_island().set_nav_mesh(
     Transform { translation: offset + Vec2::new(2.0, 0.5), rotation: 0.0 },
     nav_mesh,
+    HashMap::new(),
   );
   archipelago.update(1.0);
 

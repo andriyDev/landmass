@@ -89,6 +89,7 @@ fn computes_obstacle_for_box() {
     .set_nav_mesh(
       Transform { translation: island_offset, rotation: 0.0 },
       Arc::new(nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -147,6 +148,7 @@ fn dead_end_makes_open_obstacle() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::new(nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -292,6 +294,7 @@ fn split_borders() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::new(nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -351,12 +354,14 @@ fn creates_obstacles_across_boundary_link() {
   nav_data.add_island().set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::clone(&nav_mesh),
+    HashMap::new(),
   );
   let island_id_2 = nav_data
     .add_island()
     .set_nav_mesh(
       Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
       nav_mesh,
+      HashMap::new(),
     )
     .id();
 
@@ -413,6 +418,7 @@ fn applies_no_avoidance_for_far_agents() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::new(nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -510,6 +516,7 @@ fn applies_avoidance_for_two_agents() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::new(nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -605,6 +612,7 @@ fn agent_avoids_character() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::new(nav_mesh),
+      HashMap::new(),
     )
     .id();
 

@@ -47,6 +47,7 @@ fn samples_points() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
   let island_id_2 = nav_data
@@ -54,6 +55,7 @@ fn samples_points() {
     .set_nav_mesh(
       Transform { translation: Vec3::new(5.0, 0.0, 0.1), rotation: PI * 0.5 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -221,8 +223,16 @@ fn link_edges_between_islands_links_touching_islands() {
 
   let transform =
     Transform { translation: Vec3::new(1.0, 2.0, 3.0), rotation: PI * -0.25 };
-  island_1.set_nav_mesh(transform.clone(), Arc::clone(&nav_mesh_1));
-  island_2.set_nav_mesh(transform.clone(), Arc::clone(&nav_mesh_2));
+  island_1.set_nav_mesh(
+    transform.clone(),
+    Arc::clone(&nav_mesh_1),
+    HashMap::new(),
+  );
+  island_2.set_nav_mesh(
+    transform.clone(),
+    Arc::clone(&nav_mesh_2),
+    HashMap::new(),
+  );
 
   let island_1_edge_bbh = island_edges_bbh(island_1.nav_data.as_ref().unwrap());
   let island_2_edge_bbh = island_edges_bbh(island_2.nav_data.as_ref().unwrap());
@@ -499,6 +509,7 @@ fn update_links_islands_and_unlinks_on_delete() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
   let island_2_id = nav_data
@@ -506,6 +517,7 @@ fn update_links_islands_and_unlinks_on_delete() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: PI * 0.5 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
   let island_3_id = nav_data
@@ -513,6 +525,7 @@ fn update_links_islands_and_unlinks_on_delete() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: PI },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
   let island_4_id = nav_data
@@ -520,6 +533,7 @@ fn update_links_islands_and_unlinks_on_delete() {
     .set_nav_mesh(
       Transform { translation: Vec3::new(3.0, 0.0, 0.0), rotation: PI },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
   let island_5_id = nav_data
@@ -527,6 +541,7 @@ fn update_links_islands_and_unlinks_on_delete() {
     .set_nav_mesh(
       Transform { translation: Vec3::new(2.0, 3.0, 0.0), rotation: PI * -0.5 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -648,6 +663,7 @@ fn update_links_islands_and_unlinks_on_delete() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: PI * 0.5 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     );
 
   nav_data.update(/* edge_link_distance= */ 0.01);
@@ -802,6 +818,7 @@ fn modifies_node_boundaries_for_linked_islands() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
   let island_2_id = nav_data
@@ -809,6 +826,7 @@ fn modifies_node_boundaries_for_linked_islands() {
     .set_nav_mesh(
       Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
   let island_3_id = nav_data
@@ -816,6 +834,7 @@ fn modifies_node_boundaries_for_linked_islands() {
     .set_nav_mesh(
       Transform { translation: Vec3::new(2.0, 3.5, 0.0), rotation: PI * -0.5 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -877,12 +896,14 @@ fn stale_modified_nodes_are_removed() {
   nav_data.add_island().set_nav_mesh(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::clone(&nav_mesh),
+    HashMap::new(),
   );
   let island_2_id = nav_data
     .add_island()
     .set_nav_mesh(
       Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -925,8 +946,16 @@ fn empty_navigation_mesh_is_safe() {
   );
 
   let mut nav_data = NavigationData::<XYZ>::new();
-  nav_data.add_island().set_nav_mesh(Transform::default(), full_nav_mesh);
-  nav_data.add_island().set_nav_mesh(Transform::default(), empty_nav_mesh);
+  nav_data.add_island().set_nav_mesh(
+    Transform::default(),
+    full_nav_mesh,
+    HashMap::new(),
+  );
+  nav_data.add_island().set_nav_mesh(
+    Transform::default(),
+    empty_nav_mesh,
+    HashMap::new(),
+  );
 
   // Nothing should panic here.
   nav_data.update(/* edge_link_distance= */ 1e-6);

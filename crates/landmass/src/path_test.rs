@@ -1,4 +1,8 @@
-use std::{collections::HashSet, f32::consts::PI, sync::Arc};
+use std::{
+  collections::{HashMap, HashSet},
+  f32::consts::PI,
+  sync::Arc,
+};
 
 use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
@@ -71,7 +75,7 @@ fn finds_next_point_for_organic_map() {
   let mut archipelago = Archipelago::<XYZ>::new();
   let island_id = archipelago
     .add_island()
-    .set_nav_mesh(transform.clone(), Arc::new(nav_mesh))
+    .set_nav_mesh(transform.clone(), Arc::new(nav_mesh), HashMap::new())
     .id();
 
   let path = Path {
@@ -176,7 +180,7 @@ fn finds_next_point_in_zig_zag() {
   let mut archipelago = Archipelago::<XY>::new();
   let island_id = archipelago
     .add_island()
-    .set_nav_mesh(transform.clone(), Arc::new(nav_mesh))
+    .set_nav_mesh(transform.clone(), Arc::new(nav_mesh), HashMap::new())
     .id();
 
   let path = Path {
@@ -252,6 +256,7 @@ fn starts_at_end_index_goes_to_end_point() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::new(nav_mesh),
+      HashMap::new(),
     )
     .id();
 

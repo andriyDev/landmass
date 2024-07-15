@@ -49,6 +49,7 @@ fn finds_path_in_archipelago() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::new(nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -147,6 +148,7 @@ fn finds_paths_on_two_islands() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -155,6 +157,7 @@ fn finds_paths_on_two_islands() {
     .set_nav_mesh(
       Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * -0.5 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -235,6 +238,7 @@ fn no_path_between_disconnected_islands() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -243,6 +247,7 @@ fn no_path_between_disconnected_islands() {
     .set_nav_mesh(
       Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * -0.5 },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -289,6 +294,7 @@ fn find_path_across_connected_islands() {
     .set_nav_mesh(
       Transform { rotation: 0.0, translation: Vec3::ZERO },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
   let island_id_2 = archipelago
@@ -296,18 +302,21 @@ fn find_path_across_connected_islands() {
     .set_nav_mesh(
       Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 0.0) },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
   // island_id_3 is unused.
   archipelago.add_island().set_nav_mesh(
     Transform { rotation: 0.0, translation: Vec3::new(1.0, -1.0, 0.0) },
     Arc::clone(&nav_mesh),
+    HashMap::new(),
   );
   let island_id_4 = archipelago
     .add_island()
     .set_nav_mesh(
       Transform { rotation: 0.0, translation: Vec3::new(1.0, 1.0, 0.0) },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
   let island_id_5 = archipelago
@@ -315,6 +324,7 @@ fn find_path_across_connected_islands() {
     .set_nav_mesh(
       Transform { rotation: 0.0, translation: Vec3::new(1.0, 2.0, 0.0) },
       Arc::clone(&nav_mesh),
+      HashMap::new(),
     )
     .id();
 
@@ -421,6 +431,7 @@ fn finds_path_across_different_islands() {
     .set_nav_mesh(
       Transform { rotation: 0.0, translation: Vec3::ZERO },
       nav_mesh_1,
+      HashMap::new(),
     )
     .id();
   let island_id_2 = archipelago
@@ -428,6 +439,7 @@ fn finds_path_across_different_islands() {
     .set_nav_mesh(
       Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 0.0) },
       nav_mesh_2,
+      HashMap::new(),
     )
     .id();
 
@@ -498,6 +510,7 @@ fn aborts_early_for_unconnected_regions() {
     .set_nav_mesh(
       Transform { translation: Vec3::ZERO, rotation: 0.0 },
       nav_mesh.clone(),
+      HashMap::new(),
     )
     .id();
   let island_id_2 = archipelago
@@ -505,6 +518,7 @@ fn aborts_early_for_unconnected_regions() {
     .set_nav_mesh(
       Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
       nav_mesh.clone(),
+      HashMap::new(),
     )
     .id();
   let island_id_3 = archipelago
@@ -512,6 +526,7 @@ fn aborts_early_for_unconnected_regions() {
     .set_nav_mesh(
       Transform { translation: Vec3::new(1.5, 2.0, 0.0), rotation: PI * 0.5 },
       nav_mesh.clone(),
+      HashMap::new(),
     )
     .id();
 

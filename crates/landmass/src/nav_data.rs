@@ -701,15 +701,23 @@ impl<CS: CoordinateSystem> IslandMut<'_, CS> {
     self.id
   }
 
-  /// Sets the navigation mesh and the transform of the island. This matches
+  /// Sets the navigation mesh and the transform of the island.
+  /// `type_index_to_node_type` translates the type indices used in `nav_mesh`
+  /// into [`NodeType`]s from the [`crate::Archipelago`]. Type indices without a
+  /// corresponding node type will be treated as the "default" node type, which
+  /// has a cost of 1.0. See [`crate::Archipelago::create_node_type`] for
+  /// details on cost. [`NodeType`]s not present in the corresponding
+  /// [`crate::Archipelago`] will cause a panic, so do not mix [`NodeType`]s
+  /// across [`crate::Archipelago`]s. This matches
   /// [`crate::Island::set_nav_mesh`], but returns self for convenience.
   pub fn set_nav_mesh(
     &mut self,
     transform: Transform<CS>,
     nav_mesh: Arc<ValidNavigationMesh<CS>>,
+    type_index_to_node_type: HashMap<usize, NodeType>,
   ) -> &mut Self {
     // Deref so we automatically trigger any change detection stuff.
-    self.deref_mut().set_nav_mesh(transform, nav_mesh);
+    self.deref_mut().set_nav_mesh(transform, nav_mesh, type_index_to_node_type);
     self
   }
 }
