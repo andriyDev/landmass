@@ -73,6 +73,7 @@ fn computes_obstacle_for_box() {
       Vec3::new(1.0, 2.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
   }
   .validate()
   .expect("Validation succeeds");
@@ -135,6 +136,7 @@ fn dead_end_makes_open_obstacle() {
       vec![5, 7, 8, 9],
       vec![9, 8, 10, 11],
     ],
+    polygon_type_indices: vec![0, 0, 0, 0, 0],
   }
   .validate()
   .expect("Validation succeeds");
@@ -279,6 +281,7 @@ fn split_borders() {
       vec![24, 21, 20, 25],
       vec![23, 22, 21, 24],
     ],
+    polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   }
   .validate()
   .expect("Validation succeeds");
@@ -338,6 +341,7 @@ fn creates_obstacles_across_boundary_link() {
         Vec3::new(1.0, 2.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("Validation succeeds"),
@@ -398,6 +402,7 @@ fn applies_no_avoidance_for_far_agents() {
       Vec3::new(-1.0, 3.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
   }
   .validate()
   .expect("Validation succeeded.");
@@ -494,6 +499,7 @@ fn applies_avoidance_for_two_agents() {
       Vec3::new(-1.0, 3.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
   }
   .validate()
   .expect("Validation succeeded.");
@@ -588,6 +594,7 @@ fn agent_avoids_character() {
       Vec3::new(-1.0, 3.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
   }
   .validate()
   .expect("Validation succeeded.");

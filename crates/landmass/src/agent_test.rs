@@ -14,9 +14,13 @@ use crate::{
 
 #[test]
 fn has_reached_target_at_end_node() {
-  let nav_mesh = NavigationMesh { vertices: vec![], polygons: vec![] }
-    .validate()
-    .expect("nav mesh is valid");
+  let nav_mesh = NavigationMesh {
+    vertices: vec![],
+    polygons: vec![],
+    polygon_type_indices: vec![],
+  }
+  .validate()
+  .expect("nav mesh is valid");
   let transform =
     Transform { translation: Vec3::new(2.0, 3.0, 4.0), rotation: PI * 0.85 };
   let mut archipelago = Archipelago::<XYZ>::new();
@@ -87,6 +91,7 @@ fn long_detour_reaches_target_in_different_ways() {
       Vec3::new(2.0, 1.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2], vec![2, 1, 3, 4], vec![4, 3, 5]],
+    polygon_type_indices: vec![0, 0, 0],
   }
   .validate()
   .expect("nav mesh is valid");

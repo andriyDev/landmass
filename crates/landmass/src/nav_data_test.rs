@@ -35,6 +35,7 @@ fn samples_points() {
       Vec3::new(1.0, 2.0, 1.0),
     ],
     polygons: vec![vec![0, 1, 6, 7], vec![1, 2, 5, 6], vec![2, 3, 4, 5]],
+    polygon_type_indices: vec![0, 0, 0],
   }
   .validate()
   .expect("is valid");
@@ -175,6 +176,7 @@ fn link_edges_between_islands_links_touching_islands() {
         vec![10, 11, 5, 4],
         vec![6, 0, 5, 11],
       ],
+      polygon_type_indices: vec![0, 0, 0, 0, 0, 0],
     }
     .validate()
     .expect("is valid."),
@@ -203,6 +205,7 @@ fn link_edges_between_islands_links_touching_islands() {
         vec![5, 6, 9, 8],
         vec![10, 11, 2, 1],
       ],
+      polygon_type_indices: vec![0, 0, 0, 0, 0],
     }
     .validate()
     .expect("is valid."),
@@ -483,6 +486,7 @@ fn update_links_islands_and_unlinks_on_delete() {
         Vec3::new(1.0, 1.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 5], vec![4, 5, 2, 3]],
+      polygon_type_indices: vec![0, 0],
     }
     .validate()
     .expect("is valid."),
@@ -785,6 +789,7 @@ fn modifies_node_boundaries_for_linked_islands() {
         Vec3::new(1.0, 3.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
+      polygon_type_indices: vec![0, 0],
     }
     .validate()
     .expect("is valid."),
@@ -861,6 +866,7 @@ fn stale_modified_nodes_are_removed() {
         Vec3::new(1.0, 3.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
+      polygon_type_indices: vec![0, 0],
     }
     .validate()
     .expect("is valid."),
@@ -902,15 +908,20 @@ fn empty_navigation_mesh_is_safe() {
         Vec3::new(0.0, 1.0, 0.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("A square nav mesh is valid."),
   );
 
   let empty_nav_mesh = Arc::new(
-    NavigationMesh { vertices: vec![], polygons: vec![] }
-      .validate()
-      .expect("An empty nav mesh is valid."),
+    NavigationMesh {
+      vertices: vec![],
+      polygons: vec![],
+      polygon_type_indices: vec![],
+    }
+    .validate()
+    .expect("An empty nav mesh is valid."),
   );
 
   let mut nav_data = NavigationData::<XYZ>::new();

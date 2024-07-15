@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use glam::{Vec2, Vec3};
 
 use crate::{
@@ -20,6 +22,7 @@ fn validation_computes_bounds() {
       Vec3::new(0.25, 4.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2], vec![3, 4, 5]],
+    polygon_type_indices: vec![0, 0],
   };
 
   let valid_mesh =
@@ -39,6 +42,7 @@ fn correctly_computes_bounds_for_small_number_of_points() {
       Vec3::new(2.0, 1.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2]],
+    polygon_type_indices: vec![0],
   }
   .validate()
   .expect("Validation succeeds");
@@ -61,6 +65,7 @@ fn polygons_derived_and_vertices_copied() {
       Vec3::new(0.25, 4.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2], vec![3, 4, 5]],
+    polygon_type_indices: vec![1337, 123],
   };
 
   let expected_polygons = vec![
@@ -68,6 +73,7 @@ fn polygons_derived_and_vertices_copied() {
       vertices: source_mesh.polygons[0].clone(),
       connectivity: vec![None, None, None],
       region: 0,
+      type_index: 1337,
       bounds: BoundingBox::new_box(
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(2.0, 1.0, 1.0),
@@ -78,6 +84,7 @@ fn polygons_derived_and_vertices_copied() {
       vertices: source_mesh.polygons[1].clone(),
       connectivity: vec![None, None, None],
       region: 1,
+      type_index: 123,
       bounds: BoundingBox::new_box(
         Vec3::new(0.25, 3.0, -0.25),
         Vec3::new(0.75, 4.0, 0.5),
@@ -90,6 +97,35 @@ fn polygons_derived_and_vertices_copied() {
     source_mesh.clone().validate().expect("Validation succeeds.");
   assert_eq!(valid_mesh.vertices, source_mesh.vertices);
   assert_eq!(valid_mesh.polygons, expected_polygons);
+  assert_eq!(valid_mesh.used_type_indices, HashSet::from([1337, 123]));
+}
+
+#[test]
+fn error_on_wrong_type_indices_length() {
+  let source_mesh = NavigationMesh::<XYZ> {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+    ],
+    polygons: vec![vec![0, 1, 2]],
+    polygon_type_indices: vec![0, 0],
+  };
+
+  let error = source_mesh
+    .clone()
+    .validate()
+    .expect_err("Wrong type indices length should be detected.");
+  match error {
+    ValidationError::TypeIndicesHaveWrongLength(polygons, type_indices) => {
+      assert_eq!(polygons, 1);
+      assert_eq!(type_indices, 2);
+    }
+    _ => panic!(
+      "Wrong error variant! Expected TypeIndicesHaveWrongLength but got: {:?}",
+      error
+    ),
+  };
 }
 
 #[test]
@@ -101,6 +137,7 @@ fn error_on_concave_polygon() {
       Vec3::new(1.0, 0.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 2]],
+    polygon_type_indices: vec![0],
   };
 
   let error = source_mesh
@@ -121,6 +158,7 @@ fn error_on_small_polygon() {
   let source_mesh = NavigationMesh::<XYZ> {
     vertices: vec![Vec3::new(0.0, 0.0, 0.0), Vec3::new(1.0, 1.0, 0.0)],
     polygons: vec![vec![0, 1]],
+    polygon_type_indices: vec![0],
   };
 
   let error = source_mesh
@@ -147,6 +185,7 @@ fn error_on_bad_polygon_index() {
       Vec3::new(1.0, 1.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 3]],
+    polygon_type_indices: vec![0],
   };
 
   let error = source_mesh
@@ -173,6 +212,7 @@ fn error_on_degenerate_edge() {
       Vec3::new(1.0, 1.0, 0.0),
     ],
     polygons: vec![vec![0, 1, 1, 2]],
+    polygon_type_indices: vec![0],
   };
 
   let error = source_mesh
@@ -203,6 +243,7 @@ fn error_on_doubly_connected_edge() {
       Vec3::new(2.0, 1.0, 1.0),
     ],
     polygons: vec![vec![0, 1, 2], vec![1, 3, 4, 2], vec![1, 5, 6, 2]],
+    polygon_type_indices: vec![0, 0, 0],
   };
 
   let error = source_mesh
@@ -240,6 +281,7 @@ fn derives_connectivity_and_boundary_edges() {
       vec![3, 5, 6, 4],
       vec![2, 4, 8, 7],
     ],
+    polygon_type_indices: vec![0, 0, 0, 0],
   };
 
   let mut valid_mesh =
@@ -321,6 +363,7 @@ fn finds_regions() {
       vec![8, 9, 10, 11],
       vec![11, 10, 12, 13],
     ],
+    polygon_type_indices: vec![0, 0, 0, 0, 0],
   }
   .validate()
   .expect("Mesh is valid.");
@@ -357,6 +400,7 @@ fn sample_point_returns_none_for_far_point() {
       vec![9, 10, 12, 11],
       vec![10, 4, 14, 13],
     ],
+    polygon_type_indices: vec![0, 0, 0, 0],
   }
   .validate()
   .expect("Mesh is valid.");
@@ -420,6 +464,7 @@ fn sample_point_in_nodes() {
       vec![9, 10, 12, 11],
       vec![10, 4, 14, 13],
     ],
+    polygon_type_indices: vec![0, 0, 0, 0],
   }
   .validate()
   .expect("Mesh is valid.");
@@ -496,6 +541,7 @@ fn sample_point_near_node() {
       vec![9, 10, 12, 11],
       vec![10, 4, 14, 13],
     ],
+    polygon_type_indices: vec![0, 0, 0, 0],
   }
   .validate()
   .expect("Mesh is valid.");
@@ -543,6 +589,7 @@ fn valid_polygon_gets_edge_indices() {
     bounds: BoundingBox::Empty,
     vertices: vec![1, 3, 9, 2, 7],
     region: 0,
+    type_index: 0,
     connectivity: vec![],
     center: Vec3::ZERO,
   };

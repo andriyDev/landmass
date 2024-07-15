@@ -1,4 +1,8 @@
-use std::{cmp::Ordering, collections::HashMap, marker::PhantomData};
+use std::{
+  cmp::Ordering,
+  collections::{HashMap, HashSet},
+  marker::PhantomData,
+};
 
 use disjoint::DisjointSet;
 use glam::{swizzles::Vec3Swizzles, Vec3};
@@ -15,6 +19,10 @@ pub struct NavigationMesh<CS: CoordinateSystem> {
   /// counterclockwise (using the right hand rule). Polygons are assumed to be
   /// not self-intersecting.
   pub polygons: Vec<Vec<usize>>,
+  /// The type index of each polygon. This type index is translated into a real
+  /// "node type" when assigned to an [`crate::Archipelago`]. Must be the same
+  /// length as [`Self::polygons`].
+  pub polygon_type_indices: Vec<usize>,
 }
 
 impl<CS: CoordinateSystem> Clone for NavigationMesh<CS>
@@ -22,13 +30,22 @@ where
   CS::Coordinate: Clone,
 {
   fn clone(&self) -> Self {
-    Self { vertices: self.vertices.clone(), polygons: self.polygons.clone() }
+    Self {
+      vertices: self.vertices.clone(),
+      polygons: self.polygons.clone(),
+      polygon_type_indices: self.polygon_type_indices.clone(),
+    }
   }
 }
 
 /// An error when validating a navigation mesh.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Error)]
 pub enum ValidationError {
+  /// Stores the number of polygons and the number of type indices.
+  #[error(
+    "The polygon type indices do not have the same length as the polygons. There are {0} polygons, but {1} type indices."
+  )]
+  TypeIndicesHaveWrongLength(usize, usize),
   /// Stores the index of the polygon.
   #[error(
     "The polygon at index {0} is concave or has edges in clockwise order."
@@ -58,6 +75,13 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
   pub fn validate(
     mut self,
   ) -> Result<ValidNavigationMesh<CS>, ValidationError> {
+    if self.polygons.len() != self.polygon_type_indices.len() {
+      return Err(ValidationError::TypeIndicesHaveWrongLength(
+        self.polygons.len(),
+        self.polygon_type_indices.len(),
+      ));
+    }
+
     let vertices =
       self.vertices.iter().map(CS::to_landmass).collect::<Vec<_>>();
 
@@ -165,6 +189,7 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
     }
 
     let mut region_to_normalized_region = HashMap::new();
+    let mut used_type_indices = HashSet::new();
 
     let mut polygons = self
       .polygons
@@ -191,6 +216,10 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
             .entry(region)
             .or_insert_with(|| new_normalized_region)
         },
+        type_index: self.polygon_type_indices[polygon_index],
+      })
+      .inspect(|polygon| {
+        used_type_indices.insert(polygon.type_index);
       })
       .collect::<Vec<_>>();
 
@@ -225,6 +254,7 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
       polygons,
       vertices,
       boundary_edges,
+      used_type_indices,
       marker: Default::default(),
     })
   }
@@ -245,6 +275,11 @@ pub struct ValidNavigationMesh<CS: CoordinateSystem> {
   /// (e.0, e.1) from e.0 to e.1 will move counter-clockwise along the
   /// boundary. The order of edges is undefined.
   pub(crate) boundary_edges: Vec<MeshEdgeRef>,
+  /// The type indices used by this navigation mesh. This is a convenience for
+  /// just iterating through every polygon and checking its type index. Note
+  /// these don't correspond to [`crate::NodeType`]s yet. This occurs once
+  /// assigned to an island.
+  pub(crate) used_type_indices: HashSet<usize>,
   /// Marker for the CoordinateSystem.
   pub(crate) marker: PhantomData<CS>,
 }
@@ -257,6 +292,7 @@ impl<CS: CoordinateSystem> Clone for ValidNavigationMesh<CS> {
       vertices: self.vertices.clone(),
       polygons: self.polygons.clone(),
       boundary_edges: self.boundary_edges.clone(),
+      used_type_indices: self.used_type_indices.clone(),
       marker: self.marker,
     }
   }
@@ -270,6 +306,7 @@ impl<CS: CoordinateSystem> std::fmt::Debug for ValidNavigationMesh<CS> {
       .field("vertices", &self.vertices)
       .field("polygons", &self.polygons)
       .field("boundary_edges", &self.boundary_edges)
+      .field("used_type_indices", &self.used_type_indices)
       .field("marker", &self.marker)
       .finish()
   }
@@ -292,6 +329,9 @@ pub(crate) struct ValidPolygon {
   /// two nodes. An "indirect" path exists if regions are joined together
   /// through boundary links.
   pub(crate) region: usize,
+  /// The "type" of this node. This is translated into a [`crate::NodeType`]
+  /// once it is part of an island.
+  pub(crate) type_index: usize,
   /// The bounding box of `vertices`.
   pub(crate) bounds: BoundingBox,
   /// The center of the polygon.

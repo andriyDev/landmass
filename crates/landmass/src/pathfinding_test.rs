@@ -38,6 +38,7 @@ fn finds_path_in_archipelago() {
       vec![9, 10, 12, 11],
       vec![10, 4, 14, 13],
     ],
+    polygon_type_indices: vec![0, 0, 0, 0],
   }
   .validate()
   .expect("Mesh is valid.");
@@ -134,6 +135,7 @@ fn finds_paths_on_two_islands() {
       vec![9, 10, 12, 11],
       vec![10, 4, 14, 13],
     ],
+    polygon_type_indices: vec![0, 0, 0, 0],
   }
   .validate()
   .expect("Mesh is valid.");
@@ -221,6 +223,7 @@ fn no_path_between_disconnected_islands() {
       vec![9, 10, 12, 11],
       vec![10, 4, 14, 13],
     ],
+    polygon_type_indices: vec![0, 0, 0, 0],
   }
   .validate()
   .expect("Mesh is valid.");
@@ -273,6 +276,7 @@ fn find_path_across_connected_islands() {
         Vec3::new(-0.5, 0.5, 0.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("Mesh is valid."),
@@ -388,6 +392,7 @@ fn finds_path_across_different_islands() {
         Vec3::new(-0.5, 0.5, 0.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("Mesh is valid."),
@@ -403,6 +408,7 @@ fn finds_path_across_different_islands() {
         Vec3::new(1.5, 0.5, 0.0),
       ],
       polygons: vec![vec![0, 1, 2, 3], vec![2, 1, 4, 5]],
+      polygon_type_indices: vec![0, 0],
     }
     .validate()
     .expect("Mesh is valid."),
@@ -479,6 +485,7 @@ fn aborts_early_for_unconnected_regions() {
         Vec3::new(-0.5, 1.5, 0.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
     }
     .validate()
     .expect("Mesh is valid."),
