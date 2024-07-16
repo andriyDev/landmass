@@ -9,11 +9,11 @@ use glam::{Vec2, Vec3};
 use slotmap::{HopSlotMap, SlotMap};
 
 use crate::{
-  coords::XYZ,
+  coords::{XY, XYZ},
   island::Island,
   nav_data::{BoundaryLink, NodeRef},
   nav_mesh::NavigationMesh,
-  IslandId, Transform,
+  Archipelago, IslandId, Transform,
 };
 
 use super::{
@@ -959,4 +959,84 @@ fn empty_navigation_mesh_is_safe() {
 
   // Nothing should panic here.
   nav_data.update(/* edge_link_distance= */ 1e-6);
+}
+
+#[test]
+fn cannot_remove_used_node_type() {
+  let mut archipelago = Archipelago::<XY>::new();
+
+  let node_type_1 = archipelago.create_node_type(2.0);
+  let node_type_2 = archipelago.create_node_type(3.0);
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+    }
+    .validate()
+    .expect("mesh is valid"),
+  );
+
+  let island_id_1 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform::default(),
+      nav_mesh.clone(),
+      HashMap::from([(0, node_type_1)]),
+    )
+    .id();
+
+  let island_id_2 = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform::default(),
+      nav_mesh.clone(),
+      HashMap::from([(0, node_type_1)]),
+    )
+    .id();
+
+  // Another island that has no effect since it doesn't mention `node_type_1`.
+  archipelago.add_island().set_nav_mesh(
+    Transform::default(),
+    nav_mesh.clone(),
+    HashMap::from([(0, node_type_2)]),
+  );
+
+  assert_eq!(
+    archipelago.nav_data.get_node_types().collect::<Vec<_>>(),
+    [(node_type_1, 2.0), (node_type_2, 3.0)]
+  );
+
+  // Two islands still reference `node_type_1`.
+  assert!(!archipelago.remove_node_type(node_type_1));
+  assert_eq!(
+    archipelago.nav_data.get_node_types().collect::<Vec<_>>(),
+    [(node_type_1, 2.0), (node_type_2, 3.0)]
+  );
+
+  archipelago.remove_island(island_id_1);
+  // One island still references `node_type_1`.
+  assert!(!archipelago.remove_node_type(node_type_1));
+  assert_eq!(
+    archipelago.nav_data.get_node_types().collect::<Vec<_>>(),
+    [(node_type_1, 2.0), (node_type_2, 3.0)]
+  );
+
+  archipelago.remove_island(island_id_2);
+  // Now we can delete it!
+  assert!(archipelago.remove_node_type(node_type_1));
+
+  // We can't delete it twice.
+  assert!(!archipelago.remove_node_type(node_type_1));
+
+  assert_eq!(
+    archipelago.nav_data.get_node_types().collect::<Vec<_>>(),
+    [(node_type_2, 3.0)]
+  );
 }

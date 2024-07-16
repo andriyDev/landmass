@@ -151,7 +151,26 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       return false;
     }
 
-    todo!()
+    for island in self.islands.values() {
+      let Some(nav_data) = island.nav_data.as_ref() else {
+        continue;
+      };
+
+      for type_index in nav_data.nav_mesh.used_type_indices.iter() {
+        let Some(island_node_type) =
+          nav_data.type_index_to_node_type.get(type_index)
+        else {
+          continue;
+        };
+
+        if *island_node_type == node_type {
+          return false;
+        }
+      }
+    }
+
+    self.node_type_to_cost.remove(node_type);
+    true
   }
 
   /// Gets the current node types and their costs.
