@@ -1079,3 +1079,35 @@ fn cannot_remove_used_node_type() {
     [(node_type_2, 3.0)]
   );
 }
+
+#[test]
+#[should_panic]
+fn panics_on_invalid_node_type() {
+  let mut archipelago = Archipelago::<XY>::new();
+  let deleted_node_type = archipelago.create_node_type(2.0);
+  assert!(archipelago.remove_node_type(deleted_node_type));
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+    }
+    .validate()
+    .expect("mesh is valid"),
+  );
+
+  archipelago.add_island().set_nav_mesh(
+    Transform::default(),
+    nav_mesh,
+    HashMap::from([(0, deleted_node_type)]),
+  );
+
+  // Panics due to referencing invalid node type.
+  archipelago.update(1.0);
+}

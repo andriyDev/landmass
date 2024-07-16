@@ -367,6 +367,18 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         None => continue,
         Some(n) => n,
       };
+      // Check that all the island's node types are valid.
+      for type_index in dirty_nav_data.nav_mesh.used_type_indices.iter() {
+        if let Some(&node_type) =
+          dirty_nav_data.type_index_to_node_type.get(type_index)
+        {
+          assert!(
+            self.node_type_to_cost.contains_key(node_type),
+            "Island {dirty_island_id:?} uses node type {node_type:?} which is not in this navigation data."
+          );
+        }
+      }
+
       if dirty_nav_data.nav_mesh.boundary_edges.is_empty() {
         continue;
       }
