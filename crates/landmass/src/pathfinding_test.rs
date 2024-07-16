@@ -744,3 +744,85 @@ fn detour_for_high_cost_path_across_boundary_links() {
     })
   )
 }
+
+#[test]
+fn fast_path_not_ignored_by_heuristic() {
+  let mut archipelago = Archipelago::<XY>::new();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        // Extrude right.
+        Vec2::new(2.0, 0.0),
+        Vec2::new(2.0, 1.0),
+        // Extrude right.
+        Vec2::new(3.0, 0.0),
+        Vec2::new(3.0, 1.0),
+        // Extrude up.
+        Vec2::new(2.0, 11.0),
+        Vec2::new(3.0, 11.0),
+        // Extrude up.
+        Vec2::new(2.0, 12.0),
+        Vec2::new(3.0, 12.0),
+        // Extrude left.
+        Vec2::new(1.0, 11.0),
+        Vec2::new(1.0, 12.0),
+        // Extrude left.
+        Vec2::new(0.0, 11.0),
+        Vec2::new(0.0, 12.0),
+      ],
+      polygons: vec![
+        // The bottom row.
+        vec![0, 1, 2, 3],
+        vec![2, 1, 4, 5],
+        vec![5, 4, 6, 7],
+        // The right two cells.
+        vec![5, 7, 9, 8],
+        vec![8, 9, 11, 10],
+        // The top two cells.
+        vec![8, 10, 13, 12],
+        vec![12, 13, 15, 14],
+        // The "fast" bridge.
+        vec![3, 2, 12, 14],
+      ],
+      polygon_type_indices: vec![1, 0, 0, 0, 0, 1, 1, 1],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  // This node type is faster than default.
+  let fast_type = archipelago.create_node_type(0.5);
+
+  let island_id = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform::default(),
+      nav_mesh,
+      HashMap::from([(1, fast_type)]),
+    )
+    .id();
+
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id, polygon_index: 2 },
+    NodeRef { island_id, polygon_index: 4 },
+  );
+
+  // The most direct route is [2, 3, 4], but there is a faster detour:
+  assert_eq!(
+    path_result.path,
+    Some(Path {
+      island_segments: vec![IslandSegment {
+        island_id,
+        corridor: vec![2, 1, 0, 7, 6, 5, 4],
+        portal_edge_index: vec![0, 0, 2, 2, 0, 0],
+      }],
+      boundary_link_segments: vec![],
+    })
+  );
+}

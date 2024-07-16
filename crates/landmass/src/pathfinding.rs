@@ -1,6 +1,7 @@
 use std::{borrow::Cow, collections::HashSet};
 
 use glam::Vec3;
+use ord_subset::OrdVar;
 
 use crate::{
   astar::{self, AStarProblem, PathStats},
@@ -20,6 +21,9 @@ struct ArchipelagoPathProblem<'a, CS: CoordinateSystem> {
   end_node: NodeRef,
   /// The center of the end_node. This is just a cached point for easy access.
   end_point: Vec3,
+  /// The cheapest node type cost in [`Self::nav_data`]. This is cached once
+  /// since it is constant for the whole problem.
+  cheapest_node_type_cost: f32,
 }
 
 /// An action taken in the path.
@@ -129,6 +133,7 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
       .transform
       .apply(island_nav_data.nav_mesh.polygons[state.polygon_index].center)
       .distance(self.end_point)
+      * self.cheapest_node_type_cost
   }
 
   fn is_goal_state(&self, state: &Self::StateType) -> bool {
@@ -171,6 +176,12 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
         .transform
         .apply(island_nav_data.nav_mesh.polygons[end_node.polygon_index].center)
     },
+    cheapest_node_type_cost: *nav_data
+      .get_node_types()
+      .map(|pair| OrdVar::new_unchecked(pair.1))
+      .chain(std::iter::once(OrdVar::new_unchecked(1.0)))
+      .min()
+      .unwrap(),
   };
 
   let path_result = astar::find_path(&path_problem);
