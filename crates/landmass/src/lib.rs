@@ -29,7 +29,9 @@ pub use agent::{Agent, AgentId, AgentState, TargetReachedCondition};
 pub use character::{Character, CharacterId};
 pub use coords::{CoordinateSystem, XYZ};
 pub use island::{Island, IslandId};
-pub use nav_data::{IslandMut, NewNodeTypeError, NodeType};
+pub use nav_data::{
+  IslandMut, NewNodeTypeError, NodeType, SetNodeTypeCostError,
+};
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh, ValidationError};
 pub use query::{FindPathError, SamplePointError, SampledPoint};
 pub use util::Transform;
@@ -170,10 +172,12 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   }
 
   /// Sets the cost of `node_type` to `cost`. See
-  /// [`Archipelago::add_node_type`] for the meaning of cost. Returns
-  /// false if the node type does not exist in this archipelago, or the cost is
-  /// <= 0.0. Otherwise, returns true.
-  pub fn set_node_type_cost(&mut self, node_type: NodeType, cost: f32) -> bool {
+  /// [`Archipelago::add_node_type`] for the meaning of cost.
+  pub fn set_node_type_cost(
+    &mut self,
+    node_type: NodeType,
+    cost: f32,
+  ) -> Result<(), SetNodeTypeCostError> {
     self.nav_data.set_node_type_cost(node_type, cost)
   }
 
