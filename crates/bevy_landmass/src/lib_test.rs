@@ -31,6 +31,7 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
         Vec3::new(1.0, 0.0, 2.0),
       ],
       polygons: vec![vec![5, 4, 1, 0], vec![4, 3, 2, 1]],
+      polygon_type_indices: vec![0, 0],
     }
     .validate()
     .expect("is valid"),

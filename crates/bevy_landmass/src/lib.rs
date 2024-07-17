@@ -437,8 +437,11 @@ fn sync_island_nav_mesh<CS: CoordinateSystem>(
     };
 
     if set_nav_mesh {
-      landmass_island
-        .set_nav_mesh(island_transform, Arc::clone(&island_nav_mesh.nav_mesh));
+      landmass_island.set_nav_mesh(
+        island_transform,
+        Arc::clone(&island_nav_mesh.nav_mesh),
+        HashMap::new(), // TODO: Make this not just an empty hashmap.
+      );
     }
   }
 }
