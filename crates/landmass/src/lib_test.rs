@@ -538,7 +538,7 @@ fn finds_path() {
     .sample_point(offset + Vec2::new(2.5, 1.25), 1e-5)
     .expect("point is on nav mesh.");
   assert_eq!(
-    archipelago.find_path(&start_point, &end_point),
+    archipelago.find_path(&start_point, &end_point, &HashMap::new()),
     Ok(vec![
       offset + Vec2::new(0.5, 0.5),
       offset + Vec2::new(2.0, 1.0),

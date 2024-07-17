@@ -1,10 +1,10 @@
-use std::marker::PhantomData;
+use std::{collections::HashMap, marker::PhantomData};
 
 use thiserror::Error;
 
 use crate::{
   nav_data::NodeRef, path::PathIndex, pathfinding, Archipelago,
-  CoordinateSystem,
+  CoordinateSystem, NodeType,
 };
 
 /// A point on the navigation meshes.
@@ -72,8 +72,10 @@ pub(crate) fn sample_point<CS: CoordinateSystem>(
 }
 
 /// An error from finding a path between two sampled points.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Error)]
 pub enum FindPathError {
+  #[error("The node type {0:?} had a cost of {1}, which is non-positive.")]
+  NonPositiveNodeTypeCost(NodeType, f32),
   #[error("No path was found between the start and end points.")]
   NoPathFound,
 }
@@ -84,6 +86,7 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
   archipelago: &'a Archipelago<CS>,
   start_point: &SampledPoint<'a, CS>,
   end_point: &SampledPoint<'a, CS>,
+  override_node_type_costs: &HashMap<NodeType, f32>,
 ) -> Result<Vec<CS::Coordinate>, FindPathError> {
   // This assert can actually be triggered. This can happen if a user samples
   // points from one archipelago, but finds a path in a **different**
@@ -93,10 +96,17 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
   // validity and then finds a path).
   assert!(!archipelago.nav_data.dirty, "The navigation data has been mutated, but we have SampledPoints, so this should be impossible.");
 
+  for (node_type, cost) in override_node_type_costs.iter() {
+    if *cost <= 0.0 {
+      return Err(FindPathError::NonPositiveNodeTypeCost(*node_type, *cost));
+    }
+  }
+
   let Some(path) = pathfinding::find_path(
     &archipelago.nav_data,
     start_point.node_ref,
     end_point.node_ref,
+    override_node_type_costs,
   )
   .path
   else {
