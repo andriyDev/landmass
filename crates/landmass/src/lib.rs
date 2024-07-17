@@ -211,8 +211,9 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     &self,
     start_point: &SampledPoint<'_, CS>,
     end_point: &SampledPoint<'_, CS>,
+    override_node_type_costs: &HashMap<NodeType, f32>,
   ) -> Result<Vec<CS::Coordinate>, FindPathError> {
-    query::find_path(self, start_point, end_point)
+    query::find_path(self, start_point, end_point, override_node_type_costs)
   }
 
   pub fn update(&mut self, delta_time: f32) {
@@ -310,6 +311,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
             &self.nav_data,
             agent_node.unwrap(),
             target_node.unwrap(),
+            &HashMap::new(),
           );
 
           self.pathing_results.push(PathingResult {

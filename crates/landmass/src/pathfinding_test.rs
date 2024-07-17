@@ -59,6 +59,7 @@ fn finds_path_in_archipelago() {
     nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 2 },
+    &HashMap::new(),
   );
 
   assert_eq!(
@@ -77,6 +78,7 @@ fn finds_path_in_archipelago() {
     nav_data,
     NodeRef { island_id, polygon_index: 2 },
     NodeRef { island_id, polygon_index: 0 },
+    &HashMap::new(),
   );
 
   assert_eq!(
@@ -95,6 +97,7 @@ fn finds_path_in_archipelago() {
     nav_data,
     NodeRef { island_id, polygon_index: 3 },
     NodeRef { island_id, polygon_index: 0 },
+    &HashMap::new(),
   );
 
   assert_eq!(
@@ -167,6 +170,7 @@ fn finds_paths_on_two_islands() {
     nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_1, polygon_index: 2 },
+    &HashMap::new(),
   );
 
   assert_eq!(
@@ -185,6 +189,7 @@ fn finds_paths_on_two_islands() {
     nav_data,
     NodeRef { island_id: island_id_2, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 2 },
+    &HashMap::new(),
   );
 
   assert_eq!(
@@ -257,6 +262,7 @@ fn no_path_between_disconnected_islands() {
     nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 0 },
+    &HashMap::new(),
   )
   .path
   .is_none());
@@ -265,6 +271,7 @@ fn no_path_between_disconnected_islands() {
     nav_data,
     NodeRef { island_id: island_id_2, polygon_index: 0 },
     NodeRef { island_id: island_id_1, polygon_index: 0 },
+    &HashMap::new(),
   )
   .path
   .is_none());
@@ -346,6 +353,7 @@ fn find_path_across_connected_islands() {
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_5, polygon_index: 0 },
+    &HashMap::new(),
   );
 
   assert_eq!(
@@ -461,6 +469,7 @@ fn finds_path_across_different_islands() {
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 1 },
+    &HashMap::new(),
   );
 
   assert_eq!(
@@ -537,6 +546,7 @@ fn aborts_early_for_unconnected_regions() {
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 0 },
+    &HashMap::new(),
   )
   .path
   .is_some());
@@ -549,6 +559,7 @@ fn aborts_early_for_unconnected_regions() {
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 0 },
+    &HashMap::new(),
   );
 
   assert!(path_result.path.is_none());
@@ -621,6 +632,7 @@ fn detour_for_high_cost_path() {
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 6 },
+    &HashMap::new(),
   );
 
   assert_eq!(
@@ -715,6 +727,7 @@ fn detour_for_high_cost_path_across_boundary_links() {
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 0 },
+    &HashMap::new(),
   );
 
   assert_eq!(
@@ -811,6 +824,7 @@ fn fast_path_not_ignored_by_heuristic() {
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 2 },
     NodeRef { island_id, polygon_index: 4 },
+    &HashMap::new(),
   );
 
   // The most direct route is [2, 3, 4], but there is a faster detour:
@@ -865,6 +879,7 @@ fn infinite_or_nan_cost_cannot_find_path() {
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 2 },
+    &HashMap::new(),
   );
 
   assert_eq!(path_result.path, None);
@@ -876,8 +891,90 @@ fn infinite_or_nan_cost_cannot_find_path() {
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 2 },
+    &HashMap::new(),
   );
 
   assert_eq!(path_result.path, None);
   assert_eq!(path_result.stats.explored_nodes, 1);
+}
+
+#[test]
+fn detour_for_overridden_high_cost_path() {
+  let mut archipelago = Archipelago::<XY>::new();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        // Extrude right.
+        Vec2::new(2.0, 0.0),
+        Vec2::new(2.0, 1.0),
+        // Extrude right.
+        Vec2::new(3.0, 0.0),
+        Vec2::new(3.0, 1.0),
+        // Extrude up.
+        Vec2::new(2.0, 2.0),
+        Vec2::new(3.0, 2.0),
+        // Extrude up.
+        Vec2::new(2.0, 3.0),
+        Vec2::new(3.0, 3.0),
+        // Extrude left.
+        Vec2::new(1.0, 2.0),
+        Vec2::new(1.0, 3.0),
+        // Extrude left.
+        Vec2::new(0.0, 2.0),
+        Vec2::new(0.0, 3.0),
+      ],
+      polygons: vec![
+        // The bottom row.
+        vec![0, 1, 2, 3],
+        vec![2, 1, 4, 5],
+        vec![5, 4, 6, 7],
+        // The right two cells.
+        vec![5, 7, 9, 8],
+        vec![8, 9, 11, 10],
+        // The top two cells.
+        vec![8, 10, 13, 12],
+        vec![12, 13, 15, 14],
+        // The "slow" bridge.
+        vec![3, 2, 12, 14],
+      ],
+      polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 1],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let slow_node_type = archipelago.create_node_type(1.0).unwrap();
+
+  let island_id = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform::default(),
+      nav_mesh,
+      HashMap::from([(1, slow_node_type)]),
+    )
+    .id();
+
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id, polygon_index: 0 },
+    NodeRef { island_id, polygon_index: 6 },
+    &HashMap::from([(slow_node_type, 10.0)]),
+  );
+
+  assert_eq!(
+    path_result.path,
+    Some(Path {
+      island_segments: vec![IslandSegment {
+        island_id,
+        corridor: vec![0, 1, 2, 3, 4, 5, 6],
+        portal_edge_index: vec![1, 2, 3, 2, 3, 2],
+      }],
+      boundary_link_segments: vec![],
+    })
+  );
 }
