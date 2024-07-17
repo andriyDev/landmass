@@ -283,7 +283,7 @@ fn finds_path_with_override_node_types() {
     .expect("nav mesh is valid"),
   );
 
-  let node_type = archipelago.create_node_type(1.0).unwrap();
+  let node_type = archipelago.add_node_type(1.0).unwrap();
 
   archipelago.add_island().set_nav_mesh(
     Transform::default(),
@@ -344,7 +344,7 @@ fn find_path_returns_error_on_invalid_node_cost() {
     .expect("nav mesh is valid"),
   );
 
-  let node_type = archipelago.create_node_type(1.0).unwrap();
+  let node_type = archipelago.add_node_type(1.0).unwrap();
 
   archipelago.add_island().set_nav_mesh(
     Transform::default(),

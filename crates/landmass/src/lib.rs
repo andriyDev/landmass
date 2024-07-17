@@ -162,12 +162,12 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   /// per meter). Agents will prefer to travel along low-cost terrain. The
   /// returned node type is distinct from all other node types (for this
   /// archipelago). Returns an error if the cost is <= 0.0.
-  pub fn create_node_type(&mut self, cost: f32) -> Result<NodeType, ()> {
-    self.nav_data.create_node_type(cost)
+  pub fn add_node_type(&mut self, cost: f32) -> Result<NodeType, ()> {
+    self.nav_data.add_node_type(cost)
   }
 
   /// Sets the cost of `node_type` to `cost`. See
-  /// [`Archipelago::create_node_type`] for the meaning of cost. Returns
+  /// [`Archipelago::add_node_type`] for the meaning of cost. Returns
   /// false if the node type does not exist in this archipelago, or the cost is
   /// <= 0.0. Otherwise, returns true.
   pub fn set_node_type_cost(&mut self, node_type: NodeType, cost: f32) -> bool {
