@@ -10,6 +10,7 @@ use geo::{BooleanOps, Coord, LineString, LinesIter, MultiPolygon, Polygon};
 use glam::{Vec2, Vec3, Vec3Swizzles};
 use kdtree::{distance::squared_euclidean, KdTree};
 use slotmap::{new_key_type, HopSlotMap, SlotMap};
+use thiserror::Error;
 
 use crate::{
   geometry::edge_intersection,
@@ -123,11 +124,13 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   /// Creates a new node type with the specified `cost`. The cost is a
   /// multiplier on the distance travelled along this node (essentially the cost
   /// per meter). Agents will prefer to travel along low-cost terrain. This node
-  /// type is distinct from all other node types. Returns an error if the cost
-  /// is <= 0.0.
-  pub(crate) fn add_node_type(&mut self, cost: f32) -> Result<NodeType, ()> {
+  /// type is distinct from all other node types.
+  pub(crate) fn add_node_type(
+    &mut self,
+    cost: f32,
+  ) -> Result<NodeType, NewNodeTypeError> {
     if cost <= 0.0 {
-      return Err(());
+      return Err(NewNodeTypeError::NonPositiveCost(cost));
     }
     Ok(self.node_type_to_cost.insert(cost))
   }
@@ -712,6 +715,15 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     }
     (dropped_links, changed_islands)
   }
+}
+
+/// An error for creating a new node type.
+#[derive(Clone, Copy, PartialEq, Error, Debug)]
+pub enum NewNodeTypeError {
+  #[error(
+    "The provided cost {0} is non-positive. Node costs must be positive."
+  )]
+  NonPositiveCost(f32),
 }
 
 /// A mutable borrow to an island.
