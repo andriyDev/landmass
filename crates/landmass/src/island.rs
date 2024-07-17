@@ -63,7 +63,7 @@ impl<CS: CoordinateSystem> Island<CS> {
   /// `type_index_to_node_type` translates the type indices used in `nav_mesh`
   /// into [`NodeType`]s from the [`crate::Archipelago`]. Type indices without a
   /// corresponding node type will be treated as the "default" node type, which
-  /// has a cost of 1.0. See [`crate::Archipelago::create_node_type`] for
+  /// has a cost of 1.0. See [`crate::Archipelago::add_node_type`] for
   /// details on cost. [`NodeType`]s not present in the corresponding
   /// [`crate::Archipelago`] will cause a panic, so do not mix [`NodeType`]s
   /// across [`crate::Archipelago`]s.

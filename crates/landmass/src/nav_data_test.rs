@@ -1003,15 +1003,15 @@ fn empty_navigation_mesh_is_safe() {
 #[test]
 fn error_on_create_zero_or_negative_node_type() {
   let mut archipelago = Archipelago::<XY>::new();
-  assert_eq!(archipelago.create_node_type(0.0), Err(()));
-  assert_eq!(archipelago.create_node_type(-1.0), Err(()));
+  assert_eq!(archipelago.add_node_type(0.0), Err(()));
+  assert_eq!(archipelago.add_node_type(-1.0), Err(()));
 }
 
 #[test]
 fn false_on_setting_zero_or_negative_node_type() {
   let mut archipelago = Archipelago::<XY>::new();
 
-  let node_type = archipelago.create_node_type(1.0).unwrap();
+  let node_type = archipelago.add_node_type(1.0).unwrap();
 
   assert_eq!(archipelago.set_node_type_cost(node_type, 0.0), false);
   assert_eq!(archipelago.set_node_type_cost(node_type, -1.0), false);
@@ -1021,8 +1021,8 @@ fn false_on_setting_zero_or_negative_node_type() {
 fn cannot_remove_used_node_type() {
   let mut archipelago = Archipelago::<XY>::new();
 
-  let node_type_1 = archipelago.create_node_type(2.0).unwrap();
-  let node_type_2 = archipelago.create_node_type(3.0).unwrap();
+  let node_type_1 = archipelago.add_node_type(2.0).unwrap();
+  let node_type_2 = archipelago.add_node_type(3.0).unwrap();
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -1101,7 +1101,7 @@ fn cannot_remove_used_node_type() {
 #[should_panic]
 fn panics_on_invalid_node_type() {
   let mut archipelago = Archipelago::<XY>::new();
-  let deleted_node_type = archipelago.create_node_type(2.0).unwrap();
+  let deleted_node_type = archipelago.add_node_type(2.0).unwrap();
   assert!(archipelago.remove_node_type(deleted_node_type));
 
   let nav_mesh = Arc::new(

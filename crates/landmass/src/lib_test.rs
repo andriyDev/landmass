@@ -596,7 +596,7 @@ fn agent_overrides_node_costs() {
     .expect("nav mesh is valid"),
   );
 
-  let node_type = archipelago.create_node_type(1.0).unwrap();
+  let node_type = archipelago.add_node_type(1.0).unwrap();
 
   archipelago.add_island().set_nav_mesh(
     Transform::default(),

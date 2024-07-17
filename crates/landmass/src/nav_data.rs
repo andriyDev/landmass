@@ -125,7 +125,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   /// per meter). Agents will prefer to travel along low-cost terrain. This node
   /// type is distinct from all other node types. Returns an error if the cost
   /// is <= 0.0.
-  pub(crate) fn create_node_type(&mut self, cost: f32) -> Result<NodeType, ()> {
+  pub(crate) fn add_node_type(&mut self, cost: f32) -> Result<NodeType, ()> {
     if cost <= 0.0 {
       return Err(());
     }
@@ -133,7 +133,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   }
 
   /// Sets the cost of `node_type` to `cost`. See
-  /// [`NavigationData::create_node_type`] for the meaning of cost. Returns
+  /// [`NavigationData::add_node_type`] for the meaning of cost. Returns
   /// false if the node type does not exist in this nav data, or the cost is <=
   /// 0.0. Otherwise, returns true.
   pub(crate) fn set_node_type_cost(
@@ -750,7 +750,7 @@ impl<CS: CoordinateSystem> IslandMut<'_, CS> {
   /// `type_index_to_node_type` translates the type indices used in `nav_mesh`
   /// into [`NodeType`]s from the [`crate::Archipelago`]. Type indices without a
   /// corresponding node type will be treated as the "default" node type, which
-  /// has a cost of 1.0. See [`crate::Archipelago::create_node_type`] for
+  /// has a cost of 1.0. See [`crate::Archipelago::add_node_type`] for
   /// details on cost. [`NodeType`]s not present in the corresponding
   /// [`crate::Archipelago`] will cause a panic, so do not mix [`NodeType`]s
   /// across [`crate::Archipelago`]s. This matches
