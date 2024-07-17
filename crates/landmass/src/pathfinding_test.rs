@@ -826,3 +826,58 @@ fn fast_path_not_ignored_by_heuristic() {
     })
   );
 }
+
+#[test]
+fn infinite_or_nan_cost_cannot_find_path() {
+  let mut archipelago = Archipelago::<XY>::new();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(2.0, 0.0),
+        Vec2::new(2.0, 1.0),
+        Vec2::new(3.0, 0.0),
+        Vec2::new(3.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3], vec![2, 1, 4, 5], vec![5, 4, 6, 7]],
+      polygon_type_indices: vec![0, 1, 0],
+    }
+    .validate()
+    .expect("mesh is valid"),
+  );
+
+  let node_type = archipelago.create_node_type(f32::INFINITY);
+
+  let island_id = archipelago
+    .add_island()
+    .set_nav_mesh(
+      Transform::default(),
+      nav_mesh,
+      HashMap::from([(1, node_type)]),
+    )
+    .id();
+
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id, polygon_index: 0 },
+    NodeRef { island_id, polygon_index: 2 },
+  );
+
+  assert_eq!(path_result.path, None);
+  assert_eq!(path_result.stats.explored_nodes, 1);
+
+  archipelago.set_node_type_cost(node_type, f32::NAN);
+
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id, polygon_index: 0 },
+    NodeRef { island_id, polygon_index: 2 },
+  );
+
+  assert_eq!(path_result.path, None);
+  assert_eq!(path_result.stats.explored_nodes, 1);
+}
