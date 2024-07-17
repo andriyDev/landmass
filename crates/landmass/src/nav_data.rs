@@ -136,22 +136,20 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   }
 
   /// Sets the cost of `node_type` to `cost`. See
-  /// [`NavigationData::add_node_type`] for the meaning of cost. Returns
-  /// false if the node type does not exist in this nav data, or the cost is <=
-  /// 0.0. Otherwise, returns true.
+  /// [`NavigationData::add_node_type`] for the meaning of cost.
   pub(crate) fn set_node_type_cost(
     &mut self,
     node_type: NodeType,
     cost: f32,
-  ) -> bool {
+  ) -> Result<(), SetNodeTypeCostError> {
     if cost <= 0.0 {
-      return false;
+      return Err(SetNodeTypeCostError::NonPositiveCost(cost));
     }
     let Some(node_type_cost) = self.node_type_to_cost.get_mut(node_type) else {
-      return false;
+      return Err(SetNodeTypeCostError::NodeTypeDoesNotExist(node_type));
     };
     *node_type_cost = cost;
-    true
+    Ok(())
   }
 
   /// Gets the cost of `node_type`. Returns [`None`] if `node_type` is not in
@@ -724,6 +722,17 @@ pub enum NewNodeTypeError {
     "The provided cost {0} is non-positive. Node costs must be positive."
   )]
   NonPositiveCost(f32),
+}
+
+/// An error for settings the cost of an existing node type.
+#[derive(Clone, Copy, PartialEq, Error, Debug)]
+pub enum SetNodeTypeCostError {
+  #[error(
+    "The provided cost {0} is non-positive. Node costs must be positive."
+  )]
+  NonPositiveCost(f32),
+  #[error("The node type {0:?} does not exist.")]
+  NodeTypeDoesNotExist(NodeType),
 }
 
 /// A mutable borrow to an island.

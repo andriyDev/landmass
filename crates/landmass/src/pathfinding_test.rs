@@ -885,7 +885,7 @@ fn infinite_or_nan_cost_cannot_find_path() {
   assert_eq!(path_result.path, None);
   assert_eq!(path_result.stats.explored_nodes, 1);
 
-  archipelago.set_node_type_cost(node_type, f32::NAN);
+  archipelago.set_node_type_cost(node_type, f32::NAN).unwrap();
 
   let path_result = find_path(
     &archipelago.nav_data,

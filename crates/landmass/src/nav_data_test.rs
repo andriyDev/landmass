@@ -13,7 +13,8 @@ use crate::{
   island::Island,
   nav_data::{BoundaryLink, NodeRef},
   nav_mesh::NavigationMesh,
-  Archipelago, IslandId, NewNodeTypeError, NodeType, Transform,
+  Archipelago, IslandId, NewNodeTypeError, NodeType, SetNodeTypeCostError,
+  Transform,
 };
 
 use super::{
@@ -1019,8 +1020,14 @@ fn false_on_setting_zero_or_negative_node_type() {
 
   let node_type = archipelago.add_node_type(1.0).unwrap();
 
-  assert_eq!(archipelago.set_node_type_cost(node_type, 0.0), false);
-  assert_eq!(archipelago.set_node_type_cost(node_type, -1.0), false);
+  assert_eq!(
+    archipelago.set_node_type_cost(node_type, 0.0),
+    Err(SetNodeTypeCostError::NonPositiveCost(0.0))
+  );
+  assert_eq!(
+    archipelago.set_node_type_cost(node_type, -1.0),
+    Err(SetNodeTypeCostError::NonPositiveCost(-1.0))
+  );
 }
 
 #[test]
