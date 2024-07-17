@@ -84,26 +84,29 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
       .filter_map(|(edge_index, conn)| {
         conn.as_ref().map(|conn| (edge_index, conn))
       })
-      .map(|(edge_index, conn)| {
+      .filter_map(|(edge_index, conn)| {
         let target_node_cost = type_index_to_node_cost(
           island_nav_data.nav_mesh.polygons[conn.polygon_index].type_index,
           island_nav_data,
           self.nav_data,
         );
+        if !target_node_cost.is_finite() {
+          return None;
+        }
 
         let cost = conn.travel_distances.0 * current_node_cost
           + conn.travel_distances.1 * target_node_cost;
 
-        (
+        Some((
           cost,
           PathStep::NodeConnection(edge_index),
           NodeRef {
             island_id: state.island_id,
             polygon_index: conn.polygon_index,
           },
-        )
+        ))
       })
-      .chain(boundary_links.iter().map(|link_id| {
+      .chain(boundary_links.iter().filter_map(|link_id| {
         let link = self.nav_data.boundary_links.get(*link_id).unwrap();
         let destination_node_cost = link
           .destination_node_type
@@ -114,9 +117,12 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
               .expect("Node type exists.")
           })
           .unwrap_or(1.0);
+        if !destination_node_cost.is_finite() {
+          return None;
+        }
         let cost = link.travel_distances.0 * current_node_cost
           + link.travel_distances.1 * destination_node_cost;
-        (cost, PathStep::BoundaryLink(*link_id), link.destination_node)
+        Some((cost, PathStep::BoundaryLink(*link_id), link.destination_node))
       }))
       .collect()
   }
@@ -178,6 +184,7 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
     },
     cheapest_node_type_cost: *nav_data
       .get_node_types()
+      .filter(|pair| pair.1.is_finite())
       .map(|pair| OrdVar::new_unchecked(pair.1))
       .chain(std::iter::once(OrdVar::new_unchecked(1.0)))
       .min()
