@@ -71,7 +71,11 @@ pub fn bevy_mesh_to_landmass_nav_mesh<CS: CoordinateSystem>(
     _ => return Err(ConvertMeshError::WrongTypeForIndices),
   };
 
-  Ok(NavigationMesh { vertices, polygons })
+  Ok(NavigationMesh {
+    vertices,
+    polygon_type_indices: (0..polygons.len()).map(|_| 0).collect(),
+    polygons,
+  })
 }
 
 #[cfg(test)]
