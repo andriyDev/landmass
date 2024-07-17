@@ -4,17 +4,71 @@ use std::{
   sync::Arc,
 };
 
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
 
 use crate::{
   agent::{does_agent_need_repath, RepathResult},
-  coords::XYZ,
+  coords::{XY, XYZ},
   nav_data::NodeRef,
   path::{IslandSegment, Path, PathIndex},
-  Agent, Archipelago, IslandId, NavigationMesh, TargetReachedCondition,
-  Transform,
+  Agent, Archipelago, IslandId, NavigationMesh, NodeType,
+  TargetReachedCondition, Transform,
 };
+
+#[test]
+fn overrides_node_type_costs() {
+  // Create a fake slotmap just to get the NodeTypes out of it.
+  let mut slotmap = HopSlotMap::<NodeType, _>::with_key();
+  let node_type_1 = slotmap.insert(0);
+  let node_type_2 = slotmap.insert(0);
+
+  let mut agent = Agent::<XY>::create(Vec2::ZERO, Vec2::ZERO, 1.0, 1.0);
+  assert!(agent.override_node_type_cost(node_type_1, 3.0));
+  assert!(agent.override_node_type_cost(node_type_2, 0.5));
+
+  assert_eq!(
+    {
+      let mut vec = agent.get_node_type_cost_overrides().collect::<Vec<_>>();
+      vec.sort_by_key(|&(a, _)| a);
+      vec
+    },
+    [(node_type_1, 3.0), (node_type_2, 0.5)]
+  );
+
+  agent.override_node_type_cost(node_type_1, 5.0);
+
+  assert_eq!(
+    {
+      let mut vec = agent.get_node_type_cost_overrides().collect::<Vec<_>>();
+      vec.sort_by_key(|&(a, _)| a);
+      vec
+    },
+    [(node_type_1, 5.0), (node_type_2, 0.5)]
+  );
+
+  agent.remove_overridden_node_type_cost(node_type_1);
+
+  assert_eq!(
+    {
+      let mut vec = agent.get_node_type_cost_overrides().collect::<Vec<_>>();
+      vec.sort_by_key(|&(a, _)| a);
+      vec
+    },
+    [(node_type_2, 0.5)]
+  );
+}
+
+#[test]
+fn negative_or_zero_node_type_cost_returns_false() {
+  // Create a fake slotmap just to get the NodeTypes out of it.
+  let mut slotmap = HopSlotMap::<NodeType, _>::with_key();
+  let node_type = slotmap.insert(0);
+
+  let mut agent = Agent::<XY>::create(Vec2::ZERO, Vec2::ZERO, 1.0, 1.0);
+  assert!(!agent.override_node_type_cost(node_type, 0.0));
+  assert!(!agent.override_node_type_cost(node_type, -0.5));
+}
 
 #[test]
 fn has_reached_target_at_end_node() {

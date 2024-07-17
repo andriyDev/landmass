@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use glam::Vec3;
 use slotmap::new_key_type;
@@ -6,7 +6,7 @@ use slotmap::new_key_type;
 use crate::{
   nav_data::{BoundaryLinkId, NodeRef},
   path::{Path, PathIndex},
-  CoordinateSystem, IslandId, NavigationData,
+  CoordinateSystem, IslandId, NavigationData, NodeType,
 };
 
 new_key_type! {
@@ -50,6 +50,8 @@ pub struct Agent<CS: CoordinateSystem> {
   pub current_target: Option<CS::Coordinate>,
   /// The condition to test for reaching the target.
   pub target_reached_condition: TargetReachedCondition,
+  /// Overrides for the "default" costs of each [`NodeType`].
+  pub(crate) override_node_type_to_cost: HashMap<NodeType, f32>,
   /// The current path of the agent. None if a path is unavailable or a new
   /// path has not been computed yet (i.e., no path).
   pub(crate) current_path: Option<Path>,
@@ -109,10 +111,44 @@ impl<CS: CoordinateSystem> Agent<CS> {
       max_velocity,
       current_target: None,
       target_reached_condition: TargetReachedCondition::Distance(None),
+      override_node_type_to_cost: HashMap::new(),
       current_path: None,
       current_desired_move: CS::from_landmass(&Vec3::ZERO),
       state: AgentState::Idle,
     }
+  }
+
+  /// Sets the node type cost for this agent to `cost`. Returns false if the
+  /// cost is <= 0.0. Otherwise returns true.
+  pub fn override_node_type_cost(
+    &mut self,
+    node_type: NodeType,
+    cost: f32,
+  ) -> bool {
+    if cost <= 0.0 {
+      return false;
+    }
+    self.override_node_type_to_cost.insert(node_type, cost);
+    true
+  }
+
+  /// Removes the override cost for `node_type`. Returns true if `node_type` was
+  /// overridden, false otherwise.
+  pub fn remove_overridden_node_type_cost(
+    &mut self,
+    node_type: NodeType,
+  ) -> bool {
+    self.override_node_type_to_cost.remove(&node_type).is_some()
+  }
+
+  /// Returns the currently overriden node type costs.
+  pub fn get_node_type_cost_overrides(
+    &self,
+  ) -> impl Iterator<Item = (NodeType, f32)> + '_ {
+    self
+      .override_node_type_to_cost
+      .iter()
+      .map(|(&node_type, &cost)| (node_type, cost))
   }
 
   /// Returns the desired velocity. This will only be updated if `update` was

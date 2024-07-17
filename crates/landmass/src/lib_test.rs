@@ -546,3 +546,77 @@ fn finds_path() {
     ])
   );
 }
+
+#[test]
+fn agent_overrides_node_costs() {
+  let mut archipelago = Archipelago::<XY>::new();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        //
+        Vec2::new(2.0, 0.0),
+        Vec2::new(2.0, 1.0),
+        //
+        Vec2::new(3.0, 0.0),
+        Vec2::new(3.0, 1.0),
+        //
+        Vec2::new(2.0, 11.0),
+        Vec2::new(3.0, 11.0),
+        //
+        Vec2::new(2.0, 12.0),
+        Vec2::new(3.0, 12.0),
+        //
+        Vec2::new(1.0, 12.0),
+        Vec2::new(1.0, 11.0),
+        //
+        Vec2::new(0.0, 12.0),
+        Vec2::new(0.0, 11.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 2, 3],
+        vec![2, 1, 4, 5],
+        vec![5, 4, 6, 7],
+        //
+        vec![5, 7, 9, 8],
+        vec![8, 9, 11, 10],
+        //
+        vec![8, 10, 12, 13],
+        vec![13, 12, 14, 15],
+        //
+        vec![3, 2, 13, 15],
+      ],
+      polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 1],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let node_type = archipelago.create_node_type(1.0).unwrap();
+
+  archipelago.add_island().set_nav_mesh(
+    Transform::default(),
+    nav_mesh,
+    HashMap::from([(1, node_type)]),
+  );
+
+  let agent_id = archipelago.add_agent({
+    let mut agent = Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0);
+    assert!(agent.override_node_type_cost(node_type, 10.0));
+    agent.current_target = Some(Vec2::new(0.5, 11.5));
+    agent
+  });
+
+  archipelago.update(1.0);
+
+  // The agent **could** go directly up, but due to its overridden node cost, it
+  // is better to take the detour to the right.
+  assert_eq!(
+    *archipelago.get_agent(agent_id).unwrap().get_desired_velocity(),
+    Vec2::new(1.5, 0.5).normalize(),
+  );
+}

@@ -311,7 +311,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
             &self.nav_data,
             agent_node.unwrap(),
             target_node.unwrap(),
-            &HashMap::new(),
+            &agent.override_node_type_to_cost,
           );
 
           self.pathing_results.push(PathingResult {
