@@ -13,7 +13,7 @@ use crate::{
   island::Island,
   nav_data::{BoundaryLink, NodeRef},
   nav_mesh::NavigationMesh,
-  Archipelago, IslandId, NodeType, Transform,
+  Archipelago, IslandId, NewNodeTypeError, NodeType, Transform,
 };
 
 use super::{
@@ -1003,8 +1003,14 @@ fn empty_navigation_mesh_is_safe() {
 #[test]
 fn error_on_create_zero_or_negative_node_type() {
   let mut archipelago = Archipelago::<XY>::new();
-  assert_eq!(archipelago.add_node_type(0.0), Err(()));
-  assert_eq!(archipelago.add_node_type(-1.0), Err(()));
+  assert_eq!(
+    archipelago.add_node_type(0.0),
+    Err(NewNodeTypeError::NonPositiveCost(0.0))
+  );
+  assert_eq!(
+    archipelago.add_node_type(-1.0),
+    Err(NewNodeTypeError::NonPositiveCost(-1.0))
+  );
 }
 
 #[test]

@@ -29,7 +29,7 @@ pub use agent::{Agent, AgentId, AgentState, TargetReachedCondition};
 pub use character::{Character, CharacterId};
 pub use coords::{CoordinateSystem, XYZ};
 pub use island::{Island, IslandId};
-pub use nav_data::{IslandMut, NodeType};
+pub use nav_data::{IslandMut, NewNodeTypeError, NodeType};
 pub use nav_mesh::{NavigationMesh, ValidNavigationMesh, ValidationError};
 pub use query::{FindPathError, SamplePointError, SampledPoint};
 pub use util::Transform;
@@ -161,8 +161,11 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   /// multiplier on the distance travelled along this node (essentially the cost
   /// per meter). Agents will prefer to travel along low-cost terrain. The
   /// returned node type is distinct from all other node types (for this
-  /// archipelago). Returns an error if the cost is <= 0.0.
-  pub fn add_node_type(&mut self, cost: f32) -> Result<NodeType, ()> {
+  /// archipelago).
+  pub fn add_node_type(
+    &mut self,
+    cost: f32,
+  ) -> Result<NodeType, NewNodeTypeError> {
     self.nav_data.add_node_type(cost)
   }
 
