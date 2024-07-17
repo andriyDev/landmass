@@ -606,7 +606,7 @@ fn detour_for_high_cost_path() {
     .expect("nav mesh is valid"),
   );
 
-  let slow_node_type = archipelago.create_node_type(10.0);
+  let slow_node_type = archipelago.create_node_type(10.0).unwrap();
 
   let island_id = archipelago
     .add_island()
@@ -694,7 +694,7 @@ fn detour_for_high_cost_path_across_boundary_links() {
     .expect("nav mesh is valid"),
   );
 
-  let slow_node_type = archipelago.create_node_type(5.1);
+  let slow_node_type = archipelago.create_node_type(5.1).unwrap();
 
   let island_id_1 = archipelago
     .add_island()
@@ -796,7 +796,7 @@ fn fast_path_not_ignored_by_heuristic() {
   );
 
   // This node type is faster than default.
-  let fast_type = archipelago.create_node_type(0.5);
+  let fast_type = archipelago.create_node_type(0.5).unwrap();
 
   let island_id = archipelago
     .add_island()
@@ -850,7 +850,7 @@ fn infinite_or_nan_cost_cannot_find_path() {
     .expect("mesh is valid"),
   );
 
-  let node_type = archipelago.create_node_type(f32::INFINITY);
+  let node_type = archipelago.create_node_type(f32::INFINITY).unwrap();
 
   let island_id = archipelago
     .add_island()

@@ -123,20 +123,27 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   /// Creates a new node type with the specified `cost`. The cost is a
   /// multiplier on the distance travelled along this node (essentially the cost
   /// per meter). Agents will prefer to travel along low-cost terrain. This node
-  /// type is distinct from all other node types.
-  pub(crate) fn create_node_type(&mut self, cost: f32) -> NodeType {
-    self.node_type_to_cost.insert(cost)
+  /// type is distinct from all other node types. Returns an error if the cost
+  /// is <= 0.0.
+  pub(crate) fn create_node_type(&mut self, cost: f32) -> Result<NodeType, ()> {
+    if cost <= 0.0 {
+      return Err(());
+    }
+    Ok(self.node_type_to_cost.insert(cost))
   }
 
   /// Sets the cost of `node_type` to `cost`. See
   /// [`NavigationData::create_node_type`] for the meaning of cost. Returns
-  /// false if the node type does not exist in this nav data. Otherwise,
-  /// returns true.
+  /// false if the node type does not exist in this nav data, or the cost is <=
+  /// 0.0. Otherwise, returns true.
   pub(crate) fn set_node_type_cost(
     &mut self,
     node_type: NodeType,
     cost: f32,
   ) -> bool {
+    if cost <= 0.0 {
+      return false;
+    }
     let Some(node_type_cost) = self.node_type_to_cost.get_mut(node_type) else {
       return false;
     };
