@@ -49,7 +49,10 @@ fn convert_mesh(
     let valid_nav_mesh = nav_mesh.validate().unwrap();
     nav_meshes.insert(
       &converter.nav_mesh,
-      NavMesh2d { nav_mesh: Arc::new(valid_nav_mesh) },
+      NavMesh2d {
+        nav_mesh: Arc::new(valid_nav_mesh),
+        type_index_to_node_type: Default::default(),
+      },
     );
     commands.entity(entity).remove::<ConvertMesh>();
   }
