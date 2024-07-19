@@ -354,8 +354,13 @@ pub struct Island;
 /// An asset holding a `landmass` nav mesh.
 #[derive(Asset, TypePath)]
 pub struct NavMesh<CS: CoordinateSystem> {
+  /// The nav mesh data.
   pub nav_mesh: Arc<ValidNavigationMesh<CS>>,
-  // This can't be a tuple struct due to https://github.com/rust-lang/rust/issues/73191
+  /// A map from the type indices used by [`Self::nav_mesh`] to the
+  /// [`NodeType`]s used in the [`crate::Archipelago`]. Type indices not
+  /// present in this map are implicitly assigned the "default" node type,
+  /// which always has a cost of 1.0.
+  pub type_index_to_node_type: HashMap<usize, NodeType>,
 }
 
 pub type NavMesh2d = NavMesh<TwoD>;
@@ -463,14 +468,24 @@ fn sync_island_nav_mesh<CS: CoordinateSystem>(
       }
     };
 
-    let set_nav_mesh = match landmass_island
-      .get_transform()
-      .map(|transform| (transform, landmass_island.get_nav_mesh().unwrap()))
-    {
+    let set_nav_mesh = match landmass_island.get_transform().map(|transform| {
+      (
+        transform,
+        landmass_island.get_nav_mesh().unwrap(),
+        landmass_island.get_type_index_to_node_type().unwrap(),
+      )
+    }) {
       None => true,
-      Some((current_transform, current_nav_mesh)) => {
+      Some((
+        current_transform,
+        current_nav_mesh,
+        current_type_index_to_node_type,
+      )) => {
         current_transform != &island_transform
           || !Arc::ptr_eq(&current_nav_mesh, &island_nav_mesh.nav_mesh)
+          // TODO: This check is a little too expensive to do every frame.
+          || current_type_index_to_node_type
+            != &island_nav_mesh.type_index_to_node_type
       }
     };
 
@@ -478,7 +493,7 @@ fn sync_island_nav_mesh<CS: CoordinateSystem>(
       landmass_island.set_nav_mesh(
         island_transform,
         Arc::clone(&island_nav_mesh.nav_mesh),
-        HashMap::new(), // TODO: Make this not just an empty hashmap.
+        island_nav_mesh.type_index_to_node_type.clone(),
       );
     }
   }

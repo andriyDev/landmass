@@ -79,7 +79,10 @@ fn set_up_scene(
       ],
       polygon_type_indices: vec![0, 0, 0],
     }.validate().expect("is valid"));
-  nav_meshes.insert(&nav_mesh_handle, NavMesh2d{ nav_mesh });
+  nav_meshes.insert(&nav_mesh_handle, NavMesh2d{
+    nav_mesh,
+    type_index_to_node_type: Default::default(),
+  });
 
   commands.spawn((
     TransformBundle {
