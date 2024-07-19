@@ -97,7 +97,7 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
       .world()
       .get::<AgentDesiredVelocity3d>(agent_id)
       .expect("desired velocity was added")
-      .0,
+      .velocity(),
     Vec3::new(1.5, 0.0, 0.5).normalize(),
   );
 }
@@ -678,7 +678,7 @@ fn node_type_costs_are_used() {
       .world()
       .get::<AgentDesiredVelocity2d>(agent_id)
       .expect("desired velocity was added")
-      .0,
+      .velocity(),
     Vec2::new(1.5, 0.5).normalize(),
   );
 }
@@ -800,7 +800,7 @@ fn overridden_node_type_costs_are_used() {
       .world()
       .get::<AgentDesiredVelocity2d>(agent_id)
       .expect("desired velocity was added")
-      .0,
+      .velocity(),
     Vec2::new(1.5, 0.5).normalize(),
   );
 }
