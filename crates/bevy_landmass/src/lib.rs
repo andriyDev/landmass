@@ -9,8 +9,9 @@ use std::{
 use bevy::{
   asset::{Asset, AssetApp, Assets, Handle},
   prelude::{
-    Bundle, Component, Entity, EulerRot, GlobalTransform, IntoSystemConfigs,
-    IntoSystemSetConfigs, Plugin, Query, Res, SystemSet, Update, With,
+    Bundle, Component, Deref, DetectChanges, Entity, EulerRot, GlobalTransform,
+    IntoSystemConfigs, IntoSystemSetConfigs, Plugin, Query, Ref, Res,
+    SystemSet, Update, With,
   },
   reflect::TypePath,
   time::Time,
@@ -508,6 +509,27 @@ pub struct Agent {
   pub max_velocity: f32,
 }
 
+#[derive(Component, Default, Deref)]
+pub struct AgentNodeTypeCostOverrides(HashMap<NodeType, f32>);
+
+impl AgentNodeTypeCostOverrides {
+  /// Sets the node type cost for this agent to `cost`. Returns false if the
+  /// cost is <= 0.0. Otherwise returns true.
+  pub fn set_node_type_cost(&mut self, node_type: NodeType, cost: f32) -> bool {
+    if cost <= 0.0 {
+      return false;
+    }
+    self.0.insert(node_type, cost);
+    true
+  }
+
+  /// Removes the override cost for `node_type`. Returns true if `node_type` was
+  /// overridden, false otherwise.
+  pub fn remove_override(&mut self, node_type: NodeType) -> bool {
+    self.0.remove(&node_type).is_some()
+  }
+}
+
 /// A character. See [`crate::CharacterBundle`] for required related components.
 #[derive(Component)]
 pub struct Character {
@@ -674,6 +696,7 @@ fn sync_agent_input_state<CS: CoordinateSystem>(
     Option<&Velocity<CS>>,
     Option<&AgentTarget<CS>>,
     Option<&TargetReachedCondition>,
+    Option<Ref<AgentNodeTypeCostOverrides>>,
   )>,
   global_transform_query: Query<&GlobalTransform>,
   mut archipelago_query: Query<&mut Archipelago<CS>>,
@@ -686,6 +709,7 @@ fn sync_agent_input_state<CS: CoordinateSystem>(
     velocity,
     target,
     target_reached_condition,
+    node_type_cost_overrides,
   ) in agent_query.iter()
   {
     let mut archipelago = match archipelago_query.get_mut(arch_entity) {
@@ -711,6 +735,33 @@ fn sync_agent_input_state<CS: CoordinateSystem>(
       } else {
         landmass::TargetReachedCondition::Distance(None)
       };
+    match node_type_cost_overrides {
+      None => {
+        for (node_type, _) in
+          landmass_agent.get_node_type_cost_overrides().collect::<Vec<_>>()
+        {
+          landmass_agent.remove_overridden_node_type_cost(node_type);
+        }
+      }
+      Some(node_type_cost_overrides) => {
+        if !node_type_cost_overrides.is_changed() {
+          continue;
+        }
+
+        for (node_type, _) in
+          landmass_agent.get_node_type_cost_overrides().collect::<Vec<_>>()
+        {
+          if node_type_cost_overrides.0.contains_key(&node_type) {
+            continue;
+          }
+          landmass_agent.remove_overridden_node_type_cost(node_type);
+        }
+
+        for (&node_type, &cost) in node_type_cost_overrides.0.iter() {
+          assert!(landmass_agent.override_node_type_cost(node_type, cost));
+        }
+      }
+    }
   }
 }
 
