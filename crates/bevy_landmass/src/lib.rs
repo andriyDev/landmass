@@ -22,6 +22,9 @@ mod landmass_structs;
 
 pub use landmass::AgentOptions;
 pub use landmass::NavigationMesh;
+pub use landmass::NewNodeTypeError;
+pub use landmass::NodeType;
+pub use landmass::SetNodeTypeCostError;
 pub use landmass::ValidNavigationMesh;
 pub use landmass::ValidationError;
 
@@ -238,6 +241,41 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   /// Gets a mutable borrow to the agent options.
   pub fn get_agent_options_mut(&mut self) -> &mut AgentOptions {
     &mut self.archipelago.agent_options
+  }
+
+  /// Creates a new node type with the specified `cost`. The cost is a
+  /// multiplier on the distance travelled along this node (essentially the cost
+  /// per meter). Agents will prefer to travel along low-cost terrain. The
+  /// returned node type is distinct from all other node types (for this
+  /// archipelago).
+  pub fn add_node_type(
+    &mut self,
+    cost: f32,
+  ) -> Result<NodeType, NewNodeTypeError> {
+    self.archipelago.add_node_type(cost)
+  }
+
+  /// Sets the cost of `node_type` to `cost`. See
+  /// [`Archipelago::add_node_type`] for the meaning of cost.
+  pub fn set_node_type_cost(
+    &mut self,
+    node_type: NodeType,
+    cost: f32,
+  ) -> Result<(), SetNodeTypeCostError> {
+    self.archipelago.set_node_type_cost(node_type, cost)
+  }
+
+  /// Gets the cost of `node_type`. Returns [`None`] if `node_type` is not in
+  /// this archipelago.
+  pub fn get_node_type_cost(&self, node_type: NodeType) -> Option<f32> {
+    self.archipelago.get_node_type_cost(node_type)
+  }
+
+  /// Removes the node type from the archipelago. Returns false if this
+  /// archipelago does not contain `node_type` or any islands still use this
+  /// node type (so the node type cannot be removed). Otherwise, returns true.
+  pub fn remove_node_type(&mut self, node_type: NodeType) -> bool {
+    self.archipelago.remove_node_type(node_type)
   }
 
   /// Gets an agent.
