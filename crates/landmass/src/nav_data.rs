@@ -192,15 +192,10 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   }
 
   /// Adds a new island to the navigation data.
-  pub(crate) fn add_island(&mut self, island: Island<CS>) -> IslandMut<'_, CS> {
+  pub(crate) fn add_island(&mut self, island: Island<CS>) -> IslandId {
     // A new island means a new nav mesh - so mark it dirty.
     self.dirty = true;
-    let island_id = self.islands.insert(island);
-    IslandMut {
-      id: island_id,
-      island: self.islands.get_mut(island_id).unwrap(),
-      dirty_flag: &mut self.dirty,
-    }
+    self.islands.insert(island)
   }
 
   /// Gets a borrow to the island with `id`.
