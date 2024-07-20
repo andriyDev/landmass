@@ -38,17 +38,6 @@ pub mod debug;
 #[cfg(feature = "mesh-utils")]
 pub mod nav_mesh;
 
-pub struct LandmassPlugin<CS: CoordinateSystem>(PhantomData<CS>);
-
-impl<CS: CoordinateSystem> Default for LandmassPlugin<CS> {
-  fn default() -> Self {
-    Self(Default::default())
-  }
-}
-
-pub type Landmass2dPlugin = LandmassPlugin<TwoD>;
-pub type Landmass3dPlugin = LandmassPlugin<ThreeD>;
-
 pub mod prelude {
   pub use crate::coords::CoordinateSystem;
   pub use crate::coords::ThreeD;
@@ -84,29 +73,16 @@ pub mod prelude {
   pub use crate::Velocity3d;
 }
 
-pub type NavigationMesh2d = NavigationMesh<TwoD>;
-pub type NavigationMesh3d = NavigationMesh<ThreeD>;
+pub struct LandmassPlugin<CS: CoordinateSystem>(PhantomData<CS>);
 
-pub type ValidNavigationMesh2d = ValidNavigationMesh<TwoD>;
-pub type ValidNavigationMesh3d = ValidNavigationMesh<ThreeD>;
-
-/// System set for `landmass` systems.
-#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
-pub enum LandmassSystemSet {
-  /// Systems for syncing the existence of components with the internal
-  /// `landmass` state. Ensure your `landmass` entities are setup before this
-  /// point (and not removed until [`LandmassSystemSet::Output`]).
-  SyncExistence,
-  /// Systems for syncing the values of components with the internal `landmass`
-  /// state.
-  SyncValues,
-  /// The actual `landmass` updating step.
-  Update,
-  /// Systems for returning the output of `landmass` back to users. Avoid
-  /// reading/mutating data from your `landmass` entities until after this
-  /// point.
-  Output,
+impl<CS: CoordinateSystem> Default for LandmassPlugin<CS> {
+  fn default() -> Self {
+    Self(Default::default())
+  }
 }
+
+pub type Landmass2dPlugin = LandmassPlugin<TwoD>;
+pub type Landmass3dPlugin = LandmassPlugin<ThreeD>;
 
 impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
   fn build(&self, app: &mut bevy::prelude::App) {
@@ -147,6 +123,24 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
         .in_set(LandmassSystemSet::Output),
     );
   }
+}
+
+/// System set for `landmass` systems.
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub enum LandmassSystemSet {
+  /// Systems for syncing the existence of components with the internal
+  /// `landmass` state. Ensure your `landmass` entities are setup before this
+  /// point (and not removed until [`LandmassSystemSet::Output`]).
+  SyncExistence,
+  /// Systems for syncing the values of components with the internal `landmass`
+  /// state.
+  SyncValues,
+  /// The actual `landmass` updating step.
+  Update,
+  /// Systems for returning the output of `landmass` back to users. Avoid
+  /// reading/mutating data from your `landmass` entities until after this
+  /// point.
+  Output,
 }
 
 /// An archipelago, holding the internal state of `landmass`.
@@ -293,21 +287,6 @@ fn update_archipelagos<CS: CoordinateSystem>(
   }
 }
 
-/// An asset holding a `landmass` nav mesh.
-#[derive(Asset, TypePath)]
-pub struct NavMesh<CS: CoordinateSystem> {
-  /// The nav mesh data.
-  pub nav_mesh: Arc<ValidNavigationMesh<CS>>,
-  /// A map from the type indices used by [`Self::nav_mesh`] to the
-  /// [`NodeType`]s used in the [`crate::Archipelago`]. Type indices not
-  /// present in this map are implicitly assigned the "default" node type,
-  /// which always has a cost of 1.0.
-  pub type_index_to_node_type: HashMap<usize, NodeType>,
-}
-
-pub type NavMesh2d = NavMesh<TwoD>;
-pub type NavMesh3d = NavMesh<ThreeD>;
-
 /// A reference to an archipelago.
 #[derive(Component)]
 pub struct ArchipelagoRef<CS: CoordinateSystem> {
@@ -323,6 +302,27 @@ impl<CS: CoordinateSystem> ArchipelagoRef<CS> {
     Self { entity, marker: Default::default() }
   }
 }
+
+pub type NavigationMesh2d = NavigationMesh<TwoD>;
+pub type NavigationMesh3d = NavigationMesh<ThreeD>;
+
+pub type ValidNavigationMesh2d = ValidNavigationMesh<TwoD>;
+pub type ValidNavigationMesh3d = ValidNavigationMesh<ThreeD>;
+
+/// An asset holding a `landmass` nav mesh.
+#[derive(Asset, TypePath)]
+pub struct NavMesh<CS: CoordinateSystem> {
+  /// The nav mesh data.
+  pub nav_mesh: Arc<ValidNavigationMesh<CS>>,
+  /// A map from the type indices used by [`Self::nav_mesh`] to the
+  /// [`NodeType`]s used in the [`crate::Archipelago`]. Type indices not
+  /// present in this map are implicitly assigned the "default" node type,
+  /// which always has a cost of 1.0.
+  pub type_index_to_node_type: HashMap<usize, NodeType>,
+}
+
+pub type NavMesh2d = NavMesh<TwoD>;
+pub type NavMesh3d = NavMesh<ThreeD>;
 
 #[cfg(test)]
 #[path = "lib_test.rs"]
