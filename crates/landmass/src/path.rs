@@ -54,9 +54,6 @@ impl IslandSegment {
 
     let island_data = nav_data
       .get_island(self.island_id)
-      .expect("only called if path is still valid")
-      .nav_data
-      .as_ref()
       .expect("only called if path is still valid");
     let (left_vertex, right_vertex) =
       island_data.nav_mesh.polygons[polygon_index].get_edge_indices(edge);

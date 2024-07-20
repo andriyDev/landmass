@@ -14,10 +14,10 @@ use thiserror::Error;
 
 use crate::{
   geometry::edge_intersection,
-  island::{Island, IslandId, IslandNavigationData},
+  island::{Island, IslandId},
   nav_mesh::MeshEdgeRef,
   util::{BoundingBox, BoundingBoxHierarchy},
-  CoordinateSystem, Transform, ValidNavigationMesh,
+  CoordinateSystem,
 };
 
 /// The navigation data of a whole [`crate::Archipelago`]. This only includes
@@ -167,13 +167,9 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     }
 
     for island in self.islands.values() {
-      let Some(nav_data) = island.nav_data.as_ref() else {
-        continue;
-      };
-
-      for type_index in nav_data.nav_mesh.used_type_indices.iter() {
+      for type_index in island.nav_mesh.used_type_indices.iter() {
         let Some(island_node_type) =
-          nav_data.type_index_to_node_type.get(type_index)
+          island.type_index_to_node_type.get(type_index)
         else {
           continue;
         };
@@ -195,10 +191,11 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     self.node_type_to_cost.iter().map(|(node_type, &cost)| (node_type, cost))
   }
 
-  /// Adds a new (empty) island to the navigation data.
-  pub(crate) fn add_island(&mut self) -> IslandMut<'_, CS> {
-    // Don't set the dirty flag since a new island doesn't need to be updated.
-    let island_id = self.islands.insert(Island::new());
+  /// Adds a new island to the navigation data.
+  pub(crate) fn add_island(&mut self, island: Island<CS>) -> IslandMut<'_, CS> {
+    // A new island means a new nav mesh - so mark it dirty.
+    self.dirty = true;
+    let island_id = self.islands.insert(island);
     IslandMut {
       id: island_id,
       island: self.islands.get_mut(island_id).unwrap(),
@@ -250,13 +247,8 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   ) -> Option<(Vec3, NodeRef)> {
     let mut best_point = None;
     for (island_id, island) in self.islands.iter() {
-      let nav_data = match &island.nav_data {
-        None => continue,
-        Some(data) => data,
-      };
-
-      let relative_point = nav_data.transform.apply_inverse(point);
-      if !nav_data
+      let relative_point = island.transform.apply_inverse(point);
+      if !island
         .nav_mesh
         .mesh_bounds
         .expand_by_size(Vec3::ONE * distance_to_node)
@@ -265,13 +257,11 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         continue;
       }
 
-      let (sampled_point, sampled_node) = match nav_data
-        .nav_mesh
-        .sample_point(relative_point, distance_to_node)
-      {
-        Some(sampled) => sampled,
-        None => continue,
-      };
+      let (sampled_point, sampled_node) =
+        match island.nav_mesh.sample_point(relative_point, distance_to_node) {
+          Some(sampled) => sampled,
+          None => continue,
+        };
 
       let distance = relative_point.distance_squared(sampled_point);
       match best_point {
@@ -282,7 +272,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       best_point = Some((
         distance,
         (
-          nav_data.transform.apply(sampled_point),
+          island.transform.apply(sampled_point),
           NodeRef { island_id, polygon_index: sampled_node },
         ),
       ));
@@ -354,13 +344,8 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     let mut island_bounds = self
       .islands
       .iter()
-      .filter_map(|(key, value)| {
-        value
-          .nav_data
-          .as_ref()
-          .filter(|nav_data| !nav_data.nav_mesh.mesh_bounds.is_empty())
-          .map(|nav_data| (nav_data.transformed_bounds, Some(key)))
-      })
+      .filter(|(_, island)| !island.transformed_bounds.is_empty())
+      .map(|(island_id, island)| (island.transformed_bounds, Some(island_id)))
       .collect::<Vec<_>>();
     // There are no islands with nav data, so no islands to link and prevents a
     // panic.
@@ -371,14 +356,10 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
     for &dirty_island_id in dirty_islands.iter() {
       let dirty_island = self.islands.get(dirty_island_id).unwrap();
-      let dirty_nav_data = match &dirty_island.nav_data {
-        None => continue,
-        Some(n) => n,
-      };
       // Check that all the island's node types are valid.
-      for type_index in dirty_nav_data.nav_mesh.used_type_indices.iter() {
+      for type_index in dirty_island.nav_mesh.used_type_indices.iter() {
         if let Some(&node_type) =
-          dirty_nav_data.type_index_to_node_type.get(type_index)
+          dirty_island.type_index_to_node_type.get(type_index)
         {
           assert!(
             self.node_type_to_cost.contains_key(node_type),
@@ -387,10 +368,10 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         }
       }
 
-      if dirty_nav_data.nav_mesh.boundary_edges.is_empty() {
+      if dirty_island.nav_mesh.boundary_edges.is_empty() {
         continue;
       }
-      let query = dirty_nav_data
+      let query = dirty_island
         .transformed_bounds
         .expand_by_size(Vec3::ONE * edge_link_distance);
       let candidate_islands = island_bbh.query_box(query);
@@ -398,7 +379,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       if candidate_islands.len() <= 1 {
         continue;
       }
-      let dirty_island_edge_bbh = island_edges_bbh(dirty_nav_data);
+      let dirty_island_edge_bbh = island_edges_bbh(dirty_island);
       for &candidate_island_id in candidate_islands {
         if candidate_island_id == dirty_island_id {
           continue;
@@ -435,11 +416,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   ) {
     // Any node from an island that doesn't exist (deleted), or one without nav
     // data (the nav mesh was removed), should be removed.
-    let Some(island_nav_data) = self
-      .islands
-      .get(node_ref.island_id)
-      .and_then(|island| island.nav_data.as_ref())
-    else {
+    let Some(island) = self.islands.get(node_ref.island_id) else {
       self.modified_nodes.remove(&node_ref);
       return;
     };
@@ -450,7 +427,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       return;
     };
 
-    let polygon = &island_nav_data.nav_mesh.polygons[node_ref.polygon_index];
+    let polygon = &island.nav_mesh.polygons[node_ref.polygon_index];
 
     fn vec2_to_coord(v: Vec2) -> Coord<f32> {
       Coord::from((v.x, v.y))
@@ -462,10 +439,10 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
     fn push_vertex<CS: CoordinateSystem>(
       vertex: usize,
-      nav_data: &IslandNavigationData<CS>,
+      island: &Island<CS>,
       line_string: &mut Vec<Coord<f32>>,
     ) {
-      let vertex = nav_data.transform.apply(nav_data.nav_mesh.vertices[vertex]);
+      let vertex = island.transform.apply(island.nav_mesh.vertices[vertex]);
       line_string.push(vec2_to_coord(vertex.xy()));
     }
 
@@ -479,7 +456,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
           swap(&mut current_line_string, &mut line_string);
 
           // Add the right vertex of the previous edge (the current vertex).
-          push_vertex(vertex, island_nav_data, &mut line_string);
+          push_vertex(vertex, island, &mut line_string);
 
           multi_line_string.push(LineString(line_string));
         }
@@ -488,17 +465,13 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
       // Add the left vertex. The right vertex will be added when we finish the
       // line string.
-      push_vertex(vertex, island_nav_data, &mut current_line_string);
+      push_vertex(vertex, island, &mut current_line_string);
     }
 
     if !current_line_string.is_empty() {
       // The last "closing" edge must not be connected, so add the first vertex
       // to finish that edge and push it into the `multi_line_string`.
-      push_vertex(
-        polygon.vertices[0],
-        island_nav_data,
-        &mut current_line_string,
-      );
+      push_vertex(polygon.vertices[0], island, &mut current_line_string);
 
       multi_line_string.push(LineString(current_line_string));
     }
@@ -538,9 +511,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
     let mut original_vertices = KdTree::new(/* dimensions= */ 2);
     for &index in polygon.vertices.iter() {
-      let vertex = island_nav_data
-        .transform
-        .apply(island_nav_data.nav_mesh.vertices[index]);
+      let vertex = island.transform.apply(island.nav_mesh.vertices[index]);
 
       original_vertices
         .add([vertex.x, vertex.y], index)
@@ -586,20 +557,15 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
         let mut start_index = start_index.unwrap_or_else(|| {
           modified_node.new_vertices.push(coord_to_vec2(edge.start));
-          island_nav_data.nav_mesh.vertices.len()
-            + modified_node.new_vertices.len()
-            - 1
+          island.nav_mesh.vertices.len() + modified_node.new_vertices.len() - 1
         });
 
         let mut end_index = end_index.unwrap_or_else(|| {
           modified_node.new_vertices.push(coord_to_vec2(edge.end));
-          island_nav_data.nav_mesh.vertices.len()
-            + modified_node.new_vertices.len()
-            - 1
+          island.nav_mesh.vertices.len() + modified_node.new_vertices.len() - 1
         });
 
-        let polygon_center =
-          island_nav_data.transform.apply(polygon.center).xy();
+        let polygon_center = island.transform.apply(polygon.center).xy();
 
         // Ensure the winding order of the modified node boundary matches the
         // polygon edges.
@@ -616,16 +582,10 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   }
 
   fn node_to_region_id(&self, node_ref: NodeRef) -> (IslandId, usize) {
-    let region = self
-      .islands
-      .get(node_ref.island_id)
-      .unwrap()
-      .nav_data
-      .as_ref()
-      .unwrap()
-      .nav_mesh
-      .polygons[node_ref.polygon_index]
-      .region;
+    let region =
+      self.islands.get(node_ref.island_id).unwrap().nav_mesh.polygons
+        [node_ref.polygon_index]
+        .region;
     (node_ref.island_id, region)
   }
 
@@ -766,34 +726,14 @@ impl<CS: CoordinateSystem> IslandMut<'_, CS> {
   pub fn id(&self) -> IslandId {
     self.id
   }
-
-  /// Sets the navigation mesh and the transform of the island.
-  /// `type_index_to_node_type` translates the type indices used in `nav_mesh`
-  /// into [`NodeType`]s from the [`crate::Archipelago`]. Type indices without a
-  /// corresponding node type will be treated as the "default" node type, which
-  /// has a cost of 1.0. See [`crate::Archipelago::add_node_type`] for
-  /// details on cost. [`NodeType`]s not present in the corresponding
-  /// [`crate::Archipelago`] will cause a panic, so do not mix [`NodeType`]s
-  /// across [`crate::Archipelago`]s. This matches
-  /// [`crate::Island::set_nav_mesh`], but returns self for convenience.
-  pub fn set_nav_mesh(
-    &mut self,
-    transform: Transform<CS>,
-    nav_mesh: Arc<ValidNavigationMesh<CS>>,
-    type_index_to_node_type: HashMap<usize, NodeType>,
-  ) -> &mut Self {
-    // Deref so we automatically trigger any change detection stuff.
-    self.deref_mut().set_nav_mesh(transform, nav_mesh, type_index_to_node_type);
-    self
-  }
 }
 
 fn edge_ref_to_world_edge<CS: CoordinateSystem>(
   edge: MeshEdgeRef,
-  nav_data: &IslandNavigationData<CS>,
+  island: &Island<CS>,
 ) -> (Vec3, Vec3) {
-  let (a, b) = nav_data.nav_mesh.get_edge_points(edge);
-  (nav_data.transform.apply(a), nav_data.transform.apply(b))
+  let (a, b) = island.nav_mesh.get_edge_points(edge);
+  (island.transform.apply(a), island.transform.apply(b))
 }
 
 fn edge_to_bbox(edge: (Vec3, Vec3)) -> BoundingBox {
@@ -801,15 +741,15 @@ fn edge_to_bbox(edge: (Vec3, Vec3)) -> BoundingBox {
 }
 
 fn island_edges_bbh<CS: CoordinateSystem>(
-  island_nav_data: &IslandNavigationData<CS>,
+  island: &Island<CS>,
 ) -> BoundingBoxHierarchy<MeshEdgeRef> {
-  let mut edge_bounds = island_nav_data
+  let mut edge_bounds = island
     .nav_mesh
     .boundary_edges
     .iter()
     .map(|edge| {
       (
-        edge_to_bbox(edge_ref_to_world_edge(edge.clone(), island_nav_data)),
+        edge_to_bbox(edge_ref_to_world_edge(edge.clone(), island)),
         Some(edge.clone()),
       )
     })
@@ -818,28 +758,25 @@ fn island_edges_bbh<CS: CoordinateSystem>(
 }
 
 fn link_edges_between_islands<CS: CoordinateSystem>(
-  island_1: (IslandId, &Island<CS>),
-  island_2: (IslandId, &Island<CS>),
+  (island_id_1, island_1): (IslandId, &Island<CS>),
+  (island_id_2, island_2): (IslandId, &Island<CS>),
   island_1_edge_bbh: &BoundingBoxHierarchy<MeshEdgeRef>,
   edge_link_distance: f32,
   boundary_links: &mut SlotMap<BoundaryLinkId, BoundaryLink>,
   node_to_boundary_link_ids: &mut HashMap<NodeRef, HashSet<BoundaryLinkId>>,
   modified_node_refs_to_update: &mut HashSet<NodeRef>,
 ) {
-  let island_1_nav_data = island_1.1.nav_data.as_ref().unwrap();
-  let island_2_nav_data = island_2.1.nav_data.as_ref().unwrap();
-
   let edge_link_distance_squared = edge_link_distance * edge_link_distance;
 
-  for island_2_edge_ref in island_2_nav_data.nav_mesh.boundary_edges.iter() {
+  for island_2_edge_ref in island_2.nav_mesh.boundary_edges.iter() {
     let island_2_edge =
-      edge_ref_to_world_edge(island_2_edge_ref.clone(), island_2_nav_data);
+      edge_ref_to_world_edge(island_2_edge_ref.clone(), island_2);
     let island_2_edge_bbox = edge_to_bbox(island_2_edge)
       .expand_by_size(Vec3::ONE * edge_link_distance);
 
     for island_1_edge_ref in island_1_edge_bbh.query_box(island_2_edge_bbox) {
       let island_1_edge =
-        edge_ref_to_world_edge(island_1_edge_ref.clone(), island_1_nav_data);
+        edge_ref_to_world_edge(island_1_edge_ref.clone(), island_1);
       if let Some(portal) = edge_intersection(
         island_1_edge,
         island_2_edge,
@@ -850,23 +787,21 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
         }
 
         let node_1 = NodeRef {
-          island_id: island_1.0,
+          island_id: island_id_1,
           polygon_index: island_1_edge_ref.polygon_index,
         };
         let node_2 = NodeRef {
-          island_id: island_2.0,
+          island_id: island_id_2,
           polygon_index: island_2_edge_ref.polygon_index,
         };
 
         let polygon_1 =
-          &island_1_nav_data.nav_mesh.polygons[island_1_edge_ref.polygon_index];
+          &island_1.nav_mesh.polygons[island_1_edge_ref.polygon_index];
         let polygon_2 =
-          &island_2_nav_data.nav_mesh.polygons[island_2_edge_ref.polygon_index];
+          &island_2.nav_mesh.polygons[island_2_edge_ref.polygon_index];
 
-        let polygon_center_1 =
-          island_1_nav_data.transform.apply(polygon_1.center);
-        let polygon_center_2 =
-          island_2_nav_data.transform.apply(polygon_2.center);
+        let polygon_center_1 = island_1.transform.apply(polygon_1.center);
+        let polygon_center_2 = island_2.transform.apply(polygon_2.center);
         let portal_center = (portal.0 + portal.1) / 2.0;
 
         let travel_distances = (
@@ -874,14 +809,10 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
           polygon_center_2.distance(portal_center),
         );
 
-        let node_type_1 = island_1_nav_data
-          .type_index_to_node_type
-          .get(&polygon_1.type_index)
-          .copied();
-        let node_type_2 = island_2_nav_data
-          .type_index_to_node_type
-          .get(&polygon_2.type_index)
-          .copied();
+        let node_type_1 =
+          island_1.type_index_to_node_type.get(&polygon_1.type_index).copied();
+        let node_type_2 =
+          island_2.type_index_to_node_type.get(&polygon_2.type_index).copied();
 
         let id_1 = boundary_links.insert(BoundaryLink {
           destination_node: node_2,

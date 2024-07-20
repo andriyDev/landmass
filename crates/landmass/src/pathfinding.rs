@@ -8,10 +8,9 @@ use ord_subset::OrdVar;
 
 use crate::{
   astar::{self, AStarProblem, PathStats},
-  island::IslandNavigationData,
   nav_data::{BoundaryLinkId, NodeRef},
   path::{BoundaryLinkSegment, IslandSegment, Path},
-  CoordinateSystem, NavigationData, NodeType,
+  CoordinateSystem, Island, NavigationData, NodeType,
 };
 
 /// A concrete A* problem specifically for [`crate::Archipelago`]s.
@@ -42,14 +41,10 @@ enum PathStep {
 
 impl<'a, CS: CoordinateSystem> ArchipelagoPathProblem<'a, CS> {
   /// Determines the cost of the node type corresponding to `type_index` in
-  /// `island_nav_data`.
-  fn type_index_to_cost(
-    &self,
-    island_nav_data: &IslandNavigationData<CS>,
-    type_index: usize,
-  ) -> f32 {
+  /// `island`.
+  fn type_index_to_cost(&self, island: &Island<CS>, type_index: usize) -> f32 {
     self.node_type_to_cost(
-      island_nav_data.type_index_to_node_type.get(&type_index).copied(),
+      island.type_index_to_node_type.get(&type_index).copied(),
     )
   }
 
@@ -84,16 +79,14 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
     state: &Self::StateType,
   ) -> Vec<(f32, Self::ActionType, Self::StateType)> {
     let island = self.nav_data.get_island(state.island_id).unwrap();
-    let island_nav_data = island.nav_data.as_ref().unwrap();
-    let polygon = &island_nav_data.nav_mesh.polygons[state.polygon_index];
+    let polygon = &island.nav_mesh.polygons[state.polygon_index];
     let boundary_links = self
       .nav_data
       .node_to_boundary_link_ids
       .get(state)
       .map_or(Cow::Owned(HashSet::new()), Cow::Borrowed);
 
-    let current_node_cost =
-      self.type_index_to_cost(island_nav_data, polygon.type_index);
+    let current_node_cost = self.type_index_to_cost(island, polygon.type_index);
 
     polygon
       .connectivity
@@ -104,8 +97,8 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
       })
       .filter_map(|(edge_index, conn)| {
         let target_node_cost = self.type_index_to_cost(
-          island_nav_data,
-          island_nav_data.nav_mesh.polygons[conn.polygon_index].type_index,
+          island,
+          island.nav_mesh.polygons[conn.polygon_index].type_index,
         );
         if !target_node_cost.is_finite() {
           return None;
@@ -138,16 +131,10 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
   }
 
   fn heuristic(&self, state: &Self::StateType) -> f32 {
-    let island_nav_data = self
-      .nav_data
-      .get_island(state.island_id)
-      .unwrap()
-      .nav_data
-      .as_ref()
-      .unwrap();
-    island_nav_data
+    let island = self.nav_data.get_island(state.island_id).unwrap();
+    island
       .transform
-      .apply(island_nav_data.nav_mesh.polygons[state.polygon_index].center)
+      .apply(island.nav_mesh.polygons[state.polygon_index].center)
       .distance(self.end_point)
       * self.cheapest_node_type_cost
   }
@@ -184,15 +171,10 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
     start_node,
     end_node,
     end_point: {
-      let island_nav_data = nav_data
-        .get_island(end_node.island_id)
-        .unwrap()
-        .nav_data
-        .as_ref()
-        .unwrap();
-      island_nav_data
+      let island = nav_data.get_island(end_node.island_id).unwrap();
+      island
         .transform
-        .apply(island_nav_data.nav_mesh.polygons[end_node.polygon_index].center)
+        .apply(island.nav_mesh.polygons[end_node.polygon_index].center)
     },
     cheapest_node_type_cost: *nav_data
       .get_node_types()
@@ -233,13 +215,8 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
 
     match path_step {
       PathStep::NodeConnection(edge_index) => {
-        let nav_mesh = &nav_data
-          .get_island(last_segment.island_id)
-          .unwrap()
-          .nav_data
-          .as_ref()
-          .unwrap()
-          .nav_mesh;
+        let nav_mesh =
+          &nav_data.get_island(last_segment.island_id).unwrap().nav_mesh;
         let connectivity = nav_mesh.polygons[previous_node].connectivity
           [edge_index]
           .as_ref()

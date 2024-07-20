@@ -6,10 +6,9 @@ use kdtree::{distance::squared_euclidean, KdTree};
 use slotmap::HopSlotMap;
 
 use crate::{
-  island::IslandNavigationData,
   nav_data::{ModifiedNode, NodeRef},
   Agent, AgentId, AgentOptions, Character, CharacterId, CoordinateSystem,
-  IslandId, NavigationData,
+  Island, IslandId, NavigationData,
 };
 
 /// Adjusts the velocity of `agents` to apply local avoidance. `delta_time` must
@@ -200,12 +199,12 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
   let agent_point = agent_node.0.xy();
 
   fn vertex_index_to_dodgy_vec<CS: CoordinateSystem>(
-    island_data: &IslandNavigationData<CS>,
+    island: &Island<CS>,
     index: usize,
     relative_point: glam::Vec2,
   ) -> dodgy_2d::Vec2 {
     to_dodgy_vec2(
-      island_data.transform.apply(island_data.nav_mesh.vertices[index]).xy()
+      island.transform.apply(island.nav_mesh.vertices[index]).xy()
         - relative_point,
     )
   }
@@ -217,10 +216,9 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
       continue;
     }
 
-    let island_data =
-      nav_data.get_island(node.island_id).unwrap().nav_data.as_ref().unwrap();
+    let island = nav_data.get_island(node.island_id).unwrap();
 
-    let polygon = &island_data.nav_mesh.polygons[node.polygon_index];
+    let polygon = &island.nav_mesh.polygons[node.polygon_index];
     let boundary_links = nav_data.node_to_boundary_link_ids.get(&node);
     let modified_node = nav_data.modified_nodes.get(&node);
 
@@ -238,8 +236,8 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
 
         let (vertex_1, vertex_2) = polygon.get_edge_indices(edge_index);
         (
-          vertex_index_to_dodgy_vec(island_data, vertex_1, agent_point),
-          vertex_index_to_dodgy_vec(island_data, vertex_2, agent_point),
+          vertex_index_to_dodgy_vec(island, vertex_1, agent_point),
+          vertex_index_to_dodgy_vec(island, vertex_2, agent_point),
           NodeRef {
             island_id: node.island_id,
             polygon_index: connectivity.polygon_index,
@@ -280,12 +278,12 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
           island_id: IslandId,
           agent_point: glam::Vec2,
           modified_node: &ModifiedNode,
-          island_data: &IslandNavigationData<CS>,
+          island: &Island<CS>,
           new_vertices: &mut Vec<dodgy_2d::Vec2>,
         ) -> (dodgy_2d::Vec2, (Option<IslandId>, usize)) {
-          if index >= island_data.nav_mesh.vertices.len() {
+          if index >= island.nav_mesh.vertices.len() {
             let new_vertex = modified_node.new_vertices
-              [index - island_data.nav_mesh.vertices.len()];
+              [index - island.nav_mesh.vertices.len()];
             let new_index = new_vertices.len();
             new_vertices.push(to_dodgy_vec2(new_vertex));
             return (
@@ -294,8 +292,7 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
             );
           }
 
-          let vertex =
-            vertex_index_to_dodgy_vec(island_data, index, agent_point);
+          let vertex = vertex_index_to_dodgy_vec(island, index, agent_point);
           (vertex, (Some(island_id), index))
         }
 
@@ -304,7 +301,7 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
           node.island_id,
           agent_point,
           modified_node,
-          island_data,
+          island,
           &mut new_vertices,
         );
         let (right_point, right_index) = index_to_vertex_and_index(
@@ -312,7 +309,7 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
           node.island_id,
           agent_point,
           modified_node,
-          island_data,
+          island,
           &mut new_vertices,
         );
 
@@ -327,8 +324,8 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
         let (border_vertex_1, border_vertex_2) =
           polygon.get_edge_indices(border_edge);
         let (vertex_1, vertex_2) = (
-          vertex_index_to_dodgy_vec(island_data, border_vertex_1, agent_point),
-          vertex_index_to_dodgy_vec(island_data, border_vertex_2, agent_point),
+          vertex_index_to_dodgy_vec(island, border_vertex_1, agent_point),
+          vertex_index_to_dodgy_vec(island, border_vertex_2, agent_point),
         );
 
         if let Some(line_index) = visibility_set.add_line(vertex_1, vertex_2) {
@@ -400,8 +397,7 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
     |(island_id, index)| match island_id {
       None => new_vertices[index],
       Some(island_id) => {
-        let island_data =
-          nav_data.get_island(island_id).unwrap().nav_data.as_ref().unwrap();
+        let island_data = nav_data.get_island(island_id).unwrap();
         vertex_index_to_dodgy_vec(island_data, index, glam::Vec2::ZERO)
       }
     };

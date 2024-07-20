@@ -136,8 +136,8 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     self.characters.keys()
   }
 
-  pub fn add_island(&mut self) -> IslandMut<'_, CS> {
-    self.nav_data.add_island()
+  pub fn add_island(&mut self, island: Island<CS>) -> IslandMut<'_, CS> {
+    self.nav_data.add_island(island)
   }
 
   pub fn remove_island(&mut self, island_id: IslandId) {
