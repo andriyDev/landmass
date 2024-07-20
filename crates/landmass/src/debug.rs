@@ -1,8 +1,8 @@
 use thiserror::Error;
 
 use crate::{
-  island::IslandNavigationData, nav_data::NodeRef, path::Path, Agent, AgentId,
-  Archipelago, CoordinateSystem,
+  nav_data::NodeRef, path::Path, Agent, AgentId, Archipelago, CoordinateSystem,
+  Island,
 };
 
 /// The type of debug points.
@@ -71,24 +71,17 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
 
   fn index_to_vertex<CS: CoordinateSystem>(
     index: usize,
-    nav_data: &IslandNavigationData<CS>,
+    island: &Island<CS>,
   ) -> CS::Coordinate {
-    CS::from_landmass(
-      &nav_data.transform.apply(nav_data.nav_mesh.vertices[index]),
-    )
+    CS::from_landmass(&island.transform.apply(island.nav_mesh.vertices[index]))
   }
 
   for island_id in archipelago.get_island_ids() {
     let island = archipelago.get_island(island_id).unwrap();
     assert!(!island.dirty, "Drawing an archipelago while things are dirty is unsafe! Update the archipelago first.");
-    let Some(island_nav_data) = island.nav_data.as_ref() else {
-      continue;
-    };
-
-    for (polygon_index, polygon) in
-      island_nav_data.nav_mesh.polygons.iter().enumerate()
+    for (polygon_index, polygon) in island.nav_mesh.polygons.iter().enumerate()
     {
-      let center_point = island_nav_data.transform.apply(polygon.center);
+      let center_point = island.transform.apply(polygon.center);
       for i in 0..polygon.vertices.len() {
         let j = (i + 1) % polygon.vertices.len();
 
@@ -98,8 +91,8 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
         debug_drawer.add_triangle(
           TriangleType::Node,
           [
-            index_to_vertex(i, island_nav_data),
-            index_to_vertex(j, island_nav_data),
+            index_to_vertex(i, island),
+            index_to_vertex(j, island),
             CS::from_landmass(&center_point),
           ],
         );
@@ -127,10 +120,7 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
 
         debug_drawer.add_line(
           line_type,
-          [
-            index_to_vertex(i, island_nav_data),
-            index_to_vertex(j, island_nav_data),
-          ],
+          [index_to_vertex(i, island), index_to_vertex(j, island)],
         );
       }
 
@@ -205,13 +195,7 @@ fn draw_path<CS: CoordinateSystem>(
           .nav_data
           .get_island(island_segment.island_id)
           .expect("Island in corridor should be valid.");
-        let nav_data = island
-          .nav_data
-          .as_ref()
-          .expect("Island nav data in corridor should be valid.");
-        nav_data
-          .transform
-          .apply(nav_data.nav_mesh.polygons[polygon_index].center)
+        island.transform.apply(island.nav_mesh.polygons[polygon_index].center)
       })
     })
     .collect::<Vec<_>>();
