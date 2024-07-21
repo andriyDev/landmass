@@ -2,7 +2,7 @@ use std::{
   collections::{HashMap, HashSet},
   mem::swap,
   ops::{Deref, DerefMut},
-  sync::{Arc, Mutex},
+  sync::Mutex,
 };
 
 use disjoint::DisjointSet;

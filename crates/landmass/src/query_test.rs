@@ -3,8 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 use glam::Vec2;
 
 use crate::{
-  coords::XY, Archipelago, FindPathError, NavigationMesh, SamplePointError,
-  Transform,
+  coords::XY, Archipelago, FindPathError, Island, NavigationMesh,
+  SamplePointError, Transform,
 };
 
 use super::{find_path, sample_point};
@@ -28,11 +28,11 @@ fn error_on_dirty_nav_mesh() {
     .expect("nav mesh is valid"),
   );
 
-  archipelago.add_island().set_nav_mesh(
+  archipelago.add_island(Island::new(
     Transform::default(),
     nav_mesh,
     HashMap::new(),
-  );
+  ));
   assert_eq!(
     sample_point(
       &archipelago,
@@ -63,11 +63,11 @@ fn error_on_out_of_range() {
     .expect("nav mesh is valid"),
   );
 
-  archipelago.add_island().set_nav_mesh(
+  archipelago.add_island(Island::new(
     Transform::default(),
     nav_mesh,
     HashMap::new(),
-  );
+  ));
   archipelago.update(1.0);
 
   assert_eq!(
@@ -101,11 +101,11 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
   );
 
   let offset = Vec2::new(10.0, 10.0);
-  archipelago.add_island().set_nav_mesh(
+  archipelago.add_island(Island::new(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh,
     HashMap::new(),
-  );
+  ));
   archipelago.update(1.0);
 
   assert_eq!(
@@ -157,16 +157,16 @@ fn no_path() {
   );
 
   let offset = Vec2::new(10.0, 10.0);
-  archipelago.add_island().set_nav_mesh(
+  archipelago.add_island(Island::new(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh.clone(),
     HashMap::new(),
-  );
-  archipelago.add_island().set_nav_mesh(
+  ));
+  archipelago.add_island(Island::new(
     Transform { translation: offset + Vec2::new(2.0, 0.0), rotation: 0.0 },
     nav_mesh,
     HashMap::new(),
-  );
+  ));
   archipelago.update(1.0);
 
   let start_point = archipelago
@@ -201,21 +201,21 @@ fn finds_path() {
   );
 
   let offset = Vec2::new(10.0, 10.0);
-  archipelago.add_island().set_nav_mesh(
+  archipelago.add_island(Island::new(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh.clone(),
     HashMap::new(),
-  );
-  archipelago.add_island().set_nav_mesh(
+  ));
+  archipelago.add_island(Island::new(
     Transform { translation: offset + Vec2::new(1.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
     HashMap::new(),
-  );
-  archipelago.add_island().set_nav_mesh(
+  ));
+  archipelago.add_island(Island::new(
     Transform { translation: offset + Vec2::new(2.0, 0.5), rotation: 0.0 },
     nav_mesh,
     HashMap::new(),
-  );
+  ));
   archipelago.update(1.0);
 
   let start_point = archipelago
@@ -285,11 +285,11 @@ fn finds_path_with_override_node_types() {
 
   let node_type = archipelago.add_node_type(1.0).unwrap();
 
-  archipelago.add_island().set_nav_mesh(
+  archipelago.add_island(Island::new(
     Transform::default(),
     nav_mesh,
     HashMap::from([(1, node_type)]),
-  );
+  ));
 
   archipelago.update(1.0);
 
@@ -346,11 +346,11 @@ fn find_path_returns_error_on_invalid_node_cost() {
 
   let node_type = archipelago.add_node_type(1.0).unwrap();
 
-  archipelago.add_island().set_nav_mesh(
+  archipelago.add_island(Island::new(
     Transform::default(),
     nav_mesh,
     HashMap::from([(0, node_type)]),
-  );
+  ));
 
   archipelago.update(1.0);
 

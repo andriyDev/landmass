@@ -5,7 +5,7 @@ use glam::Vec3;
 use crate::{
   coords::XYZ,
   debug::{DebugDrawError, DebugDrawer, LineType, PointType, TriangleType},
-  Agent, Archipelago, NavigationMesh, Transform,
+  Agent, Archipelago, Island, NavigationMesh, Transform,
 };
 
 use super::draw_archipelago_debug;
@@ -96,14 +96,11 @@ fn draws_island_meshes_and_agents() {
 
   let mut archipelago = Archipelago::<XYZ>::new();
   const TRANSLATION: Vec3 = Vec3::ONE;
-  archipelago
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: TRANSLATION, rotation: 0.0 },
-      Arc::new(nav_mesh),
-      HashMap::new(),
-    )
-    .id();
+  archipelago.add_island(Island::new(
+    Transform { translation: TRANSLATION, rotation: 0.0 },
+    Arc::new(nav_mesh),
+    HashMap::new(),
+  ));
 
   let agent_id = archipelago.add_agent(Agent::create(
     /* position= */ Vec3::new(3.9, 1.5, 0.0) + TRANSLATION,
@@ -432,18 +429,16 @@ fn draws_boundary_links() {
   );
 
   let mut archipelago = Archipelago::<XYZ>::new();
-  archipelago
-    .add_island()
-    .set_nav_mesh(Transform::default(), nav_mesh.clone(), HashMap::new())
-    .id();
-  archipelago
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
-      nav_mesh.clone(),
-      HashMap::new(),
-    )
-    .id();
+  archipelago.add_island(Island::new(
+    Transform::default(),
+    nav_mesh.clone(),
+    HashMap::new(),
+  ));
+  archipelago.add_island(Island::new(
+    Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
+    nav_mesh.clone(),
+    HashMap::new(),
+  ));
 
   // Update so everything is in sync.
   archipelago.update(1.0);
@@ -486,16 +481,12 @@ fn fails_to_draw_dirty_archipelago() {
   let mut archipelago = Archipelago::<XYZ>::new();
   assert_eq!(draw_archipelago_debug(&archipelago, &mut fake_drawer), Ok(()));
 
-  // Creating an island doesn't mark the nav data as dirty.
-  let island_id = archipelago.add_island().id();
-  assert_eq!(draw_archipelago_debug(&archipelago, &mut fake_drawer), Ok(()));
-
-  // Setting a nav mesh marks the nav data as dirty.
-  archipelago.get_island_mut(island_id).unwrap().set_nav_mesh(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+  // Creating an island marks the nav data as dirty.
+  let island_id = archipelago.add_island(Island::new(
+    Transform::default(),
     nav_mesh.clone(),
     HashMap::new(),
-  );
+  ));
   assert_eq!(
     draw_archipelago_debug(&archipelago, &mut fake_drawer),
     Err(DebugDrawError::NavDataDirty)
@@ -505,12 +496,8 @@ fn fails_to_draw_dirty_archipelago() {
   // Nav data is clean again.
   assert_eq!(draw_archipelago_debug(&archipelago, &mut fake_drawer), Ok(()));
 
-  // Changing the transform/nav mesh marks the nav data as dirty.
-  archipelago.get_island_mut(island_id).unwrap().set_nav_mesh(
-    Transform { translation: Vec3::ZERO, rotation: 1.0 },
-    nav_mesh,
-    HashMap::new(),
-  );
+  // Setting a nav mesh marks the nav data as dirty.
+  archipelago.get_island_mut(island_id).unwrap().set_nav_mesh(nav_mesh.clone());
   assert_eq!(
     draw_archipelago_debug(&archipelago, &mut fake_drawer),
     Err(DebugDrawError::NavDataDirty)

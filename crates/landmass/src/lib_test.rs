@@ -4,8 +4,8 @@ use glam::{Vec2, Vec3};
 
 use crate::{
   coords::{XY, XYZ},
-  Agent, AgentId, AgentState, Archipelago, Character, CharacterId, IslandId,
-  NavigationMesh, Transform,
+  Agent, AgentId, AgentState, Archipelago, Character, CharacterId, Island,
+  IslandId, NavigationMesh, Transform,
 };
 
 #[test]
@@ -166,11 +166,11 @@ fn computes_and_follows_path() {
   .validate()
   .expect("is valid");
 
-  archipelago.add_island().set_nav_mesh(
+  archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::new(nav_mesh),
     HashMap::new(),
-  );
+  ));
 
   archipelago.agent_options.neighbourhood = 0.0;
   archipelago.agent_options.obstacle_avoidance_time_horizon = 0.01;
@@ -386,10 +386,31 @@ fn computes_and_follows_path() {
 #[test]
 fn add_and_remove_islands() {
   let mut archipelago = Archipelago::<XYZ>::new();
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![],
+      polygons: vec![],
+      polygon_type_indices: vec![],
+    }
+    .validate()
+    .unwrap(),
+  );
 
-  let island_id_1 = archipelago.add_island().id();
-  let island_id_2 = archipelago.add_island().id();
-  let island_id_3 = archipelago.add_island().id();
+  let island_id_1 = archipelago.add_island(Island::new(
+    Transform::default(),
+    nav_mesh.clone(),
+    Default::default(),
+  ));
+  let island_id_2 = archipelago.add_island(Island::new(
+    Transform::default(),
+    nav_mesh.clone(),
+    Default::default(),
+  ));
+  let island_id_3 = archipelago.add_island(Island::new(
+    Transform::default(),
+    nav_mesh.clone(),
+    Default::default(),
+  ));
 
   fn sorted(mut v: Vec<IslandId>) -> Vec<IslandId> {
     v.sort();
@@ -413,11 +434,7 @@ fn add_and_remove_islands() {
 fn changed_island_is_not_dirty_after_update() {
   let mut archipelago = Archipelago::<XYZ>::new();
 
-  let island_id = archipelago.add_island().id();
-
-  assert!(!archipelago.get_island(island_id).unwrap().dirty);
-
-  archipelago.get_island_mut(island_id).unwrap().set_nav_mesh(
+  let island_id = archipelago.add_island(Island::new(
     Transform::default(),
     Arc::new(
       NavigationMesh {
@@ -429,7 +446,18 @@ fn changed_island_is_not_dirty_after_update() {
       .unwrap(),
     ),
     HashMap::new(),
-  );
+  ));
+
+  assert!(archipelago.get_island(island_id).unwrap().dirty);
+
+  archipelago.update(/* delta_time= */ 0.01);
+  assert!(!archipelago.get_island(island_id).unwrap().dirty);
+
+  // Change the island (even though there isn't really a change).
+  archipelago
+    .get_island_mut(island_id)
+    .unwrap()
+    .set_transform(Transform::default());
 
   assert!(archipelago.get_island(island_id).unwrap().dirty);
 
@@ -458,11 +486,11 @@ fn samples_point() {
   );
 
   let offset = Vec2::new(10.0, 10.0);
-  archipelago.add_island().set_nav_mesh(
+  archipelago.add_island(Island::new(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh,
     HashMap::new(),
-  );
+  ));
   archipelago.update(1.0);
 
   assert_eq!(
@@ -514,21 +542,21 @@ fn finds_path() {
   );
 
   let offset = Vec2::new(10.0, 10.0);
-  archipelago.add_island().set_nav_mesh(
+  archipelago.add_island(Island::new(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh.clone(),
     HashMap::new(),
-  );
-  archipelago.add_island().set_nav_mesh(
+  ));
+  archipelago.add_island(Island::new(
     Transform { translation: offset + Vec2::new(1.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
     HashMap::new(),
-  );
-  archipelago.add_island().set_nav_mesh(
+  ));
+  archipelago.add_island(Island::new(
     Transform { translation: offset + Vec2::new(2.0, 0.5), rotation: 0.0 },
     nav_mesh,
     HashMap::new(),
-  );
+  ));
   archipelago.update(1.0);
 
   let start_point = archipelago
@@ -598,11 +626,11 @@ fn agent_overrides_node_costs() {
 
   let node_type = archipelago.add_node_type(1.0).unwrap();
 
-  archipelago.add_island().set_nav_mesh(
+  archipelago.add_island(Island::new(
     Transform::default(),
     nav_mesh,
     HashMap::from([(1, node_type)]),
-  );
+  ));
 
   let agent_id = archipelago.add_agent({
     let mut agent = Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0);
