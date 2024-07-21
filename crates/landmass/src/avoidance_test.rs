@@ -5,7 +5,7 @@ use slotmap::HopSlotMap;
 
 use crate::{
   avoidance::apply_avoidance_to_agents, coords::XYZ, nav_data::NodeRef, Agent,
-  AgentId, AgentOptions, Character, CharacterId, NavigationData,
+  AgentId, AgentOptions, Character, CharacterId, Island, NavigationData,
   NavigationMesh, Transform,
 };
 
@@ -84,14 +84,11 @@ fn computes_obstacle_for_box() {
   let island_offset_dodgy =
     dodgy_2d::Vec2::new(island_offset.x, island_offset.y);
 
-  let island_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: island_offset, rotation: 0.0 },
-      Arc::new(nav_mesh),
-      HashMap::new(),
-    )
-    .id();
+  let island_id = nav_data.add_island(Island::new(
+    Transform { translation: island_offset, rotation: 0.0 },
+    Arc::new(nav_mesh),
+    HashMap::new(),
+  ));
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
@@ -143,14 +140,11 @@ fn dead_end_makes_open_obstacle() {
   .expect("Validation succeeds");
 
   let mut nav_data = NavigationData::<XYZ>::new();
-  let island_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      Arc::new(nav_mesh),
-      HashMap::new(),
-    )
-    .id();
+  let island_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    Arc::new(nav_mesh),
+    HashMap::new(),
+  ));
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
@@ -289,14 +283,11 @@ fn split_borders() {
   .expect("Validation succeeds");
 
   let mut nav_data = NavigationData::<XYZ>::new();
-  let island_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      Arc::new(nav_mesh),
-      HashMap::new(),
-    )
-    .id();
+  let island_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    Arc::new(nav_mesh),
+    HashMap::new(),
+  ));
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
@@ -351,19 +342,16 @@ fn creates_obstacles_across_boundary_link() {
   );
 
   let mut nav_data = NavigationData::<XYZ>::new();
-  nav_data.add_island().set_nav_mesh(
+  nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::clone(&nav_mesh),
     HashMap::new(),
-  );
-  let island_id_2 = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
-      nav_mesh,
-      HashMap::new(),
-    )
-    .id();
+  ));
+  let island_id_2 = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
+    nav_mesh,
+    HashMap::new(),
+  ));
 
   nav_data.update(0.01);
 
@@ -413,14 +401,11 @@ fn applies_no_avoidance_for_far_agents() {
   .expect("Validation succeeded.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
-  let island_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      Arc::new(nav_mesh),
-      HashMap::new(),
-    )
-    .id();
+  let island_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    Arc::new(nav_mesh),
+    HashMap::new(),
+  ));
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent_1 = agents.insert({
@@ -511,14 +496,11 @@ fn applies_avoidance_for_two_agents() {
   .expect("Validation succeeded.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
-  let island_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      Arc::new(nav_mesh),
-      HashMap::new(),
-    )
-    .id();
+  let island_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    Arc::new(nav_mesh),
+    HashMap::new(),
+  ));
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent_1 = agents.insert({
@@ -607,14 +589,11 @@ fn agent_avoids_character() {
   .expect("Validation succeeded.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
-  let island_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      Arc::new(nav_mesh),
-      HashMap::new(),
-    )
-    .id();
+  let island_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    Arc::new(nav_mesh),
+    HashMap::new(),
+  ));
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent = agents.insert({

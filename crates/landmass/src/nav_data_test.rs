@@ -43,22 +43,16 @@ fn samples_points() {
   let nav_mesh = Arc::new(nav_mesh);
 
   let mut nav_data = NavigationData::<XYZ>::new();
-  let island_id_1 = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      Arc::clone(&nav_mesh),
-      HashMap::new(),
-    )
-    .id();
-  let island_id_2 = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::new(5.0, 0.0, 0.1), rotation: PI * 0.5 },
-      Arc::clone(&nav_mesh),
-      HashMap::new(),
-    )
-    .id();
+  let island_id_1 = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    Arc::clone(&nav_mesh),
+    HashMap::new(),
+  ));
+  let island_id_2 = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::new(5.0, 0.0, 0.1), rotation: PI * 0.5 },
+    Arc::clone(&nav_mesh),
+    HashMap::new(),
+  ));
 
   // Just above island 1 node.
   assert_eq!(
@@ -230,24 +224,22 @@ fn link_edges_between_islands_links_touching_islands() {
   let node_type_1 = slotmap.insert(0);
   let node_type_2 = slotmap.insert(0);
 
-  let mut island_1 = Island::new();
-  let mut island_2 = Island::new();
-
   let transform =
     Transform { translation: Vec3::new(1.0, 2.0, 3.0), rotation: PI * -0.25 };
-  island_1.set_nav_mesh(
+
+  let island_1 = Island::new(
     transform.clone(),
     Arc::clone(&nav_mesh_1),
     HashMap::from([(1, node_type_1)]),
   );
-  island_2.set_nav_mesh(
+  let island_2 = Island::new(
     transform.clone(),
     Arc::clone(&nav_mesh_2),
     HashMap::from([(1, node_type_2)]),
   );
 
-  let island_1_edge_bbh = island_edges_bbh(island_1.nav_data.as_ref().unwrap());
-  let island_2_edge_bbh = island_edges_bbh(island_2.nav_data.as_ref().unwrap());
+  let island_1_edge_bbh = island_edges_bbh(&island_1);
+  let island_2_edge_bbh = island_edges_bbh(&island_2);
 
   let mut boundary_links = SlotMap::with_key();
   let mut node_to_boundary_link_ids = HashMap::new();
@@ -530,46 +522,31 @@ fn update_links_islands_and_unlinks_on_delete() {
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
-  let island_1_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      Arc::clone(&nav_mesh),
-      HashMap::new(),
-    )
-    .id();
-  let island_2_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: PI * 0.5 },
-      Arc::clone(&nav_mesh),
-      HashMap::new(),
-    )
-    .id();
-  let island_3_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: PI },
-      Arc::clone(&nav_mesh),
-      HashMap::new(),
-    )
-    .id();
-  let island_4_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::new(3.0, 0.0, 0.0), rotation: PI },
-      Arc::clone(&nav_mesh),
-      HashMap::new(),
-    )
-    .id();
-  let island_5_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::new(2.0, 3.0, 0.0), rotation: PI * -0.5 },
-      Arc::clone(&nav_mesh),
-      HashMap::new(),
-    )
-    .id();
+  let island_1_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    Arc::clone(&nav_mesh),
+    HashMap::new(),
+  ));
+  let island_2_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::ZERO, rotation: PI * 0.5 },
+    Arc::clone(&nav_mesh),
+    HashMap::new(),
+  ));
+  let island_3_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::ZERO, rotation: PI },
+    Arc::clone(&nav_mesh),
+    HashMap::new(),
+  ));
+  let island_4_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::new(3.0, 0.0, 0.0), rotation: PI },
+    Arc::clone(&nav_mesh),
+    HashMap::new(),
+  ));
+  let island_5_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::new(2.0, 3.0, 0.0), rotation: PI * -0.5 },
+    Arc::clone(&nav_mesh),
+    HashMap::new(),
+  ));
 
   nav_data.update(/* edge_link_distance= */ 0.01);
 
@@ -696,11 +673,7 @@ fn update_links_islands_and_unlinks_on_delete() {
     .islands
     .get_mut(island_5_id)
     .expect("island_5 still exists")
-    .set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: PI * 0.5 },
-      Arc::clone(&nav_mesh),
-      HashMap::new(),
-    );
+    .set_transform(Transform { translation: Vec3::ZERO, rotation: PI * 0.5 });
 
   nav_data.update(/* edge_link_distance= */ 0.01);
 
@@ -853,30 +826,21 @@ fn modifies_node_boundaries_for_linked_islands() {
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
-  let island_1_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::ZERO, rotation: 0.0 },
-      Arc::clone(&nav_mesh),
-      HashMap::new(),
-    )
-    .id();
-  let island_2_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
-      Arc::clone(&nav_mesh),
-      HashMap::new(),
-    )
-    .id();
-  let island_3_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::new(2.0, 3.5, 0.0), rotation: PI * -0.5 },
-      Arc::clone(&nav_mesh),
-      HashMap::new(),
-    )
-    .id();
+  let island_1_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    Arc::clone(&nav_mesh),
+    HashMap::new(),
+  ));
+  let island_2_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
+    Arc::clone(&nav_mesh),
+    HashMap::new(),
+  ));
+  let island_3_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::new(2.0, 3.5, 0.0), rotation: PI * -0.5 },
+    Arc::clone(&nav_mesh),
+    HashMap::new(),
+  ));
 
   nav_data.update(/* edge_link_distance= */ 1e-6);
 
@@ -933,19 +897,16 @@ fn stale_modified_nodes_are_removed() {
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
-  nav_data.add_island().set_nav_mesh(
+  nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::clone(&nav_mesh),
     HashMap::new(),
-  );
-  let island_2_id = nav_data
-    .add_island()
-    .set_nav_mesh(
-      Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
-      Arc::clone(&nav_mesh),
-      HashMap::new(),
-    )
-    .id();
+  ));
+  let island_2_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
+    Arc::clone(&nav_mesh),
+    HashMap::new(),
+  ));
 
   nav_data.update(/* edge_link_distance= */ 1e-6);
 
@@ -986,16 +947,16 @@ fn empty_navigation_mesh_is_safe() {
   );
 
   let mut nav_data = NavigationData::<XYZ>::new();
-  nav_data.add_island().set_nav_mesh(
+  nav_data.add_island(Island::new(
     Transform::default(),
     full_nav_mesh,
     HashMap::new(),
-  );
-  nav_data.add_island().set_nav_mesh(
+  ));
+  nav_data.add_island(Island::new(
     Transform::default(),
     empty_nav_mesh,
     HashMap::new(),
-  );
+  ));
 
   // Nothing should panic here.
   nav_data.update(/* edge_link_distance= */ 1e-6);
@@ -1052,30 +1013,24 @@ fn cannot_remove_used_node_type() {
     .expect("mesh is valid"),
   );
 
-  let island_id_1 = archipelago
-    .add_island()
-    .set_nav_mesh(
-      Transform::default(),
-      nav_mesh.clone(),
-      HashMap::from([(0, node_type_1)]),
-    )
-    .id();
+  let island_id_1 = archipelago.add_island(Island::new(
+    Transform::default(),
+    nav_mesh.clone(),
+    HashMap::from([(0, node_type_1)]),
+  ));
 
-  let island_id_2 = archipelago
-    .add_island()
-    .set_nav_mesh(
-      Transform::default(),
-      nav_mesh.clone(),
-      HashMap::from([(0, node_type_1)]),
-    )
-    .id();
+  let island_id_2 = archipelago.add_island(Island::new(
+    Transform::default(),
+    nav_mesh.clone(),
+    HashMap::from([(0, node_type_1)]),
+  ));
 
   // Another island that has no effect since it doesn't mention `node_type_1`.
-  archipelago.add_island().set_nav_mesh(
+  archipelago.add_island(Island::new(
     Transform::default(),
     nav_mesh.clone(),
     HashMap::from([(0, node_type_2)]),
-  );
+  ));
 
   assert_eq!(
     archipelago.nav_data.get_node_types().collect::<Vec<_>>(),
@@ -1132,11 +1087,11 @@ fn panics_on_invalid_node_type() {
     .expect("mesh is valid"),
   );
 
-  archipelago.add_island().set_nav_mesh(
+  archipelago.add_island(Island::new(
     Transform::default(),
     nav_mesh,
     HashMap::from([(0, deleted_node_type)]),
-  );
+  ));
 
   // Panics due to referencing invalid node type.
   archipelago.update(1.0);
