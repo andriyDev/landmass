@@ -73,13 +73,11 @@ let valid_nav_mesh = Arc::new(
 );
 
 let island_id = archipelago
-  .add_island()
-  .set_nav_mesh(
+  .add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     valid_nav_mesh,
     HashMap::new(),
-  )
-  .id();
+  ));
 
 let agent_1 = archipelago.add_agent({
   let mut agent = Agent::create(
