@@ -330,13 +330,27 @@ fn adds_and_removes_islands() {
 
   let archipelago_id = app.world_mut().spawn(Archipelago3d::new()).id();
 
+  let nav_mesh =
+    app.world_mut().resource_mut::<Assets<NavMesh3d>>().add(NavMesh3d {
+      nav_mesh: Arc::new(
+        NavigationMesh {
+          vertices: vec![],
+          polygons: vec![],
+          polygon_type_indices: vec![],
+        }
+        .validate()
+        .unwrap(),
+      ),
+      type_index_to_node_type: HashMap::new(),
+    });
+
   let island_id_1 = app
     .world_mut()
     .spawn(TransformBundle::default())
     .insert(Island3dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-      nav_mesh: Default::default(),
+      nav_mesh: nav_mesh.clone(),
     })
     .id();
 
@@ -346,7 +360,7 @@ fn adds_and_removes_islands() {
     .insert(Island3dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-      nav_mesh: Default::default(),
+      nav_mesh: nav_mesh.clone(),
     })
     .id();
 
@@ -374,7 +388,7 @@ fn adds_and_removes_islands() {
     .insert(Island3dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-      nav_mesh: Default::default(),
+      nav_mesh: nav_mesh.clone(),
     })
     .id();
 
