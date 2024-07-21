@@ -99,18 +99,14 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
       Update,
       (
         add_agents_to_archipelagos::<CS>,
-        add_islands_to_archipelago::<CS>,
+        sync_islands_to_archipelago::<CS>,
         add_characters_to_archipelago::<CS>,
       )
         .in_set(LandmassSystemSet::SyncExistence),
     );
     app.add_systems(
       Update,
-      (
-        sync_agent_input_state::<CS>,
-        sync_island_nav_mesh::<CS>,
-        sync_character_state::<CS>,
-      )
+      (sync_agent_input_state::<CS>, sync_character_state::<CS>)
         .in_set(LandmassSystemSet::SyncValues),
     );
     app.add_systems(
