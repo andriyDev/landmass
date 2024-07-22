@@ -35,7 +35,7 @@ pub struct Island;
 
 /// Ensures that the island transform and nav mesh are up to date.
 pub(crate) fn sync_islands_to_archipelago<CS: CoordinateSystem>(
-  mut archipelagos: Query<&mut Archipelago<CS>>,
+  mut archipelagos: Query<(Entity, &mut Archipelago<CS>)>,
   islands: Query<
     (Entity, &Handle<NavMesh<CS>>, &GlobalTransform, &ArchipelagoRef<CS>),
     With<Island>,
@@ -48,7 +48,7 @@ pub(crate) fn sync_islands_to_archipelago<CS: CoordinateSystem>(
   {
     let mut archipelago = match archipelagos.get_mut(archipelago_ref.entity) {
       Err(_) => continue,
-      Ok(arch) => arch,
+      Ok((_, arch)) => arch,
     };
 
     let Some(island_nav_mesh) = nav_meshes.get(island_nav_mesh) else {
@@ -95,11 +95,11 @@ pub(crate) fn sync_islands_to_archipelago<CS: CoordinateSystem>(
     };
   }
 
-  for (archipelago, islands) in archipelago_to_islands {
-    let mut archipelago = archipelagos.get_mut(archipelago).unwrap();
+  for (entity, mut archipelago) in archipelagos.iter_mut() {
+    let islands = archipelago_to_islands.get(&entity);
     let archipelago = archipelago.as_mut();
     archipelago.islands.retain(|entity, id| {
-      if islands.contains(entity) {
+      if islands.map(|islands| islands.contains(entity)).unwrap_or(false) {
         return true;
       }
       archipelago.archipelago.remove_island(*id);
