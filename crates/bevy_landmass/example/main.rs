@@ -98,7 +98,7 @@ fn setup(
 
   commands.spawn(TextBundle {
     text: Text::from_section(
-      "LMB - Spawn agent\nShift+LMB - Spawn agent (fast on mud)\nRMB - Change target point",
+      "LMB - Spawn agent\nShift+LMB - Spawn agent (fast on mud)\nRMB - Change target point\nF12 - Toggle debug view",
       TextStyle::default()
     ).with_justify(JustifyText::Right),
     style: Style {
