@@ -96,6 +96,20 @@ fn setup(
     ..Default::default()
   });
 
+  commands.spawn(TextBundle {
+    text: Text::from_section(
+      "LMB - Spawn agent\nShift+LMB - Spawn agent (fast on mud)\nRMB - Change target point",
+      TextStyle::default()
+    ).with_justify(JustifyText::Right),
+    style: Style {
+      position_type: PositionType::Absolute,
+      right: Val::Px(0.0),
+      bottom: Val::Px(0.0),
+      ..Default::default()
+    },
+    ..Default::default()
+  });
+
   let slow_area = Rect::from_corners(
     Vec2::new(-3.99582, -2.89418),
     Vec2::new(3.30418, 4.00582),
