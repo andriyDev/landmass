@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use bevy::{
   color::palettes::css,
@@ -32,6 +32,8 @@ fn main() {
 struct ConvertMesh {
   mesh: Handle<Mesh>,
   nav_mesh: Handle<NavMesh2d>,
+  slow_area: Rect,
+  slow_node_type: bevy_landmass::NodeType,
 }
 
 fn convert_mesh(
@@ -45,16 +47,33 @@ fn convert_mesh(
       continue;
     };
 
-    let nav_mesh = bevy_mesh_to_landmass_nav_mesh(mesh).unwrap();
+    let mut nav_mesh = bevy_mesh_to_landmass_nav_mesh(mesh).unwrap();
+    mark_slow_polygons(&mut nav_mesh, converter.slow_area);
+
     let valid_nav_mesh = nav_mesh.validate().unwrap();
     nav_meshes.insert(
       &converter.nav_mesh,
       NavMesh2d {
         nav_mesh: Arc::new(valid_nav_mesh),
-        type_index_to_node_type: Default::default(),
+        type_index_to_node_type: HashMap::from([(
+          1usize,
+          converter.slow_node_type,
+        )]),
       },
     );
     commands.entity(entity).remove::<ConvertMesh>();
+  }
+}
+
+fn mark_slow_polygons(nav_mesh: &mut NavigationMesh2d, slow_area: Rect) {
+  for (index, polygon) in nav_mesh.polygons.iter().enumerate() {
+    let center = polygon.iter().map(|&i| nav_mesh.vertices[i]).sum::<Vec2>()
+      / polygon.len() as f32;
+
+    if !slow_area.contains(center) {
+      continue;
+    }
+    nav_mesh.polygon_type_indices[index] = 1;
   }
 }
 
@@ -75,7 +94,25 @@ fn setup(
     ..Default::default()
   });
 
-  let archipelago_entity = commands.spawn(Archipelago2d::new()).id();
+  let slow_area = Rect::from_corners(
+    Vec2::new(-3.99582, -2.89418),
+    Vec2::new(3.30418, 4.00582),
+  );
+  commands.spawn(MaterialMesh2dBundle {
+    transform: Transform::from_translation(slow_area.center().extend(1.0)),
+    mesh: Mesh2dHandle(
+      meshes.add(Rectangle { half_size: slow_area.size() * 0.5 }),
+    ),
+    material: materials.add(ColorMaterial {
+      color: css::BROWN.with_alpha(0.5).into(),
+      ..Default::default()
+    }),
+    ..Default::default()
+  });
+
+  let mut archipelago = Archipelago2d::new();
+  let slow_node_type = archipelago.add_node_type(1000.0).unwrap();
+  let archipelago_entity = commands.spawn(archipelago).id();
 
   // Spawn the islands.
   let mesh_1: Handle<Mesh> = asset_server.load("nav_mesh.glb#Mesh0/Primitive0");
@@ -94,7 +131,12 @@ fn setup(
       island: Island,
       nav_mesh: nav_mesh_1.clone(),
     },
-    ConvertMesh { mesh: mesh_1, nav_mesh: nav_mesh_1 },
+    ConvertMesh {
+      mesh: mesh_1,
+      nav_mesh: nav_mesh_1,
+      slow_node_type,
+      slow_area,
+    },
   ));
 
   let mesh_2: Handle<Mesh> = asset_server.load("nav_mesh.glb#Mesh1/Primitive0");
@@ -114,7 +156,12 @@ fn setup(
       island: Island,
       nav_mesh: nav_mesh_2.clone(),
     },
-    ConvertMesh { mesh: mesh_2, nav_mesh: nav_mesh_2 },
+    ConvertMesh {
+      mesh: mesh_2,
+      nav_mesh: nav_mesh_2,
+      slow_node_type,
+      slow_area: Rect::EMPTY,
+    },
   ));
 
   // Spawn the target.
