@@ -145,13 +145,16 @@ pub struct Archipelago<CS: CoordinateSystem> {
   /// The `landmass` archipelago.
   archipelago: landmass::Archipelago<CS>,
   /// A map from the Bevy entity to its associated island ID in
-  /// [`Archipelago::archipelago`].
+  /// [`Self::archipelago`].
   islands: HashMap<Entity, IslandId>,
+  /// A map from the island ID to its associated Bevy entity in
+  /// [`Self::archipelago`]. This is just the reverse of [`Self::islands`].
+  reverse_islands: HashMap<IslandId, Entity>,
   /// A map from the Bevy entity to its associated agent ID in
-  /// [`Archipelago::archipelago`].
+  /// [`Self::archipelago`].
   agents: HashMap<Entity, AgentId>,
   /// A map from the Bevy entity to its associated character ID in
-  /// [`Archipelago::archipelago`].
+  /// [`Self::archipelago`].
   characters: HashMap<Entity, CharacterId>,
 }
 
@@ -164,6 +167,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     Self {
       archipelago: landmass::Archipelago::new(),
       islands: HashMap::new(),
+      reverse_islands: HashMap::new(),
       agents: HashMap::new(),
       characters: HashMap::new(),
     }
