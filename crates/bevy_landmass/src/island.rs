@@ -75,6 +75,7 @@ pub(crate) fn sync_islands_to_archipelago<CS: CoordinateSystem>(
             island_nav_mesh.type_index_to_node_type.clone(),
           ));
         archipelago.islands.insert(island_entity, island_id);
+        archipelago.reverse_islands.insert(island_id, island_entity);
       }
       Some(mut island) => {
         if island.get_transform() != &landmass_transform {
@@ -104,5 +105,8 @@ pub(crate) fn sync_islands_to_archipelago<CS: CoordinateSystem>(
       archipelago.archipelago.remove_island(*id);
       false
     });
+    archipelago
+      .reverse_islands
+      .retain(|_, entity| archipelago.islands.contains_key(entity));
   }
 }

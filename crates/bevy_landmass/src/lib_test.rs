@@ -380,6 +380,10 @@ fn adds_and_removes_islands() {
     sorted(archipelago.islands.keys().copied().collect()),
     sorted(vec![island_id_1, island_id_2]),
   );
+  assert_eq!(
+    sorted(archipelago.reverse_islands.values().copied().collect()),
+    sorted(vec![island_id_1, island_id_2]),
+  );
   assert_eq!(archipelago.archipelago.get_island_ids().len(), 2);
 
   let island_id_3 = app
@@ -403,6 +407,10 @@ fn adds_and_removes_islands() {
     sorted(archipelago.islands.keys().copied().collect()),
     sorted(vec![island_id_1, island_id_2, island_id_3])
   );
+  assert_eq!(
+    sorted(archipelago.reverse_islands.values().copied().collect()),
+    sorted(vec![island_id_1, island_id_2, island_id_3])
+  );
   assert_eq!(archipelago.archipelago.get_island_ids().len(), 3);
 
   app.world_mut().despawn(island_id_2);
@@ -418,6 +426,10 @@ fn adds_and_removes_islands() {
     sorted(archipelago.islands.keys().copied().collect()),
     sorted(vec![island_id_1, island_id_3])
   );
+  assert_eq!(
+    sorted(archipelago.reverse_islands.values().copied().collect()),
+    sorted(vec![island_id_1, island_id_3])
+  );
   assert_eq!(archipelago.archipelago.get_island_ids().len(), 2);
 
   app.world_mut().despawn(island_id_1);
@@ -430,8 +442,12 @@ fn adds_and_removes_islands() {
     .get::<Archipelago3d>(archipelago_id)
     .expect("archipelago exists");
 
-  assert_eq!(archipelago.agents.keys().copied().collect::<Vec<_>>(), []);
-  assert_eq!(archipelago.archipelago.get_agent_ids().len(), 0);
+  assert_eq!(archipelago.islands.keys().copied().collect::<Vec<_>>(), []);
+  assert_eq!(
+    archipelago.reverse_islands.values().copied().collect::<Vec<_>>(),
+    []
+  );
+  assert_eq!(archipelago.archipelago.get_island_ids().len(), 0);
 }
 
 #[test]
