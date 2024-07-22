@@ -101,7 +101,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
   );
 
   let offset = Vec2::new(10.0, 10.0);
-  archipelago.add_island(Island::new(
+  let island_id = archipelago.add_island(Island::new(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh,
     HashMap::new(),
@@ -114,8 +114,8 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
       /* point= */ offset + Vec2::new(-0.5, 0.5),
       /* distance_to_node= */ 0.6
     )
-    .map(|p| p.point()),
-    Ok(offset + Vec2::new(0.0, 0.5))
+    .map(|p| (p.island(), p.point())),
+    Ok((island_id, offset + Vec2::new(0.0, 0.5)))
   );
   assert_eq!(
     sample_point(
@@ -123,8 +123,8 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
       /* point= */ offset + Vec2::new(0.5, 0.5),
       /* distance_to_node= */ 0.6
     )
-    .map(|p| p.point()),
-    Ok(offset + Vec2::new(0.5, 0.5))
+    .map(|p| (p.island(), p.point())),
+    Ok((island_id, offset + Vec2::new(0.5, 0.5)))
   );
   assert_eq!(
     sample_point(
@@ -132,8 +132,8 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
       /* point= */ offset + Vec2::new(1.2, 1.2),
       /* distance_to_node= */ 0.6
     )
-    .map(|p| p.point()),
-    Ok(offset + Vec2::new(1.0, 1.0))
+    .map(|p| (p.island(), p.point())),
+    Ok((island_id, offset + Vec2::new(1.0, 1.0)))
   );
 }
 

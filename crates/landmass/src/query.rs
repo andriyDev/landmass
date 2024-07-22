@@ -4,7 +4,7 @@ use thiserror::Error;
 
 use crate::{
   nav_data::NodeRef, path::PathIndex, pathfinding, Archipelago,
-  CoordinateSystem, NodeType,
+  CoordinateSystem, IslandId, NodeType,
 };
 
 /// A point on the navigation meshes.
@@ -35,6 +35,11 @@ impl<CS: CoordinateSystem> SampledPoint<'_, CS> {
   /// Gets the point on the navigation meshes.
   pub fn point(&self) -> CS::Coordinate {
     self.point.clone()
+  }
+
+  /// Gets the island the sampled point is on.
+  pub fn island(&self) -> IslandId {
+    self.node_ref.island_id
   }
 }
 
