@@ -10,7 +10,9 @@ use bevy_landmass::{
   debug::{EnableLandmassDebug, Landmass2dDebugPlugin},
   nav_mesh::bevy_mesh_to_landmass_nav_mesh,
   prelude::*,
+  AgentNodeTypeCostOverrides,
 };
+use landmass::NodeType;
 
 fn main() {
   App::new()
@@ -188,6 +190,11 @@ fn setup(
     }),
     archipelago_entity,
     target_entity,
+    fast_material: materials.add(ColorMaterial {
+      color: css::BLUE_VIOLET.into(),
+      ..Default::default()
+    }),
+    slow_node_type,
   });
 }
 
@@ -197,26 +204,40 @@ struct AgentSpawner {
   material: Handle<ColorMaterial>,
   archipelago_entity: Entity,
   target_entity: Entity,
+  fast_material: Handle<ColorMaterial>,
+  slow_node_type: NodeType,
 }
 
 impl AgentSpawner {
-  fn spawn(&self, position: Vec2, commands: &mut Commands) {
-    commands.spawn((
-      MaterialMesh2dBundle {
-        transform: Transform::from_translation(position.extend(0.1)),
-        mesh: Mesh2dHandle(self.mesh.clone()),
-        material: self.material.clone(),
-        ..Default::default()
-      },
-      Agent2dBundle {
-        agent: Agent { radius: 0.5, max_velocity: 2.0 },
-        archipelago_ref: ArchipelagoRef2d::new(self.archipelago_entity),
-        target: AgentTarget2d::Entity(self.target_entity),
-        state: Default::default(),
-        velocity: Default::default(),
-        desired_velocity: Default::default(),
-      },
-    ));
+  fn spawn(&self, position: Vec2, commands: &mut Commands, fast_agent: bool) {
+    let entity = commands
+      .spawn((
+        MaterialMesh2dBundle {
+          transform: Transform::from_translation(position.extend(0.1)),
+          mesh: Mesh2dHandle(self.mesh.clone()),
+          material: self.material.clone(),
+          ..Default::default()
+        },
+        Agent2dBundle {
+          agent: Agent { radius: 0.5, max_velocity: 2.0 },
+          archipelago_ref: ArchipelagoRef2d::new(self.archipelago_entity),
+          target: AgentTarget2d::Entity(self.target_entity),
+          state: Default::default(),
+          velocity: Default::default(),
+          desired_velocity: Default::default(),
+        },
+      ))
+      .id();
+
+    if fast_agent {
+      commands.entity(entity).insert((self.fast_material.clone(), {
+        let mut node_cost_overrides = AgentNodeTypeCostOverrides::default();
+        assert!(
+          node_cost_overrides.set_node_type_cost(self.slow_node_type, 1.0)
+        );
+        node_cost_overrides
+      }));
+    }
   }
 }
 
@@ -249,6 +270,7 @@ struct Target;
 
 /// Handles clicks by spawning agents with LMB and moving the target with RMB.
 fn handle_clicks(
+  keys: Res<ButtonInput<KeyCode>>,
   buttons: Res<ButtonInput<MouseButton>>,
   window_query: Query<&Window>,
   camera_query: Query<(&Camera, &GlobalTransform)>,
@@ -258,6 +280,7 @@ fn handle_clicks(
 ) {
   let left = buttons.just_pressed(MouseButton::Left);
   let right = buttons.just_pressed(MouseButton::Right);
+  let shift = keys.pressed(KeyCode::ShiftLeft);
   if !left && !right {
     return;
   }
@@ -278,7 +301,7 @@ fn handle_clicks(
   };
 
   if left {
-    agent_spawner.spawn(world_position.xy(), &mut commands);
+    agent_spawner.spawn(world_position.xy(), &mut commands, shift);
   }
   if right {
     commands
