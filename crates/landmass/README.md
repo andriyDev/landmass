@@ -32,8 +32,7 @@ characters or other characters **not** controlled by AI should correspond to one
 
 1. Create an `Archipelago`.
 2. Create an `Island`.
-3. Assign a `ValidNavigationMesh` to the `Island`.
-2. Add `Agent`s and `Character`s to the `Archipelago`.
+3. Add `Agent`s and `Character`s to the `Archipelago`.
 
 Each frame of the game:
 
