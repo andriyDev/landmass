@@ -23,7 +23,13 @@ fn overrides_node_type_costs() {
   let node_type_1 = slotmap.insert(0);
   let node_type_2 = slotmap.insert(0);
 
-  let mut agent = Agent::<XY>::create(Vec2::ZERO, Vec2::ZERO, 1.0, 1.0);
+  let mut agent = Agent::<XY>::create(
+    /* position= */ Vec2::ZERO,
+    /* velocity= */ Vec2::ZERO,
+    /* radius */ 1.0,
+    /* desired_speed= */ 1.0,
+    /* max_speed= */ 1.0,
+  );
   assert!(agent.override_node_type_cost(node_type_1, 3.0));
   assert!(agent.override_node_type_cost(node_type_2, 0.5));
 
@@ -65,7 +71,13 @@ fn negative_or_zero_node_type_cost_returns_false() {
   let mut slotmap = HopSlotMap::<NodeType, _>::with_key();
   let node_type = slotmap.insert(0);
 
-  let mut agent = Agent::<XY>::create(Vec2::ZERO, Vec2::ZERO, 1.0, 1.0);
+  let mut agent = Agent::<XY>::create(
+    /* position= */ Vec2::ZERO,
+    /* velocity= */ Vec2::ZERO,
+    /* radius */ 1.0,
+    /* desired_speed= */ 1.0,
+    /* max_speed= */ 1.0,
+  );
   assert!(!agent.override_node_type_cost(node_type, 0.0));
   assert!(!agent.override_node_type_cost(node_type, -0.5));
 }
@@ -91,7 +103,8 @@ fn has_reached_target_at_end_node() {
     /* position= */ transform.apply(Vec3::new(1.0, 0.0, 1.0)),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
-    /* max_velocity= */ 0.0,
+    /* desired_speed= */ 0.0,
+    /* max_speed= */ 0.0,
   );
 
   let path = Path {
@@ -168,7 +181,8 @@ fn long_detour_reaches_target_in_different_ways() {
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
-    /* max_velocity= */ 0.0,
+    /* desired_speed= */ 0.0,
+    /* max_speed= */ 0.0,
   );
 
   let path = Path {
@@ -342,7 +356,8 @@ fn nothing_or_clear_path_for_no_target() {
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
-    /* max_velocity= */ 0.0,
+    /* desired_speed= */ 0.0,
+    /* max_speed= */ 0.0,
   );
 
   assert_eq!(
@@ -377,7 +392,8 @@ fn clears_path_for_missing_nodes() {
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
-    /* max_velocity= */ 0.0,
+    /* desired_speed= */ 0.0,
+    /* max_speed= */ 0.0,
   );
   agent.current_target = Some(Vec3::ZERO);
 
@@ -414,7 +430,8 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
-    /* max_velocity= */ 0.0,
+    /* desired_speed= */ 0.0,
+    /* max_speed= */ 0.0,
   );
   agent.current_target = Some(Vec3::ZERO);
 

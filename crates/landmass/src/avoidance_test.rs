@@ -413,7 +413,8 @@ fn applies_no_avoidance_for_far_agents() {
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
-      /* max_velocity= */ 1.0,
+      /* desired_speed= */ 1.0,
+      /* max_speed= */ 1.0,
     );
     agent.current_desired_move = Vec3::new(1.0, 0.0, 0.0);
     agent
@@ -423,7 +424,8 @@ fn applies_no_avoidance_for_far_agents() {
       /* position= */ Vec3::new(11.0, 1.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
-      /* max_velocity= */ 1.0,
+      /* desired_speed= */ 1.0,
+      /* max_speed= */ 1.0,
     );
     agent.current_desired_move = Vec3::new(-1.0, 0.0, 0.0);
     agent
@@ -433,7 +435,8 @@ fn applies_no_avoidance_for_far_agents() {
       /* position= */ Vec3::new(5.0, 4.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
-      /* max_velocity= */ 1.0,
+      /* desired_speed= */ 1.0,
+      /* max_speed= */ 1.0,
     );
     agent.current_desired_move = Vec3::new(0.0, 1.0, 0.0);
     agent
@@ -508,7 +511,8 @@ fn applies_avoidance_for_two_agents() {
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
       /* radius= */ 1.0,
-      /* max_velocity= */ 1.0,
+      /* desired_speed= */ 1.0,
+      /* max_speed= */ 1.0,
     );
     agent.current_desired_move = Vec3::new(1.0, 0.0, 0.0);
     agent
@@ -518,7 +522,8 @@ fn applies_avoidance_for_two_agents() {
       /* position= */ Vec3::new(11.0, 1.01, 0.0),
       /* velocity= */ Vec3::new(-1.0, 0.0, 0.0),
       /* radius= */ 1.0,
-      /* max_velocity= */ 1.0,
+      /* desired_speed= */ 1.0,
+      /* max_speed= */ 1.0,
     );
     agent.current_desired_move = Vec3::new(-1.0, 0.0, 0.0);
     agent
@@ -601,7 +606,8 @@ fn agent_avoids_character() {
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
       /* radius= */ 1.0,
-      /* max_velocity= */ 1.0,
+      /* desired_speed= */ 1.0,
+      /* max_speed= */ 1.0,
     );
     agent.current_desired_move = Vec3::new(1.0, 0.0, 0.0);
     agent

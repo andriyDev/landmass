@@ -133,7 +133,7 @@ pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
         .map(std::borrow::Cow::Owned)
         .collect::<Vec<_>>(),
       to_dodgy_vec2(CS::to_landmass(&agent.current_desired_move).xy()),
-      agent.max_velocity,
+      agent.max_speed,
       delta_time,
       &dodgy_2d::AvoidanceOptions {
         // Always use an avoidance margin of zero since we assume the nav mesh
