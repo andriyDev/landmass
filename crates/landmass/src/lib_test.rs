@@ -16,21 +16,24 @@ fn add_and_remove_agents() {
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 1.0,
-    /* max_velocity= */ 0.0,
+    /* desired_speed= */ 0.0,
+    /* max_speed= */ 0.0,
   ));
 
   let agent_2 = archipelago.add_agent(Agent::create(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 2.0,
-    /* max_velocity= */ 0.0,
+    /* desired_speed= */ 0.0,
+    /* max_speed= */ 0.0,
   ));
 
   let agent_3 = archipelago.add_agent(Agent::create(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 3.0,
-    /* max_velocity= */ 0.0,
+    /* desired_speed= */ 0.0,
+    /* max_speed= */ 0.0,
   ));
 
   fn sorted(mut v: Vec<AgentId>) -> Vec<AgentId> {
@@ -179,25 +182,29 @@ fn computes_and_follows_path() {
     /* position= */ Vec3::new(1.5, 1.5, 1.09),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.5,
-    /* max_velocity= */ 2.0,
+    /* desired_speed= */ 2.0,
+    /* max_speed= */ 2.0,
   ));
   let agent_2 = archipelago.add_agent(Agent::create(
     /* position= */ Vec3::new(3.5, 3.5, 0.95),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.5,
-    /* max_velocity= */ 2.0,
+    /* desired_speed= */ 2.0,
+    /* max_speed= */ 2.0,
   ));
   let agent_off_mesh = archipelago.add_agent(Agent::create(
     /* position= */ Vec3::new(1.5, 2.5, 1.0),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.5,
-    /* max_velocity= */ 2.0,
+    /* desired_speed= */ 2.0,
+    /* max_speed= */ 2.0,
   ));
   let agent_too_high_above_mesh = archipelago.add_agent(Agent::create(
     /* position= */ Vec3::new(1.5, 1.5, 1.11),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.5,
-    /* max_velocity= */ 2.0,
+    /* desired_speed= */ 2.0,
+    /* max_speed= */ 2.0,
   ));
 
   archipelago.get_agent_mut(agent_1).unwrap().current_target =
@@ -633,7 +640,13 @@ fn agent_overrides_node_costs() {
   ));
 
   let agent_id = archipelago.add_agent({
-    let mut agent = Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0);
+    let mut agent = Agent::create(
+      /* position= */ Vec2::new(0.5, 0.5),
+      /* velocity= */ Vec2::ZERO,
+      /* radius= */ 0.5,
+      /* desired_speed= */ 1.0,
+      /* max_speed= */ 1.0,
+    );
     assert!(agent.override_node_type_cost(node_type, 10.0));
     agent.current_target = Some(Vec2::new(0.5, 11.5));
     agent

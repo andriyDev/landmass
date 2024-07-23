@@ -383,7 +383,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       } else {
         let desired_move = (next_waypoint.1 - CS::to_landmass(&agent.position))
           .normalize_or_zero()
-          * agent.max_velocity;
+          * agent.desired_speed;
         agent.current_desired_move = CS::from_landmass(&desired_move);
         agent.state = AgentState::Moving;
       }

@@ -41,8 +41,12 @@ pub struct Agent<CS: CoordinateSystem> {
   pub velocity: CS::Coordinate,
   /// The radius of the agent.
   pub radius: f32,
-  /// The maximum velocity that the agent can move at.
-  pub max_velocity: f32,
+  /// The speed the agent prefers to move at. This should often be set lower
+  /// than the max_speed to allow the agent to "speed up" in order to get out
+  /// of another agent's way.
+  pub desired_speed: f32,
+  /// The maximum speed that the agent can move at.
+  pub max_speed: f32,
   /// The current target to move towards. Modifying this every update is fine.
   /// Paths will be reused for target points near each other if possible.
   /// However, swapping between two distant targets every update can be
@@ -102,13 +106,15 @@ impl<CS: CoordinateSystem> Agent<CS> {
     position: CS::Coordinate,
     velocity: CS::Coordinate,
     radius: f32,
-    max_velocity: f32,
+    desired_speed: f32,
+    max_speed: f32,
   ) -> Self {
     Self {
       position,
       velocity,
       radius,
-      max_velocity,
+      desired_speed,
+      max_speed,
       current_target: None,
       target_reached_condition: TargetReachedCondition::Distance(None),
       override_node_type_to_cost: HashMap::new(),
