@@ -1,11 +1,13 @@
 use std::{collections::HashMap, sync::Arc};
 
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
 
 use crate::{
-  avoidance::apply_avoidance_to_agents, coords::XYZ, nav_data::NodeRef, Agent,
-  AgentId, AgentOptions, Character, CharacterId, Island, NavigationData,
+  avoidance::apply_avoidance_to_agents,
+  coords::{XY, XYZ},
+  nav_data::NodeRef,
+  Agent, AgentId, AgentOptions, Character, CharacterId, Island, NavigationData,
   NavigationMesh, Transform,
 };
 
@@ -657,5 +659,103 @@ fn agent_avoids_character() {
     agent_desired_velocity
       .abs_diff_eq(Vec3::new((1.0f32 - 0.4 * 0.4).sqrt(), -0.4, 0.0), 0.05),
     "left={agent_desired_velocity}, right=Vec3(0.9165..., -0.4, 0.0)"
+  );
+}
+
+#[test]
+fn agent_speeds_up_to_avoid_character() {
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(-10.0, -10.0),
+      Vec2::new(10.0, -10.0),
+      Vec2::new(10.0, 10.0),
+      Vec2::new(-10.0, 10.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+  }
+  .validate()
+  .expect("Validation succeeded.");
+
+  let mut nav_data = NavigationData::<XY>::new();
+  let island_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec2::ZERO, rotation: 0.0 },
+    Arc::new(nav_mesh),
+    HashMap::new(),
+  ));
+
+  let mut agents = HopSlotMap::<AgentId, _>::with_key();
+  let agent = agents.insert({
+    let mut agent = Agent::<XY>::create(
+      /* position= */ Vec2::new(5.0, 0.0),
+      /* velocity= */ Vec2::new(-1.0, 0.0),
+      /* radius= */ 0.5,
+      /* desired_speed= */ 1.0,
+      /* max_speed= */ 2.0,
+    );
+    agent.current_desired_move = Vec2::new(1.0, 0.0);
+    agent
+  });
+
+  let mut agent_id_to_agent_node = HashMap::new();
+  agent_id_to_agent_node.insert(
+    agent,
+    (
+      agents.get(agent).unwrap().position.extend(0.0),
+      NodeRef { island_id, polygon_index: 0 },
+    ),
+  );
+
+  apply_avoidance_to_agents(
+    &mut agents,
+    &agent_id_to_agent_node,
+    &HopSlotMap::with_key(),
+    &HashMap::new(),
+    &nav_data,
+    &AgentOptions {
+      neighbourhood: 15.0,
+      avoidance_time_horizon: 15.0,
+      ..Default::default()
+    },
+    /* delta_time= */ 0.01,
+  );
+  // The agent sticks to its desired velocity.
+  assert_eq!(
+    *agents.get(agent).unwrap().get_desired_velocity(),
+    Vec2::new(1.0, 0.0)
+  );
+
+  let mut characters = HopSlotMap::<CharacterId, _>::with_key();
+  let character = characters.insert(Character::<XY> {
+    // Just slightly closer to the agent so it prefers to "speed up".
+    position: Vec2::new(0.0, 5.0),
+    velocity: Vec2::new(0.0, -1.0),
+    radius: 0.5,
+  });
+  let mut character_id_to_nav_mesh_point = HashMap::new();
+  character_id_to_nav_mesh_point
+    .insert(character, characters.get(character).unwrap().position.extend(0.0));
+
+  apply_avoidance_to_agents(
+    &mut agents,
+    &agent_id_to_agent_node,
+    &characters,
+    &character_id_to_nav_mesh_point,
+    &nav_data,
+    &AgentOptions {
+      neighbourhood: 15.0,
+      avoidance_time_horizon: 15.0,
+      ..Default::default()
+    },
+    /* delta_time= */ 0.01,
+  );
+
+  let agent_desired_velocity =
+    *agents.get(agent).unwrap().get_desired_velocity();
+  // Check the agent has sped up to avoid the character.
+  assert!(
+    agent_desired_velocity.length() > 1.1,
+    "actual={agent_desired_velocity} actual_length={} expected=greater than 1.0",
+    agent_desired_velocity.length(),
   );
 }
