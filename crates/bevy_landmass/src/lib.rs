@@ -370,6 +370,12 @@ impl<CS: CoordinateSystem> SampledPoint<'_, CS> {
   pub fn island(&self) -> Entity {
     self.island
   }
+
+  /// Gets the node type of the sampled point. Returns None if the node type
+  /// is the default node type.
+  pub fn node_type(&self) -> Option<NodeType> {
+    self.sampled_point.node_type()
+  }
 }
 
 #[cfg(test)]
