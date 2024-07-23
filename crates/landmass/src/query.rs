@@ -13,6 +13,8 @@ pub struct SampledPoint<'archipelago, CS: CoordinateSystem> {
   point: CS::Coordinate,
   /// The node that the point is on.
   node_ref: NodeRef,
+  /// The node type for `node_ref`.
+  node_type: Option<NodeType>,
   /// Marker to prevent this object from out-living a borrow to the
   /// archipelago.
   marker: PhantomData<&'archipelago ()>,
@@ -26,6 +28,7 @@ impl<'archipelago, CS: CoordinateSystem> Clone
     Self {
       point: self.point.clone(),
       node_ref: self.node_ref,
+      node_type: self.node_type,
       marker: self.marker,
     }
   }
@@ -40,6 +43,12 @@ impl<CS: CoordinateSystem> SampledPoint<'_, CS> {
   /// Gets the island the sampled point is on.
   pub fn island(&self) -> IslandId {
     self.node_ref.island_id
+  }
+
+  /// Gets the node type the sampled point is on. Returns None if the node type
+  /// is the default node type.
+  pub fn node_type(&self) -> Option<NodeType> {
+    self.node_type
   }
 }
 
@@ -69,9 +78,13 @@ pub(crate) fn sample_point<CS: CoordinateSystem>(
     return Err(SamplePointError::OutOfRange);
   };
 
+  let island = archipelago.nav_data.get_island(node_ref.island_id).unwrap();
+  let type_index = island.nav_mesh.polygons[node_ref.polygon_index].type_index;
+
   Ok(SampledPoint {
     point: CS::from_landmass(&point),
     node_ref,
+    node_type: island.type_index_to_node_type.get(&type_index).copied(),
     marker: PhantomData,
   })
 }
