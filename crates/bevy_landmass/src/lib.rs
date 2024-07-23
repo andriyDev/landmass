@@ -23,6 +23,7 @@ pub use landmass::AgentOptions;
 pub use landmass::NavigationMesh;
 pub use landmass::NewNodeTypeError;
 pub use landmass::NodeType;
+pub use landmass::SamplePointError;
 pub use landmass::SetNodeTypeCostError;
 pub use landmass::ValidNavigationMesh;
 pub use landmass::ValidationError;
@@ -218,6 +219,24 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     self.archipelago.remove_node_type(node_type)
   }
 
+  /// Finds the nearest point on the navigation meshes to (and within
+  /// `distance_to_node` of) `point`.
+  pub fn sample_point(
+    &self,
+    point: CS::Coordinate,
+    distance_to_node: f32,
+  ) -> Result<SampledPoint<'_, CS>, SamplePointError> {
+    let sampled_point =
+      self.archipelago.sample_point(point, distance_to_node)?;
+    Ok(SampledPoint {
+      island: *self
+        .reverse_islands
+        .get(&sampled_point.island())
+        .expect("The island hasn't been removed from the archipelago."),
+      sampled_point,
+    })
+  }
+
   /// Gets an agent.
   fn get_agent(&self, entity: Entity) -> Option<&landmass::Agent<CS>> {
     self
@@ -323,6 +342,35 @@ pub struct NavMesh<CS: CoordinateSystem> {
 
 pub type NavMesh2d = NavMesh<TwoD>;
 pub type NavMesh3d = NavMesh<ThreeD>;
+
+/// A point on the navigation meshes.
+pub struct SampledPoint<'archipelago, CS: CoordinateSystem> {
+  /// The sampled point from landmass.
+  sampled_point: landmass::SampledPoint<'archipelago, CS>,
+  /// The island that the point is on.
+  island: Entity,
+}
+
+// Manual Clone impl for `SampledPoint` to avoid the Clone bound on CS.
+impl<'archipelago, CS: CoordinateSystem> Clone
+  for SampledPoint<'archipelago, CS>
+{
+  fn clone(&self) -> Self {
+    Self { sampled_point: self.sampled_point.clone(), island: self.island }
+  }
+}
+
+impl<CS: CoordinateSystem> SampledPoint<'_, CS> {
+  /// Gets the point on the navigation meshes.
+  pub fn point(&self) -> CS::Coordinate {
+    self.sampled_point.point()
+  }
+
+  /// Gets the island the sampled point is on.
+  pub fn island(&self) -> Entity {
+    self.island
+  }
+}
 
 #[cfg(test)]
 #[path = "lib_test.rs"]
