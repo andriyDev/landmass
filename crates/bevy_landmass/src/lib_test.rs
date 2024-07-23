@@ -1140,3 +1140,125 @@ fn finds_path() {
     Ok(vec![Vec2::new(0.5, 0.5), Vec2::new(2.0, 1.0), Vec2::new(2.5, 1.25)])
   );
 }
+
+#[test]
+fn island_matches_rotation_3d() {
+  let mut app = App::new();
+
+  app
+    .add_plugins(MinimalPlugins)
+    .add_plugins(TransformPlugin)
+    .add_plugins(AssetPlugin::default())
+    .add_plugins(Landmass3dPlugin::default());
+
+  let archipelago_entity = app.world_mut().spawn(Archipelago3d::new()).id();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, -1.0),
+        Vec3::new(0.0, 0.0, -1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let nav_mesh = app
+    .world_mut()
+    .resource_mut::<Assets<NavMesh3d>>()
+    .add(NavMesh3d { nav_mesh, type_index_to_node_type: HashMap::new() });
+
+  let island = app
+    .world_mut()
+    .spawn((
+      TransformBundle {
+        local: Transform::from_rotation(Quat::from_rotation_y(2.0)),
+        ..Default::default()
+      },
+      Island3dBundle {
+        island: Island,
+        archipelago_ref: ArchipelagoRef3d::new(archipelago_entity),
+        nav_mesh: nav_mesh.clone(),
+      },
+    ))
+    .id();
+
+  app.update();
+  app.update();
+
+  let rotation = app
+    .world()
+    .get::<Archipelago3d>(archipelago_entity)
+    .unwrap()
+    .get_island(island)
+    .expect("The island is present.")
+    .get_transform()
+    .rotation;
+  assert!((rotation - 2.0).abs() < 1e-6, "left={rotation} right=2.0");
+}
+
+#[test]
+fn island_matches_rotation_2d() {
+  let mut app = App::new();
+
+  app
+    .add_plugins(MinimalPlugins)
+    .add_plugins(TransformPlugin)
+    .add_plugins(AssetPlugin::default())
+    .add_plugins(Landmass2dPlugin::default());
+
+  let archipelago_entity = app.world_mut().spawn(Archipelago2d::new()).id();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let nav_mesh = app
+    .world_mut()
+    .resource_mut::<Assets<NavMesh2d>>()
+    .add(NavMesh2d { nav_mesh, type_index_to_node_type: HashMap::new() });
+
+  let island = app
+    .world_mut()
+    .spawn((
+      TransformBundle {
+        local: Transform::from_rotation(Quat::from_rotation_z(2.0)),
+        ..Default::default()
+      },
+      Island2dBundle {
+        island: Island,
+        archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+        nav_mesh: nav_mesh.clone(),
+      },
+    ))
+    .id();
+
+  app.update();
+  app.update();
+
+  let rotation = app
+    .world()
+    .get::<Archipelago2d>(archipelago_entity)
+    .unwrap()
+    .get_island(island)
+    .expect("The island is present.")
+    .get_transform()
+    .rotation;
+  assert!((rotation - 2.0).abs() < 1e-6, "left={rotation} right=2.0");
+}

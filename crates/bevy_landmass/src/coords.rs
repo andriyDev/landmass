@@ -11,9 +11,12 @@ pub trait CoordinateSystem:
   /// Converts a vertex from a mesh into this system's coordinate.
   fn from_mesh_vertex(v: &[f32; 3]) -> Self::Coordinate;
 
-  /// Converts a position from a [`bevy::prelude::Transform`] into this system's
-  /// coordinate.
-  fn from_transform_position(v: bevy::math::Vec3) -> Self::Coordinate;
+  /// Converts a position in Bevy into this system's coordinate.
+  fn from_bevy_position(v: bevy::math::Vec3) -> Self::Coordinate;
+
+  /// Converts a [`bevy::math::Quat`] into the corresponding rotation (in
+  /// radians) in this system.
+  fn from_bevy_rotation(rotation: &bevy::math::Quat) -> f32;
 
   /// Converts this system's coordinate into a world position.
   fn to_world_position(c: &Self::Coordinate) -> bevy::math::Vec3;
@@ -40,8 +43,12 @@ impl CoordinateSystem for ThreeD {
     bevy::math::Vec3::new(v[0], v[1], v[2])
   }
 
-  fn from_transform_position(v: bevy::math::Vec3) -> Self::Coordinate {
+  fn from_bevy_position(v: bevy::math::Vec3) -> Self::Coordinate {
     v
+  }
+
+  fn from_bevy_rotation(rotation: &bevy::math::Quat) -> f32 {
+    rotation.to_euler(bevy::math::EulerRot::YXZ).0
   }
 
   fn to_world_position(c: &Self::Coordinate) -> bevy::math::Vec3 {
@@ -70,8 +77,12 @@ impl CoordinateSystem for TwoD {
     bevy::math::Vec2::new(v[0], v[1])
   }
 
-  fn from_transform_position(v: bevy::math::Vec3) -> Self::Coordinate {
+  fn from_bevy_position(v: bevy::math::Vec3) -> Self::Coordinate {
     v.xy()
+  }
+
+  fn from_bevy_rotation(rotation: &bevy::math::Quat) -> f32 {
+    rotation.to_euler(bevy::math::EulerRot::ZXY).0
   }
 
   fn to_world_position(c: &Self::Coordinate) -> bevy::math::Vec3 {

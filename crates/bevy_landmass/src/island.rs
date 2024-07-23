@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use bevy::{
   asset::{Assets, Handle},
-  math::EulerRot,
   prelude::{Bundle, Component, Entity, Query, Res, With},
   transform::components::GlobalTransform,
   utils::hashbrown::{HashMap, HashSet},
@@ -62,8 +61,8 @@ pub(crate) fn sync_islands_to_archipelago<CS: CoordinateSystem>(
 
     let island_transform = island_transform.compute_transform();
     let landmass_transform = landmass::Transform {
-      translation: CS::from_transform_position(island_transform.translation),
-      rotation: island_transform.rotation.to_euler(EulerRot::YXZ).0,
+      translation: CS::from_bevy_position(island_transform.translation),
+      rotation: CS::from_bevy_rotation(&island_transform.rotation),
     };
 
     match archipelago.get_island_mut(island_entity) {

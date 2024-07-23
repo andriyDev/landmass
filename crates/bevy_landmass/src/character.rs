@@ -117,7 +117,7 @@ pub(crate) fn sync_character_state<CS: CoordinateSystem>(
       .get_character_mut(character_entity)
       .expect("the characters is in the archipelago");
     landmass_character.position =
-      CS::from_transform_position(transform.translation());
+      CS::from_bevy_position(transform.translation());
     landmass_character.velocity = if let Some(Velocity { velocity }) = velocity
     {
       velocity.clone()
