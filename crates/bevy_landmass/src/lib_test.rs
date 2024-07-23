@@ -974,3 +974,81 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
     Ok((island_id, offset + Vec2::new(1.0, 1.0)))
   );
 }
+
+#[test]
+fn samples_node_types() {
+  let mut app = App::new();
+
+  app
+    .add_plugins(MinimalPlugins)
+    .add_plugins(TransformPlugin)
+    .add_plugins(AssetPlugin::default())
+    .add_plugins(Landmass2dPlugin::default());
+
+  let mut archipelago = Archipelago2d::new();
+  let node_type = archipelago.add_node_type(2.0).unwrap();
+  let archipelago_entity = app.world_mut().spawn(archipelago).id();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(2.0, 0.0),
+        Vec2::new(2.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3], vec![2, 1, 4, 5]],
+      polygon_type_indices: vec![0, 1],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+  let nav_mesh_handle =
+    app.world_mut().resource_mut::<Assets<NavMesh2d>>().add(NavMesh2d {
+      nav_mesh,
+      type_index_to_node_type: HashMap::from([(1, node_type)]),
+    });
+
+  let offset = Vec2::new(10.0, 10.0);
+  app.world_mut().spawn((
+    TransformBundle {
+      local: Transform::from_translation(offset.extend(0.0)),
+      ..Default::default()
+    },
+    Island2dBundle {
+      island: Island,
+      archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+      nav_mesh: nav_mesh_handle,
+    },
+  ));
+
+  // The first update propagates the global transform, and sets the start of
+  // the delta time (in this update, delta time is 0).
+  app.update();
+  // The second update allows landmass to update properly.
+  app.update();
+
+  let archipelago =
+    app.world().get::<Archipelago2d>(archipelago_entity).unwrap();
+
+  assert_eq!(
+    archipelago
+      .sample_point(
+        /* point= */ offset + Vec2::new(0.5, 0.5),
+        /* distance_to_node= */ 0.1
+      )
+      .map(|p| p.node_type()),
+    Ok(None)
+  );
+  assert_eq!(
+    archipelago
+      .sample_point(
+        /* point= */ offset + Vec2::new(1.5, 0.5),
+        /* distance_to_node= */ 0.1
+      )
+      .map(|p| p.node_type()),
+    Ok(Some(node_type))
+  );
+}
