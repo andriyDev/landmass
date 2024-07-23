@@ -42,8 +42,8 @@ pub struct Agent<CS: CoordinateSystem> {
   /// The radius of the agent.
   pub radius: f32,
   /// The speed the agent prefers to move at. This should often be set lower
-  /// than the max_speed to allow the agent to "speed up" in order to get out
-  /// of another agent's way.
+  /// than the [`Self::max_speed`] to allow the agent to "speed up" in order to
+  /// get out of another agent's way.
   pub desired_speed: f32,
   /// The maximum speed that the agent can move at.
   pub max_speed: f32,

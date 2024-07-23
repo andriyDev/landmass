@@ -233,7 +233,7 @@ impl AgentSpawner {
           ..Default::default()
         },
         Agent2dBundle {
-          agent: Agent { radius: 0.5, max_velocity: 2.0 },
+          agent: Agent { radius: 0.5, desired_speed: 2.0, max_speed: 3.0 },
           archipelago_ref: ArchipelagoRef2d::new(self.archipelago_entity),
           target: AgentTarget2d::Entity(self.target_entity),
           state: Default::default(),
