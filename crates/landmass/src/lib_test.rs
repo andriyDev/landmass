@@ -1,3 +1,4 @@
+use core::arch;
 use std::{collections::HashMap, sync::Arc};
 
 use glam::{Vec2, Vec3};
@@ -387,6 +388,71 @@ fn computes_and_follows_path() {
   assert_eq!(
     archipelago.get_agent(agent_too_high_above_mesh).unwrap().state(),
     AgentState::AgentNotOnNavMesh
+  );
+}
+
+#[test]
+fn agent_speeds_up_to_avoid_character() {
+  let mut archipelago = Archipelago::<XY>::new();
+
+  archipelago.agent_options.avoidance_time_horizon = 100.0;
+  archipelago.agent_options.neighbourhood = 10.0;
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(-10.0, -10.0),
+        Vec2::new(10.0, -10.0),
+        Vec2::new(10.0, 10.0),
+        Vec2::new(-10.0, 10.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+    }
+    .validate()
+    .expect("Validation succeeded."),
+  );
+
+  archipelago.add_island(Island::new(
+    Transform::default(),
+    nav_mesh,
+    HashMap::new(),
+  ));
+
+  let agent_id = archipelago.add_agent({
+    let mut agent = Agent::create(
+      /* position= */ Vec2::new(5.0, 0.0),
+      /* velocity= */ Vec2::new(-1.0, 0.0),
+      /* radius= */ 0.5,
+      /* desired_speed= */ 1.0,
+      /* max_speed= */ 2.0,
+    );
+    agent.current_target = Some(Vec2::new(-5.0, 0.0));
+    agent
+  });
+
+  archipelago.update(0.01);
+  // The agent will move at its desired speed normally.
+  assert_eq!(
+    *archipelago.get_agent(agent_id).unwrap().get_desired_velocity(),
+    Vec2::new(-1.0, 0.0)
+  );
+
+  archipelago.add_character(Character {
+    position: Vec2::new(0.0, 5.0),
+    velocity: Vec2::new(0.0, -1.0),
+    radius: 0.5,
+  });
+
+  archipelago.update(0.01);
+
+  let agent_desired_velocity =
+    *archipelago.get_agent(agent_id).unwrap().get_desired_velocity();
+  // The agent speeds up to avoid the character.
+  assert!(
+    agent_desired_velocity.length() > 1.1,
+    "actual={agent_desired_velocity} actual_length={} expected=greater than 1.0",
+    agent_desired_velocity.length(),
   );
 }
 
