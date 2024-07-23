@@ -138,6 +138,86 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
 }
 
 #[test]
+fn samples_node_types() {
+  let mut archipelago = Archipelago::<XY>::new();
+
+  let node_type_1 = archipelago.add_node_type(1.0).unwrap();
+  let node_type_2 = archipelago.add_node_type(2.0).unwrap();
+  let node_type_3 = archipelago.add_node_type(3.0).unwrap();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(2.0, 0.0),
+        Vec2::new(2.0, 1.0),
+        Vec2::new(3.0, 0.0),
+        Vec2::new(3.0, 1.0),
+        Vec2::new(4.0, 0.0),
+        Vec2::new(4.0, 1.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 2, 3],
+        vec![2, 1, 4, 5],
+        vec![5, 4, 6, 7],
+        vec![7, 6, 8, 9],
+      ],
+      polygon_type_indices: vec![0, 1, 2, 3],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let offset = Vec2::new(10.0, 10.0);
+  archipelago.add_island(Island::new(
+    Transform { translation: offset, rotation: 0.0 },
+    nav_mesh,
+    HashMap::from([(1, node_type_1), (2, node_type_2), (3, node_type_3)]),
+  ));
+  archipelago.update(1.0);
+
+  assert_eq!(
+    sample_point(
+      &archipelago,
+      /* point= */ offset + Vec2::new(0.5, 0.5),
+      /* distance_to_node= */ 0.1
+    )
+    .map(|p| p.node_type()),
+    Ok(None)
+  );
+  assert_eq!(
+    sample_point(
+      &archipelago,
+      /* point= */ offset + Vec2::new(1.5, 0.5),
+      /* distance_to_node= */ 0.1
+    )
+    .map(|p| p.node_type()),
+    Ok(Some(node_type_1))
+  );
+  assert_eq!(
+    sample_point(
+      &archipelago,
+      /* point= */ offset + Vec2::new(2.5, 0.5),
+      /* distance_to_node= */ 0.1
+    )
+    .map(|p| p.node_type()),
+    Ok(Some(node_type_2))
+  );
+  assert_eq!(
+    sample_point(
+      &archipelago,
+      /* point= */ offset + Vec2::new(3.5, 0.5),
+      /* distance_to_node= */ 0.1
+    )
+    .map(|p| p.node_type()),
+    Ok(Some(node_type_3))
+  );
+}
+
+#[test]
 fn no_path() {
   let mut archipelago = Archipelago::<XY>::new();
 
