@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use bevy::prelude::*;
-use landmass::NavigationMesh;
+use landmass::{NavigationMesh, SamplePointError};
 
 use crate::{
   Agent, Agent2dBundle, Agent3dBundle, AgentDesiredVelocity2d,
@@ -832,5 +832,145 @@ fn overridden_node_type_costs_are_used() {
       .expect("desired velocity was added")
       .velocity(),
     Vec2::new(1.5, 0.5).normalize(),
+  );
+}
+
+#[test]
+fn sample_point_error_on_out_of_range() {
+  let mut app = App::new();
+
+  app
+    .add_plugins(MinimalPlugins)
+    .add_plugins(TransformPlugin)
+    .add_plugins(AssetPlugin::default())
+    .add_plugins(Landmass2dPlugin::default());
+
+  let archipelago_entity = app.world_mut().spawn(Archipelago2d::new()).id();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+  let nav_mesh_handle = app
+    .world_mut()
+    .resource_mut::<Assets<NavMesh2d>>()
+    .add(NavMesh2d { nav_mesh, type_index_to_node_type: HashMap::new() });
+
+  app.world_mut().spawn((
+    TransformBundle::default(),
+    Island2dBundle {
+      island: Island,
+      archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+      nav_mesh: nav_mesh_handle,
+    },
+  ));
+
+  // The first update propagates the global transform, and sets the start of
+  // the delta time (in this update, delta time is 0).
+  app.update();
+  // The second update allows landmass to update properly.
+  app.update();
+
+  let archipelago =
+    app.world().get::<Archipelago2d>(archipelago_entity).unwrap();
+
+  assert_eq!(
+    archipelago.sample_point(Vec2::new(-0.5, 0.5), 0.1).map(|p| p.point()),
+    Err(SamplePointError::OutOfRange)
+  );
+}
+
+#[test]
+fn samples_point_on_nav_mesh_or_near_nav_mesh() {
+  let mut app = App::new();
+
+  app
+    .add_plugins(MinimalPlugins)
+    .add_plugins(TransformPlugin)
+    .add_plugins(AssetPlugin::default())
+    .add_plugins(Landmass2dPlugin::default());
+
+  let archipelago_entity = app.world_mut().spawn(Archipelago2d::new()).id();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+  let nav_mesh_handle = app
+    .world_mut()
+    .resource_mut::<Assets<NavMesh2d>>()
+    .add(NavMesh2d { nav_mesh, type_index_to_node_type: HashMap::new() });
+
+  let offset = Vec2::new(10.0, 10.0);
+  let island_id = app
+    .world_mut()
+    .spawn((
+      TransformBundle {
+        local: Transform::from_translation(offset.extend(0.0)),
+        ..Default::default()
+      },
+      Island2dBundle {
+        island: Island,
+        archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+        nav_mesh: nav_mesh_handle,
+      },
+    ))
+    .id();
+
+  // The first update propagates the global transform, and sets the start of
+  // the delta time (in this update, delta time is 0).
+  app.update();
+  // The second update allows landmass to update properly.
+  app.update();
+
+  let archipelago =
+    app.world().get::<Archipelago2d>(archipelago_entity).unwrap();
+
+  assert_eq!(
+    archipelago
+      .sample_point(
+        /* point= */ offset + Vec2::new(-0.5, 0.5),
+        /* distance_to_node= */ 0.6
+      )
+      .map(|p| (p.island(), p.point())),
+    Ok((island_id, offset + Vec2::new(0.0, 0.5)))
+  );
+  assert_eq!(
+    archipelago
+      .sample_point(
+        /* point= */ offset + Vec2::new(0.5, 0.5),
+        /* distance_to_node= */ 0.6
+      )
+      .map(|p| (p.island(), p.point())),
+    Ok((island_id, offset + Vec2::new(0.5, 0.5)))
+  );
+  assert_eq!(
+    archipelago
+      .sample_point(
+        /* point= */ offset + Vec2::new(1.2, 1.2),
+        /* distance_to_node= */ 0.6
+      )
+      .map(|p| (p.island(), p.point())),
+    Ok((island_id, offset + Vec2::new(1.0, 1.0)))
   );
 }
