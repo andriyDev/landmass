@@ -106,8 +106,7 @@ impl<CS: CoordinateSystem> AgentTarget<CS> {
       &Self::Entity(entity) => global_transform_query
         .get(entity)
         .ok()
-        .map(|transform| transform.translation())
-        .map(CS::from_transform_position),
+        .map(|transform| CS::from_bevy_position(transform.translation())),
       _ => None,
     }
   }
@@ -216,8 +215,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
     let landmass_agent = archipelago
       .get_agent_mut(agent_entity)
       .expect("this agent is in the archipelago");
-    landmass_agent.position =
-      CS::from_transform_position(transform.translation());
+    landmass_agent.position = CS::from_bevy_position(transform.translation());
     if let Some(Velocity { velocity }) = velocity {
       landmass_agent.velocity = velocity.clone();
     }

@@ -275,7 +275,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       .and_then(|&agent_id| self.archipelago.get_agent_mut(agent_id))
   }
 
-  /// Gets a mutable borrow to a character.
+  /// Gets a borrow to a character.
   #[allow(unused)] // Used in tests.
   fn get_character(&self, entity: Entity) -> Option<&landmass::Character<CS>> {
     self
@@ -292,6 +292,15 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     self.characters.get(&entity).and_then(|&character_id| {
       self.archipelago.get_character_mut(character_id)
     })
+  }
+
+  /// Gets a borrow to a character.
+  #[allow(unused)] // Used in tests.
+  fn get_island(&self, entity: Entity) -> Option<&landmass::Island<CS>> {
+    self
+      .islands
+      .get(&entity)
+      .and_then(|&island_id| self.archipelago.get_island(island_id))
   }
 
   /// Gets a mutable borrow to an island (if present).
