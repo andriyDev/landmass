@@ -20,6 +20,7 @@ mod island;
 mod landmass_structs;
 
 pub use landmass::AgentOptions;
+pub use landmass::FindPathError;
 pub use landmass::NavigationMesh;
 pub use landmass::NewNodeTypeError;
 pub use landmass::NodeType;
@@ -235,6 +236,24 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
         .expect("The island hasn't been removed from the archipelago."),
       sampled_point,
     })
+  }
+
+  /// Finds a path from `start_point` and `end_point` along the navigation
+  /// meshes. Only [`SampledPoint`]s from this archipelago are supported. This
+  /// should only be used for querying (e.g., finding the walking distance to an
+  /// object), not for controlling movement. For controlling movement, use
+  /// agents.
+  pub fn find_path(
+    &self,
+    start_point: &SampledPoint<'_, CS>,
+    end_point: &SampledPoint<'_, CS>,
+    override_node_type_costs: &HashMap<NodeType, f32>,
+  ) -> Result<Vec<CS::Coordinate>, FindPathError> {
+    self.archipelago.find_path(
+      &start_point.sampled_point,
+      &end_point.sampled_point,
+      override_node_type_costs,
+    )
   }
 
   /// Gets an agent.
