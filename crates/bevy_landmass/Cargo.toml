@@ -1,6 +1,6 @@
 [package]
 name = "bevy_landmass"
-version = "0.7.0"
+version = "0.8.0-dev"
 edition = "2021"
 
 description = "A plugin for Bevy to handle navigation of AI characters."
@@ -23,7 +23,7 @@ bevy = { version = "0.14.0", default-features = false, features = [
   "bevy_asset",
   "bevy_gizmos",
 ] }
-landmass = { path = "../landmass", version = "0.6.0" }
+landmass = { path = "../landmass", version = "0.7.0-dev" }
 
 [dev-dependencies]
 bevy = "0.14.0"
