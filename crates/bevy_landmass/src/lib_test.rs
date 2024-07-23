@@ -73,7 +73,7 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
       ..Default::default()
     })
     .insert(Agent3dBundle {
-      agent: Agent { radius: 0.5, max_velocity: 1.0 },
+      agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       target: AgentTarget3d::Point(Vec3::new(4.5, 1.0, 4.5)),
       velocity: Default::default(),
@@ -117,7 +117,7 @@ fn adds_and_removes_agents() {
     .world_mut()
     .spawn(TransformBundle::default())
     .insert(Agent3dBundle {
-      agent: Agent { radius: 0.5, max_velocity: 1.0 },
+      agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       target: AgentTarget3d::None,
       velocity: Default::default(),
@@ -130,7 +130,7 @@ fn adds_and_removes_agents() {
     .world_mut()
     .spawn(TransformBundle::default())
     .insert(Agent3dBundle {
-      agent: Agent { radius: 0.5, max_velocity: 1.0 },
+      agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       target: AgentTarget3d::None,
       velocity: Default::default(),
@@ -161,7 +161,7 @@ fn adds_and_removes_agents() {
     .world_mut()
     .spawn(TransformBundle::default())
     .insert(Agent3dBundle {
-      agent: Agent { radius: 0.5, max_velocity: 1.0 },
+      agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       target: AgentTarget3d::None,
       velocity: Default::default(),
@@ -470,7 +470,7 @@ fn changing_agent_fields_changes_landmass_agent() {
         ..Default::default()
       },
       Agent3dBundle {
-        agent: Agent { radius: 1.0, max_velocity: 1.0 },
+        agent: Agent { radius: 1.0, desired_speed: 1.0, max_speed: 2.0 },
         archipelago_ref: ArchipelagoRef3d::new(archipelago),
         velocity: Velocity3d { velocity: Vec3::new(4.0, 5.0, 6.0) },
         target: AgentTarget3d::None,
@@ -494,7 +494,8 @@ fn changing_agent_fields_changes_landmass_agent() {
   assert_eq!(agent_ref.position, Vec3::new(1.0, 2.0, 3.0));
   assert_eq!(agent_ref.velocity, Vec3::new(4.0, 5.0, 6.0));
   assert_eq!(agent_ref.radius, 1.0);
-  assert_eq!(agent_ref.max_velocity, 1.0);
+  assert_eq!(agent_ref.desired_speed, 1.0);
+  assert_eq!(agent_ref.max_speed, 2.0);
   assert_eq!(agent_ref.current_target, None);
   let landmass::TargetReachedCondition::Distance(dist) =
     agent_ref.target_reached_condition
@@ -505,7 +506,7 @@ fn changing_agent_fields_changes_landmass_agent() {
 
   app.world_mut().entity_mut(agent).insert((
     Transform::from_translation(Vec3::new(7.0, 8.0, 9.0)),
-    Agent { radius: 2.0, max_velocity: 2.0 },
+    Agent { radius: 2.0, desired_speed: 1.5, max_speed: 2.0 },
     Velocity3d { velocity: Vec3::new(10.0, 11.0, 12.0) },
     AgentTarget3d::Point(Vec3::new(13.0, 14.0, 15.0)),
     crate::TargetReachedCondition::VisibleAtDistance(Some(2.0)),
@@ -524,7 +525,8 @@ fn changing_agent_fields_changes_landmass_agent() {
   assert_eq!(agent_ref.position, Vec3::new(7.0, 8.0, 9.0));
   assert_eq!(agent_ref.velocity, Vec3::new(10.0, 11.0, 12.0));
   assert_eq!(agent_ref.radius, 2.0);
-  assert_eq!(agent_ref.max_velocity, 2.0);
+  assert_eq!(agent_ref.desired_speed, 1.5);
+  assert_eq!(agent_ref.max_speed, 2.0);
   assert_eq!(agent_ref.current_target, Some(Vec3::new(13.0, 14.0, 15.0)));
   let landmass::TargetReachedCondition::VisibleAtDistance(dist) =
     agent_ref.target_reached_condition
@@ -684,7 +686,7 @@ fn node_type_costs_are_used() {
       ..Default::default()
     })
     .insert(Agent2dBundle {
-      agent: Agent { radius: 0.5, max_velocity: 1.0 },
+      agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
       archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
       target: AgentTarget2d::Point(Vec2::new(0.5, 11.5)),
       velocity: Default::default(),
@@ -801,7 +803,7 @@ fn overridden_node_type_costs_are_used() {
       ..Default::default()
     })
     .insert(Agent2dBundle {
-      agent: Agent { radius: 0.5, max_velocity: 1.0 },
+      agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
       archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
       target: AgentTarget2d::Point(Vec2::new(0.5, 11.5)),
       velocity: Default::default(),

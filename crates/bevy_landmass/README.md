@@ -92,7 +92,8 @@ fn set_up_scene(
     Agent2dBundle {
       agent: Agent {
         radius: 0.5,
-        max_velocity: 1.0,
+        desired_speed: 1.0,
+        max_speed: 2.0,
       },
       archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
       target: AgentTarget2d::Point(Vec2::new(1.5, 3.5)),

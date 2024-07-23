@@ -41,8 +41,12 @@ pub type Agent3dBundle = AgentBundle<ThreeD>;
 pub struct Agent {
   /// The radius of the agent.
   pub radius: f32,
-  /// The max velocity of an agent.
-  pub max_velocity: f32,
+  /// The speed the agent prefers to move at. This should often be set lower
+  /// than the [`Self::max_speed`] to allow the agent to "speed up" in order to
+  /// get out of another agent's way.
+  pub desired_speed: f32,
+  /// The max speed of an agent.
+  pub max_speed: f32,
 }
 
 #[derive(Component, Default, Deref)]
@@ -173,7 +177,8 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
           /* position= */ CS::from_landmass(&landmass::Vec3::ZERO),
           /* velocity= */ CS::from_landmass(&landmass::Vec3::ZERO),
           new_agent.radius,
-          new_agent.max_velocity,
+          new_agent.desired_speed,
+          new_agent.max_speed,
         ));
       archipelago.agents.insert(new_agent_entity, agent_id);
     }
@@ -220,7 +225,8 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
       landmass_agent.velocity = velocity.clone();
     }
     landmass_agent.radius = agent.radius;
-    landmass_agent.max_velocity = agent.max_velocity;
+    landmass_agent.desired_speed = agent.desired_speed;
+    landmass_agent.max_speed = agent.max_speed;
     landmass_agent.current_target =
       target.and_then(|target| target.to_point(&global_transform_query));
     landmass_agent.target_reached_condition =
