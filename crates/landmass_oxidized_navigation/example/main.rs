@@ -57,6 +57,21 @@ fn setup(
     ..Default::default()
   });
 
+  commands.spawn(TextBundle {
+    text: Text::from_section(
+      "LMB - Spawn agent\nRMB - Change target point\nF12 - Toggle debug view",
+      TextStyle::default(),
+    )
+    .with_justify(JustifyText::Right),
+    style: Style {
+      position_type: PositionType::Absolute,
+      right: Val::Px(0.0),
+      bottom: Val::Px(0.0),
+      ..Default::default()
+    },
+    ..Default::default()
+  });
+
   let archipelago_entity =
     commands.spawn((Archipelago3d::new(), OxidizedArchipelago)).id();
 
