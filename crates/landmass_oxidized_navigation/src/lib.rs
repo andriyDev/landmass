@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use std::{collections::HashMap, sync::Arc};
 
 use bevy::{
