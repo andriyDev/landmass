@@ -18,6 +18,8 @@ use bevy_landmass::{
 };
 use oxidized_navigation::tiles::NavMeshTile;
 
+/// The main plugin that updates the `landmass` archipelago using
+/// `oxidized_navigation` navigation meshes.
 pub struct LandmassOxidizedNavigationPlugin;
 
 impl Plugin for LandmassOxidizedNavigationPlugin {
@@ -25,7 +27,7 @@ impl Plugin for LandmassOxidizedNavigationPlugin {
     app
       .init_resource::<LastTileGenerations>()
       .add_event::<UpdateTile>()
-      .init_resource::<TileToEntity>()
+      .init_resource::<TileToIsland>()
       .add_systems(
         Update,
         (LastTileGenerations::system, UpdateTile::system)
@@ -35,13 +37,20 @@ impl Plugin for LandmassOxidizedNavigationPlugin {
   }
 }
 
+/// A marker component to mark the [`bevy_landmass::Archipelago3d`] to put
+/// `oxidized_navigation` navigation meshes into. Note exactly one entity must
+/// have this marker.
 #[derive(Component)]
 pub struct OxidizedArchipelago;
 
+/// A resource tracking the previous tile generations. This works around the
+/// lack of https://github.com/TheGrimsey/oxidized_navigation/issues/31.
 #[derive(Resource, Default, Deref, DerefMut)]
 struct LastTileGenerations(HashMap<UVec2, u64>);
 
 impl LastTileGenerations {
+  /// The system updating these tile generations and sending [`UpdateTile`]
+  /// events in response to changes.
   fn system(
     oxidized_nav_mesh: Res<oxidized_navigation::NavMesh>,
     mut last_tile_generations: ResMut<Self>,
@@ -74,16 +83,21 @@ impl LastTileGenerations {
   }
 }
 
+/// An event to update a specific tile of `oxidized_navigation`. This works
+/// around the lack of
+/// https://github.com/TheGrimsey/oxidized_navigation/issues/31.
 #[derive(Event)]
 struct UpdateTile(UVec2);
 
 impl UpdateTile {
+  /// Updates the island (or creates one) corresponding to the tile in the
+  /// event.
   fn system(
     mut events: EventReader<Self>,
     oxidized_nav_mesh: Res<oxidized_navigation::NavMesh>,
     archipelago: Query<Entity, With<OxidizedArchipelago>>,
     mut nav_meshes: ResMut<Assets<bevy_landmass::NavMesh3d>>,
-    mut tile_to_entity: ResMut<TileToEntity>,
+    mut tile_to_entity: ResMut<TileToIsland>,
     mut commands: Commands,
   ) {
     let oxidized_nav_mesh = oxidized_nav_mesh.get();
@@ -152,6 +166,7 @@ impl UpdateTile {
   }
 }
 
+/// Converts the [`NavMeshTile`] into the corresponding [`NavigationMesh3d`].
 fn tile_to_landmass_nav_mesh(tile: &NavMeshTile) -> NavigationMesh3d {
   NavigationMesh3d {
     vertices: tile
@@ -171,8 +186,9 @@ fn tile_to_landmass_nav_mesh(tile: &NavMeshTile) -> NavigationMesh3d {
   }
 }
 
+/// Tracks the islands corresponding to each tile of `oxidized_navigation`.
 #[derive(Resource, Default, Deref)]
-pub struct TileToEntity(HashMap<UVec2, Entity>);
+pub struct TileToIsland(HashMap<UVec2, Entity>);
 
 #[cfg(test)]
 #[path = "lib_test.rs"]
