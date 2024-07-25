@@ -171,3 +171,7 @@ fn tile_to_landmass_nav_mesh(tile: &NavMeshTile) -> NavigationMesh3d {
 
 #[derive(Resource, Default, Deref)]
 pub struct TileToEntity(HashMap<UVec2, Entity>);
+
+#[cfg(test)]
+#[path = "lib_test.rs"]
+mod test;
