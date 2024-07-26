@@ -65,7 +65,7 @@ pub(crate) struct NodeRef {
 
 new_key_type! {
   /// The ID of a boundary link.
-  pub struct BoundaryLinkId;
+  pub(crate) struct BoundaryLinkId;
 }
 
 /// A single link between two nodes on the boundary of an island.
