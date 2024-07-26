@@ -37,10 +37,10 @@ characters or other characters **not** controlled by AI should correspond to one
 Each frame of the game:
 
 1. Set the position and velocity of each game character to its corresponding
-`Agent` or `Character`.
+   `Agent` or `Character`.
 2. Call `update` on the `Archipelago`.
 3. Use the desired move from each `Agent` to inform the corresponding game
-character where it should move.
+   character where it should move.
 
 Note: `landmass` intentionally does not update the `Agent`s position itself.
 Generally, characters are moved using some other method (like a physics
