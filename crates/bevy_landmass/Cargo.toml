@@ -33,6 +33,6 @@ default = ["mesh-utils"]
 mesh-utils = ["bevy/bevy_render"]
 
 [[example]]
-name = "example"
+name = "bevy_landmass_example"
 path = "example/main.rs"
 required-features = ["mesh-utils"]

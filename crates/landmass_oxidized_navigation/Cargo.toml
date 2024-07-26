@@ -31,5 +31,5 @@ bevy_rapier3d = "0.27.0"
 oxidized_navigation = { version = "0.11.0", features = ["rapier"] }
 
 [[example]]
-name = "example"
+name = "landmass_oxidized_navigation_example"
 path = "example/main.rs"
