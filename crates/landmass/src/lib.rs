@@ -58,6 +58,11 @@ pub struct AgentOptions {
   /// The time into the future that collisions with obstacles should be
   /// avoided.
   pub obstacle_avoidance_time_horizon: f32,
+  /// The avoidance responsibility to use when an agent has reached its target.
+  /// A value of 1.0 is the default avoidance responsibility. A value of 0.0
+  /// would mean no avoidance responsibility, but a value of 0.0 is invalid and
+  /// may panic. This should be a value between 0.0 and 1.0.
+  pub reached_destination_avoidance_responsibility: f32,
 }
 
 impl Default for AgentOptions {
@@ -67,6 +72,7 @@ impl Default for AgentOptions {
       neighbourhood: 5.0,
       avoidance_time_horizon: 1.0,
       obstacle_avoidance_time_horizon: 0.5,
+      reached_destination_avoidance_responsibility: 0.1,
     }
   }
 }
