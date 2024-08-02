@@ -7,8 +7,8 @@ use crate::{
   avoidance::apply_avoidance_to_agents,
   coords::{XY, XYZ},
   nav_data::NodeRef,
-  Agent, AgentId, AgentOptions, Character, CharacterId, Island, NavigationData,
-  NavigationMesh, Transform,
+  Agent, AgentId, AgentOptions, Archipelago, Character, CharacterId, Island,
+  NavigationData, NavigationMesh, Transform,
 };
 
 use super::nav_mesh_borders_to_dodgy_obstacles;
@@ -757,5 +757,96 @@ fn agent_speeds_up_to_avoid_character() {
     agent_desired_velocity.length() > 1.1,
     "actual={agent_desired_velocity} actual_length={} expected=greater than 1.0",
     agent_desired_velocity.length(),
+  );
+}
+
+#[test]
+fn reached_target_agent_has_different_avoidance() {
+  let mut archipelago = Archipelago::<XY>::new();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(-10.0, -10.0),
+        Vec2::new(10.0, -10.0),
+        Vec2::new(10.0, 10.0),
+        Vec2::new(-10.0, 10.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+    }
+    .validate()
+    .unwrap(),
+  );
+
+  archipelago.add_island(Island::new(
+    Transform::default(),
+    nav_mesh,
+    HashMap::new(),
+  ));
+
+  let agent_1 = archipelago.add_agent({
+    let mut agent = Agent::create(
+      /* position= */ Vec2::new(0.0, 0.0),
+      /* velocity= */ Vec2::ZERO,
+      /* radius= */ 0.5,
+      /* desired_speed= */ 1.0,
+      /* max_speed= */ 1.0,
+    );
+    agent.current_target = Some(Vec2::new(0.0, 0.0));
+    agent
+  });
+
+  let agent_2 = archipelago.add_agent({
+    let mut agent = Agent::create(
+      /* position= */ Vec2::new(0.0, -3.0),
+      /* velocity= */ Vec2::new(0.0, 1.0),
+      /* radius= */ 0.5,
+      /* desired_speed= */ 1.0,
+      /* max_speed= */ 1.0,
+    );
+    agent.current_target = Some(Vec2::new(0.0, 3.0));
+    agent
+  });
+
+  archipelago.agent_options.avoidance_time_horizon = 100.0;
+  archipelago.agent_options.obstacle_avoidance_time_horizon = 0.1;
+  // Use a responsibility of one third, so that agent_2 has 3/4 responsibility
+  // and agent_1 has 1/4 responsibility.
+  archipelago.agent_options.reached_destination_avoidance_responsibility =
+    1.0 / 3.0;
+
+  // 35 was chosen by just running until the second agent crosses y=0 (roughly).
+  // This is probably easy to break, but I couldn't think of another way to get
+  // the right value here...
+  for _ in 0..35 {
+    archipelago.update(0.1);
+    // Update the velocities to match the desired velocities.
+    let agent_1 = archipelago.get_agent_mut(agent_1).unwrap();
+    agent_1.velocity = *agent_1.get_desired_velocity();
+    agent_1.position += agent_1.velocity * 0.1;
+    dbg!(agent_1.position);
+    let agent_2 = archipelago.get_agent_mut(agent_2).unwrap();
+    agent_2.velocity = *agent_2.get_desired_velocity();
+    agent_2.position += agent_2.velocity * 0.1;
+    dbg!(agent_2.position);
+  }
+
+  let agent_1 = archipelago.get_agent(agent_1).unwrap();
+  let agent_2 = archipelago.get_agent(agent_2).unwrap();
+
+  // Since agent_1 takes 1/4 responsibility, it moves away by 0.25.
+  assert!(
+    (agent_1.position.x - 0.25) < 0.01,
+    "left={}, right={}",
+    agent_1.position.x,
+    0.25
+  );
+  // Since agent_2 takes 3/4 responsibility, it moves away by 0.75.
+  assert!(
+    (agent_2.position.x - 0.75) < 0.01,
+    "left={}, right={}",
+    agent_2.position.x,
+    0.75
   );
 }

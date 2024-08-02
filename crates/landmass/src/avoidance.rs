@@ -7,8 +7,8 @@ use slotmap::HopSlotMap;
 
 use crate::{
   nav_data::{ModifiedNode, NodeRef},
-  Agent, AgentId, AgentOptions, Character, CharacterId, CoordinateSystem,
-  Island, IslandId, NavigationData,
+  Agent, AgentId, AgentOptions, AgentState, Character, CharacterId,
+  CoordinateSystem, Island, IslandId, NavigationData,
 };
 
 /// Adjusts the velocity of `agents` to apply local avoidance. `delta_time` must
@@ -38,7 +38,11 @@ pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
         position: to_dodgy_vec2(agent_point.xy()),
         velocity: to_dodgy_vec2(CS::to_landmass(&agent.velocity).xy()),
         radius: agent.radius,
-        avoidance_responsibility: 1.0,
+        avoidance_responsibility: if agent.state == AgentState::ReachedTarget {
+          agent_options.reached_destination_avoidance_responsibility
+        } else {
+          1.0
+        },
       },
     );
     agent_kdtree
