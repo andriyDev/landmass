@@ -344,6 +344,17 @@ pub struct ArchipelagoRef<CS: CoordinateSystem> {
 pub type ArchipelagoRef2d = ArchipelagoRef<TwoD>;
 pub type ArchipelagoRef3d = ArchipelagoRef<ThreeD>;
 
+impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
+  for ArchipelagoRef<CS>
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ArchipelagoRef")
+      .field("entity", &self.entity)
+      .field("marker", &self.marker)
+      .finish()
+  }
+}
+
 impl<CS: CoordinateSystem> ArchipelagoRef<CS> {
   pub fn new(entity: Entity) -> Self {
     Self { entity, marker: Default::default() }
