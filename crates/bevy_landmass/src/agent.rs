@@ -37,7 +37,7 @@ pub type Agent2dBundle = AgentBundle<TwoD>;
 pub type Agent3dBundle = AgentBundle<ThreeD>;
 
 /// An agent. See [`crate::AgentBundle`] for required related components.
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct Agent {
   /// The radius of the agent.
   pub radius: f32,
@@ -49,7 +49,7 @@ pub struct Agent {
   pub max_speed: f32,
 }
 
-#[derive(Component, Default, Deref)]
+#[derive(Component, Default, Deref, Debug)]
 pub struct AgentNodeTypeCostOverrides(HashMap<NodeType, f32>);
 
 impl AgentNodeTypeCostOverrides {
@@ -153,6 +153,14 @@ pub type AgentDesiredVelocity3d = AgentDesiredVelocity<ThreeD>;
 impl<CS: CoordinateSystem> Default for AgentDesiredVelocity<CS> {
   fn default() -> Self {
     Self(Default::default())
+  }
+}
+
+impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
+  for AgentDesiredVelocity<CS>
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_tuple("AgentDesiredVelocity").field(&self.0).finish()
   }
 }
 
