@@ -26,7 +26,7 @@ pub type Character2dBundle = CharacterBundle<TwoD>;
 pub type Character3dBundle = CharacterBundle<ThreeD>;
 
 /// A character. See [`crate::CharacterBundle`] for required related components.
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct Character {
   /// The radius of the character.
   pub radius: f32,
@@ -46,6 +46,14 @@ pub type Velocity3d = Velocity<ThreeD>;
 impl<CS: CoordinateSystem> Default for Velocity<CS> {
   fn default() -> Self {
     Self { velocity: Default::default() }
+  }
+}
+
+impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
+  for Velocity<CS>
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("Velocity").field("velocity", &self.velocity).finish()
   }
 }
 
