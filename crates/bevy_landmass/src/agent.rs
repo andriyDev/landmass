@@ -99,6 +99,32 @@ impl<CS: CoordinateSystem> Default for AgentTarget<CS> {
   }
 }
 
+impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
+  for AgentTarget<CS>
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::None => write!(f, "None"),
+      Self::Point(arg0) => f.debug_tuple("Point").field(arg0).finish(),
+      Self::Entity(arg0) => f.debug_tuple("Entity").field(arg0).finish(),
+    }
+  }
+}
+
+impl<CS: CoordinateSystem<Coordinate: PartialEq>> PartialEq
+  for AgentTarget<CS>
+{
+  fn eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (Self::Point(l0), Self::Point(r0)) => l0 == r0,
+      (Self::Entity(l0), Self::Entity(r0)) => l0 == r0,
+      _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+    }
+  }
+}
+
+impl<CS: CoordinateSystem<Coordinate: Eq>> Eq for AgentTarget<CS> {}
+
 impl<CS: CoordinateSystem> AgentTarget<CS> {
   /// Converts an agent target to a concrete world position.
   fn to_point(
