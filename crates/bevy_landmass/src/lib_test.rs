@@ -48,18 +48,14 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
     .reserve_handle()
     .typed::<NavMesh3d>();
 
-  app
-    .world_mut()
-    .spawn(TransformBundle {
-      local: Transform::from_translation(Vec3::new(1.0, 1.0, 1.0)),
-      ..Default::default()
-    })
-    .insert(Island3dBundle {
+  app.world_mut().spawn((
+    Transform::from_translation(Vec3::new(1.0, 1.0, 1.0)),
+    Island3dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-      nav_mesh: Default::default(),
-    })
-    .insert(NavMeshHandle(nav_mesh_handle.clone()));
+      nav_mesh: NavMeshHandle(nav_mesh_handle.clone()),
+    },
+  ));
 
   app.world_mut().resource_mut::<Assets<NavMesh3d>>().insert(
     &nav_mesh_handle,
@@ -68,18 +64,17 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
 
   let agent_id = app
     .world_mut()
-    .spawn(TransformBundle {
-      local: Transform::from_translation(Vec3::new(2.5, 1.0, 2.5)),
-      ..Default::default()
-    })
-    .insert(Agent3dBundle {
-      agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
-      archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-      target: AgentTarget3d::Point(Vec3::new(4.5, 1.0, 4.5)),
-      velocity: Default::default(),
-      state: Default::default(),
-      desired_velocity: Default::default(),
-    })
+    .spawn((
+      Transform::from_translation(Vec3::new(2.5, 1.0, 2.5)),
+      Agent3dBundle {
+        agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
+        archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
+        target: AgentTarget3d::Point(Vec3::new(4.5, 1.0, 4.5)),
+        velocity: Default::default(),
+        state: Default::default(),
+        desired_velocity: Default::default(),
+      },
+    ))
     .id();
 
   // The first update propagates the global transform, and sets the start of
@@ -115,8 +110,7 @@ fn adds_and_removes_agents() {
 
   let agent_id_1 = app
     .world_mut()
-    .spawn(TransformBundle::default())
-    .insert(Agent3dBundle {
+    .spawn(Agent3dBundle {
       agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       target: AgentTarget3d::None,
@@ -128,8 +122,7 @@ fn adds_and_removes_agents() {
 
   let agent_id_2 = app
     .world_mut()
-    .spawn(TransformBundle::default())
-    .insert(Agent3dBundle {
+    .spawn(Agent3dBundle {
       agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       target: AgentTarget3d::None,
@@ -159,8 +152,7 @@ fn adds_and_removes_agents() {
 
   let agent_id_3 = app
     .world_mut()
-    .spawn(TransformBundle::default())
-    .insert(Agent3dBundle {
+    .spawn(Agent3dBundle {
       agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       target: AgentTarget3d::None,
@@ -225,26 +217,20 @@ fn adds_and_removes_characters() {
 
   let character_id_1 = app
     .world_mut()
-    .spawn((
-      TransformBundle::default(),
-      Character3dBundle {
-        character: Character { radius: 0.5 },
-        archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-        velocity: Default::default(),
-      },
-    ))
+    .spawn((Character3dBundle {
+      character: Character { radius: 0.5 },
+      archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
+      velocity: Default::default(),
+    },))
     .id();
 
   let character_id_2 = app
     .world_mut()
-    .spawn((
-      TransformBundle::default(),
-      Character3dBundle {
-        character: Character { radius: 0.5 },
-        archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-        velocity: Default::default(),
-      },
-    ))
+    .spawn((Character3dBundle {
+      character: Character { radius: 0.5 },
+      archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
+      velocity: Default::default(),
+    },))
     .id();
 
   app.update();
@@ -267,14 +253,11 @@ fn adds_and_removes_characters() {
 
   let character_id_3 = app
     .world_mut()
-    .spawn((
-      TransformBundle::default(),
-      Character3dBundle {
-        character: Character { radius: 0.5 },
-        archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-        velocity: Default::default(),
-      },
-    ))
+    .spawn((Character3dBundle {
+      character: Character { radius: 0.5 },
+      archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
+      velocity: Default::default(),
+    },))
     .id();
 
   app.update();
@@ -346,8 +329,7 @@ fn adds_and_removes_islands() {
 
   let island_id_1 = app
     .world_mut()
-    .spawn(TransformBundle::default())
-    .insert(Island3dBundle {
+    .spawn(Island3dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       nav_mesh: NavMeshHandle(nav_mesh.clone()),
@@ -356,8 +338,7 @@ fn adds_and_removes_islands() {
 
   let island_id_2 = app
     .world_mut()
-    .spawn(TransformBundle::default())
-    .insert(Island3dBundle {
+    .spawn(Island3dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       nav_mesh: NavMeshHandle(nav_mesh.clone()),
@@ -388,8 +369,7 @@ fn adds_and_removes_islands() {
 
   let island_id_3 = app
     .world_mut()
-    .spawn(TransformBundle::default())
-    .insert(Island3dBundle {
+    .spawn(Island3dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       nav_mesh: NavMeshHandle(nav_mesh.clone()),
@@ -465,10 +445,7 @@ fn changing_agent_fields_changes_landmass_agent() {
   let agent = app
     .world_mut()
     .spawn((
-      TransformBundle {
-        local: Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
-        ..Default::default()
-      },
+      Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
       Agent3dBundle {
         agent: Agent { radius: 1.0, desired_speed: 1.0, max_speed: 2.0 },
         archipelago_ref: ArchipelagoRef3d::new(archipelago),
@@ -551,10 +528,7 @@ fn changing_character_fields_changes_landmass_character() {
   let character = app
     .world_mut()
     .spawn((
-      TransformBundle {
-        local: Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
-        ..Default::default()
-      },
+      Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
       Character3dBundle {
         character: Character { radius: 1.0 },
         archipelago_ref: ArchipelagoRef3d::new(archipelago),
@@ -665,7 +639,7 @@ fn node_type_costs_are_used() {
     .reserve_handle()
     .typed::<NavMesh2d>();
 
-  app.world_mut().spawn(TransformBundle::default()).insert(Island2dBundle {
+  app.world_mut().spawn(Island2dBundle {
     island: Island,
     archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
     nav_mesh: NavMeshHandle(nav_mesh_handle.clone()),
@@ -681,18 +655,17 @@ fn node_type_costs_are_used() {
 
   let agent_id = app
     .world_mut()
-    .spawn(TransformBundle {
-      local: Transform::from_translation(Vec3::new(0.5, 0.5, 1.0)),
-      ..Default::default()
-    })
-    .insert(Agent2dBundle {
-      agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
-      archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
-      target: AgentTarget2d::Point(Vec2::new(0.5, 11.5)),
-      velocity: Default::default(),
-      state: Default::default(),
-      desired_velocity: Default::default(),
-    })
+    .spawn((
+      Transform::from_translation(Vec3::new(0.5, 0.5, 1.0)),
+      Agent2dBundle {
+        agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
+        archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
+        target: AgentTarget2d::Point(Vec2::new(0.5, 11.5)),
+        velocity: Default::default(),
+        state: Default::default(),
+        desired_velocity: Default::default(),
+      },
+    ))
     .id();
 
   // The first update propagates the global transform, and sets the start of
@@ -782,7 +755,7 @@ fn overridden_node_type_costs_are_used() {
     .reserve_handle()
     .typed::<NavMesh2d>();
 
-  app.world_mut().spawn(TransformBundle::default()).insert(Island2dBundle {
+  app.world_mut().spawn(Island2dBundle {
     island: Island,
     archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
     nav_mesh: NavMeshHandle(nav_mesh_handle.clone()),
@@ -798,23 +771,22 @@ fn overridden_node_type_costs_are_used() {
 
   let agent_id = app
     .world_mut()
-    .spawn(TransformBundle {
-      local: Transform::from_translation(Vec3::new(0.5, 0.5, 1.0)),
-      ..Default::default()
-    })
-    .insert(Agent2dBundle {
-      agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
-      archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
-      target: AgentTarget2d::Point(Vec2::new(0.5, 11.5)),
-      velocity: Default::default(),
-      state: Default::default(),
-      desired_velocity: Default::default(),
-    })
-    .insert({
-      let mut overrides = AgentNodeTypeCostOverrides::default();
-      overrides.set_node_type_cost(slow_node_type, 10.0);
-      overrides
-    })
+    .spawn((
+      Transform::from_translation(Vec3::new(0.5, 0.5, 1.0)),
+      Agent2dBundle {
+        agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
+        archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
+        target: AgentTarget2d::Point(Vec2::new(0.5, 11.5)),
+        velocity: Default::default(),
+        state: Default::default(),
+        desired_velocity: Default::default(),
+      },
+      {
+        let mut overrides = AgentNodeTypeCostOverrides::default();
+        overrides.set_node_type_cost(slow_node_type, 10.0);
+        overrides
+      },
+    ))
     .id();
 
   // The first update propagates the global transform, and sets the start of
@@ -868,14 +840,11 @@ fn sample_point_error_on_out_of_range() {
     .resource_mut::<Assets<NavMesh2d>>()
     .add(NavMesh2d { nav_mesh, type_index_to_node_type: HashMap::new() });
 
-  app.world_mut().spawn((
-    TransformBundle::default(),
-    Island2dBundle {
-      island: Island,
-      archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
-      nav_mesh: NavMeshHandle(nav_mesh_handle),
-    },
-  ));
+  app.world_mut().spawn((Island2dBundle {
+    island: Island,
+    archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+    nav_mesh: NavMeshHandle(nav_mesh_handle),
+  },));
 
   // The first update propagates the global transform, and sets the start of
   // the delta time (in this update, delta time is 0).
@@ -927,10 +896,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
   let island_id = app
     .world_mut()
     .spawn((
-      TransformBundle {
-        local: Transform::from_translation(offset.extend(0.0)),
-        ..Default::default()
-      },
+      Transform::from_translation(offset.extend(0.0)),
       Island2dBundle {
         island: Island,
         archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
@@ -1015,10 +981,7 @@ fn samples_node_types() {
 
   let offset = Vec2::new(10.0, 10.0);
   app.world_mut().spawn((
-    TransformBundle {
-      local: Transform::from_translation(offset.extend(0.0)),
-      ..Default::default()
-    },
+    Transform::from_translation(offset.extend(0.0)),
     Island2dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
@@ -1087,11 +1050,14 @@ fn finds_path() {
     .resource_mut::<Assets<NavMesh2d>>()
     .add(NavMesh2d { nav_mesh, type_index_to_node_type: HashMap::new() });
 
+  app.world_mut().spawn((Island2dBundle {
+    island: Island,
+    archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+    nav_mesh: NavMeshHandle(nav_mesh.clone()),
+  },));
+
   app.world_mut().spawn((
-    TransformBundle {
-      local: Transform::from_translation(Vec3::ZERO),
-      ..Default::default()
-    },
+    Transform::from_translation(Vec3::new(1.0, 0.0, 0.0)),
     Island2dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
@@ -1100,22 +1066,7 @@ fn finds_path() {
   ));
 
   app.world_mut().spawn((
-    TransformBundle {
-      local: Transform::from_translation(Vec3::new(1.0, 0.0, 0.0)),
-      ..Default::default()
-    },
-    Island2dBundle {
-      island: Island,
-      archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
-      nav_mesh: NavMeshHandle(nav_mesh.clone()),
-    },
-  ));
-
-  app.world_mut().spawn((
-    TransformBundle {
-      local: Transform::from_translation(Vec3::new(2.0, 0.5, 0.0)),
-      ..Default::default()
-    },
+    Transform::from_translation(Vec3::new(2.0, 0.5, 0.0)),
     Island2dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
@@ -1178,10 +1129,7 @@ fn island_matches_rotation_3d() {
   let island = app
     .world_mut()
     .spawn((
-      TransformBundle {
-        local: Transform::from_rotation(Quat::from_rotation_y(2.0)),
-        ..Default::default()
-      },
+      Transform::from_rotation(Quat::from_rotation_y(2.0)),
       Island3dBundle {
         island: Island,
         archipelago_ref: ArchipelagoRef3d::new(archipelago_entity),
@@ -1239,10 +1187,7 @@ fn island_matches_rotation_2d() {
   let island = app
     .world_mut()
     .spawn((
-      TransformBundle {
-        local: Transform::from_rotation(Quat::from_rotation_z(2.0)),
-        ..Default::default()
-      },
+      Transform::from_rotation(Quat::from_rotation_z(2.0)),
       Island2dBundle {
         island: Island,
         archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),

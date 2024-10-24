@@ -27,7 +27,7 @@ have an `ArchipelagoRef` to it. Agents/islands will be added once the
 use std::sync::Arc;
 
 use bevy::{app::AppExit, prelude::*};
-use bevy_landmass::prelude::*;
+use bevy_landmass::{prelude::*, NavMeshHandle};
 
 fn main() {
   App::new()
@@ -51,11 +51,10 @@ fn set_up_scene(
 
   commands
     .spawn((
-      TransformBundle::default(),
       Island2dBundle {
         island: Island,
         archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
-        nav_mesh: nav_mesh_handle.clone(),
+        nav_mesh: NavMeshHandle(nav_mesh_handle.clone()),
       },
     ));
   
@@ -85,10 +84,7 @@ fn set_up_scene(
   });
 
   commands.spawn((
-    TransformBundle {
-      local: Transform::from_translation(Vec3::new(1.5, 1.5, 0.0)),
-      ..Default::default()
-    },
+    Transform::from_translation(Vec3::new(1.5, 1.5, 0.0)),
     Agent2dBundle {
       agent: Agent {
         radius: 0.5,
