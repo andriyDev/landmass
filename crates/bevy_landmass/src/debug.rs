@@ -8,7 +8,7 @@ use bevy::{
   app::Update,
   color::Color,
   gizmos::AppGizmoBuilder,
-  math::Quat,
+  math::{Isometry3d, Quat},
   prelude::{
     Deref, DerefMut, GizmoConfig, GizmoConfigGroup, Gizmos, IntoSystemConfigs,
     Plugin, Query, Res, Resource,
@@ -86,8 +86,7 @@ impl<'w, 's, 'a, CS: CoordinateSystem> DebugDrawer<CS>
 {
   fn add_point(&mut self, point_type: PointType, point: CS::Coordinate) {
     self.0.sphere(
-      CS::to_world_position(&point),
-      Quat::IDENTITY,
+      Isometry3d::new(CS::to_world_position(&point), Quat::IDENTITY),
       0.2,
       match point_type {
         PointType::AgentPosition(_) => Color::srgba(0.0, 1.0, 0.0, 0.6),
@@ -143,7 +142,7 @@ fn draw_archipelagos_default<CS: CoordinateSystem>(
   archipelagos: Query<&Archipelago<CS>>,
   mut gizmos: Gizmos<'_, '_, LandmassGizmoConfigGroup>,
 ) {
-  if time.delta_seconds() == 0.0 {
+  if time.delta_secs() == 0.0 {
     return;
   }
   let mut drawer = GizmoDrawer(&mut gizmos, PhantomData::<CS>);

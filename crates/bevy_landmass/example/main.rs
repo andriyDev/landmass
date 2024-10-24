@@ -1,16 +1,14 @@
 use std::{collections::HashMap, sync::Arc};
 
 use bevy::{
-  color::palettes::css,
-  input::common_conditions::input_just_pressed,
-  prelude::*,
-  sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+  color::palettes::css, input::common_conditions::input_just_pressed,
+  prelude::*, render::mesh::Mesh2d, sprite::MaterialMesh2dBundle,
 };
 use bevy_landmass::{
   debug::{EnableLandmassDebug, Landmass2dDebugPlugin},
   nav_mesh::bevy_mesh_to_landmass_nav_mesh,
   prelude::*,
-  AgentNodeTypeCostOverrides,
+  AgentNodeTypeCostOverrides, NavMeshHandle,
 };
 use landmass::NodeType;
 
@@ -89,26 +87,25 @@ fn setup(
   commands.spawn(Camera2dBundle {
     transform: Transform::from_xyz(5.0, 0.0, 0.0),
     projection: OrthographicProjection {
-      scaling_mode: bevy::render::camera::ScalingMode::FixedVertical(16.0),
-      near: -1000.0,
-      ..Default::default()
+      scaling_mode: bevy::render::camera::ScalingMode::FixedVertical {
+        viewport_height: 16.0,
+      },
+      ..OrthographicProjection::default_2d()
     },
     ..Default::default()
   });
 
-  commands.spawn(TextBundle {
-    text: Text::from_section(
-      "LMB - Spawn agent\nShift+LMB - Spawn agent (fast on mud)\nRMB - Change target point\nF12 - Toggle debug view",
-      TextStyle::default()
-    ).with_justify(JustifyText::Right),
-    style: Style {
+  let message = "LMB - Spawn agent\nShift+LMB - Spawn agent (fast on mud)\nRMB - Change target point\nF12 - Toggle debug view";
+  commands.spawn((
+    Text(message.into()),
+    TextLayout { justify: JustifyText::Right, ..Default::default() },
+    Node {
       position_type: PositionType::Absolute,
       right: Val::Px(0.0),
       bottom: Val::Px(0.0),
       ..Default::default()
     },
-    ..Default::default()
-  });
+  ));
 
   let slow_area = Rect::from_corners(
     Vec2::new(-3.99582, -2.89418),
@@ -116,13 +113,11 @@ fn setup(
   );
   commands.spawn(MaterialMesh2dBundle {
     transform: Transform::from_translation(slow_area.center().extend(1.0)),
-    mesh: Mesh2dHandle(
-      meshes.add(Rectangle { half_size: slow_area.size() * 0.5 }),
-    ),
-    material: materials.add(ColorMaterial {
+    mesh: Mesh2d(meshes.add(Rectangle { half_size: slow_area.size() * 0.5 })),
+    material: MeshMaterial2d(materials.add(ColorMaterial {
       color: css::BROWN.with_alpha(0.5).into(),
       ..Default::default()
-    }),
+    })),
     ..Default::default()
   });
 
@@ -135,17 +130,17 @@ fn setup(
   let nav_mesh_1 = nav_meshes.reserve_handle();
   commands.spawn((
     MaterialMesh2dBundle {
-      mesh: Mesh2dHandle(mesh_1.clone()),
-      material: materials.add(ColorMaterial {
+      mesh: Mesh2d(mesh_1.clone()),
+      material: MeshMaterial2d(materials.add(ColorMaterial {
         color: css::ANTIQUE_WHITE.into(),
         ..Default::default()
-      }),
+      })),
       ..Default::default()
     },
     Island2dBundle {
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
       island: Island,
-      nav_mesh: nav_mesh_1.clone(),
+      nav_mesh: NavMeshHandle(nav_mesh_1.clone()),
     },
     ConvertMesh {
       mesh: mesh_1,
@@ -159,18 +154,18 @@ fn setup(
   let nav_mesh_2 = nav_meshes.reserve_handle();
   commands.spawn((
     MaterialMesh2dBundle {
-      mesh: Mesh2dHandle(mesh_2.clone()),
-      material: materials.add(ColorMaterial {
+      mesh: Mesh2d(mesh_2.clone()),
+      material: MeshMaterial2d(materials.add(ColorMaterial {
         color: css::ANTIQUE_WHITE.into(),
         ..Default::default()
-      }),
+      })),
       transform: Transform::from_translation(Vec3::new(12.0, 0.0, 0.0)),
       ..Default::default()
     },
     Island2dBundle {
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
       island: Island,
-      nav_mesh: nav_mesh_2.clone(),
+      nav_mesh: NavMeshHandle(nav_mesh_2.clone()),
     },
     ConvertMesh {
       mesh: mesh_2,
@@ -185,11 +180,11 @@ fn setup(
     .spawn((
       MaterialMesh2dBundle {
         transform: Transform::from_translation(Vec3::new(0.0, 6.0, 0.11)),
-        mesh: Mesh2dHandle(meshes.add(Circle { radius: 0.25 })),
-        material: materials.add(ColorMaterial {
+        mesh: Mesh2d(meshes.add(Circle { radius: 0.25 })),
+        material: MeshMaterial2d(materials.add(ColorMaterial {
           color: css::PURPLE.into(),
           ..Default::default()
-        }),
+        })),
         ..Default::default()
       },
       Target,
@@ -228,8 +223,8 @@ impl AgentSpawner {
       .spawn((
         MaterialMesh2dBundle {
           transform: Transform::from_translation(position.extend(0.1)),
-          mesh: Mesh2dHandle(self.mesh.clone()),
-          material: self.material.clone(),
+          mesh: Mesh2d(self.mesh.clone()),
+          material: MeshMaterial2d(self.material.clone()),
           ..Default::default()
         },
         Agent2dBundle {
@@ -244,13 +239,16 @@ impl AgentSpawner {
       .id();
 
     if fast_agent {
-      commands.entity(entity).insert((self.fast_material.clone(), {
-        let mut node_cost_overrides = AgentNodeTypeCostOverrides::default();
-        assert!(
-          node_cost_overrides.set_node_type_cost(self.slow_node_type, 1.0)
-        );
-        node_cost_overrides
-      }));
+      commands.entity(entity).insert((
+        MeshMaterial2d(self.fast_material.clone()),
+        {
+          let mut node_cost_overrides = AgentNodeTypeCostOverrides::default();
+          assert!(
+            node_cost_overrides.set_node_type_cost(self.slow_node_type, 1.0)
+          );
+          node_cost_overrides
+        },
+      ));
     }
   }
 }
@@ -274,7 +272,7 @@ fn move_agent_by_velocity(
       .affine()
       .inverse()
       .transform_vector3(velocity.velocity.extend(0.0));
-    transform.translation += local_velocity * time.delta_seconds();
+    transform.translation += local_velocity * time.delta_secs();
   }
 }
 
@@ -304,7 +302,7 @@ fn handle_clicks(
 
   let Some(world_position) = window
     .cursor_position()
-    .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor))
+    .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor).ok())
     .and_then(|ray| {
       ray
         .intersect_plane(Vec3::ZERO, InfinitePlane3d { normal: Dir3::Z })

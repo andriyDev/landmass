@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use bevy::{
-  asset::{Assets, Handle},
+  asset::Assets,
   prelude::{Bundle, Component, Entity, Query, Res, With},
   transform::components::GlobalTransform,
   utils::hashbrown::{HashMap, HashSet},
@@ -9,7 +9,7 @@ use bevy::{
 
 use crate::{
   coords::{CoordinateSystem, ThreeD, TwoD},
-  Archipelago, ArchipelagoRef, NavMesh,
+  Archipelago, ArchipelagoRef, NavMesh, NavMeshHandle,
 };
 
 /// A bundle to create islands. The GlobalTransform component is omitted, since
@@ -22,7 +22,7 @@ pub struct IslandBundle<CS: CoordinateSystem> {
   /// A reference pointing to the Archipelago to associate this entity with.
   pub archipelago_ref: ArchipelagoRef<CS>,
   /// A handle to the nav mesh that this island needs.
-  pub nav_mesh: Handle<NavMesh<CS>>,
+  pub nav_mesh: NavMeshHandle<CS>,
 }
 
 pub type Island2dBundle = IslandBundle<TwoD>;
@@ -36,7 +36,7 @@ pub struct Island;
 pub(crate) fn sync_islands_to_archipelago<CS: CoordinateSystem>(
   mut archipelagos: Query<(Entity, &mut Archipelago<CS>)>,
   islands: Query<
-    (Entity, &Handle<NavMesh<CS>>, &GlobalTransform, &ArchipelagoRef<CS>),
+    (Entity, &NavMeshHandle<CS>, &GlobalTransform, &ArchipelagoRef<CS>),
     With<Island>,
   >,
   nav_meshes: Res<Assets<NavMesh<CS>>>,
@@ -50,7 +50,7 @@ pub(crate) fn sync_islands_to_archipelago<CS: CoordinateSystem>(
       Ok((_, arch)) => arch,
     };
 
-    let Some(island_nav_mesh) = nav_meshes.get(island_nav_mesh) else {
+    let Some(island_nav_mesh) = nav_meshes.get(&island_nav_mesh.0) else {
       continue;
     };
 
