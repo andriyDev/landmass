@@ -3,7 +3,7 @@
 use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 
 use bevy::{
-  asset::{Asset, AssetApp},
+  asset::{Asset, AssetApp, Handle},
   prelude::{
     Component, Entity, IntoSystemConfigs, IntoSystemSetConfigs, Plugin, Query,
     Res, SystemSet, Update,
@@ -67,6 +67,8 @@ pub mod prelude {
   pub use crate::LandmassSystemSet;
   pub use crate::NavMesh2d;
   pub use crate::NavMesh3d;
+  pub use crate::NavMeshHandle2d;
+  pub use crate::NavMeshHandle3d;
   pub use crate::NavigationMesh2d;
   pub use crate::NavigationMesh3d;
   pub use crate::ValidNavigationMesh2d;
@@ -326,11 +328,11 @@ fn update_archipelagos<CS: CoordinateSystem>(
   time: Res<Time>,
   mut archipelago_query: Query<&mut Archipelago<CS>>,
 ) {
-  if time.delta_seconds() == 0.0 {
+  if time.delta_secs() == 0.0 {
     return;
   }
   for mut archipelago in archipelago_query.iter_mut() {
-    archipelago.archipelago.update(time.delta_seconds());
+    archipelago.archipelago.update(time.delta_secs());
   }
 }
 
@@ -381,6 +383,19 @@ pub struct NavMesh<CS: CoordinateSystem> {
 
 pub type NavMesh2d = NavMesh<TwoD>;
 pub type NavMesh3d = NavMesh<ThreeD>;
+
+/// A handle to a navigation mesh for an [`Island`].
+#[derive(Component, Clone, Debug)]
+pub struct NavMeshHandle<CS: CoordinateSystem>(pub Handle<NavMesh<CS>>);
+
+impl<CS: CoordinateSystem> Default for NavMeshHandle<CS> {
+  fn default() -> Self {
+    Self(Default::default())
+  }
+}
+
+pub type NavMeshHandle2d = NavMeshHandle<TwoD>;
+pub type NavMeshHandle3d = NavMeshHandle<ThreeD>;
 
 /// A point on the navigation meshes.
 pub struct SampledPoint<'archipelago, CS: CoordinateSystem> {

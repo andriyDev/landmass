@@ -9,7 +9,7 @@ use crate::{
   AgentTarget2d, AgentTarget3d, Archipelago2d, Archipelago3d, ArchipelagoRef2d,
   ArchipelagoRef3d, Character, Character3dBundle, Island, Island2dBundle,
   Island3dBundle, Landmass2dPlugin, Landmass3dPlugin, NavMesh2d, NavMesh3d,
-  NavigationMesh3d, Velocity3d,
+  NavMeshHandle, NavigationMesh3d, Velocity3d,
 };
 
 #[test]
@@ -59,7 +59,7 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       nav_mesh: Default::default(),
     })
-    .insert(nav_mesh_handle.clone());
+    .insert(NavMeshHandle(nav_mesh_handle.clone()));
 
   app.world_mut().resource_mut::<Assets<NavMesh3d>>().insert(
     &nav_mesh_handle,
@@ -350,7 +350,7 @@ fn adds_and_removes_islands() {
     .insert(Island3dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-      nav_mesh: nav_mesh.clone(),
+      nav_mesh: NavMeshHandle(nav_mesh.clone()),
     })
     .id();
 
@@ -360,7 +360,7 @@ fn adds_and_removes_islands() {
     .insert(Island3dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-      nav_mesh: nav_mesh.clone(),
+      nav_mesh: NavMeshHandle(nav_mesh.clone()),
     })
     .id();
 
@@ -392,7 +392,7 @@ fn adds_and_removes_islands() {
     .insert(Island3dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-      nav_mesh: nav_mesh.clone(),
+      nav_mesh: NavMeshHandle(nav_mesh.clone()),
     })
     .id();
 
@@ -668,7 +668,7 @@ fn node_type_costs_are_used() {
   app.world_mut().spawn(TransformBundle::default()).insert(Island2dBundle {
     island: Island,
     archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
-    nav_mesh: nav_mesh_handle.clone(),
+    nav_mesh: NavMeshHandle(nav_mesh_handle.clone()),
   });
 
   app.world_mut().resource_mut::<Assets<NavMesh2d>>().insert(
@@ -785,7 +785,7 @@ fn overridden_node_type_costs_are_used() {
   app.world_mut().spawn(TransformBundle::default()).insert(Island2dBundle {
     island: Island,
     archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
-    nav_mesh: nav_mesh_handle.clone(),
+    nav_mesh: NavMeshHandle(nav_mesh_handle.clone()),
   });
 
   app.world_mut().resource_mut::<Assets<NavMesh2d>>().insert(
@@ -873,7 +873,7 @@ fn sample_point_error_on_out_of_range() {
     Island2dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
-      nav_mesh: nav_mesh_handle,
+      nav_mesh: NavMeshHandle(nav_mesh_handle),
     },
   ));
 
@@ -934,7 +934,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
       Island2dBundle {
         island: Island,
         archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
-        nav_mesh: nav_mesh_handle,
+        nav_mesh: NavMeshHandle(nav_mesh_handle),
       },
     ))
     .id();
@@ -1022,7 +1022,7 @@ fn samples_node_types() {
     Island2dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
-      nav_mesh: nav_mesh_handle,
+      nav_mesh: NavMeshHandle(nav_mesh_handle),
     },
   ));
 
@@ -1095,7 +1095,7 @@ fn finds_path() {
     Island2dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
-      nav_mesh: nav_mesh.clone(),
+      nav_mesh: NavMeshHandle(nav_mesh.clone()),
     },
   ));
 
@@ -1107,7 +1107,7 @@ fn finds_path() {
     Island2dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
-      nav_mesh: nav_mesh.clone(),
+      nav_mesh: NavMeshHandle(nav_mesh.clone()),
     },
   ));
 
@@ -1119,7 +1119,7 @@ fn finds_path() {
     Island2dBundle {
       island: Island,
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
-      nav_mesh: nav_mesh.clone(),
+      nav_mesh: NavMeshHandle(nav_mesh.clone()),
     },
   ));
 
@@ -1185,7 +1185,7 @@ fn island_matches_rotation_3d() {
       Island3dBundle {
         island: Island,
         archipelago_ref: ArchipelagoRef3d::new(archipelago_entity),
-        nav_mesh: nav_mesh.clone(),
+        nav_mesh: NavMeshHandle(nav_mesh.clone()),
       },
     ))
     .id();
@@ -1246,7 +1246,7 @@ fn island_matches_rotation_2d() {
       Island2dBundle {
         island: Island,
         archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
-        nav_mesh: nav_mesh.clone(),
+        nav_mesh: NavMeshHandle(nav_mesh.clone()),
       },
     ))
     .id();
