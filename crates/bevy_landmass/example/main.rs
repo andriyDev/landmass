@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use bevy::{
   color::palettes::css, input::common_conditions::input_just_pressed,
-  prelude::*, render::mesh::Mesh2d, sprite::MaterialMesh2dBundle,
+  prelude::*, render::mesh::Mesh2d,
 };
 use bevy_landmass::{
   debug::{EnableLandmassDebug, Landmass2dDebugPlugin},
@@ -84,16 +84,16 @@ fn setup(
   nav_meshes: Res<Assets<NavMesh2d>>,
   asset_server: Res<AssetServer>,
 ) {
-  commands.spawn(Camera2dBundle {
-    transform: Transform::from_xyz(5.0, 0.0, 0.0),
-    projection: OrthographicProjection {
+  commands.spawn((
+    Transform::from_xyz(5.0, 0.0, 0.0),
+    Camera2d,
+    OrthographicProjection {
       scaling_mode: bevy::render::camera::ScalingMode::FixedVertical {
         viewport_height: 16.0,
       },
       ..OrthographicProjection::default_2d()
     },
-    ..Default::default()
-  });
+  ));
 
   let message = "LMB - Spawn agent\nShift+LMB - Spawn agent (fast on mud)\nRMB - Change target point\nF12 - Toggle debug view";
   commands.spawn((
@@ -111,15 +111,14 @@ fn setup(
     Vec2::new(-3.99582, -2.89418),
     Vec2::new(3.30418, 4.00582),
   );
-  commands.spawn(MaterialMesh2dBundle {
-    transform: Transform::from_translation(slow_area.center().extend(1.0)),
-    mesh: Mesh2d(meshes.add(Rectangle { half_size: slow_area.size() * 0.5 })),
-    material: MeshMaterial2d(materials.add(ColorMaterial {
+  commands.spawn((
+    Transform::from_translation(slow_area.center().extend(1.0)),
+    Mesh2d(meshes.add(Rectangle { half_size: slow_area.size() * 0.5 })),
+    MeshMaterial2d(materials.add(ColorMaterial {
       color: css::BROWN.with_alpha(0.5).into(),
       ..Default::default()
     })),
-    ..Default::default()
-  });
+  ));
 
   let mut archipelago = Archipelago2d::new();
   let slow_node_type = archipelago.add_node_type(1000.0).unwrap();
@@ -129,14 +128,11 @@ fn setup(
   let mesh_1: Handle<Mesh> = asset_server.load("nav_mesh.glb#Mesh0/Primitive0");
   let nav_mesh_1 = nav_meshes.reserve_handle();
   commands.spawn((
-    MaterialMesh2dBundle {
-      mesh: Mesh2d(mesh_1.clone()),
-      material: MeshMaterial2d(materials.add(ColorMaterial {
-        color: css::ANTIQUE_WHITE.into(),
-        ..Default::default()
-      })),
+    Mesh2d(mesh_1.clone()),
+    MeshMaterial2d(materials.add(ColorMaterial {
+      color: css::ANTIQUE_WHITE.into(),
       ..Default::default()
-    },
+    })),
     Island2dBundle {
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
       island: Island,
@@ -153,15 +149,12 @@ fn setup(
   let mesh_2: Handle<Mesh> = asset_server.load("nav_mesh.glb#Mesh1/Primitive0");
   let nav_mesh_2 = nav_meshes.reserve_handle();
   commands.spawn((
-    MaterialMesh2dBundle {
-      mesh: Mesh2d(mesh_2.clone()),
-      material: MeshMaterial2d(materials.add(ColorMaterial {
-        color: css::ANTIQUE_WHITE.into(),
-        ..Default::default()
-      })),
-      transform: Transform::from_translation(Vec3::new(12.0, 0.0, 0.0)),
+    Mesh2d(mesh_2.clone()),
+    MeshMaterial2d(materials.add(ColorMaterial {
+      color: css::ANTIQUE_WHITE.into(),
       ..Default::default()
-    },
+    })),
+    Transform::from_translation(Vec3::new(12.0, 0.0, 0.0)),
     Island2dBundle {
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
       island: Island,
@@ -178,15 +171,12 @@ fn setup(
   // Spawn the target.
   let target_entity = commands
     .spawn((
-      MaterialMesh2dBundle {
-        transform: Transform::from_translation(Vec3::new(0.0, 6.0, 0.11)),
-        mesh: Mesh2d(meshes.add(Circle { radius: 0.25 })),
-        material: MeshMaterial2d(materials.add(ColorMaterial {
-          color: css::PURPLE.into(),
-          ..Default::default()
-        })),
+      Transform::from_translation(Vec3::new(0.0, 6.0, 0.11)),
+      Mesh2d(meshes.add(Circle { radius: 0.25 })),
+      MeshMaterial2d(materials.add(ColorMaterial {
+        color: css::PURPLE.into(),
         ..Default::default()
-      },
+      })),
       Target,
     ))
     .id();
@@ -221,12 +211,9 @@ impl AgentSpawner {
   fn spawn(&self, position: Vec2, commands: &mut Commands, fast_agent: bool) {
     let entity = commands
       .spawn((
-        MaterialMesh2dBundle {
-          transform: Transform::from_translation(position.extend(0.1)),
-          mesh: Mesh2d(self.mesh.clone()),
-          material: MeshMaterial2d(self.material.clone()),
-          ..Default::default()
-        },
+        Transform::from_translation(position.extend(0.1)),
+        Mesh2d(self.mesh.clone()),
+        MeshMaterial2d(self.material.clone()),
         Agent2dBundle {
           agent: Agent { radius: 0.5, desired_speed: 2.0, max_speed: 3.0 },
           archipelago_ref: ArchipelagoRef2d::new(self.archipelago_entity),
