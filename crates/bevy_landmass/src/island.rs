@@ -3,7 +3,7 @@ use std::sync::Arc;
 use bevy::{
   asset::Assets,
   prelude::{Bundle, Component, Entity, Query, Res, With},
-  transform::components::GlobalTransform,
+  transform::components::{GlobalTransform, Transform},
   utils::hashbrown::{HashMap, HashSet},
 };
 
@@ -30,6 +30,7 @@ pub type Island3dBundle = IslandBundle<ThreeD>;
 
 /// A marker component that an entity is an island.
 #[derive(Component)]
+#[require(Transform)]
 pub struct Island;
 
 /// Ensures that the island transform and nav mesh are up to date.
