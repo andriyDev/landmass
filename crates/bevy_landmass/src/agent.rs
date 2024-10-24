@@ -2,7 +2,7 @@ use bevy::{
   prelude::{
     Bundle, Component, Deref, DetectChanges, Entity, Query, Ref, With,
   },
-  transform::components::GlobalTransform,
+  transform::components::{GlobalTransform, Transform},
   utils::HashMap,
 };
 
@@ -38,6 +38,7 @@ pub type Agent3dBundle = AgentBundle<ThreeD>;
 
 /// An agent. See [`crate::AgentBundle`] for required related components.
 #[derive(Component, Debug)]
+#[require(Transform)]
 pub struct Agent {
   /// The radius of the agent.
   pub radius: f32,

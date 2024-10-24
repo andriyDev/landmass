@@ -1,6 +1,6 @@
 use bevy::{
   prelude::{Bundle, Component, Entity, Query, With},
-  transform::components::GlobalTransform,
+  transform::components::{GlobalTransform, Transform},
   utils::hashbrown::HashMap,
 };
 
@@ -27,6 +27,7 @@ pub type Character3dBundle = CharacterBundle<ThreeD>;
 
 /// A character. See [`crate::CharacterBundle`] for required related components.
 #[derive(Component, Debug)]
+#[require(Transform)]
 pub struct Character {
   /// The radius of the character.
   pub radius: f32,
