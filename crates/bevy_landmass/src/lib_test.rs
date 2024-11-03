@@ -223,18 +223,18 @@ fn adds_and_removes_characters() {
   let character_id_1 = app
     .world_mut()
     .spawn((Character3dBundle {
+      character: Default::default(),
       settings: CharacterSettings { radius: 0.5 },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-      velocity: Default::default(),
     },))
     .id();
 
   let character_id_2 = app
     .world_mut()
     .spawn((Character3dBundle {
+      character: Default::default(),
       settings: CharacterSettings { radius: 0.5 },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-      velocity: Default::default(),
     },))
     .id();
 
@@ -259,9 +259,9 @@ fn adds_and_removes_characters() {
   let character_id_3 = app
     .world_mut()
     .spawn((Character3dBundle {
+      character: Default::default(),
       settings: CharacterSettings { radius: 0.5 },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
-      velocity: Default::default(),
     },))
     .id();
 
@@ -537,10 +537,11 @@ fn changing_character_fields_changes_landmass_character() {
     .spawn((
       Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
       Character3dBundle {
+        character: Default::default(),
         settings: CharacterSettings { radius: 1.0 },
         archipelago_ref: ArchipelagoRef3d::new(archipelago),
-        velocity: Velocity3d { velocity: Vec3::new(4.0, 5.0, 6.0) },
       },
+      Velocity3d { velocity: Vec3::new(4.0, 5.0, 6.0) },
     ))
     .id();
 

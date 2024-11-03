@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use bevy::{
   prelude::{Bundle, Component, Entity, Query, With},
   transform::components::{GlobalTransform, Transform},
@@ -14,21 +16,31 @@ use crate::{
 /// override previous bundles).
 #[derive(Bundle)]
 pub struct CharacterBundle<CS: CoordinateSystem> {
+  /// The character marker.
+  pub character: Character<CS>,
   /// The character's settings.
   pub settings: CharacterSettings,
   /// A reference pointing to the Archipelago to associate this entity with.
   pub archipelago_ref: ArchipelagoRef<CS>,
-  /// The velocity of the character.
-  pub velocity: Velocity<CS>,
 }
 
 pub type Character2dBundle = CharacterBundle<TwoD>;
 pub type Character3dBundle = CharacterBundle<ThreeD>;
 
+/// A marker component to create all required components for a character.
+#[derive(Component)]
+#[require(Transform, Velocity<CS>)]
+pub struct Character<CS: CoordinateSystem>(PhantomData<CS>);
+
+impl<CS: CoordinateSystem> Default for Character<CS> {
+  fn default() -> Self {
+    Self(Default::default())
+  }
+}
+
 /// A character's settings. See [`crate::CharacterBundle`] for required related
 /// components.
 #[derive(Component, Debug)]
-#[require(Transform)]
 pub struct CharacterSettings {
   /// The radius of the character.
   pub radius: f32,
