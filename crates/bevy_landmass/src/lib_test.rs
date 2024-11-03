@@ -5,8 +5,8 @@ use landmass::{NavigationMesh, SamplePointError};
 
 use crate::{
   Agent2dBundle, Agent3dBundle, AgentDesiredVelocity2d, AgentDesiredVelocity3d,
-  AgentNodeTypeCostOverrides, AgentSettings, AgentState, AgentTarget2d,
-  AgentTarget3d, Archipelago2d, Archipelago3d, ArchipelagoRef2d,
+  AgentNodeTypeCostOverrides, AgentOptions, AgentSettings, AgentState,
+  AgentTarget2d, AgentTarget3d, Archipelago2d, Archipelago3d, ArchipelagoRef2d,
   ArchipelagoRef3d, Character3dBundle, CharacterSettings, Island,
   Island2dBundle, Island3dBundle, Landmass2dPlugin, Landmass3dPlugin,
   NavMesh2d, NavMesh3d, NavMeshHandle, NavigationMesh3d, Velocity3d,
@@ -22,7 +22,8 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
 
-  let archipelago_id = app.world_mut().spawn(Archipelago3d::new()).id();
+  let archipelago_id =
+    app.world_mut().spawn(Archipelago3d::new(AgentOptions::default())).id();
 
   let nav_mesh = Arc::new(
     NavigationMesh3d {
@@ -108,7 +109,8 @@ fn adds_and_removes_agents() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
 
-  let archipelago_id = app.world_mut().spawn(Archipelago3d::new()).id();
+  let archipelago_id =
+    app.world_mut().spawn(Archipelago3d::new(AgentOptions::default())).id();
 
   let agent_id_1 = app
     .world_mut()
@@ -218,7 +220,8 @@ fn adds_and_removes_characters() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
 
-  let archipelago_id = app.world_mut().spawn(Archipelago3d::new()).id();
+  let archipelago_id =
+    app.world_mut().spawn(Archipelago3d::new(AgentOptions::default())).id();
 
   let character_id_1 = app
     .world_mut()
@@ -316,7 +319,8 @@ fn adds_and_removes_islands() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
 
-  let archipelago_id = app.world_mut().spawn(Archipelago3d::new()).id();
+  let archipelago_id =
+    app.world_mut().spawn(Archipelago3d::new(AgentOptions::default())).id();
 
   let nav_mesh =
     app.world_mut().resource_mut::<Assets<NavMesh3d>>().add(NavMesh3d {
@@ -445,7 +449,8 @@ fn changing_agent_fields_changes_landmass_agent() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
 
-  let archipelago = app.world_mut().spawn(Archipelago3d::new()).id();
+  let archipelago =
+    app.world_mut().spawn(Archipelago3d::new(AgentOptions::default())).id();
 
   let agent = app
     .world_mut()
@@ -530,7 +535,8 @@ fn changing_character_fields_changes_landmass_character() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
 
-  let archipelago = app.world_mut().spawn(Archipelago3d::new()).id();
+  let archipelago =
+    app.world_mut().spawn(Archipelago3d::new(AgentOptions::default())).id();
 
   let character = app
     .world_mut()
@@ -590,7 +596,7 @@ fn node_type_costs_are_used() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());
 
-  let mut archipelago = Archipelago2d::new();
+  let mut archipelago = Archipelago2d::new(AgentOptions::default());
   let slow_node_type = archipelago.add_node_type(10.0).unwrap();
 
   let archipelago_id = app.world_mut().spawn(archipelago).id();
@@ -708,7 +714,7 @@ fn overridden_node_type_costs_are_used() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());
 
-  let mut archipelago = Archipelago2d::new();
+  let mut archipelago = Archipelago2d::new(AgentOptions::default());
   let slow_node_type = archipelago.add_node_type(1.0).unwrap();
 
   let archipelago_id = app.world_mut().spawn(archipelago).id();
@@ -831,7 +837,8 @@ fn sample_point_error_on_out_of_range() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());
 
-  let archipelago_entity = app.world_mut().spawn(Archipelago2d::new()).id();
+  let archipelago_entity =
+    app.world_mut().spawn(Archipelago2d::new(AgentOptions::default())).id();
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -883,7 +890,8 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());
 
-  let archipelago_entity = app.world_mut().spawn(Archipelago2d::new()).id();
+  let archipelago_entity =
+    app.world_mut().spawn(Archipelago2d::new(AgentOptions::default())).id();
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -965,7 +973,7 @@ fn samples_node_types() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());
 
-  let mut archipelago = Archipelago2d::new();
+  let mut archipelago = Archipelago2d::new(AgentOptions::default());
   let node_type = archipelago.add_node_type(2.0).unwrap();
   let archipelago_entity = app.world_mut().spawn(archipelago).id();
 
@@ -1040,7 +1048,8 @@ fn finds_path() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());
 
-  let archipelago_entity = app.world_mut().spawn(Archipelago2d::new()).id();
+  let archipelago_entity =
+    app.world_mut().spawn(Archipelago2d::new(AgentOptions::default())).id();
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -1116,7 +1125,8 @@ fn island_matches_rotation_3d() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
 
-  let archipelago_entity = app.world_mut().spawn(Archipelago3d::new()).id();
+  let archipelago_entity =
+    app.world_mut().spawn(Archipelago3d::new(AgentOptions::default())).id();
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -1174,7 +1184,8 @@ fn island_matches_rotation_2d() {
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());
 
-  let archipelago_entity = app.world_mut().spawn(Archipelago2d::new()).id();
+  let archipelago_entity =
+    app.world_mut().spawn(Archipelago2d::new(AgentOptions::default())).id();
 
   let nav_mesh = Arc::new(
     NavigationMesh {

@@ -45,7 +45,8 @@ fn set_up_scene(
   mut commands: Commands,
   mut nav_meshes: ResMut<Assets<NavMesh2d>>,
 ) {
-  let archipelago_id = commands.spawn(Archipelago2d::new()).id();
+  let archipelago_id =
+    commands.spawn(Archipelago2d::new(AgentOptions::default())).id();
 
   let nav_mesh_handle = nav_meshes.reserve_handle();
 

@@ -78,10 +78,10 @@ impl Default for AgentOptions {
 }
 
 impl<CS: CoordinateSystem> Archipelago<CS> {
-  pub fn new() -> Self {
+  pub fn new(agent_options: AgentOptions) -> Self {
     Self {
+      agent_options,
       nav_data: NavigationData::new(),
-      agent_options: AgentOptions::default(),
       agents: HopSlotMap::with_key(),
       characters: HopSlotMap::with_key(),
       pathing_results: Vec::new(),
@@ -404,12 +404,6 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       &self.agent_options,
       delta_time,
     );
-  }
-}
-
-impl<CS: CoordinateSystem> Default for Archipelago<CS> {
-  fn default() -> Self {
-    Self::new()
   }
 }
 

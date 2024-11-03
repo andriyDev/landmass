@@ -13,8 +13,8 @@ use crate::{
   island::Island,
   nav_data::{BoundaryLink, NodeRef},
   nav_mesh::NavigationMesh,
-  Archipelago, IslandId, NewNodeTypeError, NodeType, SetNodeTypeCostError,
-  Transform,
+  AgentOptions, Archipelago, IslandId, NewNodeTypeError, NodeType,
+  SetNodeTypeCostError, Transform,
 };
 
 use super::{
@@ -964,7 +964,7 @@ fn empty_navigation_mesh_is_safe() {
 
 #[test]
 fn error_on_create_zero_or_negative_node_type() {
-  let mut archipelago = Archipelago::<XY>::new();
+  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
   assert_eq!(
     archipelago.add_node_type(0.0),
     Err(NewNodeTypeError::NonPositiveCost(0.0))
@@ -977,7 +977,7 @@ fn error_on_create_zero_or_negative_node_type() {
 
 #[test]
 fn false_on_setting_zero_or_negative_node_type() {
-  let mut archipelago = Archipelago::<XY>::new();
+  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
 
   let node_type = archipelago.add_node_type(1.0).unwrap();
 
@@ -993,7 +993,7 @@ fn false_on_setting_zero_or_negative_node_type() {
 
 #[test]
 fn cannot_remove_used_node_type() {
-  let mut archipelago = Archipelago::<XY>::new();
+  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
 
   let node_type_1 = archipelago.add_node_type(2.0).unwrap();
   let node_type_2 = archipelago.add_node_type(3.0).unwrap();
@@ -1068,7 +1068,7 @@ fn cannot_remove_used_node_type() {
 #[test]
 #[should_panic]
 fn panics_on_invalid_node_type() {
-  let mut archipelago = Archipelago::<XY>::new();
+  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
   let deleted_node_type = archipelago.add_node_type(2.0).unwrap();
   assert!(archipelago.remove_node_type(deleted_node_type));
 
