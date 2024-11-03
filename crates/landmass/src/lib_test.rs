@@ -10,7 +10,8 @@ use crate::{
 
 #[test]
 fn add_and_remove_agents() {
-  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let agent_1 = archipelago.add_agent(Agent::create(
     /* position= */ Vec3::ZERO,
@@ -83,7 +84,8 @@ fn add_and_remove_agents() {
 
 #[test]
 fn add_and_remove_characters() {
-  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let character_1 =
     archipelago.add_character(Character { radius: 1.0, ..Default::default() });
@@ -141,7 +143,8 @@ fn add_and_remove_characters() {
 
 #[test]
 fn computes_and_follows_path() {
-  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
   let nav_mesh = NavigationMesh {
     vertices: vec![
       Vec3::new(1.0, 1.0, 1.0),
@@ -392,7 +395,8 @@ fn computes_and_follows_path() {
 
 #[test]
 fn agent_speeds_up_to_avoid_character() {
-  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
 
   archipelago.agent_options.avoidance_time_horizon = 100.0;
   archipelago.agent_options.neighbourhood = 10.0;
@@ -457,7 +461,8 @@ fn agent_speeds_up_to_avoid_character() {
 
 #[test]
 fn add_and_remove_islands() {
-  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
   let nav_mesh = Arc::new(
     NavigationMesh {
       vertices: vec![],
@@ -504,7 +509,8 @@ fn add_and_remove_islands() {
 
 #[test]
 fn changed_island_is_not_dirty_after_update() {
-  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let island_id = archipelago.add_island(Island::new(
     Transform::default(),
@@ -540,7 +546,8 @@ fn changed_island_is_not_dirty_after_update() {
 
 #[test]
 fn samples_point() {
-  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -596,7 +603,8 @@ fn samples_point() {
 
 #[test]
 fn finds_path() {
-  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -649,7 +657,8 @@ fn finds_path() {
 
 #[test]
 fn agent_overrides_node_costs() {
-  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {

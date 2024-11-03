@@ -120,7 +120,8 @@ fn setup(
     })),
   ));
 
-  let mut archipelago = Archipelago2d::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago2d::new(AgentOptions::default_for_agent_radius(0.5));
   let slow_node_type = archipelago.add_node_type(1000.0).unwrap();
   let archipelago_entity = commands.spawn(archipelago).id();
 

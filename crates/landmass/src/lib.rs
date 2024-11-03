@@ -65,11 +65,13 @@ pub struct AgentOptions {
   pub reached_destination_avoidance_responsibility: f32,
 }
 
-impl Default for AgentOptions {
-  fn default() -> Self {
+impl AgentOptions {
+  /// Creates a default set of options for a given agent radius. This is an easy
+  /// starting point for settings that can be overridden as needed.
+  pub fn default_for_agent_radius(radius: f32) -> Self {
     Self {
-      node_sample_distance: 0.1,
-      neighbourhood: 5.0,
+      node_sample_distance: 0.2 * radius,
+      neighbourhood: 10.0 * radius,
       avoidance_time_horizon: 1.0,
       obstacle_avoidance_time_horizon: 0.5,
       reached_destination_avoidance_responsibility: 0.1,
