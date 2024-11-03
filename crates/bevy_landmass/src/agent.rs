@@ -17,8 +17,8 @@ use crate::{ArchipelagoRef, NodeType};
 /// previous bundles).
 #[derive(Bundle)]
 pub struct AgentBundle<CS: CoordinateSystem> {
-  /// The agent itself.
-  pub agent: Agent,
+  /// The agent's settings.
+  pub settings: AgentSettings,
   /// A reference pointing to the Archipelago to associate this entity with.
   pub archipelago_ref: ArchipelagoRef<CS>,
   /// The velocity of the agent.
@@ -36,10 +36,11 @@ pub struct AgentBundle<CS: CoordinateSystem> {
 pub type Agent2dBundle = AgentBundle<TwoD>;
 pub type Agent3dBundle = AgentBundle<ThreeD>;
 
-/// An agent. See [`crate::AgentBundle`] for required related components.
+/// The settings for an agent. See [`crate::AgentBundle`] for required related
+/// components.
 #[derive(Component, Debug)]
 #[require(Transform)]
-pub struct Agent {
+pub struct AgentSettings {
   /// The radius of the agent.
   pub radius: f32,
   /// The speed the agent prefers to move at. This should often be set lower
@@ -176,7 +177,7 @@ impl<CS: CoordinateSystem> AgentDesiredVelocity<CS> {
 pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
   mut archipelago_query: Query<(Entity, &mut Archipelago<CS>)>,
   agent_query: Query<
-    (Entity, &Agent, &ArchipelagoRef<CS>),
+    (Entity, &AgentSettings, &ArchipelagoRef<CS>),
     With<GlobalTransform>,
   >,
 ) {
@@ -225,7 +226,7 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
 pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
   agent_query: Query<(
     Entity,
-    &Agent,
+    &AgentSettings,
     &ArchipelagoRef<CS>,
     &GlobalTransform,
     Option<&Velocity<CS>>,
@@ -304,7 +305,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
 pub(crate) fn sync_agent_state<CS: CoordinateSystem>(
   mut agent_query: Query<
     (Entity, &ArchipelagoRef<CS>, &mut AgentState),
-    With<Agent>,
+    With<AgentSettings>,
   >,
   archipelago_query: Query<&Archipelago<CS>>,
 ) {
@@ -330,7 +331,7 @@ pub(crate) fn sync_agent_state<CS: CoordinateSystem>(
 pub(crate) fn sync_desired_velocity<CS: CoordinateSystem>(
   mut agent_query: Query<
     (Entity, &ArchipelagoRef<CS>, &mut AgentDesiredVelocity<CS>),
-    With<Agent>,
+    With<AgentSettings>,
   >,
   archipelago_query: Query<&Archipelago<CS>>,
 ) {

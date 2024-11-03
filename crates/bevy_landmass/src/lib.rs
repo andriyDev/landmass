@@ -44,11 +44,11 @@ pub mod prelude {
   pub use crate::coords::CoordinateSystem;
   pub use crate::coords::ThreeD;
   pub use crate::coords::TwoD;
-  pub use crate::Agent;
   pub use crate::Agent2dBundle;
   pub use crate::Agent3dBundle;
   pub use crate::AgentDesiredVelocity2d;
   pub use crate::AgentDesiredVelocity3d;
+  pub use crate::AgentSettings;
   pub use crate::AgentState;
   pub use crate::AgentTarget2d;
   pub use crate::AgentTarget3d;
