@@ -56,9 +56,9 @@ pub mod prelude {
   pub use crate::Archipelago3d;
   pub use crate::ArchipelagoRef2d;
   pub use crate::ArchipelagoRef3d;
-  pub use crate::Character;
   pub use crate::Character2dBundle;
   pub use crate::Character3dBundle;
+  pub use crate::CharacterSettings;
   pub use crate::Island;
   pub use crate::Island2dBundle;
   pub use crate::Island3dBundle;
