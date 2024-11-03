@@ -12,7 +12,7 @@ use crate::{
   coords::{XY, XYZ},
   nav_data::NodeRef,
   path::{IslandSegment, Path, PathIndex},
-  Agent, Archipelago, Island, IslandId, NavigationMesh, NodeType,
+  Agent, AgentOptions, Archipelago, Island, IslandId, NavigationMesh, NodeType,
   TargetReachedCondition, Transform,
 };
 
@@ -93,7 +93,7 @@ fn has_reached_target_at_end_node() {
   .expect("nav mesh is valid");
   let transform =
     Transform { translation: Vec3::new(2.0, 3.0, 4.0), rotation: PI * 0.85 };
-  let mut archipelago = Archipelago::<XYZ>::new();
+  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
   let island_id = archipelago.add_island(Island::new(
     transform.clone(),
     Arc::new(nav_mesh),
@@ -170,7 +170,7 @@ fn long_detour_reaches_target_in_different_ways() {
 
   let transform =
     Transform { translation: Vec3::new(2.0, 4.0, 3.0), rotation: PI * -0.85 };
-  let mut archipelago = Archipelago::<XYZ>::new();
+  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
   let island_id = archipelago.add_island(Island::new(
     transform.clone(),
     Arc::new(nav_mesh),

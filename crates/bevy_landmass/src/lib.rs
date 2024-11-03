@@ -48,6 +48,7 @@ pub mod prelude {
   pub use crate::Agent3dBundle;
   pub use crate::AgentDesiredVelocity2d;
   pub use crate::AgentDesiredVelocity3d;
+  pub use crate::AgentOptions;
   pub use crate::AgentSettings;
   pub use crate::AgentState;
   pub use crate::AgentTarget2d;
@@ -167,9 +168,9 @@ pub type Archipelago3d = Archipelago<ThreeD>;
 
 impl<CS: CoordinateSystem> Archipelago<CS> {
   /// Creates an empty archipelago.
-  pub fn new() -> Self {
+  pub fn new(agent_options: AgentOptions) -> Self {
     Self {
-      archipelago: landmass::Archipelago::new(),
+      archipelago: landmass::Archipelago::new(agent_options),
       islands: HashMap::new(),
       reverse_islands: HashMap::new(),
       agents: HashMap::new(),
@@ -314,12 +315,6 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       .islands
       .get(&entity)
       .and_then(|&island_id| self.archipelago.get_island_mut(island_id))
-  }
-}
-
-impl<CS: CoordinateSystem> Default for Archipelago<CS> {
-  fn default() -> Self {
-    Self::new()
   }
 }
 

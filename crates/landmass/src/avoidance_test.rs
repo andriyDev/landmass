@@ -762,7 +762,7 @@ fn agent_speeds_up_to_avoid_character() {
 
 #[test]
 fn reached_target_agent_has_different_avoidance() {
-  let mut archipelago = Archipelago::<XY>::new();
+  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
 
   let nav_mesh = Arc::new(
     NavigationMesh {

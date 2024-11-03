@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use glam::Vec2;
 
 use crate::{
-  coords::XY, Archipelago, FindPathError, Island, NavigationMesh,
+  coords::XY, AgentOptions, Archipelago, FindPathError, Island, NavigationMesh,
   SamplePointError, Transform,
 };
 
@@ -11,7 +11,7 @@ use super::{find_path, sample_point};
 
 #[test]
 fn error_on_dirty_nav_mesh() {
-  let mut archipelago = Archipelago::<XY>::new();
+  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -46,7 +46,7 @@ fn error_on_dirty_nav_mesh() {
 
 #[test]
 fn error_on_out_of_range() {
-  let mut archipelago = Archipelago::<XY>::new();
+  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -83,7 +83,7 @@ fn error_on_out_of_range() {
 
 #[test]
 fn samples_point_on_nav_mesh_or_near_nav_mesh() {
-  let mut archipelago = Archipelago::<XY>::new();
+  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -139,7 +139,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
 
 #[test]
 fn samples_node_types() {
-  let mut archipelago = Archipelago::<XY>::new();
+  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
 
   let node_type_1 = archipelago.add_node_type(1.0).unwrap();
   let node_type_2 = archipelago.add_node_type(2.0).unwrap();
@@ -219,7 +219,7 @@ fn samples_node_types() {
 
 #[test]
 fn no_path() {
-  let mut archipelago = Archipelago::<XY>::new();
+  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -263,7 +263,7 @@ fn no_path() {
 
 #[test]
 fn finds_path() {
-  let mut archipelago = Archipelago::<XY>::new();
+  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -316,7 +316,7 @@ fn finds_path() {
 
 #[test]
 fn finds_path_with_override_node_types() {
-  let mut archipelago = Archipelago::<XY>::new();
+  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -407,7 +407,7 @@ fn finds_path_with_override_node_types() {
 
 #[test]
 fn find_path_returns_error_on_invalid_node_cost() {
-  let mut archipelago = Archipelago::<XY>::new();
+  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
 
   let nav_mesh = Arc::new(
     NavigationMesh {
