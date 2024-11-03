@@ -86,17 +86,15 @@ fn set_up_scene(
   commands.spawn((
     Transform::from_translation(Vec3::new(1.5, 1.5, 0.0)),
     Agent2dBundle {
+      agent: Default::default(),
       settings: AgentSettings {
         radius: 0.5,
         desired_speed: 1.0,
         max_speed: 2.0,
       },
       archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
-      target: AgentTarget2d::Point(Vec2::new(1.5, 3.5)),
-      velocity: Default::default(),
-      state: Default::default(),
-      desired_velocity: Default::default(),
-    }
+    },
+    AgentTarget2d::Point(Vec2::new(1.5, 3.5)),
   ));
 }
 

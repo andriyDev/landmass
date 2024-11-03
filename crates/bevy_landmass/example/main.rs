@@ -215,17 +215,15 @@ impl AgentSpawner {
         Mesh2d(self.mesh.clone()),
         MeshMaterial2d(self.material.clone()),
         Agent2dBundle {
+          agent: Default::default(),
           settings: AgentSettings {
             radius: 0.5,
             desired_speed: 2.0,
             max_speed: 3.0,
           },
           archipelago_ref: ArchipelagoRef2d::new(self.archipelago_entity),
-          target: AgentTarget2d::Entity(self.target_entity),
-          state: Default::default(),
-          velocity: Default::default(),
-          desired_velocity: Default::default(),
         },
+        AgentTarget2d::Entity(self.target_entity),
       ))
       .id();
 
