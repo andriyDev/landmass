@@ -7,9 +7,9 @@ use crate::{
   Agent2dBundle, Agent3dBundle, AgentDesiredVelocity2d, AgentDesiredVelocity3d,
   AgentNodeTypeCostOverrides, AgentSettings, AgentState, AgentTarget2d,
   AgentTarget3d, Archipelago2d, Archipelago3d, ArchipelagoRef2d,
-  ArchipelagoRef3d, Character, Character3dBundle, Island, Island2dBundle,
-  Island3dBundle, Landmass2dPlugin, Landmass3dPlugin, NavMesh2d, NavMesh3d,
-  NavMeshHandle, NavigationMesh3d, Velocity3d,
+  ArchipelagoRef3d, Character3dBundle, CharacterSettings, Island,
+  Island2dBundle, Island3dBundle, Landmass2dPlugin, Landmass3dPlugin,
+  NavMesh2d, NavMesh3d, NavMeshHandle, NavigationMesh3d, Velocity3d,
 };
 
 #[test]
@@ -223,7 +223,7 @@ fn adds_and_removes_characters() {
   let character_id_1 = app
     .world_mut()
     .spawn((Character3dBundle {
-      character: Character { radius: 0.5 },
+      settings: CharacterSettings { radius: 0.5 },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       velocity: Default::default(),
     },))
@@ -232,7 +232,7 @@ fn adds_and_removes_characters() {
   let character_id_2 = app
     .world_mut()
     .spawn((Character3dBundle {
-      character: Character { radius: 0.5 },
+      settings: CharacterSettings { radius: 0.5 },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       velocity: Default::default(),
     },))
@@ -259,7 +259,7 @@ fn adds_and_removes_characters() {
   let character_id_3 = app
     .world_mut()
     .spawn((Character3dBundle {
-      character: Character { radius: 0.5 },
+      settings: CharacterSettings { radius: 0.5 },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       velocity: Default::default(),
     },))
@@ -537,7 +537,7 @@ fn changing_character_fields_changes_landmass_character() {
     .spawn((
       Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
       Character3dBundle {
-        character: Character { radius: 1.0 },
+        settings: CharacterSettings { radius: 1.0 },
         archipelago_ref: ArchipelagoRef3d::new(archipelago),
         velocity: Velocity3d { velocity: Vec3::new(4.0, 5.0, 6.0) },
       },
@@ -560,7 +560,7 @@ fn changing_character_fields_changes_landmass_character() {
 
   app.world_mut().entity_mut(character).insert((
     Transform::from_translation(Vec3::new(7.0, 8.0, 9.0)),
-    Character { radius: 2.0 },
+    CharacterSettings { radius: 2.0 },
     Velocity3d { velocity: Vec3::new(10.0, 11.0, 12.0) },
   ));
 

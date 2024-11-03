@@ -14,8 +14,8 @@ use crate::{
 /// override previous bundles).
 #[derive(Bundle)]
 pub struct CharacterBundle<CS: CoordinateSystem> {
-  /// The character itself.
-  pub character: Character,
+  /// The character's settings.
+  pub settings: CharacterSettings,
   /// A reference pointing to the Archipelago to associate this entity with.
   pub archipelago_ref: ArchipelagoRef<CS>,
   /// The velocity of the character.
@@ -25,10 +25,11 @@ pub struct CharacterBundle<CS: CoordinateSystem> {
 pub type Character2dBundle = CharacterBundle<TwoD>;
 pub type Character3dBundle = CharacterBundle<ThreeD>;
 
-/// A character. See [`crate::CharacterBundle`] for required related components.
+/// A character's settings. See [`crate::CharacterBundle`] for required related
+/// components.
 #[derive(Component, Debug)]
 #[require(Transform)]
-pub struct Character {
+pub struct CharacterSettings {
   /// The radius of the character.
   pub radius: f32,
 }
@@ -62,7 +63,7 @@ impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
 pub(crate) fn add_characters_to_archipelago<CS: CoordinateSystem>(
   mut archipelagos: Query<(Entity, &mut Archipelago<CS>)>,
   characters: Query<
-    (Entity, &Character, &ArchipelagoRef<CS>),
+    (Entity, &CharacterSettings, &ArchipelagoRef<CS>),
     With<GlobalTransform>,
   >,
 ) {
@@ -103,7 +104,7 @@ pub(crate) fn add_characters_to_archipelago<CS: CoordinateSystem>(
 pub(crate) fn sync_character_state<CS: CoordinateSystem>(
   characters: Query<(
     Entity,
-    &Character,
+    &CharacterSettings,
     &ArchipelagoRef<CS>,
     &GlobalTransform,
     Option<&Velocity<CS>>,
