@@ -4,9 +4,9 @@ use bevy::prelude::*;
 use landmass::{NavigationMesh, SamplePointError};
 
 use crate::{
-  Agent, Agent2dBundle, Agent3dBundle, AgentDesiredVelocity2d,
-  AgentDesiredVelocity3d, AgentNodeTypeCostOverrides, AgentState,
-  AgentTarget2d, AgentTarget3d, Archipelago2d, Archipelago3d, ArchipelagoRef2d,
+  Agent2dBundle, Agent3dBundle, AgentDesiredVelocity2d, AgentDesiredVelocity3d,
+  AgentNodeTypeCostOverrides, AgentSettings, AgentState, AgentTarget2d,
+  AgentTarget3d, Archipelago2d, Archipelago3d, ArchipelagoRef2d,
   ArchipelagoRef3d, Character, Character3dBundle, Island, Island2dBundle,
   Island3dBundle, Landmass2dPlugin, Landmass3dPlugin, NavMesh2d, NavMesh3d,
   NavMeshHandle, NavigationMesh3d, Velocity3d,
@@ -67,7 +67,11 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
     .spawn((
       Transform::from_translation(Vec3::new(2.5, 1.0, 2.5)),
       Agent3dBundle {
-        agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
+        settings: AgentSettings {
+          radius: 0.5,
+          desired_speed: 1.0,
+          max_speed: 2.0,
+        },
         archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
         target: AgentTarget3d::Point(Vec3::new(4.5, 1.0, 4.5)),
         velocity: Default::default(),
@@ -111,7 +115,11 @@ fn adds_and_removes_agents() {
   let agent_id_1 = app
     .world_mut()
     .spawn(Agent3dBundle {
-      agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
+      settings: AgentSettings {
+        radius: 0.5,
+        desired_speed: 1.0,
+        max_speed: 2.0,
+      },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       target: AgentTarget3d::None,
       velocity: Default::default(),
@@ -123,7 +131,11 @@ fn adds_and_removes_agents() {
   let agent_id_2 = app
     .world_mut()
     .spawn(Agent3dBundle {
-      agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
+      settings: AgentSettings {
+        radius: 0.5,
+        desired_speed: 1.0,
+        max_speed: 2.0,
+      },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       target: AgentTarget3d::None,
       velocity: Default::default(),
@@ -153,7 +165,11 @@ fn adds_and_removes_agents() {
   let agent_id_3 = app
     .world_mut()
     .spawn(Agent3dBundle {
-      agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
+      settings: AgentSettings {
+        radius: 0.5,
+        desired_speed: 1.0,
+        max_speed: 2.0,
+      },
       archipelago_ref: ArchipelagoRef3d::new(archipelago_id),
       target: AgentTarget3d::None,
       velocity: Default::default(),
@@ -447,7 +463,11 @@ fn changing_agent_fields_changes_landmass_agent() {
     .spawn((
       Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
       Agent3dBundle {
-        agent: Agent { radius: 1.0, desired_speed: 1.0, max_speed: 2.0 },
+        settings: AgentSettings {
+          radius: 1.0,
+          desired_speed: 1.0,
+          max_speed: 2.0,
+        },
         archipelago_ref: ArchipelagoRef3d::new(archipelago),
         velocity: Velocity3d { velocity: Vec3::new(4.0, 5.0, 6.0) },
         target: AgentTarget3d::None,
@@ -483,7 +503,7 @@ fn changing_agent_fields_changes_landmass_agent() {
 
   app.world_mut().entity_mut(agent).insert((
     Transform::from_translation(Vec3::new(7.0, 8.0, 9.0)),
-    Agent { radius: 2.0, desired_speed: 1.5, max_speed: 2.0 },
+    AgentSettings { radius: 2.0, desired_speed: 1.5, max_speed: 2.0 },
     Velocity3d { velocity: Vec3::new(10.0, 11.0, 12.0) },
     AgentTarget3d::Point(Vec3::new(13.0, 14.0, 15.0)),
     crate::TargetReachedCondition::VisibleAtDistance(Some(2.0)),
@@ -658,7 +678,11 @@ fn node_type_costs_are_used() {
     .spawn((
       Transform::from_translation(Vec3::new(0.5, 0.5, 1.0)),
       Agent2dBundle {
-        agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
+        settings: AgentSettings {
+          radius: 0.5,
+          desired_speed: 1.0,
+          max_speed: 2.0,
+        },
         archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
         target: AgentTarget2d::Point(Vec2::new(0.5, 11.5)),
         velocity: Default::default(),
@@ -774,7 +798,11 @@ fn overridden_node_type_costs_are_used() {
     .spawn((
       Transform::from_translation(Vec3::new(0.5, 0.5, 1.0)),
       Agent2dBundle {
-        agent: Agent { radius: 0.5, desired_speed: 1.0, max_speed: 2.0 },
+        settings: AgentSettings {
+          radius: 0.5,
+          desired_speed: 1.0,
+          max_speed: 2.0,
+        },
         archipelago_ref: ArchipelagoRef2d::new(archipelago_id),
         target: AgentTarget2d::Point(Vec2::new(0.5, 11.5)),
         velocity: Default::default(),

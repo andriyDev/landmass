@@ -86,7 +86,7 @@ fn set_up_scene(
   commands.spawn((
     Transform::from_translation(Vec3::new(1.5, 1.5, 0.0)),
     Agent2dBundle {
-      agent: Agent {
+      settings: AgentSettings {
         radius: 0.5,
         desired_speed: 1.0,
         max_speed: 2.0,
