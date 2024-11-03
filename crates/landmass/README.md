@@ -54,7 +54,8 @@ use glam::Vec3;
 use landmass::*;
 use std::{sync::Arc, collections::HashMap};
 
-let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
+let mut archipelago =
+  Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
 
 let nav_mesh = NavigationMesh {
   vertices: vec![

@@ -43,7 +43,8 @@ fn finds_path_in_archipelago() {
   .validate()
   .expect("Mesh is valid.");
 
-  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::new(nav_mesh),
@@ -142,7 +143,8 @@ fn finds_paths_on_two_islands() {
   .expect("Mesh is valid.");
   let nav_mesh = Arc::new(nav_mesh);
 
-  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::clone(&nav_mesh),
@@ -228,7 +230,8 @@ fn no_path_between_disconnected_islands() {
   .expect("Mesh is valid.");
   let nav_mesh = Arc::new(nav_mesh);
 
-  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::clone(&nav_mesh),
@@ -279,7 +282,8 @@ fn find_path_across_connected_islands() {
     .expect("Mesh is valid."),
   );
 
-  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { rotation: 0.0, translation: Vec3::ZERO },
@@ -405,7 +409,8 @@ fn finds_path_across_different_islands() {
     .expect("Mesh is valid."),
   );
 
-  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { rotation: 0.0, translation: Vec3::ZERO },
@@ -479,7 +484,8 @@ fn aborts_early_for_unconnected_regions() {
     .expect("Mesh is valid."),
   );
 
-  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
@@ -527,7 +533,8 @@ fn aborts_early_for_unconnected_regions() {
 
 #[test]
 fn detour_for_high_cost_path() {
-  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -605,7 +612,8 @@ fn detour_for_high_cost_path() {
 
 #[test]
 fn detour_for_high_cost_path_across_boundary_links() {
-  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let nav_mesh_1 = Arc::new(
     NavigationMesh {
@@ -713,7 +721,8 @@ fn detour_for_high_cost_path_across_boundary_links() {
 
 #[test]
 fn fast_path_not_ignored_by_heuristic() {
-  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -793,7 +802,8 @@ fn fast_path_not_ignored_by_heuristic() {
 
 #[test]
 fn infinite_or_nan_cost_cannot_find_path() {
-  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -847,7 +857,8 @@ fn infinite_or_nan_cost_cannot_find_path() {
 
 #[test]
 fn detour_for_overridden_high_cost_path() {
-  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {

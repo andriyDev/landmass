@@ -467,7 +467,10 @@ fn applies_no_avoidance_for_far_agents() {
     /* characters= */ &HopSlotMap::with_key(),
     /* character_id_to_nav_mesh_point= */ &HashMap::new(),
     &nav_data,
-    &AgentOptions { neighbourhood: 5.0, ..Default::default() },
+    &AgentOptions {
+      neighbourhood: 5.0,
+      ..AgentOptions::default_for_agent_radius(0.5)
+    },
     /* delta_time= */ 0.01,
   );
 
@@ -556,7 +559,7 @@ fn applies_avoidance_for_two_agents() {
     &AgentOptions {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
-      ..Default::default()
+      ..AgentOptions::default_for_agent_radius(0.5)
     },
     /* delta_time= */ 0.01,
   );
@@ -642,7 +645,7 @@ fn agent_avoids_character() {
     &AgentOptions {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
-      ..Default::default()
+      ..AgentOptions::default_for_agent_radius(0.5)
     },
     /* delta_time= */ 0.01,
   );
@@ -715,7 +718,7 @@ fn agent_speeds_up_to_avoid_character() {
     &AgentOptions {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
-      ..Default::default()
+      ..AgentOptions::default_for_agent_radius(0.5)
     },
     /* delta_time= */ 0.01,
   );
@@ -745,7 +748,7 @@ fn agent_speeds_up_to_avoid_character() {
     &AgentOptions {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
-      ..Default::default()
+      ..AgentOptions::default_for_agent_radius(0.5)
     },
     /* delta_time= */ 0.01,
   );
@@ -762,7 +765,8 @@ fn agent_speeds_up_to_avoid_character() {
 
 #[test]
 fn reached_target_agent_has_different_avoidance() {
-  let mut archipelago = Archipelago::<XY>::new(AgentOptions::default());
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
