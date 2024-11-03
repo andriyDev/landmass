@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use bevy::{
   prelude::{
     Bundle, Component, Deref, DetectChanges, Entity, Query, Ref, With,
@@ -17,29 +19,34 @@ use crate::{ArchipelagoRef, NodeType};
 /// previous bundles).
 #[derive(Bundle)]
 pub struct AgentBundle<CS: CoordinateSystem> {
+  /// The agent marker.
+  pub agent: Agent<CS>,
   /// The agent's settings.
   pub settings: AgentSettings,
   /// A reference pointing to the Archipelago to associate this entity with.
   pub archipelago_ref: ArchipelagoRef<CS>,
-  /// The velocity of the agent.
-  pub velocity: Velocity<CS>,
-  /// The target of the agent.
-  pub target: AgentTarget<CS>,
-  /// The current state of the agent. This is set by `landmass` (during
-  /// [`LandmassSystemSet::Output`]).
-  pub state: AgentState,
-  /// The current desired velocity of the agent. This is set by `landmass`
-  /// (during [`LandmassSystemSet::Output`]).
-  pub desired_velocity: AgentDesiredVelocity<CS>,
 }
 
 pub type Agent2dBundle = AgentBundle<TwoD>;
 pub type Agent3dBundle = AgentBundle<ThreeD>;
 
+/// A marker component to create all required components for an agent.
+#[derive(Component)]
+#[require(Transform, Velocity<CS>, AgentTarget<CS>, AgentState, AgentDesiredVelocity<CS>)]
+pub struct Agent<CS: CoordinateSystem>(PhantomData<CS>);
+
+pub type Agent2d = Agent<TwoD>;
+pub type Agent3d = Agent<ThreeD>;
+
+impl<CS: CoordinateSystem> Default for Agent<CS> {
+  fn default() -> Self {
+    Self(Default::default())
+  }
+}
+
 /// The settings for an agent. See [`crate::AgentBundle`] for required related
 /// components.
 #[derive(Component, Debug)]
-#[require(Transform)]
 pub struct AgentSettings {
   /// The radius of the agent.
   pub radius: f32,
