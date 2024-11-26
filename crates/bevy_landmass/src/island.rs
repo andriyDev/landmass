@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use bevy::{
   asset::Assets,
-  prelude::{Bundle, Component, Entity, Query, Res, With},
-  transform::components::{GlobalTransform, Transform},
+  prelude::{Bundle, Component, Entity, Query, Res, TransformHelper, With},
+  transform::components::Transform,
   utils::hashbrown::{HashMap, HashSet},
 };
 
@@ -37,21 +37,26 @@ pub struct Island;
 pub(crate) fn sync_islands_to_archipelago<CS: CoordinateSystem>(
   mut archipelagos: Query<(Entity, &mut Archipelago<CS>)>,
   islands: Query<
-    (Entity, &NavMeshHandle<CS>, &GlobalTransform, &ArchipelagoRef<CS>),
-    With<Island>,
+    (Entity, &NavMeshHandle<CS>, &ArchipelagoRef<CS>),
+    (With<Island>, With<Transform>),
   >,
+  transform_helper: TransformHelper,
   nav_meshes: Res<Assets<NavMesh<CS>>>,
 ) {
   let mut archipelago_to_islands = HashMap::<_, HashSet<_>>::new();
-  for (island_entity, island_nav_mesh, island_transform, archipelago_ref) in
-    islands.iter()
-  {
+  for (island_entity, island_nav_mesh, archipelago_ref) in islands.iter() {
     let mut archipelago = match archipelagos.get_mut(archipelago_ref.entity) {
       Err(_) => continue,
       Ok((_, arch)) => arch,
     };
 
     let Some(island_nav_mesh) = nav_meshes.get(&island_nav_mesh.0) else {
+      continue;
+    };
+
+    let Ok(island_transform) =
+      transform_helper.compute_global_transform(island_entity)
+    else {
       continue;
     };
 

@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
 use bevy::{
-  prelude::{Bundle, Component, Entity, Query, With},
-  transform::components::{GlobalTransform, Transform},
+  prelude::{Bundle, Component, Entity, Query, TransformHelper, With},
+  transform::components::Transform,
   utils::hashbrown::HashMap,
 };
 
@@ -76,7 +76,7 @@ pub(crate) fn add_characters_to_archipelago<CS: CoordinateSystem>(
   mut archipelagos: Query<(Entity, &mut Archipelago<CS>)>,
   characters: Query<
     (Entity, &CharacterSettings, &ArchipelagoRef<CS>),
-    With<GlobalTransform>,
+    With<Transform>,
   >,
 ) {
   let mut archipelago_to_characters = HashMap::<_, HashMap<_, _>>::new();
@@ -114,24 +114,27 @@ pub(crate) fn add_characters_to_archipelago<CS: CoordinateSystem>(
 
 /// Copies Bevy character states to their associated landmass character.
 pub(crate) fn sync_character_state<CS: CoordinateSystem>(
-  characters: Query<(
-    Entity,
-    &CharacterSettings,
-    &ArchipelagoRef<CS>,
-    &GlobalTransform,
-    Option<&Velocity<CS>>,
-  )>,
+  characters: Query<
+    (Entity, &CharacterSettings, &ArchipelagoRef<CS>, Option<&Velocity<CS>>),
+    With<Transform>,
+  >,
+  transform_helper: TransformHelper,
   mut archipelagos: Query<&mut Archipelago<CS>>,
 ) {
   for (
     character_entity,
     character,
     &ArchipelagoRef { entity: arch_entity, .. },
-    transform,
     velocity,
   ) in characters.iter()
   {
     let Ok(mut archipelago) = archipelagos.get_mut(arch_entity) else {
+      continue;
+    };
+
+    let Ok(transform) =
+      transform_helper.compute_global_transform(character_entity)
+    else {
       continue;
     };
 
