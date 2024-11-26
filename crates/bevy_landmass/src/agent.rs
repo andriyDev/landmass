@@ -2,9 +2,10 @@ use std::marker::PhantomData;
 
 use bevy::{
   prelude::{
-    Bundle, Component, Deref, DetectChanges, Entity, Query, Ref, With,
+    Bundle, Component, Deref, DetectChanges, Entity, Query, Ref,
+    TransformHelper, With,
   },
-  transform::components::{GlobalTransform, Transform},
+  transform::components::Transform,
   utils::HashMap,
 };
 
@@ -138,12 +139,12 @@ impl<CS: CoordinateSystem> AgentTarget<CS> {
   /// Converts an agent target to a concrete world position.
   fn to_point(
     &self,
-    global_transform_query: &Query<&GlobalTransform>,
+    transform_helper: &TransformHelper,
   ) -> Option<CS::Coordinate> {
     match self {
       Self::Point(point) => Some(point.clone()),
-      &Self::Entity(entity) => global_transform_query
-        .get(entity)
+      &Self::Entity(entity) => transform_helper
+        .compute_global_transform(entity)
         .ok()
         .map(|transform| CS::from_bevy_position(transform.translation())),
       _ => None,
@@ -185,7 +186,7 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
   mut archipelago_query: Query<(Entity, &mut Archipelago<CS>)>,
   agent_query: Query<
     (Entity, &AgentSettings, &ArchipelagoRef<CS>),
-    With<GlobalTransform>,
+    With<Transform>,
   >,
 ) {
   let mut archipelago_to_agents = HashMap::<_, HashMap<_, _>>::new();
@@ -231,24 +232,25 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
 /// Ensures the "input state" (position, velocity, etc) of every Bevy agent
 /// matches its `landmass` counterpart.
 pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
-  agent_query: Query<(
-    Entity,
-    &AgentSettings,
-    &ArchipelagoRef<CS>,
-    &GlobalTransform,
-    Option<&Velocity<CS>>,
-    Option<&AgentTarget<CS>>,
-    Option<&TargetReachedCondition>,
-    Option<Ref<AgentNodeTypeCostOverrides>>,
-  )>,
-  global_transform_query: Query<&GlobalTransform>,
+  agent_query: Query<
+    (
+      Entity,
+      &AgentSettings,
+      &ArchipelagoRef<CS>,
+      Option<&Velocity<CS>>,
+      Option<&AgentTarget<CS>>,
+      Option<&TargetReachedCondition>,
+      Option<Ref<AgentNodeTypeCostOverrides>>,
+    ),
+    With<Transform>,
+  >,
+  transform_helper: TransformHelper,
   mut archipelago_query: Query<&mut Archipelago<CS>>,
 ) {
   for (
     agent_entity,
     agent,
     &ArchipelagoRef { entity: arch_entity, .. },
-    transform,
     velocity,
     target,
     target_reached_condition,
@@ -258,6 +260,11 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
     let mut archipelago = match archipelago_query.get_mut(arch_entity) {
       Err(_) => continue,
       Ok(arch) => arch,
+    };
+
+    let Ok(transform) = transform_helper.compute_global_transform(agent_entity)
+    else {
+      continue;
     };
 
     let landmass_agent = archipelago
@@ -271,7 +278,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
     landmass_agent.desired_speed = agent.desired_speed;
     landmass_agent.max_speed = agent.max_speed;
     landmass_agent.current_target =
-      target.and_then(|target| target.to_point(&global_transform_query));
+      target.and_then(|target| target.to_point(&transform_helper));
     landmass_agent.target_reached_condition =
       if let Some(target_reached_condition) = target_reached_condition {
         target_reached_condition.to_landmass()
