@@ -39,7 +39,7 @@ enum PathStep {
   BoundaryLink(BoundaryLinkId),
 }
 
-impl<'a, CS: CoordinateSystem> ArchipelagoPathProblem<'a, CS> {
+impl<CS: CoordinateSystem> ArchipelagoPathProblem<'_, CS> {
   /// Determines the cost of the node type corresponding to `type_index` in
   /// `island`.
   fn type_index_to_cost(&self, island: &Island<CS>, type_index: usize) -> f32 {

@@ -81,9 +81,7 @@ struct GizmoDrawer<'w, 's, 'a, CS: CoordinateSystem>(
   PhantomData<CS>,
 );
 
-impl<'w, 's, 'a, CS: CoordinateSystem> DebugDrawer<CS>
-  for GizmoDrawer<'w, 's, 'a, CS>
-{
+impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
   fn add_point(&mut self, point_type: PointType, point: CS::Coordinate) {
     self.0.sphere(
       Isometry3d::new(CS::to_world_position(&point), Quat::IDENTITY),

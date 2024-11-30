@@ -401,9 +401,7 @@ pub struct SampledPoint<'archipelago, CS: CoordinateSystem> {
 }
 
 // Manual Clone impl for `SampledPoint` to avoid the Clone bound on CS.
-impl<'archipelago, CS: CoordinateSystem> Clone
-  for SampledPoint<'archipelago, CS>
-{
+impl<CS: CoordinateSystem> Clone for SampledPoint<'_, CS> {
   fn clone(&self) -> Self {
     Self { sampled_point: self.sampled_point.clone(), island: self.island }
   }
