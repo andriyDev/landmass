@@ -128,25 +128,44 @@ pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
       nav_data,
       agent_options.neighbourhood,
     );
+    let nearby_obstacles = nearby_obstacles
+      .drain(..)
+      .map(std::borrow::Cow::Owned)
+      .collect::<Vec<_>>();
+    let preferred_velocity =
+      to_dodgy_vec2(CS::to_landmass(&agent.current_desired_move).xy());
+    let avoidance_options = dodgy_2d::AvoidanceOptions {
+      // Always use an avoidance margin of zero since we assume the nav mesh
+      // is the "valid" region.
+      obstacle_margin: 0.0,
+      time_horizon: agent_options.avoidance_time_horizon,
+      obstacle_time_horizon: agent_options.obstacle_avoidance_time_horizon,
+    };
 
     let dodgy_agent = agent_id_to_dodgy_agent.get(&agent_id).unwrap();
+    #[cfg(not(feature = "debug-avoidance"))]
     let desired_move = dodgy_agent.compute_avoiding_velocity(
       &nearby_agents,
-      &nearby_obstacles
-        .drain(..)
-        .map(std::borrow::Cow::Owned)
-        .collect::<Vec<_>>(),
-      to_dodgy_vec2(CS::to_landmass(&agent.current_desired_move).xy()),
+      &nearby_obstacles,
+      preferred_velocity,
       agent.max_speed,
       delta_time,
-      &dodgy_2d::AvoidanceOptions {
-        // Always use an avoidance margin of zero since we assume the nav mesh
-        // is the "valid" region.
-        obstacle_margin: 0.0,
-        time_horizon: agent_options.avoidance_time_horizon,
-        obstacle_time_horizon: agent_options.obstacle_avoidance_time_horizon,
-      },
+      &avoidance_options,
     );
+    #[cfg(feature = "debug-avoidance")]
+    let desired_move = {
+      let (desired_move, debug_data) = dodgy_agent
+        .compute_avoiding_velocity_with_debug(
+          &nearby_agents,
+          &nearby_obstacles,
+          preferred_velocity,
+          agent.max_speed,
+          delta_time,
+          &avoidance_options,
+        );
+      agent.avoidance_data = agent.keep_avoidance_data.then_some(debug_data);
+      desired_move
+    };
 
     agent.current_desired_move =
       CS::from_landmass(&glam::Vec3::new(desired_move.x, desired_move.y, 0.0));

@@ -14,7 +14,7 @@ categories = ["game-development"]
 keywords = ["navigation", "system", "pathfinding", "avoidance"]
 
 [dependencies]
-dodgy_2d = "0.5.1"
+dodgy_2d = "0.5.4"
 glam = "0.29.1"
 kdtree = "0.7.0"
 ord_subset = "3.1.1"
@@ -22,3 +22,7 @@ geo = "0.29.1"
 disjoint = "0.8.0"
 slotmap = "1.0.7"
 thiserror = "1.0"
+
+[features]
+# Allows you to access avoidance data for an agent when debugging.
+debug-avoidance = ["dodgy_2d/debug"]

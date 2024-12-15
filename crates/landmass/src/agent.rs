@@ -54,6 +54,10 @@ pub struct Agent<CS: CoordinateSystem> {
   pub current_target: Option<CS::Coordinate>,
   /// The condition to test for reaching the target.
   pub target_reached_condition: TargetReachedCondition,
+  #[cfg(feature = "debug-avoidance")]
+  /// If true, avoidance debug data will be stored during update iterations.
+  /// This can later be used for visualization.
+  pub keep_avoidance_data: bool,
   /// Overrides for the "default" costs of each [`NodeType`].
   pub(crate) override_node_type_to_cost: HashMap<NodeType, f32>,
   /// The current path of the agent. None if a path is unavailable or a new
@@ -63,6 +67,10 @@ pub struct Agent<CS: CoordinateSystem> {
   pub(crate) current_desired_move: CS::Coordinate,
   /// The state of the agent.
   pub(crate) state: AgentState,
+  #[cfg(feature = "debug-avoidance")]
+  /// The avoidance data from the most recent update iteration. Only populated
+  /// if [`Self::keep_avoidance_data`] is true.
+  pub(crate) avoidance_data: Option<dodgy_2d::debug::DebugData>,
 }
 
 /// The condition to consider the agent as having reached its target. When this
@@ -117,10 +125,14 @@ impl<CS: CoordinateSystem> Agent<CS> {
       max_speed,
       current_target: None,
       target_reached_condition: TargetReachedCondition::Distance(None),
+      #[cfg(feature = "debug-avoidance")]
+      keep_avoidance_data: false,
       override_node_type_to_cost: HashMap::new(),
       current_path: None,
       current_desired_move: CS::from_landmass(&Vec3::ZERO),
       state: AgentState::Idle,
+      #[cfg(feature = "debug-avoidance")]
+      avoidance_data: None,
     }
   }
 
