@@ -507,3 +507,163 @@ fn fails_to_draw_dirty_archipelago() {
     Err(DebugDrawError::NavDataDirty)
   );
 }
+
+#[cfg(feature = "debug-avoidance")]
+#[googletest::gtest]
+fn draws_avoidance_data_when_requested() {
+  use glam::Vec2;
+  use googletest::{matcher::MatcherResult, prelude::*};
+
+  use crate::{
+    debug::{draw_avoidance_data, AvoidanceDrawer, ConstraintKind, Line},
+    AgentId,
+  };
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec3::new(1.0, 1.0, 1.0),
+        Vec3::new(11.0, 1.0, 1.0),
+        Vec3::new(11.0, 11.0, 1.0),
+        Vec3::new(1.0, 11.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+    }
+    .validate()
+    .expect("The mesh is valid."),
+  );
+
+  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions {
+    neighbourhood: 100.0,
+    avoidance_time_horizon: 100.0,
+    obstacle_avoidance_time_horizon: 100.0,
+    ..AgentOptions::default_for_agent_radius(0.5)
+  });
+  archipelago.add_island(Island::new(
+    Transform::default(),
+    nav_mesh.clone(),
+    HashMap::new(),
+  ));
+
+  let agent_1 = archipelago.add_agent({
+    let mut agent = Agent::create(
+      Vec3::new(6.0, 2.0, 1.0),
+      // Use a velocity that allows both agents to agree on their "passing
+      // side".
+      Vec3::new(1.0, 1.0, 0.0),
+      0.5,
+      1.0,
+      1.0,
+    );
+    agent.current_target = Some(Vec3::new(6.0, 10.0, 1.0));
+    // This agent we want to see the avoidance data for.
+    agent.keep_avoidance_data = true;
+    agent
+  });
+
+  archipelago.add_agent({
+    let mut agent =
+      Agent::create(Vec3::new(6.0, 10.0, 1.0), Vec3::ZERO, 0.5, 1.0, 1.0);
+    agent.current_target = Some(Vec3::new(6.0, 2.0, 1.0));
+    agent
+  });
+
+  // We now have avoidance data for agent_1.
+  archipelago.update(/* delta_time= */ 1.0);
+
+  struct FakeAvoidanceDrawer(
+    HashMap<AgentId, HashMap<ConstraintKind, Vec<Line>>>,
+  );
+
+  impl AvoidanceDrawer for FakeAvoidanceDrawer {
+    fn add_constraint(
+      &mut self,
+      agent: AgentId,
+      constraint: Line,
+      kind: ConstraintKind,
+    ) {
+      self
+        .0
+        .entry(agent)
+        .or_default()
+        .entry(kind)
+        .or_default()
+        .push(constraint);
+    }
+  }
+
+  let mut drawer = FakeAvoidanceDrawer(Default::default());
+
+  draw_avoidance_data(&archipelago, &mut drawer);
+
+  #[derive(MatcherBase)]
+  struct EquivLineMatcher(Line);
+
+  impl Matcher<&Line> for EquivLineMatcher {
+    fn matches(&self, actual: &Line) -> MatcherResult {
+      if self.0.direction.angle_to(actual.direction).abs() >= 1e-3 {
+        // The lines don't point in the same direction.
+        return MatcherResult::NoMatch;
+      }
+      if (self.0.point - actual.point).perp_dot(actual.direction) >= 1e-3 {
+        // The expected line point is not on the actual line.
+        return MatcherResult::NoMatch;
+      }
+      MatcherResult::Match
+    }
+
+    fn describe(
+      &self,
+      matcher_result: MatcherResult,
+    ) -> googletest::description::Description {
+      match matcher_result {
+        MatcherResult::Match => {
+          format!("is equivalent to the line {:?}", self.0).into()
+        }
+        MatcherResult::NoMatch => {
+          format!("isn't equivalent to the line {:?}", self.0).into()
+        }
+      }
+    }
+  }
+
+  fn equiv_line<'a>(line: Line) -> impl Matcher<&'a Line> {
+    EquivLineMatcher(line)
+  }
+
+  // Only one of the agents was rendered.
+  expect_that!(
+    &drawer.0,
+    unordered_elements_are!((
+      eq(&agent_1),
+      unordered_elements_are!((
+        eq(&ConstraintKind::Original),
+        unordered_elements_are!(
+          // Lines for the edges of the nav mesh.
+          equiv_line(Line {
+            direction: Vec2::new(0.0, 1.0),
+            point: Vec2::new(0.05, 0.0),
+          }),
+          equiv_line(Line {
+            direction: Vec2::new(1.0, 0.0),
+            point: Vec2::new(0.0, -0.01),
+          }),
+          equiv_line(Line {
+            direction: Vec2::new(0.0, -1.0),
+            point: Vec2::new(-0.05, 0.0),
+          }),
+          equiv_line(Line {
+            direction: Vec2::new(-1.0, 0.0),
+            point: Vec2::new(0.0, 0.09),
+          }),
+          // Line for the other agent.
+          equiv_line(Line {
+            direction: -Vec2::new(1.007905, 8.0).normalize(),
+            point: Vec2::new(0.0, 0.0),
+          }),
+        ),
+      ))
+    ))
+  );
+}
