@@ -5,6 +5,9 @@ use crate::{
   Island,
 };
 
+#[cfg(feature = "debug-avoidance")]
+pub use dodgy_2d::debug::Line;
+
 /// The type of debug points.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum PointType {
@@ -243,6 +246,69 @@ fn draw_path<CS: CoordinateSystem>(
   );
   debug_drawer
     .add_point(PointType::Waypoint(agent_id), CS::from_landmass(&waypoint));
+}
+
+#[cfg(feature = "debug-avoidance")]
+/// The kinds of constraint during avoidance.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ConstraintKind {
+  /// The constraints from the original algorithm. This is either just all the
+  /// constraints if the algorithm succeeded, or it is the constraints that
+  /// failed, and there are also fallback constraints.
+  Original,
+  /// The constraints after the algorithm has fallen back to ensure a valid
+  /// avoidance direction.
+  Fallback,
+}
+
+#[cfg(feature = "debug-avoidance")]
+/// A trait for reporting agent local collision avoidance constraints.
+pub trait AvoidanceDrawer {
+  /// Reports a single avoidance constraint.
+  fn add_constraint(
+    &mut self,
+    agent: AgentId,
+    constraint: Line,
+    kind: ConstraintKind,
+  );
+}
+
+#[cfg(feature = "debug-avoidance")]
+pub fn draw_avoidance_data<CS: CoordinateSystem>(
+  archipelago: &Archipelago<CS>,
+  avoidance_drawer: &mut impl AvoidanceDrawer,
+) {
+  for (agent_id, agent) in archipelago.agents.iter() {
+    let Some(avoidance_data) = agent.avoidance_data.as_ref() else {
+      continue;
+    };
+
+    let (original_constraints, fallback_constraints) = match avoidance_data {
+      dodgy_2d::debug::DebugData::Satisfied { constraints } => {
+        (constraints.as_slice(), [].as_slice())
+      }
+      dodgy_2d::debug::DebugData::Fallback {
+        original_constraints,
+        fallback_constraints,
+      } => (original_constraints.as_slice(), fallback_constraints.as_slice()),
+    };
+
+    for constraint in original_constraints {
+      avoidance_drawer.add_constraint(
+        agent_id,
+        constraint.clone(),
+        ConstraintKind::Original,
+      );
+    }
+
+    for constraint in fallback_constraints {
+      avoidance_drawer.add_constraint(
+        agent_id,
+        constraint.clone(),
+        ConstraintKind::Fallback,
+      );
+    }
+  }
 }
 
 #[cfg(test)]
