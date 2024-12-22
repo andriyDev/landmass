@@ -10,15 +10,63 @@ use bevy::{
   gizmos::AppGizmoBuilder,
   math::{Isometry3d, Quat},
   prelude::{
-    Deref, DerefMut, GizmoConfig, GizmoConfigGroup, Gizmos, IntoSystemConfigs,
-    Plugin, Query, Res, Resource,
+    Deref, DerefMut, Entity, GizmoConfig, GizmoConfigGroup, Gizmos,
+    IntoSystemConfigs, Plugin, Query, Res, Resource,
   },
   reflect::Reflect,
   time::Time,
   transform::components::Transform,
 };
 
-pub use landmass::debug::*;
+pub use landmass::debug::DebugDrawError;
+
+/// The type of debug points.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub enum PointType {
+  /// The position of an agent.
+  AgentPosition(Entity),
+  /// The target of an agent.
+  TargetPosition(Entity),
+  /// The waypoint of an agent.
+  Waypoint(Entity),
+}
+
+/// The type of debug lines.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub enum LineType {
+  /// An edge of a node that is the boundary of a nav mesh.
+  BoundaryEdge,
+  /// An edge of a node that is connected to another node.
+  ConnectivityEdge,
+  /// A link between two islands along their boundary edge.
+  BoundaryLink,
+  /// Part of an agent's current path. The corridor follows the path along
+  /// nodes, not the actual path the agent will travel.
+  AgentCorridor(Entity),
+  /// Line from an agent to its target.
+  Target(Entity),
+  /// Line to the waypoint of an agent.
+  Waypoint(Entity),
+}
+
+/// The type of debug triangles.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub enum TriangleType {
+  /// Part of a node/polygon in a nav mesh.
+  Node,
+}
+
+/// Trait to "draw" Archipelago state to. Users should implement this to
+/// visualize the state of their Archipelago.
+pub trait DebugDrawer<CS: CoordinateSystem> {
+  fn add_point(&mut self, point_type: PointType, point: CS::Coordinate);
+  fn add_line(&mut self, line_type: LineType, line: [CS::Coordinate; 2]);
+  fn add_triangle(
+    &mut self,
+    triangle_type: TriangleType,
+    triangle: [CS::Coordinate; 3],
+  );
+}
 
 /// Draws all parts of `archipelago` to `debug_drawer`. This is a lower level
 /// API to allow custom debug drawing. For a pre-made implementation, use
@@ -27,9 +75,78 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
   archipelago: &crate::Archipelago<CS>,
   debug_drawer: &mut impl DebugDrawer<CS>,
 ) -> Result<(), DebugDrawError> {
+  struct DebugDrawerAdapter<'a, CS: CoordinateSystem, D: DebugDrawer<CS>> {
+    archipelago: &'a crate::Archipelago<CS>,
+    drawer: &'a mut D,
+  }
+
+  impl<CS: CoordinateSystem, D: DebugDrawer<CS>>
+    landmass::debug::DebugDrawer<CS> for DebugDrawerAdapter<'_, CS, D>
+  {
+    fn add_point(
+      &mut self,
+      point_type: landmass::debug::PointType,
+      point: CS::Coordinate,
+    ) {
+      let point_type = match point_type {
+        landmass::debug::PointType::AgentPosition(agent_id) => {
+          PointType::AgentPosition(
+            *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
+          )
+        }
+        landmass::debug::PointType::TargetPosition(agent_id) => {
+          PointType::TargetPosition(
+            *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
+          )
+        }
+        landmass::debug::PointType::Waypoint(agent_id) => PointType::Waypoint(
+          *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
+        ),
+      };
+      self.drawer.add_point(point_type, point);
+    }
+
+    fn add_line(
+      &mut self,
+      line_type: landmass::debug::LineType,
+      line: [CS::Coordinate; 2],
+    ) {
+      let line_type = match line_type {
+        landmass::debug::LineType::BoundaryEdge => LineType::BoundaryEdge,
+        landmass::debug::LineType::ConnectivityEdge => {
+          LineType::ConnectivityEdge
+        }
+        landmass::debug::LineType::BoundaryLink => LineType::BoundaryLink,
+        landmass::debug::LineType::AgentCorridor(agent_id) => {
+          LineType::AgentCorridor(
+            *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
+          )
+        }
+        landmass::debug::LineType::Target(agent_id) => LineType::Target(
+          *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
+        ),
+        landmass::debug::LineType::Waypoint(agent_id) => LineType::Waypoint(
+          *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
+        ),
+      };
+      self.drawer.add_line(line_type, line);
+    }
+
+    fn add_triangle(
+      &mut self,
+      triangle_type: landmass::debug::TriangleType,
+      triangle: [CS::Coordinate; 3],
+    ) {
+      let triangle_type = match triangle_type {
+        landmass::debug::TriangleType::Node => TriangleType::Node,
+      };
+      self.drawer.add_triangle(triangle_type, triangle);
+    }
+  }
+
   landmass::debug::draw_archipelago_debug(
     &archipelago.archipelago,
-    debug_drawer,
+    &mut DebugDrawerAdapter { archipelago, drawer: debug_drawer },
   )
 }
 
