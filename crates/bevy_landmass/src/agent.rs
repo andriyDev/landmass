@@ -209,6 +209,7 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
       match new_agent_map.remove(agent_entity) {
         None => {
           archipelago.archipelago.remove_agent(*agent_id);
+          archipelago.reverse_agents.remove(agent_id);
           false
         }
         Some(_) => true,
@@ -225,6 +226,7 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
           new_agent.max_speed,
         ));
       archipelago.agents.insert(new_agent_entity, agent_id);
+      archipelago.reverse_agents.insert(agent_id, new_agent_entity);
     }
   }
 }
