@@ -159,6 +159,10 @@ fn adds_and_removes_agents() {
     sorted(archipelago.agents.keys().copied().collect()),
     sorted(vec![agent_id_1, agent_id_2]),
   );
+  assert_eq!(
+    sorted(archipelago.reverse_agents.values().copied().collect()),
+    sorted(vec![agent_id_1, agent_id_2]),
+  );
   assert_eq!(archipelago.archipelago.get_agent_ids().len(), 2);
 
   let agent_id_3 = app
@@ -185,6 +189,10 @@ fn adds_and_removes_agents() {
     sorted(archipelago.agents.keys().copied().collect()),
     sorted(vec![agent_id_1, agent_id_2, agent_id_3]),
   );
+  assert_eq!(
+    sorted(archipelago.reverse_agents.values().copied().collect()),
+    sorted(vec![agent_id_1, agent_id_2, agent_id_3]),
+  );
   assert_eq!(archipelago.archipelago.get_agent_ids().len(), 3);
 
   app.world_mut().despawn(agent_id_2);
@@ -200,6 +208,10 @@ fn adds_and_removes_agents() {
     sorted(archipelago.agents.keys().copied().collect()),
     sorted(vec![agent_id_1, agent_id_3]),
   );
+  assert_eq!(
+    sorted(archipelago.reverse_agents.values().copied().collect()),
+    sorted(vec![agent_id_1, agent_id_3]),
+  );
   assert_eq!(archipelago.archipelago.get_agent_ids().len(), 2);
 
   app.world_mut().despawn(agent_id_1);
@@ -213,6 +225,10 @@ fn adds_and_removes_agents() {
     .expect("archipelago exists");
 
   assert_eq!(archipelago.agents.keys().copied().collect::<Vec<_>>(), []);
+  assert_eq!(
+    archipelago.reverse_agents.values().copied().collect::<Vec<_>>(),
+    []
+  );
   assert_eq!(archipelago.archipelago.get_agent_ids().len(), 0);
 }
 

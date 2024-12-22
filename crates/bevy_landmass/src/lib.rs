@@ -158,6 +158,9 @@ pub struct Archipelago<CS: CoordinateSystem> {
   /// A map from the Bevy entity to its associated agent ID in
   /// [`Self::archipelago`].
   agents: HashMap<Entity, AgentId>,
+  /// A map from the agent ID to its associated Bevy entity in
+  /// [`Self::archipelago`]. This is just the reverse of [`Self::agents`].
+  reverse_agents: HashMap<AgentId, Entity>,
   /// A map from the Bevy entity to its associated character ID in
   /// [`Self::archipelago`].
   characters: HashMap<Entity, CharacterId>,
@@ -174,6 +177,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       islands: HashMap::new(),
       reverse_islands: HashMap::new(),
       agents: HashMap::new(),
+      reverse_agents: HashMap::new(),
       characters: HashMap::new(),
     }
   }
