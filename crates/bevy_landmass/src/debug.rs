@@ -266,3 +266,7 @@ fn draw_archipelagos_default<CS: CoordinateSystem>(
       .expect("the archipelago can be debug-drawn");
   }
 }
+
+#[cfg(test)]
+#[path = "debug_test.rs"]
+mod test;
