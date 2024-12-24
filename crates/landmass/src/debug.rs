@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[cfg(feature = "debug-avoidance")]
-pub use dodgy_2d::debug::Line;
+use glam::Vec2;
 
 /// The type of debug points.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -249,6 +249,19 @@ fn draw_path<CS: CoordinateSystem>(
 }
 
 #[cfg(feature = "debug-avoidance")]
+/// A constraint in velocity-space for an agent's velocity for local collision
+/// avoidance. The constraint restricts the velocity to lie on one side of a
+/// line (aka., only a half-plane is considered valid).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ConstraintLine {
+  /// A point on the line separating the valid and invalid velocities.
+  pub point: Vec2,
+  /// The normal of the line separating the valid and invalid velocities. The
+  /// normal always points towards the valid velocities.
+  pub normal: Vec2,
+}
+
+#[cfg(feature = "debug-avoidance")]
 /// The kinds of constraint during avoidance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ConstraintKind {
@@ -268,9 +281,19 @@ pub trait AvoidanceDrawer {
   fn add_constraint(
     &mut self,
     agent: AgentId,
-    constraint: Line,
+    constraint: ConstraintLine,
     kind: ConstraintKind,
   );
+}
+
+#[cfg(feature = "debug-avoidance")]
+impl ConstraintLine {
+  fn from_dodgy(line: &dodgy_2d::debug::Line) -> Self {
+    Self {
+      point: Vec2::new(line.point.x, line.point.y),
+      normal: Vec2::new(-line.direction.y, line.direction.x),
+    }
+  }
 }
 
 #[cfg(feature = "debug-avoidance")]
@@ -296,7 +319,7 @@ pub fn draw_avoidance_data<CS: CoordinateSystem>(
     for constraint in original_constraints {
       avoidance_drawer.add_constraint(
         agent_id,
-        constraint.clone(),
+        ConstraintLine::from_dodgy(constraint),
         ConstraintKind::Original,
       );
     }
@@ -304,7 +327,7 @@ pub fn draw_avoidance_data<CS: CoordinateSystem>(
     for constraint in fallback_constraints {
       avoidance_drawer.add_constraint(
         agent_id,
-        constraint.clone(),
+        ConstraintLine::from_dodgy(constraint),
         ConstraintKind::Fallback,
       );
     }
