@@ -181,6 +181,12 @@ impl<CS: CoordinateSystem> AgentDesiredVelocity<CS> {
   }
 }
 
+#[cfg(feature = "debug-avoidance")]
+/// If inserted on an agent, it will record avoidance data that can later be
+/// visualized with [`crate::debug::draw_avoidance_data`].
+#[derive(Component, Clone, Copy, Debug)]
+pub struct KeepAvoidanceData;
+
 /// Ensures every Bevy agent has a corresponding `landmass` agent.
 pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
   mut archipelago_query: Query<(Entity, &mut Archipelago<CS>)>,
@@ -231,6 +237,11 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
   }
 }
 
+#[cfg(feature = "debug-avoidance")]
+type HasKeepAvoidanceData = bevy::prelude::Has<KeepAvoidanceData>;
+#[cfg(not(feature = "debug-avoidance"))]
+type HasKeepAvoidanceData = ();
+
 /// Ensures the "input state" (position, velocity, etc) of every Bevy agent
 /// matches its `landmass` counterpart.
 pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
@@ -243,6 +254,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
       Option<&AgentTarget<CS>>,
       Option<&TargetReachedCondition>,
       Option<Ref<AgentNodeTypeCostOverrides>>,
+      HasKeepAvoidanceData,
     ),
     With<Transform>,
   >,
@@ -257,6 +269,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
     target,
     target_reached_condition,
     node_type_cost_overrides,
+    keep_avoidance_data,
   ) in agent_query.iter()
   {
     let mut archipelago = match archipelago_query.get_mut(arch_entity) {
@@ -314,6 +327,13 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
         }
       }
     }
+    #[cfg(feature = "debug-avoidance")]
+    {
+      landmass_agent.keep_avoidance_data = keep_avoidance_data;
+    }
+    #[cfg(not(feature = "debug-avoidance"))]
+    #[expect(clippy::let_unit_value)]
+    let _ = keep_avoidance_data;
   }
 }
 

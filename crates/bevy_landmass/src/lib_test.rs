@@ -526,6 +526,8 @@ fn changing_agent_fields_changes_landmass_agent() {
     panic!("Expected distance reached condition");
   };
   assert_eq!(dist, Some(1.0));
+  #[cfg(feature = "debug-avoidance")]
+  assert_eq!(agent_ref.keep_avoidance_data, false);
 
   app.world_mut().entity_mut(agent).insert((
     Transform::from_translation(Vec3::new(7.0, 8.0, 9.0)),
@@ -533,6 +535,8 @@ fn changing_agent_fields_changes_landmass_agent() {
     Velocity3d { velocity: Vec3::new(10.0, 11.0, 12.0) },
     AgentTarget3d::Point(Vec3::new(13.0, 14.0, 15.0)),
     crate::TargetReachedCondition::VisibleAtDistance(Some(2.0)),
+    #[cfg(feature = "debug-avoidance")]
+    crate::KeepAvoidanceData,
   ));
 
   app.update();
@@ -555,6 +559,8 @@ fn changing_agent_fields_changes_landmass_agent() {
     panic!("Expected distance reached condition");
   };
   assert_eq!(dist, Some(2.0));
+  #[cfg(feature = "debug-avoidance")]
+  assert_eq!(agent_ref.keep_avoidance_data, true);
 }
 
 #[test]
