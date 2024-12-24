@@ -27,10 +27,12 @@ landmass = { path = "../landmass", version = "0.8.0-dev" }
 
 [dev-dependencies]
 bevy = "0.15.0"
+googletest = "0.13.0"
 
 [features]
 default = ["mesh-utils"]
 mesh-utils = ["bevy/bevy_render"]
+debug-avoidance = ["landmass/debug-avoidance"]
 
 [[example]]
 name = "bevy_landmass_example"
