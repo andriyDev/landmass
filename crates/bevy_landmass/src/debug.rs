@@ -18,7 +18,13 @@ use bevy::{
   transform::components::Transform,
 };
 
+#[cfg(feature = "debug-avoidance")]
+use bevy::math::Vec2;
+
 pub use landmass::debug::DebugDrawError;
+
+#[cfg(feature = "debug-avoidance")]
+pub use landmass::debug::ConstraintKind;
 
 /// The type of debug points.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -148,6 +154,76 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
     &archipelago.archipelago,
     &mut DebugDrawerAdapter { archipelago, drawer: debug_drawer },
   )
+}
+
+#[cfg(feature = "debug-avoidance")]
+/// A constraint in velocity-space for an agent's velocity for local collision
+/// avoidance. The constraint restricts the velocity to lie on one side of a
+/// line (aka., only a half-plane is considered valid). This is equivalent to
+/// [`landmass::debug::ConstraintLine`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ConstraintLine {
+  /// A point on the line separating the valid and invalid velocities.
+  pub point: Vec2,
+  /// The normal of the line separating the valid and invalid velocities. The
+  /// normal always points towards the valid velocities.
+  pub normal: Vec2,
+}
+
+#[cfg(feature = "debug-avoidance")]
+/// A trait for reporting agent local collision avoidance constraints.
+pub trait AvoidanceDrawer {
+  /// Reports a single avoidance constraint.
+  fn add_constraint(
+    &mut self,
+    agent: Entity,
+    constraint: ConstraintLine,
+    kind: ConstraintKind,
+  );
+}
+
+#[cfg(feature = "debug-avoidance")]
+impl ConstraintLine {
+  fn from_landmass(line: &landmass::debug::ConstraintLine) -> Self {
+    Self {
+      point: Vec2::new(line.point.x, line.point.y),
+      normal: Vec2::new(line.normal.x, line.normal.y),
+    }
+  }
+}
+
+/// Draws the avoidance data for any agent marked with TODO
+#[cfg(feature = "debug-avoidance")]
+pub fn draw_avoidance_data<CS: CoordinateSystem>(
+  archipelago: &crate::Archipelago<CS>,
+  avoidance_drawer: &mut impl AvoidanceDrawer,
+) {
+  struct AvoidanceDrawerAdapter<'a, CS: CoordinateSystem, D: AvoidanceDrawer> {
+    archipelago: &'a crate::Archipelago<CS>,
+    drawer: &'a mut D,
+  }
+
+  impl<CS: CoordinateSystem, D: AvoidanceDrawer>
+    landmass::debug::AvoidanceDrawer for AvoidanceDrawerAdapter<'_, CS, D>
+  {
+    fn add_constraint(
+      &mut self,
+      agent: landmass::AgentId,
+      constraint: landmass::debug::ConstraintLine,
+      kind: landmass::debug::ConstraintKind,
+    ) {
+      self.drawer.add_constraint(
+        *self.archipelago.reverse_agents.get(&agent).unwrap(),
+        ConstraintLine::from_landmass(&constraint),
+        kind,
+      );
+    }
+  }
+
+  landmass::debug::draw_avoidance_data(
+    &archipelago.archipelago,
+    &mut AvoidanceDrawerAdapter { archipelago, drawer: avoidance_drawer },
+  );
 }
 
 /// A plugin to draw landmass debug data with Bevy gizmos.
