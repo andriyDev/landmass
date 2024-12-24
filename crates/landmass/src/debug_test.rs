@@ -515,7 +515,9 @@ fn draws_avoidance_data_when_requested() {
   use googletest::{matcher::MatcherResult, prelude::*};
 
   use crate::{
-    debug::{draw_avoidance_data, AvoidanceDrawer, ConstraintKind, Line},
+    debug::{
+      draw_avoidance_data, AvoidanceDrawer, ConstraintKind, ConstraintLine,
+    },
     AgentId,
   };
 
@@ -573,14 +575,14 @@ fn draws_avoidance_data_when_requested() {
   archipelago.update(/* delta_time= */ 1.0);
 
   struct FakeAvoidanceDrawer(
-    HashMap<AgentId, HashMap<ConstraintKind, Vec<Line>>>,
+    HashMap<AgentId, HashMap<ConstraintKind, Vec<ConstraintLine>>>,
   );
 
   impl AvoidanceDrawer for FakeAvoidanceDrawer {
     fn add_constraint(
       &mut self,
       agent: AgentId,
-      constraint: Line,
+      constraint: ConstraintLine,
       kind: ConstraintKind,
     ) {
       self
@@ -598,15 +600,15 @@ fn draws_avoidance_data_when_requested() {
   draw_avoidance_data(&archipelago, &mut drawer);
 
   #[derive(MatcherBase)]
-  struct EquivLineMatcher(Line);
+  struct EquivLineMatcher(ConstraintLine);
 
-  impl Matcher<&Line> for EquivLineMatcher {
-    fn matches(&self, actual: &Line) -> MatcherResult {
-      if self.0.direction.angle_to(actual.direction).abs() >= 1e-3 {
+  impl Matcher<&ConstraintLine> for EquivLineMatcher {
+    fn matches(&self, actual: &ConstraintLine) -> MatcherResult {
+      if self.0.normal.angle_to(actual.normal).abs() >= 1e-3 {
         // The lines don't point in the same direction.
         return MatcherResult::NoMatch;
       }
-      if (self.0.point - actual.point).perp_dot(actual.direction) >= 1e-3 {
+      if (self.0.point - actual.point).dot(actual.normal).abs() >= 1e-3 {
         // The expected line point is not on the actual line.
         return MatcherResult::NoMatch;
       }
@@ -628,7 +630,7 @@ fn draws_avoidance_data_when_requested() {
     }
   }
 
-  fn equiv_line<'a>(line: Line) -> impl Matcher<&'a Line> {
+  fn equiv_line<'a>(line: ConstraintLine) -> impl Matcher<&'a ConstraintLine> {
     EquivLineMatcher(line)
   }
 
@@ -641,25 +643,25 @@ fn draws_avoidance_data_when_requested() {
         eq(&ConstraintKind::Original),
         unordered_elements_are!(
           // Lines for the edges of the nav mesh.
-          equiv_line(Line {
-            direction: Vec2::new(0.0, 1.0),
+          equiv_line(ConstraintLine {
+            normal: Vec2::new(-1.0, 0.0),
             point: Vec2::new(0.05, 0.0),
           }),
-          equiv_line(Line {
-            direction: Vec2::new(1.0, 0.0),
+          equiv_line(ConstraintLine {
+            normal: Vec2::new(0.0, 1.0),
             point: Vec2::new(0.0, -0.01),
           }),
-          equiv_line(Line {
-            direction: Vec2::new(0.0, -1.0),
+          equiv_line(ConstraintLine {
+            normal: Vec2::new(1.0, 0.0),
             point: Vec2::new(-0.05, 0.0),
           }),
-          equiv_line(Line {
-            direction: Vec2::new(-1.0, 0.0),
+          equiv_line(ConstraintLine {
+            normal: Vec2::new(0.0, -1.0),
             point: Vec2::new(0.0, 0.09),
           }),
           // Line for the other agent.
-          equiv_line(Line {
-            direction: -Vec2::new(1.007905, 8.0).normalize(),
+          equiv_line(ConstraintLine {
+            normal: -Vec2::new(1.007905, 8.0).normalize().perp(),
             point: Vec2::new(0.0, 0.0),
           }),
         ),
