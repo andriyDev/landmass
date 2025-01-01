@@ -11,7 +11,7 @@ use bevy_landmass::{
 use bevy_rapier3d::{
   geometry::{AsyncCollider, ComputedColliderShape},
   plugin::{NoUserData, RapierPhysicsPlugin},
-  prelude::Collider,
+  prelude::{Collider, TriMeshFlags},
 };
 use landmass_oxidized_navigation::{
   LandmassOxidizedNavigationPlugin, OxidizedArchipelago,
@@ -47,69 +47,67 @@ fn setup(
   mut materials: ResMut<Assets<StandardMaterial>>,
   asset_server: Res<AssetServer>,
 ) {
-  commands.spawn(Camera3dBundle {
-    transform: Transform::from_xyz(0.0, 1.0, -1.0)
-      .looking_to(Vec3::new(0.0, -1.0, 0.0), Vec3::new(0.0, 0.0, -1.0)),
-    projection: Projection::Orthographic(OrthographicProjection {
-      scaling_mode: bevy::render::camera::ScalingMode::FixedVertical(12.0),
-      ..Default::default()
+  commands.spawn((
+    Camera3d::default(),
+    Projection::Orthographic(OrthographicProjection {
+      scaling_mode: bevy::render::camera::ScalingMode::FixedVertical {
+        viewport_height: 12.0,
+      },
+      ..OrthographicProjection::default_3d()
     }),
-    ..Default::default()
-  });
+    Transform::from_xyz(0.0, 1.0, -1.0)
+      .looking_to(Vec3::new(0.0, -1.0, 0.0), Vec3::new(0.0, 0.0, -1.0)),
+  ));
 
-  commands.spawn(TextBundle {
-    text: Text::from_section(
+  commands.spawn((
+    Text::new(
       "LMB - Spawn agent\nRMB - Change target point\nF12 - Toggle debug view",
-      TextStyle::default(),
-    )
-    .with_justify(JustifyText::Right),
-    style: Style {
+    ),
+    TextLayout::new_with_justify(JustifyText::Right),
+    Node {
       position_type: PositionType::Absolute,
       right: Val::Px(0.0),
       bottom: Val::Px(0.0),
       ..Default::default()
     },
-    ..Default::default()
-  });
+  ));
 
-  let archipelago_entity =
-    commands.spawn((Archipelago3d::new(), OxidizedArchipelago)).id();
+  let archipelago_entity = commands
+    .spawn((
+      Archipelago3d::new(AgentOptions::default_for_agent_radius(0.5)),
+      OxidizedArchipelago,
+    ))
+    .id();
 
   // Spawn the floors.
   commands.spawn((
-    MaterialMeshBundle {
-      mesh: asset_server.load("floor.glb#Mesh0/Primitive0"),
-      material: materials.add(StandardMaterial {
-        unlit: true,
-        base_color: ANTIQUE_WHITE.into(),
-        ..Default::default()
-      }),
+    Mesh3d(asset_server.load("floor.glb#Mesh0/Primitive0")),
+    MeshMaterial3d(materials.add(StandardMaterial {
+      unlit: true,
+      base_color: ANTIQUE_WHITE.into(),
       ..Default::default()
-    },
-    AsyncCollider(ComputedColliderShape::TriMesh),
+    })),
+    AsyncCollider(ComputedColliderShape::TriMesh(TriMeshFlags::default())),
     NavMeshAffector,
   ));
 
   commands.spawn((
-    MaterialMeshBundle {
-      mesh: asset_server.load("floor.glb#Mesh1/Primitive0"),
-      material: materials.add(StandardMaterial {
-        unlit: true,
-        base_color: ANTIQUE_WHITE.into(),
-        ..Default::default()
-      }),
+    Mesh3d(asset_server.load("floor.glb#Mesh1/Primitive0")),
+    MeshMaterial3d(materials.add(StandardMaterial {
+      unlit: true,
+      base_color: ANTIQUE_WHITE.into(),
       ..Default::default()
-    },
-    AsyncCollider(ComputedColliderShape::TriMesh),
+    })),
+    AsyncCollider(ComputedColliderShape::TriMesh(TriMeshFlags::default())),
     NavMeshAffector,
   ));
 
   // Spawn the target.
   let target_entity = commands
     .spawn((
-      MaterialMeshBundle {
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 3.0)),
-        mesh: meshes.add(
+      Transform::from_translation(Vec3::new(0.0, 0.0, 3.0)),
+      Mesh3d(
+        meshes.add(
           CylinderMeshBuilder {
             cylinder: Cylinder { radius: 0.25, half_height: 0.1 },
             resolution: 20,
@@ -119,13 +117,12 @@ fn setup(
           }
           .build(),
         ),
-        material: materials.add(StandardMaterial {
-          unlit: true,
-          base_color: PURPLE.into(),
-          ..Default::default()
-        }),
+      ),
+      MeshMaterial3d(materials.add(StandardMaterial {
+        unlit: true,
+        base_color: PURPLE.into(),
         ..Default::default()
-      },
+      })),
       Target,
     ))
     .id();
@@ -162,20 +159,19 @@ struct AgentSpawner {
 impl AgentSpawner {
   fn spawn(&self, position: Vec3, commands: &mut Commands) {
     commands.spawn((
-      MaterialMeshBundle {
-        transform: Transform::from_translation(position),
-        mesh: self.mesh.clone(),
-        material: self.material.clone(),
-        ..Default::default()
-      },
+      Transform::from_translation(position),
+      Mesh3d(self.mesh.clone()),
+      MeshMaterial3d(self.material.clone()),
       Agent3dBundle {
-        agent: Agent { radius: 0.5, desired_speed: 2.0, max_speed: 3.0 },
+        agent: Default::default(),
+        settings: AgentSettings {
+          radius: 0.5,
+          desired_speed: 2.0,
+          max_speed: 3.0,
+        },
         archipelago_ref: ArchipelagoRef3d::new(self.archipelago_entity),
-        target: AgentTarget3d::Entity(self.target_entity),
-        state: Default::default(),
-        velocity: Default::default(),
-        desired_velocity: Default::default(),
       },
+      AgentTarget3d::Entity(self.target_entity),
     ));
   }
 }
@@ -197,7 +193,7 @@ fn move_agent_by_velocity(
   for (mut transform, global_transform, velocity) in agent_query.iter_mut() {
     let local_velocity =
       global_transform.affine().inverse().transform_vector3(velocity.velocity);
-    transform.translation += local_velocity * time.delta_seconds();
+    transform.translation += local_velocity * time.delta_secs();
   }
 }
 
@@ -225,7 +221,7 @@ fn handle_clicks(
 
   let Some(world_position) = window
     .cursor_position()
-    .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor))
+    .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor).ok())
     .and_then(|ray| {
       ray
         .intersect_plane(Vec3::ZERO, InfinitePlane3d { normal: Dir3::Y })
