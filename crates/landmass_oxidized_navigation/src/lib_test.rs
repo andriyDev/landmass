@@ -39,17 +39,20 @@ fn generates_nav_mesh() {
     ))
     .add_plugins(LandmassOxidizedNavigationPlugin);
 
-  let archipelago_entity =
-    app.world_mut().spawn((Archipelago3d::new(), OxidizedArchipelago)).id();
+  let archipelago_entity = app
+    .world_mut()
+    .spawn((
+      Archipelago3d::new(AgentOptions::default_for_agent_radius(0.5)),
+      OxidizedArchipelago,
+    ))
+    .id();
 
   let collider = Collider::cuboid(1.5, 0.25, 1.5);
 
   let spawn_tile = |app: &mut App, position| {
     app.world_mut().spawn((
-      SpatialBundle {
-        transform: Transform::from_translation(position),
-        ..Default::default()
-      },
+      Transform::from_translation(position),
+      Visibility::default(),
       collider.clone(),
       NavMeshAffector,
     ));
