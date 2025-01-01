@@ -1,6 +1,6 @@
 [package]
 name = "landmass_oxidized_navigation"
-version = "0.2.0"
+version = "0.3.0-dev"
 edition = "2021"
 
 description = "An integration between bevy_landmass and oxidized_navigation for AI navigation."
@@ -22,7 +22,7 @@ type_complexity = "allow"
 bevy = { version = "0.15.0", default-features = false, features = [
   "bevy_asset",
 ] }
-bevy_landmass = { version = "0.8.0" }
+bevy_landmass = { version = "0.9.0-dev", path = "../bevy_landmass" }
 oxidized_navigation = "0.12.0"
 
 [dev-dependencies]
