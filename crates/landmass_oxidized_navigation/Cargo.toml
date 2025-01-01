@@ -1,6 +1,6 @@
 [package]
 name = "landmass_oxidized_navigation"
-version = "0.2.0-dev"
+version = "0.2.0"
 edition = "2021"
 
 description = "An integration between bevy_landmass and oxidized_navigation for AI navigation."
