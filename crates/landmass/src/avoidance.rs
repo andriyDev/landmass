@@ -20,8 +20,14 @@ pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
   character_id_to_nav_mesh_point: &HashMap<CharacterId, Vec3>,
   nav_data: &NavigationData<CS>,
   agent_options: &AgentOptions,
-  delta_time: f32,
+  mut delta_time: f32,
 ) {
+  if delta_time == 0.0 {
+    // Make sure that our delta time is positive. Since the delta time is 0.0,
+    // the desired velocity doesn't really matter.
+    delta_time = 1.0;
+  }
+
   let mut agent_id_to_dodgy_agent = HashMap::new();
   let mut agent_kdtree = KdTree::new(/* dimensions= */ 3);
   let mut agent_max_radius = 0.0f32;

@@ -561,7 +561,7 @@ fn applies_avoidance_for_two_agents() {
       avoidance_time_horizon: 15.0,
       ..AgentOptions::default_for_agent_radius(0.5)
     },
-    /* delta_time= */ 0.01,
+    /* delta_time= */ 0.0,
   );
 
   // The agents each have a radius of 1, and they are separated by a distance

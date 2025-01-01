@@ -327,9 +327,6 @@ fn update_archipelagos<CS: CoordinateSystem>(
   time: Res<Time>,
   mut archipelago_query: Query<&mut Archipelago<CS>>,
 ) {
-  if time.delta_secs() == 0.0 {
-    return;
-  }
   for mut archipelago in archipelago_query.iter_mut() {
     archipelago.archipelago.update(time.delta_secs());
   }
