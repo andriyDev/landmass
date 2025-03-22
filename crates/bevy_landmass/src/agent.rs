@@ -89,9 +89,8 @@ impl AgentNodeTypeCostOverrides {
 /// the component, or dereferencing:
 ///
 /// ```rust
-/// use bevy::prelude::*;
-/// use bevy_landmass::AgentTarget3d;
-///
+/// # use bevy::prelude::*;
+/// # use bevy_landmass::AgentTarget3d;
 /// fn clear_targets(mut targets: Query<&mut AgentTarget3d>) {
 ///   for mut target in targets.iter_mut() {
 ///     *target = AgentTarget3d::None;
