@@ -1,12 +1,12 @@
 use std::marker::PhantomData;
 
 use bevy::{
+  platform_support::collections::HashMap,
   prelude::{
     Bundle, Component, Deref, DetectChanges, Entity, Query, Ref,
     TransformHelper, With,
   },
   transform::components::Transform,
-  utils::HashMap,
 };
 
 use crate::{
@@ -195,7 +195,7 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
     With<Transform>,
   >,
 ) {
-  let mut archipelago_to_agents = HashMap::<_, HashMap<_, _>>::new();
+  let mut archipelago_to_agents = HashMap::<_, HashMap<_, _>>::default();
   for (entity, agent, archipleago_ref) in agent_query.iter() {
     archipelago_to_agents
       .entry(archipleago_ref.entity)
@@ -206,7 +206,7 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
   for (archipelago_entity, mut archipelago) in archipelago_query.iter_mut() {
     let mut new_agent_map = archipelago_to_agents
       .remove(&archipelago_entity)
-      .unwrap_or_else(HashMap::new);
+      .unwrap_or_else(HashMap::default);
     let archipelago = archipelago.as_mut();
 
     // Remove any agents that aren't in the `new_agent_map`. Also remove any
