@@ -5,11 +5,11 @@ use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 use bevy::{
   app::{RunFixedMainLoop, RunFixedMainLoopSystem},
   asset::{Asset, AssetApp, Handle},
-  ecs::{intern::Interned, schedule::ScheduleLabel},
-  prelude::{
-    Component, Entity, IntoSystemConfigs, IntoSystemSetConfigs, Plugin, Query,
-    Res, SystemSet,
+  ecs::{
+    intern::Interned,
+    schedule::{IntoScheduleConfigs, ScheduleLabel},
   },
+  prelude::{Component, Entity, Plugin, Query, Res, SystemSet},
   reflect::TypePath,
   time::Time,
 };

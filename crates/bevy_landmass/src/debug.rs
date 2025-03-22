@@ -7,11 +7,12 @@ use crate::{
 use bevy::{
   app::Update,
   color::Color,
+  ecs::schedule::IntoScheduleConfigs,
   gizmos::AppGizmoBuilder,
   math::{Isometry3d, Quat},
   prelude::{
-    Deref, DerefMut, Entity, GizmoConfig, GizmoConfigGroup, Gizmos,
-    IntoSystemConfigs, Plugin, Query, Res, Resource,
+    Deref, DerefMut, Entity, GizmoConfig, GizmoConfigGroup, Gizmos, Plugin,
+    Query, Res, Resource,
   },
   reflect::Reflect,
   time::Time,
