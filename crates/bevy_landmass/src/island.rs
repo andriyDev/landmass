@@ -1,11 +1,15 @@
 use std::sync::Arc;
 
-use bevy::{
-  asset::Assets,
-  platform_support::collections::{HashMap, HashSet},
-  prelude::{Bundle, Component, Entity, Query, Res, TransformHelper, With},
-  transform::components::Transform,
+use bevy_asset::Assets;
+use bevy_ecs::{
+  bundle::Bundle,
+  component::Component,
+  entity::Entity,
+  query::With,
+  system::{Query, Res},
 };
+use bevy_platform_support::collections::{HashMap, HashSet};
+use bevy_transform::{components::Transform, helper::TransformHelper};
 
 use crate::{
   coords::{CoordinateSystem, ThreeD, TwoD},

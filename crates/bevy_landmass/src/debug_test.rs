@@ -1,12 +1,10 @@
 use std::{cmp::Ordering, sync::Arc};
 
-use bevy::{
-  app::App,
-  asset::{AssetPlugin, Assets},
-  math::Vec3,
-  prelude::{Transform, TransformPlugin},
-  MinimalPlugins,
-};
+use bevy::MinimalPlugins;
+use bevy_app::App;
+use bevy_asset::{AssetPlugin, Assets};
+use bevy_math::Vec3;
+use bevy_transform::{components::Transform, TransformPlugin};
 
 use crate::{
   coords::ThreeD, Agent, Agent3dBundle, AgentOptions, AgentSettings,

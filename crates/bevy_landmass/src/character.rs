@@ -1,10 +1,11 @@
 use std::marker::PhantomData;
 
-use bevy::{
-  platform_support::collections::HashMap,
-  prelude::{Bundle, Component, Entity, Query, TransformHelper, With},
-  transform::components::Transform,
+use bevy_ecs::{
+  bundle::Bundle, component::Component, entity::Entity, query::With,
+  system::Query,
 };
+use bevy_platform_support::collections::HashMap;
+use bevy_transform::{components::Transform, helper::TransformHelper};
 
 use crate::{
   coords::{CoordinateSystem, ThreeD, TwoD},
