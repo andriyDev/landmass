@@ -1,13 +1,11 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ops::Deref};
 
-use bevy::{
-  platform_support::collections::HashMap,
-  prelude::{
-    Bundle, Component, Deref, DetectChanges, Entity, Query, Ref,
-    TransformHelper, With,
-  },
-  transform::components::Transform,
+use bevy_ecs::{
+  bundle::Bundle, change_detection::DetectChanges, component::Component,
+  entity::Entity, query::With, system::Query, world::Ref,
 };
+use bevy_platform_support::collections::HashMap;
+use bevy_transform::{components::Transform, helper::TransformHelper};
 
 use crate::{
   coords::{CoordinateSystem, ThreeD, TwoD},
@@ -59,8 +57,15 @@ pub struct AgentSettings {
   pub max_speed: f32,
 }
 
-#[derive(Component, Default, Deref, Debug)]
+#[derive(Component, Default, Debug)]
 pub struct AgentNodeTypeCostOverrides(HashMap<NodeType, f32>);
+
+impl Deref for AgentNodeTypeCostOverrides {
+  type Target = HashMap<NodeType, f32>;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
 
 impl AgentNodeTypeCostOverrides {
   /// Sets the node type cost for this agent to `cost`. Returns false if the

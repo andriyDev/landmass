@@ -1,4 +1,4 @@
-use bevy::ecs::component::Component;
+use bevy_ecs::component::Component;
 
 /// The state of an agent.
 ///

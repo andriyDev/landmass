@@ -1,26 +1,30 @@
 use std::marker::PhantomData;
 
+use bevy_app::{Plugin, Update};
+use bevy_color::Color;
+use bevy_ecs::{
+  entity::Entity,
+  resource::Resource,
+  schedule::IntoScheduleConfigs,
+  system::{Query, Res},
+};
+use bevy_gizmos::{
+  config::{GizmoConfig, GizmoConfigGroup},
+  gizmos::Gizmos,
+  AppGizmoBuilder,
+};
+use bevy_math::{Isometry3d, Quat};
+use bevy_reflect::Reflect;
+use bevy_time::Time;
+use bevy_transform::components::Transform;
+
 use crate::{
   coords::{CoordinateSystem, ThreeD, TwoD},
   Archipelago, LandmassSystemSet,
 };
-use bevy::{
-  app::Update,
-  color::Color,
-  ecs::schedule::IntoScheduleConfigs,
-  gizmos::AppGizmoBuilder,
-  math::{Isometry3d, Quat},
-  prelude::{
-    Deref, DerefMut, Entity, GizmoConfig, GizmoConfigGroup, Gizmos, Plugin,
-    Query, Res, Resource,
-  },
-  reflect::Reflect,
-  time::Time,
-  transform::components::Transform,
-};
 
 #[cfg(feature = "debug-avoidance")]
-use bevy::math::Vec2;
+use bevy_math::Vec2;
 
 pub use landmass::debug::DebugDrawError;
 
@@ -245,7 +249,7 @@ impl<CS: CoordinateSystem> Default for LandmassDebugPlugin<CS> {
 }
 
 impl<CS: CoordinateSystem> Plugin for LandmassDebugPlugin<CS> {
-  fn build(&self, app: &mut bevy::prelude::App) {
+  fn build(&self, app: &mut bevy_app::App) {
     app
       .insert_resource(EnableLandmassDebug(self.draw_on_start))
       .add_systems(
@@ -262,8 +266,21 @@ impl<CS: CoordinateSystem> Plugin for LandmassDebugPlugin<CS> {
 }
 
 /// A resource controlling whether debug data is drawn.
-#[derive(Resource, Default, Deref, DerefMut)]
+#[derive(Resource, Default)]
 pub struct EnableLandmassDebug(pub bool);
+
+impl std::ops::Deref for EnableLandmassDebug {
+  type Target = bool;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl std::ops::DerefMut for EnableLandmassDebug {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
 
 /// A config group for landmass debug gizmos.
 #[derive(Default, Reflect, GizmoConfigGroup)]
@@ -294,9 +311,9 @@ impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
         [CS::to_world_position(&line[0]), CS::to_world_position(&line[1])];
       self.0.cuboid(
         Transform::default()
-          .looking_to(line[1] - line[0], bevy::math::Vec3::new(0.0, 1.0, 0.0))
+          .looking_to(line[1] - line[0], bevy_math::Vec3::new(0.0, 1.0, 0.0))
           .with_translation((line[0] + line[1]) * 0.5)
-          .with_scale(bevy::math::Vec3::new(
+          .with_scale(bevy_math::Vec3::new(
             0.01,
             0.01,
             line[0].distance(line[1]),

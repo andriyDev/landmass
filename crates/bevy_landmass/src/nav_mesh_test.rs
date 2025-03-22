@@ -1,9 +1,5 @@
-use bevy::{
-  prelude::Mesh,
-  render::{
-    render_asset::RenderAssetUsages, render_resource::PrimitiveTopology,
-  },
-};
+use bevy_asset::RenderAssetUsages;
+use bevy_mesh::{Mesh, PrimitiveTopology};
 
 use crate::{
   coords::{ThreeD, TwoD},
