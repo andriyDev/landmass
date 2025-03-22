@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 
 use bevy::{
+  platform_support::collections::HashMap,
   prelude::{Bundle, Component, Entity, Query, TransformHelper, With},
   transform::components::Transform,
-  utils::hashbrown::HashMap,
 };
 
 use crate::{
@@ -79,7 +79,7 @@ pub(crate) fn add_characters_to_archipelago<CS: CoordinateSystem>(
     With<Transform>,
   >,
 ) {
-  let mut archipelago_to_characters = HashMap::<_, HashMap<_, _>>::new();
+  let mut archipelago_to_characters = HashMap::<_, HashMap<_, _>>::default();
   for (entity, character, archipleago_ref) in characters.iter() {
     archipelago_to_characters
       .entry(archipleago_ref.entity)
@@ -87,8 +87,9 @@ pub(crate) fn add_characters_to_archipelago<CS: CoordinateSystem>(
       .insert(entity, character);
   }
   for (entity, mut archipelago) in archipelagos.iter_mut() {
-    let mut new_character_map =
-      archipelago_to_characters.remove(&entity).unwrap_or_else(HashMap::new);
+    let mut new_character_map = archipelago_to_characters
+      .remove(&entity)
+      .unwrap_or_else(HashMap::default);
     let archipelago = archipelago.as_mut();
 
     archipelago.characters.retain(|character_entity, character_id| {
