@@ -157,7 +157,7 @@ impl<CS: CoordinateSystem> AgentTarget<CS> {
 }
 
 /// The current desired velocity of the agent. This is set by `landmass` (during
-/// [`LandmassSystemSet::Output`]).
+/// [`crate::LandmassSystemSet::Output`]).
 #[derive(Component)]
 pub struct AgentDesiredVelocity<CS: CoordinateSystem>(CS::Coordinate);
 
