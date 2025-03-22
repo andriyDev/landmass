@@ -19,14 +19,14 @@ exclude = ["/assets"]
 type_complexity = "allow"
 
 [dependencies]
-bevy = { version = "0.15.0", default-features = false, features = [
+bevy = { version = "0.16.0-rc.1", default-features = false, features = [
   "bevy_asset",
   "bevy_gizmos",
 ] }
 landmass = { path = "../landmass", version = "0.8.0-dev" }
 
 [dev-dependencies]
-bevy = "0.15.0"
+bevy = "0.16.0-rc.1"
 googletest = "0.13.0"
 
 [features]
