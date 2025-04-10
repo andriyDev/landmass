@@ -94,6 +94,7 @@ impl<CS: CoordinateSystem> Default for LandmassPlugin<CS> {
 impl<CS: CoordinateSystem> LandmassPlugin<CS> {
   /// Sets the schedule for running the plugin. Defaults to
   /// [`RunFixedMainLoop`].
+  #[must_use]
   pub fn in_schedule(mut self, schedule: impl ScheduleLabel) -> Self {
     self.schedule = schedule.intern();
     self

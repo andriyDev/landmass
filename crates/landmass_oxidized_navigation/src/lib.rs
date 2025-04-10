@@ -28,6 +28,7 @@ pub struct LandmassOxidizedNavigationPlugin {
 impl LandmassOxidizedNavigationPlugin {
   /// Sets the schedule for running the plugin. Defaults to
   /// [`RunFixedMainLoop`].
+  #[must_use]
   pub fn in_schedule(mut self, schedule: impl ScheduleLabel) -> Self {
     self.schedule = schedule.intern();
     self
