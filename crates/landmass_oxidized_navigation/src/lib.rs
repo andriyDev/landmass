@@ -3,7 +3,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use bevy::{
-  app::{Plugin, Update},
+  app::{Plugin, RunFixedMainLoop},
   asset::Assets,
   log::warn,
   math::{UVec2, Vec3},
@@ -29,7 +29,7 @@ impl Plugin for LandmassOxidizedNavigationPlugin {
       .add_event::<UpdateTile>()
       .init_resource::<TileToIsland>()
       .add_systems(
-        Update,
+        RunFixedMainLoop,
         (LastTileGenerations::system, UpdateTile::system)
           .chain()
           .before(LandmassSystemSet::SyncExistence),

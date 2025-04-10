@@ -3,10 +3,11 @@
 use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 
 use bevy::{
+  app::{RunFixedMainLoop, RunFixedMainLoopSystem},
   asset::{Asset, AssetApp, Handle},
   prelude::{
     Component, Entity, IntoSystemConfigs, IntoSystemSetConfigs, Plugin, Query,
-    Res, SystemSet, Update,
+    Res, SystemSet,
   },
   reflect::TypePath,
   time::Time,
@@ -93,15 +94,19 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
   fn build(&self, app: &mut bevy::prelude::App) {
     app.init_asset::<NavMesh<CS>>();
     app.configure_sets(
-      Update,
+      RunFixedMainLoop,
       (
-        LandmassSystemSet::SyncExistence.before(LandmassSystemSet::SyncValues),
-        LandmassSystemSet::SyncValues.before(LandmassSystemSet::Update),
-        LandmassSystemSet::Update.before(LandmassSystemSet::Output),
-      ),
+        LandmassSystemSet::SyncExistence,
+        LandmassSystemSet::SyncValues,
+        LandmassSystemSet::Update,
+        LandmassSystemSet::Output,
+      )
+        .chain()
+        // Configure our systems to run before physics engines.
+        .in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
     );
     app.add_systems(
-      Update,
+      RunFixedMainLoop,
       (
         add_agents_to_archipelagos::<CS>,
         sync_islands_to_archipelago::<CS>,
@@ -110,16 +115,16 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
         .in_set(LandmassSystemSet::SyncExistence),
     );
     app.add_systems(
-      Update,
+      RunFixedMainLoop,
       (sync_agent_input_state::<CS>, sync_character_state::<CS>)
         .in_set(LandmassSystemSet::SyncValues),
     );
     app.add_systems(
-      Update,
+      RunFixedMainLoop,
       update_archipelagos::<CS>.in_set(LandmassSystemSet::Update),
     );
     app.add_systems(
-      Update,
+      RunFixedMainLoop,
       (sync_agent_state::<CS>, sync_desired_velocity::<CS>)
         .in_set(LandmassSystemSet::Output),
     );
