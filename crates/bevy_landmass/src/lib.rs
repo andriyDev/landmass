@@ -5,6 +5,7 @@ use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 use bevy::{
   app::{RunFixedMainLoop, RunFixedMainLoopSystem},
   asset::{Asset, AssetApp, Handle},
+  ecs::{intern::Interned, schedule::ScheduleLabel},
   prelude::{
     Component, Entity, IntoSystemConfigs, IntoSystemSetConfigs, Plugin, Query,
     Res, SystemSet,
@@ -79,11 +80,23 @@ pub mod prelude {
   pub use crate::Velocity3d;
 }
 
-pub struct LandmassPlugin<CS: CoordinateSystem>(PhantomData<CS>);
+pub struct LandmassPlugin<CS: CoordinateSystem> {
+  _pd: PhantomData<CS>,
+  schedule: Interned<dyn ScheduleLabel>,
+}
 
 impl<CS: CoordinateSystem> Default for LandmassPlugin<CS> {
   fn default() -> Self {
-    Self(Default::default())
+    Self { _pd: Default::default(), schedule: RunFixedMainLoop.intern() }
+  }
+}
+
+impl<CS: CoordinateSystem> LandmassPlugin<CS> {
+  /// Sets the schedule for running the plugin. Defaults to
+  /// [`RunFixedMainLoop`].
+  pub fn in_schedule(mut self, schedule: impl ScheduleLabel) -> Self {
+    self.schedule = schedule.intern();
+    self
   }
 }
 
@@ -94,7 +107,7 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
   fn build(&self, app: &mut bevy::prelude::App) {
     app.init_asset::<NavMesh<CS>>();
     app.configure_sets(
-      RunFixedMainLoop,
+      self.schedule,
       (
         LandmassSystemSet::SyncExistence,
         LandmassSystemSet::SyncValues,
@@ -106,7 +119,7 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
         .in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
     );
     app.add_systems(
-      RunFixedMainLoop,
+      self.schedule,
       (
         add_agents_to_archipelagos::<CS>,
         sync_islands_to_archipelago::<CS>,
@@ -115,16 +128,16 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
         .in_set(LandmassSystemSet::SyncExistence),
     );
     app.add_systems(
-      RunFixedMainLoop,
+      self.schedule,
       (sync_agent_input_state::<CS>, sync_character_state::<CS>)
         .in_set(LandmassSystemSet::SyncValues),
     );
     app.add_systems(
-      RunFixedMainLoop,
+      self.schedule,
       update_archipelagos::<CS>.in_set(LandmassSystemSet::Update),
     );
     app.add_systems(
-      RunFixedMainLoop,
+      self.schedule,
       (sync_agent_state::<CS>, sync_desired_velocity::<CS>)
         .in_set(LandmassSystemSet::Output),
     );

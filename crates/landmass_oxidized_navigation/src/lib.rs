@@ -5,6 +5,7 @@ use std::{collections::HashMap, sync::Arc};
 use bevy::{
   app::{Plugin, RunFixedMainLoop},
   asset::Assets,
+  ecs::{intern::Interned, schedule::ScheduleLabel},
   log::warn,
   math::{UVec2, Vec3},
   prelude::{
@@ -20,7 +21,24 @@ use oxidized_navigation::tiles::NavMeshTile;
 
 /// The main plugin that updates the `landmass` archipelago using
 /// `oxidized_navigation` navigation meshes.
-pub struct LandmassOxidizedNavigationPlugin;
+pub struct LandmassOxidizedNavigationPlugin {
+  schedule: Interned<dyn ScheduleLabel>,
+}
+
+impl LandmassOxidizedNavigationPlugin {
+  /// Sets the schedule for running the plugin. Defaults to
+  /// [`RunFixedMainLoop`].
+  pub fn in_schedule(mut self, schedule: impl ScheduleLabel) -> Self {
+    self.schedule = schedule.intern();
+    self
+  }
+}
+
+impl Default for LandmassOxidizedNavigationPlugin {
+  fn default() -> Self {
+    Self { schedule: RunFixedMainLoop.intern() }
+  }
+}
 
 impl Plugin for LandmassOxidizedNavigationPlugin {
   fn build(&self, app: &mut App) {
@@ -29,7 +47,7 @@ impl Plugin for LandmassOxidizedNavigationPlugin {
       .add_event::<UpdateTile>()
       .init_resource::<TileToIsland>()
       .add_systems(
-        RunFixedMainLoop,
+        self.schedule,
         (LastTileGenerations::system, UpdateTile::system)
           .chain()
           .before(LandmassSystemSet::SyncExistence),
