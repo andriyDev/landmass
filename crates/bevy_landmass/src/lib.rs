@@ -81,13 +81,13 @@ pub mod prelude {
 }
 
 pub struct LandmassPlugin<CS: CoordinateSystem> {
-  _pd: PhantomData<CS>,
   schedule: Interned<dyn ScheduleLabel>,
+  _marker: PhantomData<CS>,
 }
 
 impl<CS: CoordinateSystem> Default for LandmassPlugin<CS> {
   fn default() -> Self {
-    Self { _pd: Default::default(), schedule: RunFixedMainLoop.intern() }
+    Self { schedule: RunFixedMainLoop.intern(), _marker: Default::default() }
   }
 }
 
