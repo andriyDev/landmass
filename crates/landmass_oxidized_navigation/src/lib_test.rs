@@ -37,7 +37,7 @@ fn generates_nav_mesh() {
     .add_plugins(OxidizedNavigationPlugin::<Collider>::new(
       NavMeshSettings::from_agent_and_bounds(0.5, 2.0, 100.0, -50.0),
     ))
-    .add_plugins(LandmassOxidizedNavigationPlugin);
+    .add_plugins(LandmassOxidizedNavigationPlugin::default());
 
   let archipelago_entity = app
     .world_mut()
