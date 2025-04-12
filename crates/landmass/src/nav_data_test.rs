@@ -13,8 +13,8 @@ use crate::{
   island::Island,
   nav_data::{BoundaryLink, NodeRef},
   nav_mesh::NavigationMesh,
-  AgentOptions, Archipelago, IslandId, NewNodeTypeError, NodeType,
-  SetNodeTypeCostError, Transform,
+  AgentOptions, Archipelago, FromAgentRadius, IslandId, NewNodeTypeError,
+  NodeType, PointSampleDistance3d, SetNodeTypeCostError, Transform,
 };
 
 use super::{
@@ -58,7 +58,12 @@ fn samples_points() {
   assert_eq!(
     nav_data.sample_point(
       Vec3::new(1.5, 1.5, 1.09),
-      /* distance_to_node= */ 0.1,
+      &PointSampleDistance3d {
+        horizontal_distance: 0.1,
+        distance_below: 0.1,
+        distance_above: 0.1,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     Some((
       Vec3::new(1.5, 1.5, 1.0),
@@ -69,7 +74,12 @@ fn samples_points() {
   assert_eq!(
     nav_data.sample_point(
       Vec3::new(0.95, 0.95, 0.95),
-      /* distance_to_node= */ 0.1,
+      &PointSampleDistance3d {
+        horizontal_distance: 0.1,
+        distance_below: 0.1,
+        distance_above: 0.1,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     Some((
       Vec3::new(1.0, 1.0, 1.0),
@@ -80,7 +90,12 @@ fn samples_points() {
   assert_eq!(
     nav_data.sample_point(
       Vec3::new(3.5, 1.5, 1.04),
-      /* distance_to_node= */ 0.1,
+      &PointSampleDistance3d {
+        horizontal_distance: 0.1,
+        distance_below: 0.1,
+        distance_above: 0.1,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     Some((
       Vec3::new(3.5, 1.5, 1.0),
@@ -90,7 +105,15 @@ fn samples_points() {
   // At overlap, but closer to island 2.
   assert_eq!(
     nav_data
-      .sample_point(Vec3::new(3.5, 1.5, 1.06), /* distance_to_node= */ 0.1,)
+      .sample_point(
+        Vec3::new(3.5, 1.5, 1.06),
+        &PointSampleDistance3d {
+          horizontal_distance: 0.1,
+          distance_below: 0.1,
+          distance_above: 0.1,
+          vertical_preference_ratio: 1.0,
+        },
+      )
       .map(|(p, n)| ((p * 1e6).round() / 1e6, n)),
     Some((
       Vec3::new(3.5, 1.5, 1.1),
@@ -965,7 +988,7 @@ fn empty_navigation_mesh_is_safe() {
 #[test]
 fn error_on_create_zero_or_negative_node_type() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
   assert_eq!(
     archipelago.add_node_type(0.0),
     Err(NewNodeTypeError::NonPositiveCost(0.0))
@@ -979,7 +1002,7 @@ fn error_on_create_zero_or_negative_node_type() {
 #[test]
 fn false_on_setting_zero_or_negative_node_type() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
 
   let node_type = archipelago.add_node_type(1.0).unwrap();
 
@@ -996,7 +1019,7 @@ fn false_on_setting_zero_or_negative_node_type() {
 #[test]
 fn cannot_remove_used_node_type() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
 
   let node_type_1 = archipelago.add_node_type(2.0).unwrap();
   let node_type_2 = archipelago.add_node_type(3.0).unwrap();
@@ -1072,7 +1095,7 @@ fn cannot_remove_used_node_type() {
 #[should_panic]
 fn panics_on_invalid_node_type() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
   let deleted_node_type = archipelago.add_node_type(2.0).unwrap();
   assert!(archipelago.remove_node_type(deleted_node_type));
 

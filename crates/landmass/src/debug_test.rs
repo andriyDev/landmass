@@ -5,7 +5,8 @@ use glam::Vec3;
 use crate::{
   coords::XYZ,
   debug::{DebugDrawError, DebugDrawer, LineType, PointType, TriangleType},
-  Agent, AgentOptions, Archipelago, Island, NavigationMesh, Transform,
+  Agent, AgentOptions, Archipelago, FromAgentRadius, Island, NavigationMesh,
+  Transform,
 };
 
 use super::draw_archipelago_debug;
@@ -95,7 +96,7 @@ fn draws_island_meshes_and_agents() {
   .expect("Mesh is valid.");
 
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
   const TRANSLATION: Vec3 = Vec3::ONE;
   archipelago.add_island(Island::new(
     Transform { translation: TRANSLATION, rotation: 0.0 },
@@ -431,7 +432,7 @@ fn draws_boundary_links() {
   );
 
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
   archipelago.add_island(Island::new(
     Transform::default(),
     nav_mesh.clone(),
@@ -482,7 +483,7 @@ fn fails_to_draw_dirty_archipelago() {
 
   // A brand new archipelago is considered clean.
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
   assert_eq!(draw_archipelago_debug(&archipelago, &mut fake_drawer), Ok(()));
 
   // Creating an island marks the nav data as dirty.
@@ -540,7 +541,7 @@ fn draws_avoidance_data_when_requested() {
     neighbourhood: 100.0,
     avoidance_time_horizon: 100.0,
     obstacle_avoidance_time_horizon: 100.0,
-    ..AgentOptions::default_for_agent_radius(0.5)
+    ..AgentOptions::from_agent_radius(0.5)
   });
   archipelago.add_island(Island::new(
     Transform::default(),
