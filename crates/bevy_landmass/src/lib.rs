@@ -3,10 +3,12 @@
 use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 
 use bevy::{
+  app::{RunFixedMainLoop, RunFixedMainLoopSystem},
   asset::{Asset, AssetApp, Handle},
+  ecs::{intern::Interned, schedule::ScheduleLabel},
   prelude::{
     Component, Entity, IntoSystemConfigs, IntoSystemSetConfigs, Plugin, Query,
-    Res, SystemSet, Update,
+    Res, SystemSet,
   },
   reflect::TypePath,
   time::Time,
@@ -78,11 +80,24 @@ pub mod prelude {
   pub use crate::Velocity3d;
 }
 
-pub struct LandmassPlugin<CS: CoordinateSystem>(PhantomData<CS>);
+pub struct LandmassPlugin<CS: CoordinateSystem> {
+  schedule: Interned<dyn ScheduleLabel>,
+  _marker: PhantomData<CS>,
+}
 
 impl<CS: CoordinateSystem> Default for LandmassPlugin<CS> {
   fn default() -> Self {
-    Self(Default::default())
+    Self { schedule: RunFixedMainLoop.intern(), _marker: Default::default() }
+  }
+}
+
+impl<CS: CoordinateSystem> LandmassPlugin<CS> {
+  /// Sets the schedule for running the plugin. Defaults to
+  /// [`RunFixedMainLoop`].
+  #[must_use]
+  pub fn in_schedule(mut self, schedule: impl ScheduleLabel) -> Self {
+    self.schedule = schedule.intern();
+    self
   }
 }
 
@@ -93,15 +108,19 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
   fn build(&self, app: &mut bevy::prelude::App) {
     app.init_asset::<NavMesh<CS>>();
     app.configure_sets(
-      Update,
+      self.schedule,
       (
-        LandmassSystemSet::SyncExistence.before(LandmassSystemSet::SyncValues),
-        LandmassSystemSet::SyncValues.before(LandmassSystemSet::Update),
-        LandmassSystemSet::Update.before(LandmassSystemSet::Output),
-      ),
+        LandmassSystemSet::SyncExistence,
+        LandmassSystemSet::SyncValues,
+        LandmassSystemSet::Update,
+        LandmassSystemSet::Output,
+      )
+        .chain()
+        // Configure our systems to run before physics engines.
+        .in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
     );
     app.add_systems(
-      Update,
+      self.schedule,
       (
         add_agents_to_archipelagos::<CS>,
         sync_islands_to_archipelago::<CS>,
@@ -110,16 +129,16 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
         .in_set(LandmassSystemSet::SyncExistence),
     );
     app.add_systems(
-      Update,
+      self.schedule,
       (sync_agent_input_state::<CS>, sync_character_state::<CS>)
         .in_set(LandmassSystemSet::SyncValues),
     );
     app.add_systems(
-      Update,
+      self.schedule,
       update_archipelagos::<CS>.in_set(LandmassSystemSet::Update),
     );
     app.add_systems(
-      Update,
+      self.schedule,
       (sync_agent_state::<CS>, sync_desired_velocity::<CS>)
         .in_set(LandmassSystemSet::Output),
     );

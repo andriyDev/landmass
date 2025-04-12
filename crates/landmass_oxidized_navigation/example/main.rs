@@ -30,7 +30,7 @@ fn main() {
     }))
     .add_plugins(Landmass3dPlugin::default())
     .add_plugins(Landmass3dDebugPlugin::default())
-    .add_plugins(LandmassOxidizedNavigationPlugin)
+    .add_plugins(LandmassOxidizedNavigationPlugin::default())
     .add_systems(Startup, setup)
     .add_systems(Update, handle_clicks)
     .add_systems(Update, toggle_debug.run_if(input_just_pressed(KeyCode::F12)))
