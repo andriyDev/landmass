@@ -16,6 +16,14 @@ pub trait CoordinateSystem {
   fn from_landmass(v: &Vec3) -> Self::Coordinate;
 }
 
+/// A trait to create a default instance based on an agent's radius.
+///
+/// This is an easy starting point when using struct-update-syntax.
+pub trait FromAgentRadius {
+  /// Creates an instance given the agent's radius.
+  fn from_agent_radius(radius: f32) -> Self;
+}
+
 /// A configuration of how a type relates to distances when sampling points. See
 /// [`crate::Archipelago::sample_point`] for more.
 pub trait PointSampleDistance {
@@ -107,6 +115,17 @@ impl PointSampleDistance for PointSampleDistance3d {
   }
 }
 
+impl FromAgentRadius for PointSampleDistance3d {
+  fn from_agent_radius(radius: f32) -> Self {
+    Self {
+      horizontal_distance: 0.2 * radius,
+      distance_above: 0.5 * radius,
+      distance_below: radius,
+      vertical_preference_ratio: 2.0,
+    }
+  }
+}
+
 /// A 2D coordinate system, where X points right, and Y points forward.
 pub struct XY;
 
@@ -138,5 +157,11 @@ impl PointSampleDistance for f32 {
 
   fn vertical_preference_ratio(&self) -> f32 {
     1.0
+  }
+}
+
+impl FromAgentRadius for f32 {
+  fn from_agent_radius(radius: f32) -> Self {
+    0.2 * radius
   }
 }
