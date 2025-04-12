@@ -15,7 +15,6 @@ mod query;
 mod util;
 
 use agent::{does_agent_need_repath, RepathResult};
-use coords::FromAgentRadius;
 use path::PathIndex;
 use slotmap::HopSlotMap;
 use std::collections::HashMap;
@@ -28,7 +27,10 @@ pub mod debug;
 
 pub use agent::{Agent, AgentId, AgentState, TargetReachedCondition};
 pub use character::{Character, CharacterId};
-pub use coords::{CoordinateSystem, XYZ};
+pub use coords::{
+  CoordinateSystem, FromAgentRadius, PointSampleDistance,
+  PointSampleDistance3d, XY, XYZ,
+};
 pub use island::{Island, IslandId};
 pub use nav_data::{
   IslandMut, NewNodeTypeError, NodeType, SetNodeTypeCostError,
