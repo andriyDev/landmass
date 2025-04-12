@@ -7,8 +7,8 @@ use crate::{
   avoidance::apply_avoidance_to_agents,
   coords::{XY, XYZ},
   nav_data::NodeRef,
-  Agent, AgentId, AgentOptions, Archipelago, Character, CharacterId, Island,
-  NavigationData, NavigationMesh, Transform,
+  Agent, AgentId, AgentOptions, Archipelago, Character, CharacterId,
+  FromAgentRadius, Island, NavigationData, NavigationMesh, Transform,
 };
 
 use super::nav_mesh_borders_to_dodgy_obstacles;
@@ -469,7 +469,7 @@ fn applies_no_avoidance_for_far_agents() {
     &nav_data,
     &AgentOptions {
       neighbourhood: 5.0,
-      ..AgentOptions::default_for_agent_radius(0.5)
+      ..AgentOptions::from_agent_radius(0.5)
     },
     /* delta_time= */ 0.01,
   );
@@ -559,7 +559,7 @@ fn applies_avoidance_for_two_agents() {
     &AgentOptions {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
-      ..AgentOptions::default_for_agent_radius(0.5)
+      ..AgentOptions::from_agent_radius(0.5)
     },
     /* delta_time= */ 0.0,
   );
@@ -645,7 +645,7 @@ fn agent_avoids_character() {
     &AgentOptions {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
-      ..AgentOptions::default_for_agent_radius(0.5)
+      ..AgentOptions::from_agent_radius(0.5)
     },
     /* delta_time= */ 0.01,
   );
@@ -718,7 +718,7 @@ fn agent_speeds_up_to_avoid_character() {
     &AgentOptions {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
-      ..AgentOptions::default_for_agent_radius(0.5)
+      ..AgentOptions::from_agent_radius(0.5)
     },
     /* delta_time= */ 0.01,
   );
@@ -748,7 +748,7 @@ fn agent_speeds_up_to_avoid_character() {
     &AgentOptions {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
-      ..AgentOptions::default_for_agent_radius(0.5)
+      ..AgentOptions::from_agent_radius(0.5)
     },
     /* delta_time= */ 0.01,
   );
@@ -766,7 +766,7 @@ fn agent_speeds_up_to_avoid_character() {
 #[test]
 fn reached_target_agent_has_different_avoidance() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {

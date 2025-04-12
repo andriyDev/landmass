@@ -12,7 +12,8 @@ use crate::{
   nav_data::{BoundaryLinkId, NavigationData, NodeRef},
   nav_mesh::NavigationMesh,
   path::{BoundaryLinkSegment, IslandSegment},
-  AgentOptions, Archipelago, CoordinateSystem, Island, IslandId, Transform,
+  AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
+  IslandId, Transform,
 };
 
 use super::{Path, PathIndex};
@@ -73,7 +74,7 @@ fn finds_next_point_for_organic_map() {
   let transform =
     Transform { translation: Vec3::new(5.0, 9.0, 7.0), rotation: PI * -0.35 };
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     transform.clone(),
     Arc::new(nav_mesh),
@@ -180,7 +181,7 @@ fn finds_next_point_in_zig_zag() {
   let transform =
     Transform { translation: Vec2::new(-1.0, -3.0), rotation: PI * -1.8 };
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     transform.clone(),
     Arc::new(nav_mesh),
@@ -255,7 +256,7 @@ fn starts_at_end_index_goes_to_end_point() {
   .expect("Mesh is valid.");
 
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::new(nav_mesh),

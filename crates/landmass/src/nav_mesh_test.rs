@@ -6,6 +6,7 @@ use crate::{
   coords::XYZ,
   nav_mesh::{Connectivity, MeshEdgeRef, ValidPolygon},
   util::BoundingBox,
+  PointSampleDistance3d,
 };
 
 use super::{NavigationMesh, ValidationError};
@@ -442,7 +443,12 @@ fn sample_point_returns_none_for_far_point() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(-3.0, 0.0, 0.0),
-      /* distance_to_node= */ 0.1
+      &PointSampleDistance3d {
+        horizontal_distance: 0.1,
+        distance_below: 0.1,
+        distance_above: 0.1,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     None
   );
@@ -450,7 +456,12 @@ fn sample_point_returns_none_for_far_point() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(6.0, 0.0, 0.0),
-      /* distance_to_node= */ 0.1
+      &PointSampleDistance3d {
+        horizontal_distance: 0.1,
+        distance_below: 0.1,
+        distance_above: 0.1,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     None
   );
@@ -458,7 +469,12 @@ fn sample_point_returns_none_for_far_point() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(0.0, 0.0, -3.0),
-      /* distance_to_node= */ 0.1
+      &PointSampleDistance3d {
+        horizontal_distance: 0.1,
+        distance_below: 0.1,
+        distance_above: 0.1,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     None
   );
@@ -466,7 +482,12 @@ fn sample_point_returns_none_for_far_point() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(0.0, 0.0, 2.0),
-      /* distance_to_node= */ 0.1
+      &PointSampleDistance3d {
+        horizontal_distance: 0.1,
+        distance_below: 0.1,
+        distance_above: 0.1,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     None
   );
@@ -508,7 +529,12 @@ fn sample_point_in_nodes() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(1.5, 1.5, 0.95),
-      /* distance_to_node= */ 1.0,
+      &PointSampleDistance3d {
+        horizontal_distance: 1.0,
+        distance_below: 1.0,
+        distance_above: 1.0,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     Some((Vec3::new(1.5, 1.5, 0.0), 0))
   );
@@ -516,7 +542,12 @@ fn sample_point_in_nodes() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(1.5, 4.0, -0.95),
-      /* distance_to_node= */ 1.0,
+      &PointSampleDistance3d {
+        horizontal_distance: 1.0,
+        distance_below: 1.0,
+        distance_above: 1.0,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     Some((Vec3::new(1.5, 4.0, 0.0), 1))
   );
@@ -524,7 +555,12 @@ fn sample_point_in_nodes() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(1.5, 4.0, -0.95),
-      /* distance_to_node= */ 1.0,
+      &PointSampleDistance3d {
+        horizontal_distance: 1.0,
+        distance_below: 1.0,
+        distance_above: 1.0,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     Some((Vec3::new(1.5, 4.0, 0.0), 1))
   );
@@ -534,7 +570,12 @@ fn sample_point_in_nodes() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(2.5, 3.5, -0.55),
-      /* distance_to_node = */ 5.0
+      &PointSampleDistance3d {
+        horizontal_distance: 5.0,
+        distance_below: 5.0,
+        distance_above: 5.0,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     Some((Vec3::new(2.5, 3.5, -1.0), 3))
   );
@@ -542,7 +583,12 @@ fn sample_point_in_nodes() {
     mesh
       .sample_point(
         /* point= */ Vec3::new(2.5, 4.5, 0.1),
-        /* distance_to_node = */ 5.0
+        &PointSampleDistance3d {
+          horizontal_distance: 5.0,
+          distance_below: 5.0,
+          distance_above: 5.0,
+          vertical_preference_ratio: 1.0,
+        },
       )
       .map(|(point, node)| ((point * 1000.0).round() / 1000.0, node)),
     Some((Vec3::new(2.5, 4.5, 0.5), 2))
@@ -585,7 +631,12 @@ fn sample_point_near_node() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(-0.5, 1.5, 0.25),
-      /* distance_to_node= */ 1.0,
+      &PointSampleDistance3d {
+        horizontal_distance: 1.0,
+        distance_below: 1.0,
+        distance_above: 1.0,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     Some((Vec3::new(0.0, 1.5, 0.0), 0))
   );
@@ -593,7 +644,12 @@ fn sample_point_near_node() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(0.5, 5.5, -0.25),
-      /* distance_to_node= */ 1.0,
+      &PointSampleDistance3d {
+        horizontal_distance: 1.0,
+        distance_below: 1.0,
+        distance_above: 1.0,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     Some((Vec3::new(1.0, 5.0, 0.0), 1))
   );
@@ -601,7 +657,12 @@ fn sample_point_near_node() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(4.5, 1.5, -0.25),
-      /* distance_to_node= */ 1.0,
+      &PointSampleDistance3d {
+        horizontal_distance: 1.0,
+        distance_below: 1.0,
+        distance_above: 1.0,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     Some((Vec3::new(4.0, 1.5, 0.0), 0))
   );
@@ -611,7 +672,12 @@ fn sample_point_near_node() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(2.5, 5.5, 0.5),
-      /* distance_to_node = */ 5.0
+      &PointSampleDistance3d {
+        horizontal_distance: 5.0,
+        distance_below: 5.0,
+        distance_above: 5.0,
+        vertical_preference_ratio: 1.0,
+      },
     ),
     Some((Vec3::new(2.5, 5.0, 0.5), 2))
   );
