@@ -15,6 +15,7 @@ mod query;
 mod util;
 
 use agent::{does_agent_need_repath, RepathResult};
+use coords::FromAgentRadius;
 use path::PathIndex;
 use slotmap::HopSlotMap;
 use std::collections::HashMap;
@@ -39,7 +40,7 @@ pub use util::Transform;
 use crate::avoidance::apply_avoidance_to_agents;
 
 pub struct Archipelago<CS: CoordinateSystem> {
-  pub agent_options: AgentOptions,
+  pub agent_options: AgentOptions<CS>,
   nav_data: NavigationData<CS>,
   agents: HopSlotMap<AgentId, Agent<CS>>,
   characters: HopSlotMap<CharacterId, Character<CS>>,
@@ -47,9 +48,9 @@ pub struct Archipelago<CS: CoordinateSystem> {
 }
 
 /// Options that apply to all agents
-pub struct AgentOptions {
-  /// The distance to use when sampling agent and target points.
-  pub node_sample_distance: f32,
+pub struct AgentOptions<CS: CoordinateSystem> {
+  /// The options for sampling agent and target points.
+  pub point_sample_distance: CS::SampleDistance,
   /// The distance that an agent will consider avoiding another agent.
   pub neighbourhood: f32,
   // The time into the future that collisions with other agents should be
@@ -65,12 +66,12 @@ pub struct AgentOptions {
   pub reached_destination_avoidance_responsibility: f32,
 }
 
-impl AgentOptions {
-  /// Creates a default set of options for a given agent radius. This is an easy
-  /// starting point for settings that can be overridden as needed.
-  pub fn default_for_agent_radius(radius: f32) -> Self {
+impl<CS: CoordinateSystem<SampleDistance: FromAgentRadius>> FromAgentRadius
+  for AgentOptions<CS>
+{
+  fn from_agent_radius(radius: f32) -> Self {
     Self {
-      node_sample_distance: 0.2 * radius,
+      point_sample_distance: CS::SampleDistance::from_agent_radius(radius),
       neighbourhood: 10.0 * radius,
       avoidance_time_horizon: 1.0,
       obstacle_avoidance_time_horizon: 0.5,
@@ -80,7 +81,7 @@ impl AgentOptions {
 }
 
 impl<CS: CoordinateSystem> Archipelago<CS> {
-  pub fn new(agent_options: AgentOptions) -> Self {
+  pub fn new(agent_options: AgentOptions<CS>) -> Self {
     Self {
       agent_options,
       nav_data: NavigationData::new(),
@@ -212,9 +213,9 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   pub fn sample_point(
     &self,
     point: CS::Coordinate,
-    distance_to_node: f32,
+    point_sample_distance: &CS::SampleDistance,
   ) -> Result<SampledPoint<'_, CS>, SamplePointError> {
-    query::sample_point(self, point, distance_to_node)
+    query::sample_point(self, point, point_sample_distance)
   }
 
   /// Finds a path from `start_point` and `end_point` along the navigation
@@ -244,7 +245,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     for (agent_id, agent) in self.agents.iter() {
       let agent_node_and_point = match self.nav_data.sample_point(
         CS::to_landmass(&agent.position),
-        self.agent_options.node_sample_distance,
+        &self.agent_options.point_sample_distance,
       ) {
         None => continue,
         Some(node_and_point) => node_and_point,
@@ -256,7 +257,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       if let Some(target) = &agent.current_target {
         let target_node_and_point = match self.nav_data.sample_point(
           CS::to_landmass(target),
-          self.agent_options.node_sample_distance,
+          &self.agent_options.point_sample_distance,
         ) {
           None => continue,
           Some(node_and_point) => node_and_point,
@@ -273,7 +274,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     for (character_id, character) in self.characters.iter() {
       let character_point = match self.nav_data.sample_point(
         CS::to_landmass(&character.position),
-        self.agent_options.node_sample_distance,
+        &self.agent_options.point_sample_distance,
       ) {
         None => continue,
         Some(point_and_node) => point_and_node.0,

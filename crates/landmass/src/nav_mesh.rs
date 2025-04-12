@@ -8,7 +8,10 @@ use disjoint::DisjointSet;
 use glam::{swizzles::Vec3Swizzles, Vec3};
 use thiserror::Error;
 
-use crate::{coords::CoordinateSystem, util::BoundingBox};
+use crate::{
+  coords::{CoordinateSystem, PointSampleDistance},
+  util::BoundingBox,
+};
 
 /// A navigation mesh.
 pub struct NavigationMesh<CS: CoordinateSystem> {
@@ -390,10 +393,22 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
   pub(crate) fn sample_point(
     &self,
     point: Vec3,
-    distance_to_node: f32,
+    point_sample_distance: &CS::SampleDistance,
   ) -> Option<(Vec3, usize)> {
-    let sample_box = BoundingBox::new_box(point, point)
-      .expand_by_size(Vec3::ONE * distance_to_node);
+    let sample_box = BoundingBox::new_box(
+      point
+        + Vec3::new(
+          -point_sample_distance.horizontal_distance(),
+          -point_sample_distance.horizontal_distance(),
+          -point_sample_distance.distance_below(),
+        ),
+      point
+        + Vec3::new(
+          point_sample_distance.horizontal_distance(),
+          point_sample_distance.horizontal_distance(),
+          point_sample_distance.distance_above(),
+        ),
+    );
 
     fn project_to_triangle(triangle: (Vec3, Vec3, Vec3), point: Vec3) -> Vec3 {
       let triangle_deltas = (
@@ -444,8 +459,18 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
         );
         let projected_point = project_to_triangle(triangle, point);
 
-        let distance_to_triangle = point.distance_squared(projected_point);
-        if distance_to_triangle < distance_to_node * distance_to_node {
+        let distance_to_triangle_horizontal =
+          point.xy().distance(projected_point.xy());
+        let distance_to_triangle_vertical = projected_point.z - point.z;
+        if distance_to_triangle_horizontal
+          < point_sample_distance.horizontal_distance()
+          && (-point_sample_distance.distance_below()
+            ..point_sample_distance.distance_above())
+            .contains(&distance_to_triangle_vertical)
+        {
+          let distance_to_triangle = distance_to_triangle_horizontal
+            * point_sample_distance.vertical_preference_ratio()
+            + distance_to_triangle_vertical.abs();
           let replace = match best_node {
             None => true,
             Some((_, _, previous_best_distance))
