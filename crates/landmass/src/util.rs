@@ -89,10 +89,20 @@ impl BoundingBox {
   /// Expands the bounding box by `size`. An empty bounding box will still be
   /// empty after this.
   pub(crate) fn expand_by_size(&self, size: Vec3) -> BoundingBox {
+    self.add_to_corners(-size, size)
+  }
+
+  /// Adds `delta_min` to the min corner, and `delta_max` to the max corner. An
+  /// empty bounding box will still be empty after this.
+  pub(crate) fn add_to_corners(
+    &self,
+    delta_min: Vec3,
+    delta_max: Vec3,
+  ) -> BoundingBox {
     let expanded_box = match self {
       BoundingBox::Empty => BoundingBox::Empty,
       &BoundingBox::Box { min, max } => {
-        BoundingBox::Box { min: min - size, max: max + size }
+        BoundingBox::Box { min: min + delta_min, max: max + delta_max }
       }
     };
 

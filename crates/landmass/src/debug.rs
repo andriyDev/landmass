@@ -213,14 +213,14 @@ fn draw_path<CS: CoordinateSystem>(
     .nav_data
     .sample_point(
       CS::to_landmass(&agent.position),
-      archipelago.agent_options.node_sample_distance,
+      &archipelago.agent_options.point_sample_distance,
     )
     .expect("Path exists, so sampling the agent should be fine.");
   let (target_sample_point, target_node_ref) = archipelago
     .nav_data
     .sample_point(
       CS::to_landmass(&target),
-      archipelago.agent_options.node_sample_distance,
+      &archipelago.agent_options.point_sample_distance,
     )
     .expect("Path exists, so sampling the agent should be fine.");
 

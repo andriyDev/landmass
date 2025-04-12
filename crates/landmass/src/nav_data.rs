@@ -13,6 +13,7 @@ use slotmap::{new_key_type, HopSlotMap, SlotMap};
 use thiserror::Error;
 
 use crate::{
+  coords::PointSampleDistance,
   geometry::edge_intersection,
   island::{Island, IslandId},
   nav_mesh::MeshEdgeRef,
@@ -238,7 +239,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   pub(crate) fn sample_point(
     &self,
     point: Vec3,
-    distance_to_node: f32,
+    point_sample_distance: &CS::SampleDistance,
   ) -> Option<(Vec3, NodeRef)> {
     let mut best_point = None;
     for (island_id, island) in self.islands.iter() {
@@ -246,17 +247,34 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       if !island
         .nav_mesh
         .mesh_bounds
-        .expand_by_size(Vec3::ONE * distance_to_node)
+        .add_to_corners(
+          // Note we flip the distance_above and distance_below since we are
+          // expanding the nav mesh bounding boxes. From the query point's
+          // perspective, we need to sample up by distance_above, which is the
+          // same as expanding the bounding box down by distance_above.
+          Vec3::new(
+            -point_sample_distance.horizontal_distance(),
+            -point_sample_distance.horizontal_distance(),
+            -point_sample_distance.distance_above(),
+          ),
+          Vec3::new(
+            point_sample_distance.horizontal_distance(),
+            point_sample_distance.horizontal_distance(),
+            point_sample_distance.distance_below(),
+          ),
+        )
         .contains_point(relative_point)
       {
         continue;
       }
 
-      let (sampled_point, sampled_node) =
-        match island.nav_mesh.sample_point(relative_point, distance_to_node) {
-          Some(sampled) => sampled,
-          None => continue,
-        };
+      let (sampled_point, sampled_node) = match island
+        .nav_mesh
+        .sample_point(relative_point, point_sample_distance)
+      {
+        Some(sampled) => sampled,
+        None => continue,
+      };
 
       let distance = relative_point.distance_squared(sampled_point);
       match best_point {

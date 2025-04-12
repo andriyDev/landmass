@@ -19,7 +19,7 @@ pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
   characters: &HopSlotMap<CharacterId, Character<CS>>,
   character_id_to_nav_mesh_point: &HashMap<CharacterId, Vec3>,
   nav_data: &NavigationData<CS>,
-  agent_options: &AgentOptions,
+  agent_options: &AgentOptions<CS>,
   mut delta_time: f32,
 ) {
   if delta_time == 0.0 {
