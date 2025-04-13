@@ -698,3 +698,117 @@ fn valid_polygon_gets_edge_indices() {
   assert_eq!(polygon.get_edge_indices(2), (9, 2));
   assert_eq!(polygon.get_edge_indices(4), (7, 1));
 }
+
+#[test]
+fn sample_ignores_closer_horizontal() {
+  let mesh = NavigationMesh::<XYZ> {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 0.0, -1.9),
+      Vec3::new(3.0, 0.0, -1.9),
+      Vec3::new(3.0, 1.0, -1.9),
+      Vec3::new(1.0, 1.0, -1.9),
+    ],
+    polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
+    polygon_type_indices: vec![0; 2],
+  }
+  .validate()
+  .expect("mesh is valid");
+
+  // The first polygon is physically closer, but it is not within the horizontal
+  // distance, so it should be filtered out. The second polygon is much further
+  // physically, but it is still within the distance_below.
+  assert_eq!(
+    mesh.sample_point(
+      Vec3::new(1.5, 0.5, 0.0),
+      &PointSampleDistance3d {
+        horizontal_distance: 0.25,
+        distance_above: 5.0,
+        distance_below: 5.0,
+        vertical_preference_ratio: 1.0,
+      }
+    ),
+    Some((Vec3::new(1.5, 0.5, -1.9), 1))
+  );
+}
+
+#[test]
+fn sample_favoring_vertical() {
+  let mesh = NavigationMesh::<XYZ> {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 0.0, -1.9),
+      Vec3::new(3.0, 0.0, -1.9),
+      Vec3::new(3.0, 1.0, -1.9),
+      Vec3::new(1.0, 1.0, -1.9),
+    ],
+    polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
+    polygon_type_indices: vec![0; 2],
+  }
+  .validate()
+  .expect("mesh is valid");
+
+  // Both polygons are in range, but the one below our query point is preferred,
+  // since our vertical preference is 2.0.
+  assert_eq!(
+    mesh.sample_point(
+      Vec3::new(2.0, 0.5, 0.0),
+      &PointSampleDistance3d {
+        horizontal_distance: 5.0,
+        distance_above: 5.0,
+        distance_below: 5.0,
+        vertical_preference_ratio: 2.0,
+      }
+    ),
+    Some((Vec3::new(2.0, 0.5, -1.9), 1))
+  );
+}
+
+#[test]
+fn sample_filters_vertical_points_differently() {
+  let mesh = NavigationMesh::<XYZ> {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0; 1],
+  }
+  .validate()
+  .expect("mesh is valid.");
+
+  let point_sample_distance = PointSampleDistance3d {
+    horizontal_distance: 100.0,
+    distance_above: 1.0,
+    distance_below: 2.0,
+    vertical_preference_ratio: 1.0,
+  };
+  assert_eq!(
+    mesh.sample_point(Vec3::new(0.5, 0.5, -0.5), &point_sample_distance),
+    Some((Vec3::new(0.5, 0.5, 0.0), 0))
+  );
+  assert_eq!(
+    mesh.sample_point(Vec3::new(0.5, 0.5, -1.5), &point_sample_distance),
+    None
+  );
+  assert_eq!(
+    mesh.sample_point(Vec3::new(0.5, 0.5, 0.5), &point_sample_distance),
+    Some((Vec3::new(0.5, 0.5, 0.0), 0))
+  );
+  assert_eq!(
+    mesh.sample_point(Vec3::new(0.5, 0.5, 1.5), &point_sample_distance),
+    Some((Vec3::new(0.5, 0.5, 0.0), 0))
+  );
+  assert_eq!(
+    mesh.sample_point(Vec3::new(0.5, 0.5, 2.5), &point_sample_distance),
+    None
+  );
+}
