@@ -74,7 +74,7 @@ fn setup(
 
   let archipelago_entity = commands
     .spawn((
-      Archipelago3d::new(AgentOptions::default_for_agent_radius(0.5)),
+      Archipelago3d::new(AgentOptions::from_agent_radius(0.5)),
       OxidizedArchipelago,
     ))
     .id();

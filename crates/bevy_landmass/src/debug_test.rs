@@ -7,12 +7,11 @@ use bevy::{
   prelude::{Transform, TransformPlugin},
   MinimalPlugins,
 };
-use landmass::AgentOptions;
 
 use crate::{
-  coords::ThreeD, Agent, Agent3dBundle, AgentSettings, Archipelago3d,
-  ArchipelagoRef3d, Island, Island3dBundle, Landmass3dPlugin, NavMesh3d,
-  NavMeshHandle, NavigationMesh3d,
+  coords::ThreeD, Agent, Agent3dBundle, AgentOptions, AgentSettings,
+  Archipelago3d, ArchipelagoRef3d, FromAgentRadius, Island, Island3dBundle,
+  Landmass3dPlugin, NavMesh3d, NavMeshHandle, NavigationMesh3d,
 };
 
 use super::{
@@ -86,7 +85,7 @@ fn draws_archipelago_debug() {
 
   let archipelago_id = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::default_for_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
@@ -244,7 +243,7 @@ fn draws_avoidance_data_when_requested() {
       neighbourhood: 100.0,
       avoidance_time_horizon: 100.0,
       obstacle_avoidance_time_horizon: 100.0,
-      ..AgentOptions::default_for_agent_radius(0.5)
+      ..AgentOptions::from_agent_radius(0.5)
     }))
     .id();
 

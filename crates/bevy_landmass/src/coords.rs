@@ -1,10 +1,13 @@
 use bevy::{math::Vec3Swizzles, reflect::TypePath};
 pub use landmass::CoordinateSystem as LandmassCoordinateSystem;
+use landmass::PointSampleDistance3d;
 
 /// A [`landmass::CoordinateSystem`] compatible with `bevy_landmass`.
 pub trait CoordinateSystem:
-  LandmassCoordinateSystem<Coordinate: Default + Send + Sync + PartialEq>
-  + TypePath
+  LandmassCoordinateSystem<
+    Coordinate: Default + Send + Sync + PartialEq,
+    SampleDistance: Send + Sync,
+  > + TypePath
   + Send
   + Sync
 {
@@ -28,6 +31,7 @@ pub struct ThreeD;
 
 impl LandmassCoordinateSystem for ThreeD {
   type Coordinate = bevy::math::Vec3;
+  type SampleDistance = PointSampleDistance3d;
 
   fn to_landmass(v: &Self::Coordinate) -> landmass::Vec3 {
     landmass::Vec3::new(v.x, -v.z, v.y)
@@ -62,6 +66,7 @@ pub struct TwoD;
 
 impl LandmassCoordinateSystem for TwoD {
   type Coordinate = bevy::math::Vec2;
+  type SampleDistance = f32;
 
   fn to_landmass(v: &Self::Coordinate) -> landmass::Vec3 {
     landmass::Vec3::new(v.x, v.y, 0.0)

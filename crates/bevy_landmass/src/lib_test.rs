@@ -1,15 +1,15 @@
 use std::{collections::HashMap, sync::Arc};
 
 use bevy::prelude::*;
-use landmass::{NavigationMesh, SamplePointError};
 
 use crate::{
   Agent2dBundle, Agent3dBundle, AgentDesiredVelocity2d, AgentDesiredVelocity3d,
   AgentNodeTypeCostOverrides, AgentOptions, AgentSettings, AgentState,
   AgentTarget2d, AgentTarget3d, Archipelago2d, Archipelago3d, ArchipelagoRef2d,
-  ArchipelagoRef3d, Character3dBundle, CharacterSettings, Island,
-  Island2dBundle, Island3dBundle, Landmass2dPlugin, Landmass3dPlugin,
-  NavMesh2d, NavMesh3d, NavMeshHandle, NavigationMesh3d, Velocity3d,
+  ArchipelagoRef3d, Character3dBundle, CharacterSettings, FromAgentRadius,
+  Island, Island2dBundle, Island3dBundle, Landmass2dPlugin, Landmass3dPlugin,
+  NavMesh2d, NavMesh3d, NavMeshHandle, NavigationMesh, NavigationMesh3d,
+  SamplePointError, Velocity3d,
 };
 
 #[test]
@@ -26,7 +26,7 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
 
   let archipelago_id = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::default_for_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
@@ -114,7 +114,7 @@ fn adds_and_removes_agents() {
 
   let archipelago_id = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::default_for_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
     .id();
 
   let agent_id_1 = app
@@ -246,7 +246,7 @@ fn adds_and_removes_characters() {
 
   let archipelago_id = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::default_for_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
     .id();
 
   let character_id_1 = app
@@ -350,7 +350,7 @@ fn adds_and_removes_islands() {
 
   let archipelago_id = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::default_for_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh =
@@ -485,7 +485,7 @@ fn changing_agent_fields_changes_landmass_agent() {
 
   let archipelago = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::default_for_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
     .id();
 
   let agent = app
@@ -578,7 +578,7 @@ fn changing_character_fields_changes_landmass_character() {
 
   let archipelago = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::default_for_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
     .id();
 
   let character = app
@@ -639,7 +639,7 @@ fn node_type_costs_are_used() {
   app.update();
 
   let mut archipelago =
-    Archipelago2d::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
   let slow_node_type = archipelago.add_node_type(10.0).unwrap();
 
   let archipelago_id = app.world_mut().spawn(archipelago).id();
@@ -757,7 +757,7 @@ fn overridden_node_type_costs_are_used() {
   app.update();
 
   let mut archipelago =
-    Archipelago2d::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
   let slow_node_type = archipelago.add_node_type(1.0).unwrap();
 
   let archipelago_id = app.world_mut().spawn(archipelago).id();
@@ -881,7 +881,7 @@ fn sample_point_error_on_out_of_range() {
 
   let archipelago_entity = app
     .world_mut()
-    .spawn(Archipelago2d::new(AgentOptions::default_for_agent_radius(0.5)))
+    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
@@ -915,7 +915,7 @@ fn sample_point_error_on_out_of_range() {
     app.world().get::<Archipelago2d>(archipelago_entity).unwrap();
 
   assert_eq!(
-    archipelago.sample_point(Vec2::new(-0.5, 0.5), 0.1).map(|p| p.point()),
+    archipelago.sample_point(Vec2::new(-0.5, 0.5), &0.1).map(|p| p.point()),
     Err(SamplePointError::OutOfRange)
   );
 }
@@ -935,7 +935,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
 
   let archipelago_entity = app
     .world_mut()
-    .spawn(Archipelago2d::new(AgentOptions::default_for_agent_radius(0.5)))
+    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
@@ -979,7 +979,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
     archipelago
       .sample_point(
         /* point= */ offset + Vec2::new(-0.5, 0.5),
-        /* distance_to_node= */ 0.6
+        /* distance_to_node= */ &0.6
       )
       .map(|p| (p.island(), p.point())),
     Ok((island_id, offset + Vec2::new(0.0, 0.5)))
@@ -988,7 +988,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
     archipelago
       .sample_point(
         /* point= */ offset + Vec2::new(0.5, 0.5),
-        /* distance_to_node= */ 0.6
+        /* distance_to_node= */ &0.6
       )
       .map(|p| (p.island(), p.point())),
     Ok((island_id, offset + Vec2::new(0.5, 0.5)))
@@ -997,7 +997,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
     archipelago
       .sample_point(
         /* point= */ offset + Vec2::new(1.2, 1.2),
-        /* distance_to_node= */ 0.6
+        /* distance_to_node= */ &0.6
       )
       .map(|p| (p.island(), p.point())),
     Ok((island_id, offset + Vec2::new(1.0, 1.0)))
@@ -1018,7 +1018,7 @@ fn samples_node_types() {
   app.update();
 
   let mut archipelago =
-    Archipelago2d::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
   let node_type = archipelago.add_node_type(2.0).unwrap();
   let archipelago_entity = app.world_mut().spawn(archipelago).id();
 
@@ -1063,7 +1063,7 @@ fn samples_node_types() {
     archipelago
       .sample_point(
         /* point= */ offset + Vec2::new(0.5, 0.5),
-        /* distance_to_node= */ 0.1
+        /* distance_to_node= */ &0.1
       )
       .map(|p| p.node_type()),
     Ok(None)
@@ -1072,7 +1072,7 @@ fn samples_node_types() {
     archipelago
       .sample_point(
         /* point= */ offset + Vec2::new(1.5, 0.5),
-        /* distance_to_node= */ 0.1
+        /* distance_to_node= */ &0.1
       )
       .map(|p| p.node_type()),
     Ok(Some(node_type))
@@ -1094,7 +1094,7 @@ fn finds_path() {
 
   let archipelago_entity = app
     .world_mut()
-    .spawn(Archipelago2d::new(AgentOptions::default_for_agent_radius(0.5)))
+    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
@@ -1146,10 +1146,10 @@ fn finds_path() {
   let archipelago =
     app.world().get::<Archipelago2d>(archipelago_entity).unwrap();
   let start_point = archipelago
-    .sample_point(Vec2::new(0.5, 0.5), 1e-5)
+    .sample_point(Vec2::new(0.5, 0.5), &1e-5)
     .expect("point is on nav mesh.");
   let end_point = archipelago
-    .sample_point(Vec2::new(2.5, 1.25), 1e-5)
+    .sample_point(Vec2::new(2.5, 1.25), &1e-5)
     .expect("point is on nav mesh.");
   assert_eq!(
     archipelago.find_path(&start_point, &end_point, &HashMap::new()),
@@ -1172,7 +1172,7 @@ fn island_matches_rotation_3d() {
 
   let archipelago_entity = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::default_for_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
@@ -1235,7 +1235,7 @@ fn island_matches_rotation_2d() {
 
   let archipelago_entity = app
     .world_mut()
-    .spawn(Archipelago2d::new(AgentOptions::default_for_agent_radius(0.5)))
+    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
