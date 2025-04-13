@@ -21,15 +21,11 @@ mod character;
 mod island;
 mod landmass_structs;
 
-pub use landmass::AgentOptions;
-pub use landmass::FindPathError;
-pub use landmass::NavigationMesh;
-pub use landmass::NewNodeTypeError;
-pub use landmass::NodeType;
-pub use landmass::SamplePointError;
-pub use landmass::SetNodeTypeCostError;
-pub use landmass::ValidNavigationMesh;
-pub use landmass::ValidationError;
+pub use landmass::{
+  AgentOptions, FindPathError, FromAgentRadius, NavigationMesh,
+  NewNodeTypeError, NodeType, PointSampleDistance3d, SamplePointError,
+  SetNodeTypeCostError, ValidNavigationMesh, ValidationError,
+};
 
 pub use agent::*;
 pub use character::*;
@@ -62,6 +58,7 @@ pub mod prelude {
   pub use crate::Character2dBundle;
   pub use crate::Character3dBundle;
   pub use crate::CharacterSettings;
+  pub use crate::FromAgentRadius;
   pub use crate::Island;
   pub use crate::Island2dBundle;
   pub use crate::Island3dBundle;
@@ -190,7 +187,7 @@ pub type Archipelago3d = Archipelago<ThreeD>;
 
 impl<CS: CoordinateSystem> Archipelago<CS> {
   /// Creates an empty archipelago.
-  pub fn new(agent_options: AgentOptions) -> Self {
+  pub fn new(agent_options: AgentOptions<CS>) -> Self {
     Self {
       archipelago: landmass::Archipelago::new(agent_options),
       islands: HashMap::new(),
@@ -202,12 +199,12 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   }
 
   /// Gets the agent options.
-  pub fn get_agent_options(&self) -> &AgentOptions {
+  pub fn get_agent_options(&self) -> &AgentOptions<CS> {
     &self.archipelago.agent_options
   }
 
   /// Gets a mutable borrow to the agent options.
-  pub fn get_agent_options_mut(&mut self) -> &mut AgentOptions {
+  pub fn get_agent_options_mut(&mut self) -> &mut AgentOptions<CS> {
     &mut self.archipelago.agent_options
   }
 
@@ -251,10 +248,10 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   pub fn sample_point(
     &self,
     point: CS::Coordinate,
-    distance_to_node: f32,
+    point_sample_distance: &CS::SampleDistance,
   ) -> Result<SampledPoint<'_, CS>, SamplePointError> {
     let sampled_point =
-      self.archipelago.sample_point(point, distance_to_node)?;
+      self.archipelago.sample_point(point, point_sample_distance)?;
     Ok(SampledPoint {
       island: *self
         .reverse_islands

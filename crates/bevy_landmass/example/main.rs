@@ -8,7 +8,7 @@ use bevy_landmass::{
   debug::{EnableLandmassDebug, Landmass2dDebugPlugin},
   nav_mesh::bevy_mesh_to_landmass_nav_mesh,
   prelude::*,
-  AgentNodeTypeCostOverrides, NavMeshHandle,
+  AgentNodeTypeCostOverrides, FromAgentRadius, NavMeshHandle,
 };
 use landmass::NodeType;
 
@@ -121,7 +121,7 @@ fn setup(
   ));
 
   let mut archipelago =
-    Archipelago2d::new(AgentOptions::default_for_agent_radius(0.5));
+    Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
   let slow_node_type = archipelago.add_node_type(1000.0).unwrap();
   let archipelago_entity = commands.spawn(archipelago).id();
 
