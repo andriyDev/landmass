@@ -15,6 +15,7 @@ mod query;
 mod util;
 
 use agent::{does_agent_need_repath, RepathResult};
+use glam::Vec3Swizzles;
 use path::PathIndex;
 use slotmap::HopSlotMap;
 use std::collections::HashMap;
@@ -393,9 +394,12 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
         agent.state = AgentState::ReachedTarget;
       } else {
         let desired_move = (next_waypoint.1 - CS::to_landmass(&agent.position))
+          .xy()
           .normalize_or_zero()
           * agent.desired_speed;
-        agent.current_desired_move = CS::from_landmass(&desired_move);
+
+        agent.current_desired_move =
+          CS::from_landmass(&desired_move.extend(0.0));
         agent.state = AgentState::Moving;
       }
     }
