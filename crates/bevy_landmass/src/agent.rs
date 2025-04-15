@@ -242,7 +242,7 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
 }
 
 #[cfg(feature = "debug-avoidance")]
-type HasKeepAvoidanceData = bevy::prelude::Has<KeepAvoidanceData>;
+type HasKeepAvoidanceData = bevy_ecs::query::Has<KeepAvoidanceData>;
 #[cfg(not(feature = "debug-avoidance"))]
 type HasKeepAvoidanceData = ();
 
