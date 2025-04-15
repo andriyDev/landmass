@@ -87,12 +87,12 @@ fn setup(
   commands.spawn((
     Transform::from_xyz(5.0, 0.0, 0.0),
     Camera2d,
-    OrthographicProjection {
+    Projection::Orthographic(OrthographicProjection {
       scaling_mode: bevy::render::camera::ScalingMode::FixedVertical {
         viewport_height: 16.0,
       },
       ..OrthographicProjection::default_2d()
-    },
+    }),
   ));
 
   let message = "LMB - Spawn agent\nShift+LMB - Spawn agent (fast on mud)\nRMB - Change target point\nF12 - Toggle debug view";
@@ -274,10 +274,10 @@ struct Target;
 fn handle_clicks(
   keys: Res<ButtonInput<KeyCode>>,
   buttons: Res<ButtonInput<MouseButton>>,
-  window_query: Query<&Window>,
-  camera_query: Query<(&Camera, &GlobalTransform)>,
+  window: Single<&Window>,
+  camera: Single<(&Camera, &GlobalTransform)>,
   agent_spawner: Res<AgentSpawner>,
-  target: Query<Entity, With<Target>>,
+  target: Single<Entity, With<Target>>,
   mut commands: Commands,
 ) {
   let left = buttons.just_pressed(MouseButton::Left);
@@ -287,8 +287,8 @@ fn handle_clicks(
     return;
   }
 
-  let window = window_query.get_single().unwrap();
-  let (camera, camera_transform) = camera_query.get_single().unwrap();
+  let window = *window;
+  let (camera, camera_transform) = *camera;
 
   let Some(world_position) = window
     .cursor_position()
@@ -307,7 +307,7 @@ fn handle_clicks(
   }
   if right {
     commands
-      .entity(target.single())
+      .entity(*target)
       .insert(Transform::from_translation(world_position.xy().extend(0.11)));
   }
 }

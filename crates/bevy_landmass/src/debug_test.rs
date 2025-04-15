@@ -1,12 +1,9 @@
 use std::{cmp::Ordering, sync::Arc};
 
-use bevy::{
-  app::App,
-  asset::{AssetPlugin, Assets},
-  math::Vec3,
-  prelude::{Transform, TransformPlugin},
-  MinimalPlugins,
-};
+use bevy_app::App;
+use bevy_asset::{AssetPlugin, Assets};
+use bevy_math::Vec3;
+use bevy_transform::{components::Transform, TransformPlugin};
 
 use crate::{
   coords::ThreeD, Agent, Agent3dBundle, AgentOptions, AgentSettings,
@@ -76,7 +73,11 @@ fn draws_archipelago_debug() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
@@ -230,7 +231,11 @@ fn draws_avoidance_data_when_requested() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());

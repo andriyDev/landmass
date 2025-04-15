@@ -1,11 +1,6 @@
+use bevy_mesh::{Indices, Mesh, PrimitiveTopology, VertexAttributeValues};
+
 use crate::{coords::CoordinateSystem, NavigationMesh};
-use bevy::{
-  prelude::Mesh,
-  render::{
-    mesh::{Indices, VertexAttributeValues::Float32x3},
-    render_resource::PrimitiveTopology,
-  },
-};
 
 /// A conversion error for Bevy meshes to `landmass` nav meshes.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -39,7 +34,9 @@ pub fn bevy_mesh_to_landmass_nav_mesh<CS: CoordinateSystem>(
   };
 
   let vertices = match values {
-    Float32x3(vertices) => vertices.iter().map(CS::from_mesh_vertex).collect(),
+    VertexAttributeValues::Float32x3(vertices) => {
+      vertices.iter().map(CS::from_mesh_vertex).collect()
+    }
     _ => panic!("Mesh POSITION must be Float32x3"),
   };
 

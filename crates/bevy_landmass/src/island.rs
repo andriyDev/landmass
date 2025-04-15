@@ -1,11 +1,15 @@
 use std::sync::Arc;
 
-use bevy::{
-  asset::Assets,
-  prelude::{Bundle, Component, Entity, Query, Res, TransformHelper, With},
-  transform::components::Transform,
-  utils::hashbrown::{HashMap, HashSet},
+use bevy_asset::Assets;
+use bevy_ecs::{
+  bundle::Bundle,
+  component::Component,
+  entity::Entity,
+  query::With,
+  system::{Query, Res},
 };
+use bevy_platform_support::collections::{HashMap, HashSet};
+use bevy_transform::{components::Transform, helper::TransformHelper};
 
 use crate::{
   coords::{CoordinateSystem, ThreeD, TwoD},
@@ -43,7 +47,7 @@ pub(crate) fn sync_islands_to_archipelago<CS: CoordinateSystem>(
   transform_helper: TransformHelper,
   nav_meshes: Res<Assets<NavMesh<CS>>>,
 ) {
-  let mut archipelago_to_islands = HashMap::<_, HashSet<_>>::new();
+  let mut archipelago_to_islands = HashMap::<_, HashSet<_>>::default();
   for (island_entity, island_nav_mesh, archipelago_ref) in islands.iter() {
     let mut archipelago = match archipelagos.get_mut(archipelago_ref.entity) {
       Err(_) => continue,

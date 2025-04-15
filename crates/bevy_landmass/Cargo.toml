@@ -19,19 +19,26 @@ exclude = ["/assets"]
 type_complexity = "allow"
 
 [dependencies]
-bevy = { version = "0.15.0", default-features = false, features = [
-  "bevy_asset",
-  "bevy_gizmos",
-] }
+bevy_app = "0.16.0-rc.4"
+bevy_asset = "0.16.0-rc.4"
+bevy_color = "0.16.0-rc.4"
+bevy_ecs = "0.16.0-rc.4"
+bevy_gizmos = "0.16.0-rc.4"
+bevy_math = { version = "0.16.0-rc.4" }
+bevy_mesh = { version = "0.16.0-rc.4", optional = true }
+bevy_platform_support = "0.16.0-rc.4"
+bevy_reflect = "0.16.0-rc.4"
+bevy_time = "0.16.0-rc.4"
+bevy_transform = "0.16.0-rc.4"
 landmass = { path = "../landmass", version = "0.8.0-dev" }
 
 [dev-dependencies]
-bevy = "0.15.0"
+bevy = "0.16.0-rc.4"
 googletest = "0.13.0"
 
 [features]
 default = ["mesh-utils"]
-mesh-utils = ["bevy/bevy_render"]
+mesh-utils = ["dep:bevy_mesh"]
 debug-avoidance = ["landmass/debug-avoidance"]
 
 [[example]]

@@ -1,6 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
-use bevy::prelude::*;
+use bevy_app::App;
+use bevy_asset::{AssetPlugin, Assets};
+use bevy_ecs::entity::Entity;
+use bevy_math::{Quat, Vec2, Vec3};
+use bevy_transform::{components::Transform, TransformPlugin};
 
 use crate::{
   Agent2dBundle, Agent3dBundle, AgentDesiredVelocity2d, AgentDesiredVelocity3d,
@@ -17,7 +21,11 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
@@ -105,7 +113,11 @@ fn adds_and_removes_agents() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
 
@@ -237,7 +249,11 @@ fn adds_and_removes_characters() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
 
@@ -341,7 +357,11 @@ fn adds_and_removes_islands() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
 
@@ -475,7 +495,11 @@ fn changing_agent_fields_changes_landmass_agent() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
@@ -568,7 +592,11 @@ fn changing_character_fields_changes_landmass_character() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
@@ -630,7 +658,11 @@ fn node_type_costs_are_used() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());
@@ -748,7 +780,11 @@ fn overridden_node_type_costs_are_used() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());
@@ -871,7 +907,11 @@ fn sample_point_error_on_out_of_range() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());
@@ -925,7 +965,11 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());
@@ -1009,7 +1053,11 @@ fn samples_node_types() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());
@@ -1084,7 +1132,11 @@ fn finds_path() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());
@@ -1162,7 +1214,11 @@ fn island_matches_rotation_3d() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass3dPlugin::default());
@@ -1225,7 +1281,11 @@ fn island_matches_rotation_2d() {
   let mut app = App::new();
 
   app
-    .add_plugins(MinimalPlugins)
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_time::TimePlugin,
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
     .add_plugins(TransformPlugin)
     .add_plugins(AssetPlugin::default())
     .add_plugins(Landmass2dPlugin::default());

@@ -1,13 +1,11 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ops::Deref};
 
-use bevy::{
-  prelude::{
-    Bundle, Component, Deref, DetectChanges, Entity, Query, Ref,
-    TransformHelper, With,
-  },
-  transform::components::Transform,
-  utils::HashMap,
+use bevy_ecs::{
+  bundle::Bundle, change_detection::DetectChanges, component::Component,
+  entity::Entity, query::With, system::Query, world::Ref,
 };
+use bevy_platform_support::collections::HashMap;
+use bevy_transform::{components::Transform, helper::TransformHelper};
 
 use crate::{
   coords::{CoordinateSystem, ThreeD, TwoD},
@@ -59,8 +57,15 @@ pub struct AgentSettings {
   pub max_speed: f32,
 }
 
-#[derive(Component, Default, Deref, Debug)]
+#[derive(Component, Default, Debug)]
 pub struct AgentNodeTypeCostOverrides(HashMap<NodeType, f32>);
+
+impl Deref for AgentNodeTypeCostOverrides {
+  type Target = HashMap<NodeType, f32>;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
 
 impl AgentNodeTypeCostOverrides {
   /// Sets the node type cost for this agent to `cost`. Returns false if the
@@ -84,9 +89,8 @@ impl AgentNodeTypeCostOverrides {
 /// the component, or dereferencing:
 ///
 /// ```rust
-/// use bevy::prelude::*;
-/// use bevy_landmass::AgentTarget3d;
-///
+/// # use bevy::prelude::*;
+/// # use bevy_landmass::AgentTarget3d;
 /// fn clear_targets(mut targets: Query<&mut AgentTarget3d>) {
 ///   for mut target in targets.iter_mut() {
 ///     *target = AgentTarget3d::None;
@@ -153,7 +157,7 @@ impl<CS: CoordinateSystem> AgentTarget<CS> {
 }
 
 /// The current desired velocity of the agent. This is set by `landmass` (during
-/// [`LandmassSystemSet::Output`]).
+/// [`crate::LandmassSystemSet::Output`]).
 #[derive(Component)]
 pub struct AgentDesiredVelocity<CS: CoordinateSystem>(CS::Coordinate);
 
@@ -195,7 +199,7 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
     With<Transform>,
   >,
 ) {
-  let mut archipelago_to_agents = HashMap::<_, HashMap<_, _>>::new();
+  let mut archipelago_to_agents = HashMap::<_, HashMap<_, _>>::default();
   for (entity, agent, archipleago_ref) in agent_query.iter() {
     archipelago_to_agents
       .entry(archipleago_ref.entity)
@@ -206,7 +210,7 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
   for (archipelago_entity, mut archipelago) in archipelago_query.iter_mut() {
     let mut new_agent_map = archipelago_to_agents
       .remove(&archipelago_entity)
-      .unwrap_or_else(HashMap::new);
+      .unwrap_or_else(HashMap::default);
     let archipelago = archipelago.as_mut();
 
     // Remove any agents that aren't in the `new_agent_map`. Also remove any
@@ -238,7 +242,7 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
 }
 
 #[cfg(feature = "debug-avoidance")]
-type HasKeepAvoidanceData = bevy::prelude::Has<KeepAvoidanceData>;
+type HasKeepAvoidanceData = bevy_ecs::query::Has<KeepAvoidanceData>;
 #[cfg(not(feature = "debug-avoidance"))]
 type HasKeepAvoidanceData = ();
 
