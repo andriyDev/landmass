@@ -531,11 +531,12 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         .expect("Vertex is valid");
     }
 
-    let modified_node =
-      self.modified_nodes.entry(node_ref).or_insert_with(|| ModifiedNode {
+    let mut modified_node =
+      self.modified_nodes.entry(node_ref).insert_entry(ModifiedNode {
         new_boundary: Vec::new(),
         new_vertices: Vec::new(),
       });
+    let modified_node = modified_node.get_mut();
 
     for line_string in clipped_boundary_edges.iter() {
       for edge in line_string.lines_iter() {
