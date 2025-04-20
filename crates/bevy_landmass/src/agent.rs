@@ -4,7 +4,7 @@ use bevy_ecs::{
   bundle::Bundle, change_detection::DetectChanges, component::Component,
   entity::Entity, query::With, system::Query, world::Ref,
 };
-use bevy_platform_support::collections::HashMap;
+use bevy_platform::collections::HashMap;
 use bevy_transform::{components::Transform, helper::TransformHelper};
 
 use crate::{
