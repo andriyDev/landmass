@@ -854,3 +854,77 @@ fn reached_target_agent_has_different_avoidance() {
     0.75
   );
 }
+
+#[test]
+fn switching_nav_mesh_to_fewer_vertices_does_not_result_in_panic() {
+  // This isn't really a test of the avoidance, but rather of repeatedly
+  // modifying the nav data. However, the avoidance is what triggers the panic,
+  // so best to test it here.
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+
+  let redundant_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+      Vec2::new(0.0, 0.6),
+      Vec2::new(0.0, 0.2),
+    ],
+    polygons: vec![vec![0, 1, 2, 3, 4, 5]],
+    polygon_type_indices: vec![0],
+  }
+  .validate()
+  .unwrap();
+  let redundant_mesh = Arc::new(redundant_mesh);
+
+  let simplified_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+  }
+  .validate()
+  .unwrap();
+  let simplified_mesh = Arc::new(simplified_mesh);
+
+  let island_1 = archipelago.add_island(Island::new(
+    Transform::default(),
+    Arc::clone(&redundant_mesh),
+    HashMap::new(),
+  ));
+  archipelago.add_island(Island::new(
+    // This island is shifted over but is slightly misaligned to generate new
+    // vertices.
+    Transform { translation: Vec2::new(1.0, 0.25), rotation: 0.0 },
+    redundant_mesh,
+    HashMap::new(),
+  ));
+
+  let agent = archipelago.add_agent({
+    let mut agent =
+      Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 1.0);
+
+    agent.current_target = Some(Vec2::new(1.5, 0.5));
+
+    agent
+  });
+
+  archipelago.update(0.01);
+
+  // This doesn't really matter for the test, but ensures that pathing +
+  // avoidance is running.
+  assert_eq!(
+    *archipelago.get_agent(agent).unwrap().get_desired_velocity(),
+    Vec2::new(1.0, 0.0)
+  );
+
+  archipelago.get_island_mut(island_1).unwrap().set_nav_mesh(simplified_mesh);
+
+  archipelago.update(0.01);
+}
