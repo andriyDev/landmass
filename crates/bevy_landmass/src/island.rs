@@ -8,7 +8,7 @@ use bevy_ecs::{
   query::With,
   system::{Query, Res},
 };
-use bevy_platform_support::collections::{HashMap, HashSet};
+use bevy_platform::collections::{HashMap, HashSet};
 use bevy_transform::{components::Transform, helper::TransformHelper};
 
 use crate::{
