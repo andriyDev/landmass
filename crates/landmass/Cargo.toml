@@ -24,7 +24,7 @@ slotmap = "1.0.7"
 thiserror = "1.0"
 
 [dev-dependencies]
-googletest = "0.13.0"
+googletest = "0.14.0"
 
 [features]
 # Allows you to access avoidance data for an agent when debugging.
