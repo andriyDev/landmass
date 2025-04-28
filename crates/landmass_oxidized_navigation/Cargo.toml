@@ -25,10 +25,10 @@ oxidized_navigation = { version = "0.12.0", git = "https://github.com/janhohenhe
 
 [dev-dependencies]
 bevy = "0.16.0"
-bevy_rapier3d = "0.28.0"
-oxidized_navigation = { version = "0.12.0", features = [
-  "rapier",
-], git = "https://github.com/janhohenheim/oxidized_navigation.git", branch = "bevy-0.16" }
+#bevy_rapier3d = "0.28.0"
+#oxidized_navigation = { version = "0.12.0", features = [
+#    "rapier",
+#], git = "https://github.com/janhohenheim/oxidized_navigation.git", branch = "bevy-0.16" }
 
 [[example]]
 name = "landmass_oxidized_navigation_example"
