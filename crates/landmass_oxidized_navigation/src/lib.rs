@@ -10,7 +10,7 @@ use bevy::{
   math::{UVec2, Vec3},
   prelude::{
     App, Commands, Component, Deref, DerefMut, Entity, Event, EventReader,
-    EventWriter, IntoSystemConfigs, Query, Res, ResMut, Resource, With,
+    EventWriter, IntoScheduleConfigs, Res, ResMut, Resource, Single, With,
   },
 };
 use bevy_landmass::{
@@ -91,10 +91,10 @@ impl LastTileGenerations {
           if *last_generation == generation {
             return;
           }
-          update_events.send(UpdateTile(tile));
+          update_events.write(UpdateTile(tile));
         })
         .or_insert_with(|| {
-          update_events.send(UpdateTile(tile));
+          update_events.write(UpdateTile(tile));
           generation
         });
       *last_generation = generation;
@@ -114,7 +114,7 @@ impl UpdateTile {
   fn system(
     mut events: EventReader<Self>,
     oxidized_nav_mesh: Res<oxidized_navigation::NavMesh>,
-    archipelago: Query<Entity, With<OxidizedArchipelago>>,
+    archipelago: Single<Entity, With<OxidizedArchipelago>>,
     mut nav_meshes: ResMut<Assets<bevy_landmass::NavMesh3d>>,
     mut tile_to_entity: ResMut<TileToIsland>,
     mut commands: Commands,
@@ -147,9 +147,8 @@ impl UpdateTile {
 
       let entity = match entity {
         None => {
-          let archipelago = archipelago.single();
           let entity =
-            commands.spawn((Island, ArchipelagoRef3d::new(archipelago))).id();
+            commands.spawn((Island, ArchipelagoRef3d::new(*archipelago))).id();
           tile_to_entity.0.insert(*tile, entity);
           entity
         }
