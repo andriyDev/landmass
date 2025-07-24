@@ -8,17 +8,17 @@ use std::{
 use disjoint::DisjointSet;
 use geo::{BooleanOps, Coord, LineString, LinesIter, MultiPolygon, Polygon};
 use glam::{Vec2, Vec3, Vec3Swizzles};
-use kdtree::{distance::squared_euclidean, KdTree};
-use slotmap::{new_key_type, HopSlotMap, SlotMap};
+use kdtree::{KdTree, distance::squared_euclidean};
+use slotmap::{HopSlotMap, SlotMap, new_key_type};
 use thiserror::Error;
 
 use crate::{
+  CoordinateSystem,
   coords::PointSampleDistance,
   geometry::edge_intersection,
   island::{Island, IslandId},
   nav_mesh::MeshEdgeRef,
   util::{BoundingBox, BoundingBoxHierarchy},
-  CoordinateSystem,
 };
 
 /// The navigation data of a whole [`crate::Archipelago`]. This only includes
@@ -82,6 +82,8 @@ pub(crate) struct BoundaryLink {
   /// This is essentially the intersection of the linked islands' linkable
   /// edges. The portal is in world-space.
   pub(crate) portal: (Vec3, Vec3),
+  /// The ID of the boundary link that goes back to the original node.
+  pub(crate) reverse_link: BoundaryLinkId,
 }
 
 /// A node that has been modified (e.g., by being connected with a boundary link
@@ -818,12 +820,17 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
           destination_node: node_2,
           destination_node_type: node_type_2,
           portal,
+          // Set the reverse link to the default and we'll replace it with the
+          // correct ID later.
+          reverse_link: BoundaryLinkId::default(),
         });
         let id_2 = boundary_links.insert(BoundaryLink {
           destination_node: node_1,
           destination_node_type: node_type_1,
           portal: (portal.1, portal.0),
+          reverse_link: id_1,
         });
+        boundary_links.get_mut(id_1).unwrap().reverse_link = id_2;
 
         node_to_boundary_link_ids.entry(node_1).or_default().insert(id_1);
         node_to_boundary_link_ids.entry(node_2).or_default().insert(id_2);

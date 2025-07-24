@@ -7,11 +7,11 @@ use glam::Vec3;
 use ord_subset::OrdVar;
 
 use crate::{
+  CoordinateSystem, Island, NavigationData, NodeType,
   astar::{self, AStarProblem, PathStats},
   nav_data::{BoundaryLinkId, NodeRef},
   nav_mesh::MeshEdgeRef,
   path::{BoundaryLinkSegment, IslandSegment, Path},
-  CoordinateSystem, Island, NavigationData, NodeType,
 };
 
 /// A concrete A* problem specifically for [`crate::Archipelago`]s.
@@ -104,12 +104,12 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
     &self,
     state: &Self::StateType,
   ) -> Vec<(f32, Self::ActionType, Self::StateType)> {
-    let (node_ref, island, polygon, point) = match state {
+    let (node_ref, island, polygon, point, ignore_step) = match state {
       PathNode::Start => {
         let island =
           self.nav_data.get_island(self.start_node.island_id).unwrap();
         let polygon = &island.nav_mesh.polygons[self.start_node.polygon_index];
-        (self.start_node, island, polygon, self.start_point)
+        (self.start_node, island, polygon, self.start_point, None)
       }
       PathNode::NodeEdge { node, start_edge: edge } => {
         let island = self.nav_data.get_island(node.island_id).unwrap();
@@ -119,7 +119,13 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
         let local_midpoint =
           island.nav_mesh.vertices[i].midpoint(island.nav_mesh.vertices[j]);
 
-        (*node, island, polygon, island.transform.apply(local_midpoint))
+        (
+          *node,
+          island,
+          polygon,
+          island.transform.apply(local_midpoint),
+          Some(PathStep::NodeConnection(*edge)),
+        )
       }
       PathNode::BoundaryLink(link) => {
         let link = self.nav_data.boundary_links.get(*link).unwrap();
@@ -133,6 +139,7 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
           island,
           polygon,
           link.portal.0.midpoint(link.portal.1),
+          Some(PathStep::BoundaryLink(link.reverse_link)),
         )
       }
       PathNode::End => {
@@ -160,6 +167,12 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
         conn.as_ref().map(|conn| (edge_index, conn))
       })
       .filter_map(|(edge_index, conn)| {
+        if let Some(PathStep::NodeConnection(ignore_edge)) = ignore_step
+          && edge_index == ignore_edge
+        {
+          return None;
+        }
+
         let target_node_cost = self.type_index_to_cost(
           island,
           island.nav_mesh.polygons[conn.polygon_index].type_index,
@@ -187,6 +200,12 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
         ))
       })
       .chain(boundary_links.iter().filter_map(|link_id| {
+        if let Some(PathStep::BoundaryLink(ignore_link)) = ignore_step
+          && *link_id == ignore_link
+        {
+          return None;
+        }
+
         let link = self.nav_data.boundary_links.get(*link_id).unwrap();
         let destination_node_cost =
           self.node_type_to_cost(link.destination_node_type);

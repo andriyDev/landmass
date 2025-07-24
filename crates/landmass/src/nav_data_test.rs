@@ -9,17 +9,17 @@ use glam::{Vec2, Vec3};
 use slotmap::{HopSlotMap, SlotMap};
 
 use crate::{
+  AgentOptions, Archipelago, FromAgentRadius, IslandId, NewNodeTypeError,
+  NodeType, PointSampleDistance3d, SetNodeTypeCostError, Transform,
   coords::{XY, XYZ},
   island::Island,
   nav_data::{BoundaryLink, NodeRef},
   nav_mesh::NavigationMesh,
-  AgentOptions, Archipelago, FromAgentRadius, IslandId, NewNodeTypeError,
-  NodeType, PointSampleDistance3d, SetNodeTypeCostError, Transform,
 };
 
 use super::{
-  island_edges_bbh, link_edges_between_islands, BoundaryLinkId, ModifiedNode,
-  NavigationData,
+  BoundaryLinkId, ModifiedNode, NavigationData, island_edges_bbh,
+  link_edges_between_islands,
 };
 
 #[test]
@@ -148,6 +148,9 @@ fn clone_sort_round_links(
               (link.portal.0 / round_amount).round() * round_amount,
               (link.portal.1 / round_amount).round() * round_amount,
             ),
+            // We can't store the right link IDs anyway, so just make it
+            // default.
+            reverse_link: BoundaryLinkId::default(),
           })
           .collect::<Vec<_>>();
         v.sort_by_key(|link| {
@@ -284,6 +287,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(1.0, 0.5, 1.0),
           Vec3::new(1.0, 0.0, 1.0),
         ),
+        reverse_link: Default::default(),
       }],
     ),
     (
@@ -296,6 +300,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(-0.5, 1.0, 1.0),
           Vec3::new(0.5, 1.0, 1.0),
         ),
+        reverse_link: Default::default(),
       }],
     ),
     (
@@ -308,6 +313,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(-1.0, 0.0, 1.0),
           Vec3::new(-1.0, 0.5, 1.0),
         ),
+        reverse_link: Default::default(),
       }],
     ),
     (
@@ -320,6 +326,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(-1.0, -0.5, 1.0),
           Vec3::new(-1.0, 0.0, 1.0),
         ),
+        reverse_link: Default::default(),
       }],
     ),
     (
@@ -332,6 +339,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(0.5, -1.0, 1.0),
           Vec3::new(-0.5, -1.0, 1.0),
         ),
+        reverse_link: Default::default(),
       }],
     ),
     (
@@ -344,6 +352,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(1.0, 0.0, 1.0),
           Vec3::new(1.0, -0.5, 1.0),
         ),
+        reverse_link: Default::default(),
       }],
     ),
     // Reverse links
@@ -361,6 +370,7 @@ fn link_edges_between_islands_links_touching_islands() {
             Vec3::new(-1.0, 0.5, 1.0),
             Vec3::new(-1.0, 0.0, 1.0),
           ),
+          reverse_link: Default::default(),
         },
         BoundaryLink {
           destination_node: NodeRef {
@@ -373,6 +383,7 @@ fn link_edges_between_islands_links_touching_islands() {
             Vec3::new(-1.0, 0.0, 1.0),
             Vec3::new(-1.0, -0.5, 1.0),
           ),
+          reverse_link: Default::default(),
         },
       ],
     ),
@@ -390,6 +401,7 @@ fn link_edges_between_islands_links_touching_islands() {
             Vec3::new(1.0, 0.0, 1.0),
             Vec3::new(1.0, 0.5, 1.0),
           ),
+          reverse_link: Default::default(),
         },
         BoundaryLink {
           destination_node: NodeRef {
@@ -402,6 +414,7 @@ fn link_edges_between_islands_links_touching_islands() {
             Vec3::new(1.0, -0.5, 1.0),
             Vec3::new(1.0, 0.0, 1.0),
           ),
+          reverse_link: Default::default(),
         },
       ],
     ),
@@ -415,6 +428,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(0.5, 1.0, 1.0),
           Vec3::new(-0.5, 1.0, 1.0),
         ),
+        reverse_link: Default::default(),
       }],
     ),
     (
@@ -427,6 +441,7 @@ fn link_edges_between_islands_links_touching_islands() {
           Vec3::new(-0.5, -1.0, 1.0),
           Vec3::new(0.5, -1.0, 1.0),
         ),
+        reverse_link: Default::default(),
       }],
     ),
   ];
@@ -551,6 +566,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             },
             destination_node_type: None,
             portal: (Vec3::new(1.0, 0.0, 1.0), Vec3::new(2.0, 0.0, 1.0)),
+            reverse_link: Default::default(),
           },
           BoundaryLink {
             destination_node: NodeRef {
@@ -559,6 +575,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             },
             destination_node_type: None,
             portal: (Vec3::new(2.0, 1.0, 1.0), Vec3::new(2.0, 2.0, 1.0)),
+            reverse_link: Default::default(),
           },
         ],
       ),
@@ -571,6 +588,7 @@ fn update_links_islands_and_unlinks_on_delete() {
           },
           destination_node_type: None,
           portal: (Vec3::new(0.0, 2.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
+          reverse_link: Default::default(),
         }],
       ),
       (
@@ -582,6 +600,7 @@ fn update_links_islands_and_unlinks_on_delete() {
           },
           destination_node_type: None,
           portal: (Vec3::new(0.0, 1.0, 1.0), Vec3::new(0.0, 2.0, 1.0)),
+          reverse_link: Default::default(),
         }],
       ),
       (
@@ -593,6 +612,7 @@ fn update_links_islands_and_unlinks_on_delete() {
           },
           destination_node_type: None,
           portal: (Vec3::new(-2.0, 0.0, 1.0), Vec3::new(-1.0, 0.0, 1.0)),
+          reverse_link: Default::default(),
         }],
       ),
       (
@@ -604,6 +624,7 @@ fn update_links_islands_and_unlinks_on_delete() {
           },
           destination_node_type: None,
           portal: (Vec3::new(-1.0, 0.0, 1.0), Vec3::new(-2.0, 0.0, 1.0)),
+          reverse_link: Default::default(),
         }],
       ),
       (
@@ -615,6 +636,7 @@ fn update_links_islands_and_unlinks_on_delete() {
           },
           destination_node_type: None,
           portal: (Vec3::new(2.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
+          reverse_link: Default::default(),
         }],
       ),
       (
@@ -626,6 +648,7 @@ fn update_links_islands_and_unlinks_on_delete() {
           },
           destination_node_type: None,
           portal: (Vec3::new(2.0, 2.0, 1.0), Vec3::new(2.0, 1.0, 1.0)),
+          reverse_link: Default::default(),
         }],
       ),
     ],
@@ -660,6 +683,7 @@ fn update_links_islands_and_unlinks_on_delete() {
           },
           destination_node_type: None,
           portal: (Vec3::new(0.0, 2.0, 1.0), Vec3::new(0.0, 1.0, 1.0)),
+          reverse_link: Default::default(),
         }],
       ),
       (
@@ -671,6 +695,7 @@ fn update_links_islands_and_unlinks_on_delete() {
           },
           destination_node_type: None,
           portal: (Vec3::new(-1.0, 0.0, 1.0), Vec3::new(-2.0, 0.0, 1.0)),
+          reverse_link: Default::default(),
         }],
       ),
       (
@@ -682,6 +707,7 @@ fn update_links_islands_and_unlinks_on_delete() {
           },
           destination_node_type: None,
           portal: (Vec3::new(0.0, 1.0, 1.0), Vec3::new(0.0, 2.0, 1.0)),
+          reverse_link: Default::default(),
         }],
       ),
       (
@@ -693,6 +719,7 @@ fn update_links_islands_and_unlinks_on_delete() {
           },
           destination_node_type: None,
           portal: (Vec3::new(-2.0, 0.0, 1.0), Vec3::new(-1.0, 0.0, 1.0)),
+          reverse_link: Default::default(),
         }],
       ),
     ],
