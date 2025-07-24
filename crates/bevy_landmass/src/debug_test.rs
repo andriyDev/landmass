@@ -3,16 +3,16 @@ use std::{cmp::Ordering, sync::Arc};
 use bevy_app::App;
 use bevy_asset::{AssetPlugin, Assets};
 use bevy_math::Vec3;
-use bevy_transform::{components::Transform, TransformPlugin};
+use bevy_transform::{TransformPlugin, components::Transform};
 
 use crate::{
-  coords::ThreeD, Agent, Agent3dBundle, AgentOptions, AgentSettings,
-  Archipelago3d, ArchipelagoRef3d, FromAgentRadius, Island, Island3dBundle,
-  Landmass3dPlugin, NavMesh3d, NavMeshHandle, NavigationMesh3d,
+  Agent, Agent3dBundle, AgentOptions, AgentSettings, Archipelago3d,
+  ArchipelagoRef3d, FromAgentRadius, Island, Island3dBundle, Landmass3dPlugin,
+  NavMesh3d, NavMeshHandle, NavigationMesh3d, coords::ThreeD,
 };
 
 use super::{
-  draw_archipelago_debug, DebugDrawer, LineType, PointType, TriangleType,
+  DebugDrawer, LineType, PointType, TriangleType, draw_archipelago_debug,
 };
 
 struct FakeDrawer {
@@ -219,10 +219,10 @@ fn draws_avoidance_data_when_requested() {
   use std::collections::HashMap;
 
   use crate::{
-    debug::{
-      draw_avoidance_data, AvoidanceDrawer, ConstraintKind, ConstraintLine,
-    },
     AgentTarget3d, KeepAvoidanceData, NavigationMesh, Velocity3d,
+    debug::{
+      AvoidanceDrawer, ConstraintKind, ConstraintLine, draw_avoidance_data,
+    },
   };
 
   use bevy::{math::Vec2, prelude::Entity};

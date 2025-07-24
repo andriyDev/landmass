@@ -8,8 +8,8 @@ use bevy_platform::collections::HashMap;
 use bevy_transform::{components::Transform, helper::TransformHelper};
 
 use crate::{
-  coords::{CoordinateSystem, ThreeD, TwoD},
   Archipelago, ArchipelagoRef,
+  coords::{CoordinateSystem, ThreeD, TwoD},
 };
 
 /// A bundle to create characters. This omits the GlobalTransform component,

@@ -1,6 +1,6 @@
 use bevy_mesh::{Indices, Mesh, PrimitiveTopology, VertexAttributeValues};
 
-use crate::{coords::CoordinateSystem, NavigationMesh};
+use crate::{NavigationMesh, coords::CoordinateSystem};
 
 /// A conversion error for Bevy meshes to `landmass` nav meshes.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -9,9 +9,9 @@ use bevy_ecs::{
   system::{Query, Res},
 };
 use bevy_gizmos::{
+  AppGizmoBuilder,
   config::{GizmoConfig, GizmoConfigGroup},
   gizmos::Gizmos,
-  AppGizmoBuilder,
 };
 use bevy_math::{Isometry3d, Quat};
 use bevy_reflect::Reflect;
@@ -19,8 +19,8 @@ use bevy_time::Time;
 use bevy_transform::components::Transform;
 
 use crate::{
-  coords::{CoordinateSystem, ThreeD, TwoD},
   Archipelago, LandmassSystemSet,
+  coords::{CoordinateSystem, ThreeD, TwoD},
 };
 
 #[cfg(feature = "debug-avoidance")]
