@@ -12,8 +12,8 @@ use bevy_platform::collections::{HashMap, HashSet};
 use bevy_transform::{components::Transform, helper::TransformHelper};
 
 use crate::{
-  coords::{CoordinateSystem, ThreeD, TwoD},
   Archipelago, ArchipelagoRef, NavMesh, NavMeshHandle,
+  coords::{CoordinateSystem, ThreeD, TwoD},
 };
 
 /// A bundle to create islands. The GlobalTransform component is omitted, since

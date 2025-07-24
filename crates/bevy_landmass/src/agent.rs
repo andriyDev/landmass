@@ -8,8 +8,8 @@ use bevy_platform::collections::HashMap;
 use bevy_transform::{components::Transform, helper::TransformHelper};
 
 use crate::{
-  coords::{CoordinateSystem, ThreeD, TwoD},
   AgentState, Archipelago, TargetReachedCondition, Velocity,
+  coords::{CoordinateSystem, ThreeD, TwoD},
 };
 use crate::{ArchipelagoRef, NodeType};
 

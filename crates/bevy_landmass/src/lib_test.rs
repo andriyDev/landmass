@@ -4,7 +4,7 @@ use bevy_app::App;
 use bevy_asset::{AssetPlugin, Assets};
 use bevy_ecs::entity::Entity;
 use bevy_math::{Quat, Vec2, Vec3};
-use bevy_transform::{components::Transform, TransformPlugin};
+use bevy_transform::{TransformPlugin, components::Transform};
 
 use crate::{
   Agent2dBundle, Agent3dBundle, AgentDesiredVelocity2d, AgentDesiredVelocity3d,

@@ -5,10 +5,10 @@ use bevy::{
   prelude::*, render::mesh::Mesh2d,
 };
 use bevy_landmass::{
+  AgentNodeTypeCostOverrides, FromAgentRadius, NavMeshHandle,
   debug::{EnableLandmassDebug, Landmass2dDebugPlugin},
   nav_mesh::bevy_mesh_to_landmass_nav_mesh,
   prelude::*,
-  AgentNodeTypeCostOverrides, FromAgentRadius, NavMeshHandle,
 };
 use landmass::NodeType;
 

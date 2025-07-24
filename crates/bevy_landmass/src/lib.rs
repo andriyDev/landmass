@@ -39,9 +39,6 @@ pub mod debug;
 pub mod nav_mesh;
 
 pub mod prelude {
-  pub use crate::coords::CoordinateSystem;
-  pub use crate::coords::ThreeD;
-  pub use crate::coords::TwoD;
   pub use crate::Agent2dBundle;
   pub use crate::Agent3dBundle;
   pub use crate::AgentDesiredVelocity2d;
@@ -75,6 +72,9 @@ pub mod prelude {
   pub use crate::ValidNavigationMesh3d;
   pub use crate::Velocity2d;
   pub use crate::Velocity3d;
+  pub use crate::coords::CoordinateSystem;
+  pub use crate::coords::ThreeD;
+  pub use crate::coords::TwoD;
 }
 
 pub struct LandmassPlugin<CS: CoordinateSystem> {
