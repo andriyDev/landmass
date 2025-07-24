@@ -80,7 +80,7 @@ pub(crate) struct BoundaryLink {
   pub(crate) destination_node_type: Option<NodeType>,
   /// The portal that this link occupies on the boundary of the source node.
   /// This is essentially the intersection of the linked islands' linkable
-  /// edges.
+  /// edges. The portal is in world-space.
   pub(crate) portal: (Vec3, Vec3),
 }
 
