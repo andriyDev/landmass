@@ -122,8 +122,7 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
         if !destination_node_cost.is_finite() {
           return None;
         }
-        let cost = link.travel_distances.0 * current_node_cost
-          + link.travel_distances.1 * destination_node_cost;
+        let cost = todo!();
         Some((cost, PathStep::BoundaryLink(*link_id), link.destination_node))
       }))
       .collect()
