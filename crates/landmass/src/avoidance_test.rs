@@ -915,6 +915,8 @@ fn switching_nav_mesh_to_fewer_vertices_does_not_result_in_panic() {
     agent
   });
 
+  // Update twice to allow the velocity to "stabilize".
+  archipelago.update(0.01);
   archipelago.update(0.01);
 
   // This doesn't really matter for the test, but ensures that pathing +

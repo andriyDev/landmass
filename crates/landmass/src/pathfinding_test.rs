@@ -4,13 +4,39 @@ use glam::{Vec2, Vec3};
 
 use crate::{
   coords::{XY, XYZ},
-  nav_data::NodeRef,
+  nav_data::{NavigationData, NodeRef},
   nav_mesh::NavigationMesh,
   path::{BoundaryLinkSegment, IslandSegment, Path},
-  AgentOptions, Archipelago, FromAgentRadius, Island, Transform,
+  pathfinding::PathResult,
+  AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
+  NodeType, Transform,
 };
 
 use super::find_path;
+
+// Same as `find_path`, but derives the start and end points from the center of
+// the specified nodes.
+fn find_path_between_nodes<CS: CoordinateSystem>(
+  nav_data: &NavigationData<CS>,
+  start_node: NodeRef,
+  end_node: NodeRef,
+  override_node_type_to_cost: &HashMap<NodeType, f32>,
+) -> PathResult {
+  let start_island = nav_data.get_island(start_node.island_id).unwrap();
+  let start_point =
+    start_island.nav_mesh.polygons[start_node.polygon_index].center;
+  let end_island = nav_data.get_island(end_node.island_id).unwrap();
+  let end_point = end_island.nav_mesh.polygons[end_node.polygon_index].center;
+
+  find_path(
+    nav_data,
+    start_node,
+    start_point,
+    end_node,
+    end_point,
+    override_node_type_to_cost,
+  )
+}
 
 #[test]
 fn finds_path_in_archipelago() {
@@ -53,7 +79,7 @@ fn finds_path_in_archipelago() {
 
   let nav_data = &archipelago.nav_data;
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 2 },
@@ -72,7 +98,7 @@ fn finds_path_in_archipelago() {
     })
   );
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     nav_data,
     NodeRef { island_id, polygon_index: 2 },
     NodeRef { island_id, polygon_index: 0 },
@@ -91,7 +117,7 @@ fn finds_path_in_archipelago() {
     })
   );
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     nav_data,
     NodeRef { island_id, polygon_index: 3 },
     NodeRef { island_id, polygon_index: 0 },
@@ -159,7 +185,7 @@ fn finds_paths_on_two_islands() {
 
   let nav_data = &archipelago.nav_data;
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_1, polygon_index: 2 },
@@ -178,7 +204,7 @@ fn finds_paths_on_two_islands() {
     })
   );
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     nav_data,
     NodeRef { island_id: island_id_2, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 2 },
@@ -246,7 +272,7 @@ fn no_path_between_disconnected_islands() {
 
   let nav_data = &archipelago.nav_data;
 
-  assert!(find_path(
+  assert!(find_path_between_nodes(
     nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 0 },
@@ -255,7 +281,7 @@ fn no_path_between_disconnected_islands() {
   .path
   .is_none());
 
-  assert!(find_path(
+  assert!(find_path_between_nodes(
     nav_data,
     NodeRef { island_id: island_id_2, polygon_index: 0 },
     NodeRef { island_id: island_id_1, polygon_index: 0 },
@@ -326,7 +352,7 @@ fn find_path_across_connected_islands() {
     })
     .collect::<HashMap<_, _>>();
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_5, polygon_index: 0 },
@@ -437,7 +463,7 @@ fn finds_path_across_different_islands() {
     })
     .collect::<HashMap<_, _>>();
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 1 },
@@ -506,7 +532,7 @@ fn aborts_early_for_unconnected_regions() {
   archipelago.update(1.0);
 
   // Verify that with island_id_3, the islands are connected.
-  assert!(find_path(
+  assert!(find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 0 },
@@ -519,7 +545,7 @@ fn aborts_early_for_unconnected_regions() {
   archipelago.remove_island(island_id_3);
   archipelago.update(1.0);
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 0 },
@@ -590,7 +616,7 @@ fn detour_for_high_cost_path() {
     HashMap::from([(1, slow_node_type)]),
   ));
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 6 },
@@ -684,7 +710,7 @@ fn detour_for_high_cost_path_across_boundary_links() {
 
   archipelago.update(1.0);
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 0 },
@@ -779,7 +805,7 @@ fn fast_path_not_ignored_by_heuristic() {
     HashMap::from([(1, fast_type)]),
   ));
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 2 },
     NodeRef { island_id, polygon_index: 4 },
@@ -801,7 +827,7 @@ fn fast_path_not_ignored_by_heuristic() {
 }
 
 #[test]
-fn infinite_or_nan_cost_cannot_find_path() {
+fn infinite_or_nan_cost_cannot_find_path_between_nodes() {
   let mut archipelago =
     Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
 
@@ -832,7 +858,7 @@ fn infinite_or_nan_cost_cannot_find_path() {
     HashMap::from([(1, node_type)]),
   ));
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 2 },
@@ -844,7 +870,7 @@ fn infinite_or_nan_cost_cannot_find_path() {
 
   archipelago.set_node_type_cost(node_type, f32::NAN).unwrap();
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 2 },
@@ -914,7 +940,7 @@ fn detour_for_overridden_high_cost_path() {
     HashMap::from([(1, slow_node_type)]),
   ));
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 6 },
@@ -1000,7 +1026,7 @@ fn big_node_does_not_skew_pathing() {
     HashMap::default(),
   ));
 
-  let path_result = find_path(
+  let path_result = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 3 },
@@ -1094,7 +1120,9 @@ fn start_and_end_point_influences_path() {
   let path_result = find_path(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 1 },
+    start_point,
     NodeRef { island_id, polygon_index: 3 },
+    end_point,
     &HashMap::default(),
   );
 
