@@ -933,3 +933,89 @@ fn detour_for_overridden_high_cost_path() {
     })
   );
 }
+
+#[test]
+fn big_node_does_not_skew_pathing() {
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+
+  // The middle-left node is too long, so its center is really far off compared
+  // to the edges that the agent actually travels through. We should go
+  // through the middle-left node, but if we always travel through edge
+  // centers, the right "detour" would be selected.
+  //
+  //             +-+-+-+
+  //             |E|X|X|
+  // +-----------+-+-+-+
+  // |XXXXXXXXXXXXX| |X|
+  // +-----------+-+-+-+
+  //             |S|X|X|
+  //             +-+-+-+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(2.0, 0.0),
+        Vec2::new(3.0, 0.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(2.0, 1.0),
+        Vec2::new(3.0, 1.0),
+        Vec2::new(0.0, 2.0),
+        Vec2::new(1.0, 2.0),
+        Vec2::new(2.0, 2.0),
+        Vec2::new(3.0, 2.0),
+        Vec2::new(0.0, 3.0),
+        Vec2::new(1.0, 3.0),
+        Vec2::new(2.0, 3.0),
+        Vec2::new(3.0, 3.0),
+        // Long part to the left.
+        Vec2::new(-100.0, 1.0),
+        Vec2::new(-100.0, 2.0),
+      ],
+      polygons: vec![
+        // The bottom row.
+        vec![0, 1, 5, 4],
+        vec![1, 2, 6, 5],
+        vec![2, 3, 7, 6],
+        // The top row.
+        vec![8, 9, 13, 12],
+        vec![9, 10, 14, 13],
+        vec![10, 11, 15, 14],
+        // The right node.
+        vec![6, 7, 11, 10],
+        // The long left node.
+        vec![4, 5, 9, 8, 17, 16],
+      ],
+      polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 0],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let island_id = archipelago.add_island(Island::new(
+    Transform::default(),
+    nav_mesh,
+    HashMap::default(),
+  ));
+
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id, polygon_index: 0 },
+    NodeRef { island_id, polygon_index: 3 },
+    &HashMap::default(),
+  );
+
+  assert_eq!(
+    path_result.path,
+    Some(Path {
+      island_segments: vec![IslandSegment {
+        island_id,
+        corridor: vec![0, 7, 3],
+        portal_edge_index: vec![2, 2],
+      }],
+      boundary_link_segments: vec![],
+    })
+  );
+}
