@@ -9,6 +9,7 @@ use ord_subset::OrdVar;
 use crate::{
   astar::{self, AStarProblem, PathStats},
   nav_data::{BoundaryLinkId, NodeRef},
+  nav_mesh::MeshEdgeRef,
   path::{BoundaryLinkSegment, IslandSegment, Path},
   CoordinateSystem, Island, NavigationData, NodeType,
 };
@@ -19,6 +20,9 @@ struct ArchipelagoPathProblem<'a, CS: CoordinateSystem> {
   nav_data: &'a NavigationData<CS>,
   /// The node the agent is starting from.
   start_node: NodeRef,
+  /// The center of the start_node. This is just a cached point for easy
+  /// access.
+  start_point: Vec3,
   /// The node the target is in.
   end_node: NodeRef,
   /// The center of the end_node. This is just a cached point for easy access.
@@ -33,9 +37,31 @@ struct ArchipelagoPathProblem<'a, CS: CoordinateSystem> {
 /// An action taken in the path.
 #[derive(Clone, Copy)]
 enum PathStep {
+  /// Just head directly to the end. This is only valid when inside the end
+  /// node.
+  GoToEnd,
   /// Take the node connection at the specified edge index in the current node.
   NodeConnection(usize),
   /// Take the boundary link with the specified ID in the current node.
+  BoundaryLink(BoundaryLinkId),
+}
+
+/// A node in the path. This generally corresponds to an edge in the navigation
+/// data.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+enum PathNode {
+  /// The start of the path.
+  Start,
+  /// The end of the path.
+  End,
+  /// An edge of a node in the navigation data.
+  NodeEdge {
+    /// The node that we are now in.
+    node: NodeRef,
+    /// The edge that we start at inside this node.
+    start_edge: usize,
+  },
+  /// A boundary link.
   BoundaryLink(BoundaryLinkId),
 }
 
@@ -68,25 +94,63 @@ impl<CS: CoordinateSystem> ArchipelagoPathProblem<'_, CS> {
 impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
   type ActionType = PathStep;
 
-  type StateType = NodeRef;
+  type StateType = PathNode;
 
   fn initial_state(&self) -> Self::StateType {
-    self.start_node
+    PathNode::Start
   }
 
   fn successors(
     &self,
     state: &Self::StateType,
   ) -> Vec<(f32, Self::ActionType, Self::StateType)> {
-    let island = self.nav_data.get_island(state.island_id).unwrap();
-    let polygon = &island.nav_mesh.polygons[state.polygon_index];
+    let (node_ref, island, polygon, point) = match state {
+      PathNode::Start => {
+        let island =
+          self.nav_data.get_island(self.start_node.island_id).unwrap();
+        let polygon = &island.nav_mesh.polygons[self.start_node.polygon_index];
+        (self.start_node, island, polygon, self.start_point)
+      }
+      PathNode::NodeEdge { node, start_edge: edge } => {
+        let island = self.nav_data.get_island(node.island_id).unwrap();
+        let polygon = &island.nav_mesh.polygons[node.polygon_index];
+
+        let (i, j) = polygon.get_edge_indices(*edge);
+        let local_midpoint =
+          island.nav_mesh.vertices[i].midpoint(island.nav_mesh.vertices[j]);
+
+        (*node, island, polygon, island.transform.apply(local_midpoint))
+      }
+      PathNode::BoundaryLink(link) => {
+        let link = self.nav_data.boundary_links.get(*link).unwrap();
+        let island =
+          self.nav_data.get_island(link.destination_node.island_id).unwrap();
+        let polygon =
+          &island.nav_mesh.polygons[link.destination_node.polygon_index];
+
+        (
+          link.destination_node,
+          island,
+          polygon,
+          link.portal.0.midpoint(link.portal.1),
+        )
+      }
+      PathNode::End => {
+        unreachable!("we never need the successors of the goal node")
+      }
+    };
     let boundary_links = self
       .nav_data
       .node_to_boundary_link_ids
-      .get(state)
+      .get(&node_ref)
       .map_or(Cow::Owned(HashSet::new()), Cow::Borrowed);
 
     let current_node_cost = self.type_index_to_cost(island, polygon.type_index);
+
+    if node_ref == self.end_node {
+      let cost = point.distance(self.end_point) * current_node_cost;
+      return vec![(cost, PathStep::GoToEnd, PathNode::End)];
+    }
 
     polygon
       .connectivity
@@ -104,14 +168,21 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
           return None;
         }
 
-        let cost = todo!();
+        let (i, j) = polygon.get_edge_indices(edge_index);
+        let local_midpoint =
+          island.nav_mesh.vertices[i].midpoint(island.nav_mesh.vertices[j]);
+        let cost = point.distance(island.transform.apply(local_midpoint))
+          * current_node_cost;
 
         Some((
           cost,
           PathStep::NodeConnection(edge_index),
-          NodeRef {
-            island_id: state.island_id,
-            polygon_index: conn.polygon_index,
+          PathNode::NodeEdge {
+            node: NodeRef {
+              island_id: node_ref.island_id,
+              polygon_index: conn.polygon_index,
+            },
+            start_edge: conn.reverse_edge,
           },
         ))
       })
@@ -122,23 +193,40 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
         if !destination_node_cost.is_finite() {
           return None;
         }
-        let cost = todo!();
-        Some((cost, PathStep::BoundaryLink(*link_id), link.destination_node))
+
+        let cost = point.distance(link.portal.0.midpoint(link.portal.1))
+          * current_node_cost;
+        Some((
+          cost,
+          PathStep::BoundaryLink(*link_id),
+          PathNode::BoundaryLink(*link_id),
+        ))
       }))
       .collect()
   }
 
   fn heuristic(&self, state: &Self::StateType) -> f32 {
-    let island = self.nav_data.get_island(state.island_id).unwrap();
-    island
-      .transform
-      .apply(island.nav_mesh.polygons[state.polygon_index].center)
-      .distance(self.end_point)
-      * self.cheapest_node_type_cost
+    let world_point = match state {
+      PathNode::Start => self.start_point,
+      PathNode::End => return 0.0,
+      PathNode::NodeEdge { node, start_edge: edge } => {
+        let island = self.nav_data.get_island(node.island_id).unwrap();
+        let edge = island.get_nav_mesh().get_edge_points(MeshEdgeRef {
+          polygon_index: node.polygon_index,
+          edge_index: *edge,
+        });
+        island.transform.apply(edge.0.midpoint(edge.1))
+      }
+      PathNode::BoundaryLink(link) => {
+        let boundary_link = self.nav_data.boundary_links.get(*link).unwrap();
+        boundary_link.portal.0.midpoint(boundary_link.portal.1)
+      }
+    };
+    world_point.distance(self.end_point) * self.cheapest_node_type_cost
   }
 
   fn is_goal_state(&self, state: &Self::StateType) -> bool {
-    *state == self.end_node
+    matches!(state, PathNode::End)
   }
 }
 
@@ -168,6 +256,12 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
     nav_data,
     start_node,
     end_node,
+    start_point: {
+      let island = nav_data.get_island(start_node.island_id).unwrap();
+      island
+        .transform
+        .apply(island.nav_mesh.polygons[start_node.polygon_index].center)
+    },
     end_point: {
       let island = nav_data.get_island(end_node.island_id).unwrap();
       island
@@ -212,6 +306,11 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
     let previous_node = *last_segment.corridor.last().unwrap();
 
     match path_step {
+      PathStep::GoToEnd => {
+        // Do nothing. The previous step already inserted the end node, so
+        // there's nothing left to do. We could possibly assert here that this
+        // is the last step, but it's not easy to do that, so no need.
+      }
       PathStep::NodeConnection(edge_index) => {
         let nav_mesh =
           &nav_data.get_island(last_segment.island_id).unwrap().nav_mesh;
