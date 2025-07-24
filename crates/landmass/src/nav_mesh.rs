@@ -367,15 +367,8 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
   // Gets the points that make up the specified edge.
   pub(crate) fn get_edge_points(&self, edge_ref: MeshEdgeRef) -> (Vec3, Vec3) {
     let polygon = &self.polygons[edge_ref.polygon_index];
-    let left_vertex_index = polygon.vertices[edge_ref.edge_index];
-
-    let right_vertex_index =
-      if edge_ref.edge_index == polygon.vertices.len() - 1 {
-        0
-      } else {
-        edge_ref.edge_index + 1
-      };
-    let right_vertex_index = polygon.vertices[right_vertex_index];
+    let (left_vertex_index, right_vertex_index) =
+      polygon.get_edge_indices(edge_ref.edge_index);
 
     (self.vertices[left_vertex_index], self.vertices[right_vertex_index])
   }
