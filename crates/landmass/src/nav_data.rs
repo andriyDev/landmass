@@ -82,11 +82,6 @@ pub(crate) struct BoundaryLink {
   /// This is essentially the intersection of the linked islands' linkable
   /// edges.
   pub(crate) portal: (Vec3, Vec3),
-  /// The distances of travelling across this link. The first is the distance
-  /// travelled across the starting node, and the second is the
-  /// distance travelled across the destination node. These must be multiplied
-  /// by the actual node costs.
-  pub(crate) travel_distances: (f32, f32),
 }
 
 /// A node that has been modified (e.g., by being connected with a boundary link
@@ -814,15 +809,6 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
         let polygon_2 =
           &island_2.nav_mesh.polygons[island_2_edge_ref.polygon_index];
 
-        let polygon_center_1 = island_1.transform.apply(polygon_1.center);
-        let polygon_center_2 = island_2.transform.apply(polygon_2.center);
-        let portal_center = (portal.0 + portal.1) / 2.0;
-
-        let travel_distances = (
-          polygon_center_1.distance(portal_center),
-          polygon_center_2.distance(portal_center),
-        );
-
         let node_type_1 =
           island_1.type_index_to_node_type.get(&polygon_1.type_index).copied();
         let node_type_2 =
@@ -832,13 +818,11 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
           destination_node: node_2,
           destination_node_type: node_type_2,
           portal,
-          travel_distances,
         });
         let id_2 = boundary_links.insert(BoundaryLink {
           destination_node: node_1,
           destination_node_type: node_type_1,
           portal: (portal.1, portal.0),
-          travel_distances: (travel_distances.1, travel_distances.0),
         });
 
         node_to_boundary_link_ids.entry(node_1).or_default().insert(id_1);
