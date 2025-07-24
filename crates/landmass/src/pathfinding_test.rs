@@ -1019,3 +1019,94 @@ fn big_node_does_not_skew_pathing() {
     })
   );
 }
+
+#[test]
+fn start_and_end_point_influences_path() {
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+
+  // We want to ensure that the start and end points of the path are taken into
+  // consideration when planning. Previously, we would always assume that the
+  // start and end points were always at the center of nodes. However, this can
+  // result in odd paths when the centers of the nodes happen to produce shorter
+  // paths. The optimal path for these start and end points is going along the
+  // left side. However using the centers of the nodes for the start and end
+  // points would result in taking the "middle" path.
+  //
+  // +-+---+-+---+
+  // |X|EXXXXXXXX|
+  // +-+---+-+---+
+  // |X|   |X|
+  // +-+---+-+---+
+  // |X|SXXXXXXXX|
+  // +-+---+-+---+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(6.0, 0.0),
+        Vec2::new(7.0, 0.0),
+        Vec2::new(12.0, 0.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(6.0, 1.0),
+        Vec2::new(7.0, 1.0),
+        Vec2::new(12.0, 1.0),
+        Vec2::new(0.0, 2.0),
+        Vec2::new(1.0, 2.0),
+        Vec2::new(6.0, 2.0),
+        Vec2::new(7.0, 2.0),
+        Vec2::new(12.0, 2.0),
+        Vec2::new(0.0, 3.0),
+        Vec2::new(1.0, 3.0),
+        Vec2::new(6.0, 3.0),
+        Vec2::new(7.0, 3.0),
+        Vec2::new(12.0, 3.0),
+      ],
+      polygons: vec![
+        // Bottom row.
+        vec![0, 1, 6, 5],
+        vec![1, 2, 3, 4, 9, 8, 7, 6],
+        // Top row.
+        vec![10, 11, 16, 15],
+        vec![11, 12, 13, 14, 19, 18, 17, 16],
+        // Middle row.
+        vec![5, 6, 11, 10],
+        vec![7, 8, 13, 12],
+      ],
+      polygon_type_indices: vec![0, 0, 0, 0, 0, 0],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  // TODO: Use these in the test.
+  let start_point = Vec3::new(1.5, 0.5, 0.0);
+  let end_point = Vec3::new(1.5, 2.5, 0.0);
+
+  let island_id = archipelago.add_island(Island::new(
+    Transform::default(),
+    nav_mesh,
+    HashMap::default(),
+  ));
+
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id, polygon_index: 1 },
+    NodeRef { island_id, polygon_index: 3 },
+    &HashMap::default(),
+  );
+
+  assert_eq!(
+    path_result.path,
+    Some(Path {
+      island_segments: vec![IslandSegment {
+        island_id,
+        corridor: vec![1, 0, 4, 2, 3],
+        portal_edge_index: vec![7, 2, 2, 1],
+      }],
+      boundary_link_segments: vec![],
+    })
+  );
+}
