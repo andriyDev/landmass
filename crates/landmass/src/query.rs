@@ -3,8 +3,8 @@ use std::{collections::HashMap, marker::PhantomData};
 use thiserror::Error;
 
 use crate::{
-  nav_data::NodeRef, path::PathIndex, pathfinding, Archipelago,
-  CoordinateSystem, IslandId, NodeType,
+  Archipelago, CoordinateSystem, IslandId, NodeType, nav_data::NodeRef,
+  path::PathIndex, pathfinding,
 };
 
 /// A point on the navigation meshes.
@@ -55,7 +55,9 @@ impl<CS: CoordinateSystem> SampledPoint<'_, CS> {
 pub enum SamplePointError {
   #[error("The sample point is too far from any island.")]
   OutOfRange,
-  #[error("The navigation data of the archipelago has been mutated since the last update.")]
+  #[error(
+    "The navigation data of the archipelago has been mutated since the last update."
+  )]
   NavDataDirty,
 }
 
@@ -110,7 +112,10 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
   // handle it at all. I'd rather the "wins" we get from avoiding
   // double-sampling (in cases where the user samples a point to check for
   // validity and then finds a path).
-  assert!(!archipelago.nav_data.dirty, "The navigation data has been mutated, but we have SampledPoints, so this should be impossible.");
+  assert!(
+    !archipelago.nav_data.dirty,
+    "The navigation data has been mutated, but we have SampledPoints, so this should be impossible."
+  );
 
   for (node_type, cost) in override_node_type_costs.iter() {
     if *cost <= 0.0 {

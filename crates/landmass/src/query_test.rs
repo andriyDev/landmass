@@ -3,8 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 use glam::Vec2;
 
 use crate::{
-  coords::XY, AgentOptions, Archipelago, FindPathError, FromAgentRadius,
-  Island, NavigationMesh, SamplePointError, Transform,
+  AgentOptions, Archipelago, FindPathError, FromAgentRadius, Island,
+  NavigationMesh, SamplePointError, Transform, coords::XY,
 };
 
 use super::{find_path, sample_point};

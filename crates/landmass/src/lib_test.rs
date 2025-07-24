@@ -3,10 +3,10 @@ use std::{collections::HashMap, sync::Arc};
 use glam::{Vec2, Vec3};
 
 use crate::{
-  coords::{XY, XYZ},
   Agent, AgentId, AgentOptions, AgentState, Archipelago, Character,
   CharacterId, FromAgentRadius, Island, IslandId, NavigationMesh,
   PointSampleDistance3d, Transform,
+  coords::{XY, XYZ},
 };
 
 #[test]
@@ -272,16 +272,20 @@ fn computes_and_follows_path() {
     archipelago.get_agent(agent_2).unwrap().state(),
     AgentState::Moving
   );
-  assert!(archipelago
-    .get_agent(agent_1)
-    .unwrap()
-    .get_desired_velocity()
-    .abs_diff_eq(Vec3::new(1.5, 0.5, 0.0).normalize() * 2.0, 1e-2));
-  assert!(archipelago
-    .get_agent(agent_2)
-    .unwrap()
-    .get_desired_velocity()
-    .abs_diff_eq(Vec3::new(-0.5, -1.5, 0.0).normalize() * 2.0, 1e-2));
+  assert!(
+    archipelago
+      .get_agent(agent_1)
+      .unwrap()
+      .get_desired_velocity()
+      .abs_diff_eq(Vec3::new(1.5, 0.5, 0.0).normalize() * 2.0, 1e-2)
+  );
+  assert!(
+    archipelago
+      .get_agent(agent_2)
+      .unwrap()
+      .get_desired_velocity()
+      .abs_diff_eq(Vec3::new(-0.5, -1.5, 0.0).normalize() * 2.0, 1e-2)
+  );
   // These agents are not on the nav mesh, so they don't do anything.
   assert_eq!(
     archipelago.get_agent(agent_off_mesh).unwrap().state(),
@@ -316,17 +320,21 @@ fn computes_and_follows_path() {
     Vec3::new(2.5, 1.5, 1.0);
   archipelago.update(/* delta_time= */ 0.01);
 
-  assert!(archipelago
-    .get_agent(agent_1)
-    .unwrap()
-    .get_desired_velocity()
-    .abs_diff_eq(Vec3::new(0.5, 0.5, 0.0).normalize() * 2.0, 1e-7));
+  assert!(
+    archipelago
+      .get_agent(agent_1)
+      .unwrap()
+      .get_desired_velocity()
+      .abs_diff_eq(Vec3::new(0.5, 0.5, 0.0).normalize() * 2.0, 1e-7)
+  );
   // These agents don't change.
-  assert!(archipelago
-    .get_agent(agent_2)
-    .unwrap()
-    .get_desired_velocity()
-    .abs_diff_eq(Vec3::new(-0.5, -1.5, 0.0).normalize() * 2.0, 1e-2));
+  assert!(
+    archipelago
+      .get_agent(agent_2)
+      .unwrap()
+      .get_desired_velocity()
+      .abs_diff_eq(Vec3::new(-0.5, -1.5, 0.0).normalize() * 2.0, 1e-2)
+  );
   assert_eq!(
     *archipelago.get_agent(agent_off_mesh).unwrap().get_desired_velocity(),
     Vec3::ZERO
@@ -374,11 +382,13 @@ fn computes_and_follows_path() {
     *archipelago.get_agent(agent_1).unwrap().get_desired_velocity(),
     Vec3::ZERO
   );
-  assert!(archipelago
-    .get_agent(agent_2)
-    .unwrap()
-    .get_desired_velocity()
-    .abs_diff_eq(Vec3::new(-0.5, -0.5, 0.0).normalize() * 2.0, 1e-2));
+  assert!(
+    archipelago
+      .get_agent(agent_2)
+      .unwrap()
+      .get_desired_velocity()
+      .abs_diff_eq(Vec3::new(-0.5, -0.5, 0.0).normalize() * 2.0, 1e-2)
+  );
   // These agents don't change.
   assert_eq!(
     *archipelago.get_agent(agent_off_mesh).unwrap().get_desired_velocity(),

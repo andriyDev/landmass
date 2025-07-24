@@ -1,4 +1,4 @@
-use super::{find_path, AStarProblem};
+use super::{AStarProblem, find_path};
 
 struct AdjacencyListProblemState {
   adjacency: Vec<(f32, i32, usize)>,

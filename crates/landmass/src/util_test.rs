@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use glam::Vec3;
 
-use crate::{util::BoundingBox, Transform, XYZ};
+use crate::{Transform, XYZ, util::BoundingBox};
 
 use super::BoundingBoxHierarchy;
 

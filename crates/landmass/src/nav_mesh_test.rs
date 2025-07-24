@@ -3,10 +3,10 @@ use std::collections::HashSet;
 use glam::Vec3;
 
 use crate::{
+  PointSampleDistance3d,
   coords::XYZ,
   nav_mesh::{Connectivity, MeshEdgeRef, ValidPolygon},
   util::BoundingBox,
-  PointSampleDistance3d,
 };
 
 use super::{NavigationMesh, ValidationError};

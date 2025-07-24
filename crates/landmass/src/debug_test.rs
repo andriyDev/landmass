@@ -3,10 +3,10 @@ use std::{cmp::Ordering, collections::HashMap, sync::Arc};
 use glam::Vec3;
 
 use crate::{
-  coords::XYZ,
-  debug::{DebugDrawError, DebugDrawer, LineType, PointType, TriangleType},
   Agent, AgentOptions, Archipelago, FromAgentRadius, Island, NavigationMesh,
   Transform,
+  coords::XYZ,
+  debug::{DebugDrawError, DebugDrawer, LineType, PointType, TriangleType},
 };
 
 use super::draw_archipelago_debug;
@@ -516,10 +516,10 @@ fn draws_avoidance_data_when_requested() {
   use googletest::{matcher::MatcherResult, prelude::*};
 
   use crate::{
-    debug::{
-      draw_avoidance_data, AvoidanceDrawer, ConstraintKind, ConstraintLine,
-    },
     AgentId,
+    debug::{
+      AvoidanceDrawer, ConstraintKind, ConstraintLine, draw_avoidance_data,
+    },
   };
 
   let nav_mesh = Arc::new(

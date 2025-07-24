@@ -5,7 +5,7 @@ use std::{
 };
 
 use disjoint::DisjointSet;
-use glam::{swizzles::Vec3Swizzles, Vec3};
+use glam::{Vec3, swizzles::Vec3Swizzles};
 use thiserror::Error;
 
 use crate::{
@@ -61,7 +61,9 @@ pub enum ValidationError {
   #[error("The polygon at index {0} references an out-of-bounds vertex.")]
   InvalidVertexIndexInPolygon(usize),
   /// Stores the index of the polygon.
-  #[error("The polygon at index {0} contains a degenerate edge (an edge with zero length).")]
+  #[error(
+    "The polygon at index {0} contains a degenerate edge (an edge with zero length)."
+  )]
   DegenerateEdgeInPolygon(usize),
   /// Stores the indices of the two vertices that make up the edge.
   #[error(

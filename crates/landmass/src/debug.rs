@@ -1,8 +1,8 @@
 use thiserror::Error;
 
 use crate::{
-  nav_data::NodeRef, path::Path, Agent, AgentId, Archipelago, CoordinateSystem,
-  Island,
+  Agent, AgentId, Archipelago, CoordinateSystem, Island, nav_data::NodeRef,
+  path::Path,
 };
 
 #[cfg(feature = "debug-avoidance")]
@@ -59,7 +59,9 @@ pub trait DebugDrawer<CS: CoordinateSystem> {
 /// An error resulting from trying to debug draw an archipelago.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub enum DebugDrawError {
-  #[error("The navigation data of the archipelago has been mutated since the last update.")]
+  #[error(
+    "The navigation data of the archipelago has been mutated since the last update."
+  )]
   NavDataDirty,
 }
 
@@ -81,7 +83,10 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
 
   for island_id in archipelago.get_island_ids() {
     let island = archipelago.get_island(island_id).unwrap();
-    assert!(!island.dirty, "Drawing an archipelago while things are dirty is unsafe! Update the archipelago first.");
+    assert!(
+      !island.dirty,
+      "Drawing an archipelago while things are dirty is unsafe! Update the archipelago first."
+    );
     for (polygon_index, polygon) in island.nav_mesh.polygons.iter().enumerate()
     {
       let center_point = island.transform.apply(polygon.center);
