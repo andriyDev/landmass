@@ -4,9 +4,9 @@ use glam::Vec3;
 use slotmap::new_key_type;
 
 use crate::{
+  CoordinateSystem, IslandId, NavigationData, NodeType,
   nav_data::{BoundaryLinkId, NodeRef},
   path::{Path, PathIndex},
-  CoordinateSystem, IslandId, NavigationData, NodeType,
 };
 
 new_key_type! {

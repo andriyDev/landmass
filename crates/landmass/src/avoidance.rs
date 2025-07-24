@@ -2,13 +2,13 @@ use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use dodgy_2d::VisibilitySet;
 use glam::{Vec3, Vec3Swizzles};
-use kdtree::{distance::squared_euclidean, KdTree};
+use kdtree::{KdTree, distance::squared_euclidean};
 use slotmap::HopSlotMap;
 
 use crate::{
-  nav_data::{ModifiedNode, NodeRef},
   Agent, AgentId, AgentOptions, AgentState, Character, CharacterId,
   CoordinateSystem, Island, IslandId, NavigationData,
+  nav_data::{ModifiedNode, NodeRef},
 };
 
 /// Adjusts the velocity of `agents` to apply local avoidance. `delta_time` must

@@ -3,8 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 use slotmap::new_key_type;
 
 use crate::{
-  util::{BoundingBox, Transform},
   CoordinateSystem, NodeType, ValidNavigationMesh,
+  util::{BoundingBox, Transform},
 };
 
 new_key_type! {

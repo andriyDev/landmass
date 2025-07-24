@@ -4,11 +4,11 @@ use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
 
 use crate::{
+  Agent, AgentId, AgentOptions, Archipelago, Character, CharacterId,
+  FromAgentRadius, Island, NavigationData, NavigationMesh, Transform,
   avoidance::apply_avoidance_to_agents,
   coords::{XY, XYZ},
   nav_data::NodeRef,
-  Agent, AgentId, AgentOptions, Archipelago, Character, CharacterId,
-  FromAgentRadius, Island, NavigationData, NavigationMesh, Transform,
 };
 
 use super::nav_mesh_borders_to_dodgy_obstacles;

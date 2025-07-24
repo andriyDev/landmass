@@ -8,12 +8,12 @@ use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
 
 use crate::{
-  agent::{does_agent_need_repath, RepathResult},
+  Agent, AgentOptions, Archipelago, FromAgentRadius, Island, IslandId,
+  NavigationMesh, NodeType, TargetReachedCondition, Transform,
+  agent::{RepathResult, does_agent_need_repath},
   coords::{XY, XYZ},
   nav_data::NodeRef,
   path::{IslandSegment, Path, PathIndex},
-  Agent, AgentOptions, Archipelago, FromAgentRadius, Island, IslandId,
-  NavigationMesh, NodeType, TargetReachedCondition, Transform,
 };
 
 #[test]

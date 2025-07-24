@@ -8,12 +8,12 @@ use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
 
 use crate::{
+  AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
+  IslandId, Transform,
   coords::{XY, XYZ},
   nav_data::{BoundaryLinkId, NavigationData, NodeRef},
   nav_mesh::NavigationMesh,
   path::{BoundaryLinkSegment, IslandSegment},
-  AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
-  IslandId, Transform,
 };
 
 use super::{Path, PathIndex};

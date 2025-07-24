@@ -3,13 +3,13 @@ use std::{collections::HashMap, f32::consts::PI, sync::Arc};
 use glam::{Vec2, Vec3};
 
 use crate::{
+  AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
+  NodeType, Transform,
   coords::{XY, XYZ},
   nav_data::{NavigationData, NodeRef},
   nav_mesh::NavigationMesh,
   path::{BoundaryLinkSegment, IslandSegment, Path},
   pathfinding::PathResult,
-  AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
-  NodeType, Transform,
 };
 
 use super::find_path;
@@ -272,23 +272,27 @@ fn no_path_between_disconnected_islands() {
 
   let nav_data = &archipelago.nav_data;
 
-  assert!(find_path_between_nodes(
-    nav_data,
-    NodeRef { island_id: island_id_1, polygon_index: 0 },
-    NodeRef { island_id: island_id_2, polygon_index: 0 },
-    &HashMap::new(),
-  )
-  .path
-  .is_none());
+  assert!(
+    find_path_between_nodes(
+      nav_data,
+      NodeRef { island_id: island_id_1, polygon_index: 0 },
+      NodeRef { island_id: island_id_2, polygon_index: 0 },
+      &HashMap::new(),
+    )
+    .path
+    .is_none()
+  );
 
-  assert!(find_path_between_nodes(
-    nav_data,
-    NodeRef { island_id: island_id_2, polygon_index: 0 },
-    NodeRef { island_id: island_id_1, polygon_index: 0 },
-    &HashMap::new(),
-  )
-  .path
-  .is_none());
+  assert!(
+    find_path_between_nodes(
+      nav_data,
+      NodeRef { island_id: island_id_2, polygon_index: 0 },
+      NodeRef { island_id: island_id_1, polygon_index: 0 },
+      &HashMap::new(),
+    )
+    .path
+    .is_none()
+  );
 }
 
 #[test]
@@ -532,14 +536,16 @@ fn aborts_early_for_unconnected_regions() {
   archipelago.update(1.0);
 
   // Verify that with island_id_3, the islands are connected.
-  assert!(find_path_between_nodes(
-    &archipelago.nav_data,
-    NodeRef { island_id: island_id_1, polygon_index: 0 },
-    NodeRef { island_id: island_id_2, polygon_index: 0 },
-    &HashMap::new(),
-  )
-  .path
-  .is_some());
+  assert!(
+    find_path_between_nodes(
+      &archipelago.nav_data,
+      NodeRef { island_id: island_id_1, polygon_index: 0 },
+      NodeRef { island_id: island_id_2, polygon_index: 0 },
+      &HashMap::new(),
+    )
+    .path
+    .is_some()
+  );
 
   // Remove island_id_3 which will disconnect the other two islands.
   archipelago.remove_island(island_id_3);
@@ -553,8 +559,10 @@ fn aborts_early_for_unconnected_regions() {
   );
 
   assert!(path_result.path.is_none());
-  assert_eq!(path_result.stats.explored_nodes, 0,
-    "No nodes should have been explored since the regions are completely disconnected.");
+  assert_eq!(
+    path_result.stats.explored_nodes, 0,
+    "No nodes should have been explored since the regions are completely disconnected."
+  );
 }
 
 #[test]

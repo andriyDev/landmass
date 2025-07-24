@@ -3,8 +3,8 @@ use std::{cmp::Ordering, collections::HashSet};
 use glam::{Vec3, Vec3Swizzles};
 
 use crate::{
-  nav_data::{BoundaryLinkId, NodeRef},
   CoordinateSystem, IslandId, NavigationData,
+  nav_data::{BoundaryLinkId, NodeRef},
 };
 
 /// A path computed on the navigation data.

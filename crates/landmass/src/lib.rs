@@ -14,7 +14,7 @@ mod pathfinding;
 mod query;
 mod util;
 
-use agent::{does_agent_need_repath, RepathResult};
+use agent::{RepathResult, does_agent_need_repath};
 use glam::Vec3Swizzles;
 use path::PathIndex;
 use slotmap::HopSlotMap;
