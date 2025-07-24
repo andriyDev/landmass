@@ -121,7 +121,9 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
   let Some(path) = pathfinding::find_path(
     &archipelago.nav_data,
     start_point.node_ref,
+    CS::to_landmass(&start_point.point),
     end_point.node_ref,
+    CS::to_landmass(&end_point.point),
     override_node_type_costs,
   )
   .path

@@ -288,16 +288,12 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     let mut agent_id_to_follow_path_indices = HashMap::new();
 
     for (agent_id, agent) in self.agents.iter_mut() {
-      let agent_node = agent_id_to_agent_node
-        .get(&agent_id)
-        .map(|node_and_point| node_and_point.1);
-      let target_node = agent_id_to_target_node
-        .get(&agent_id)
-        .map(|node_and_point| node_and_point.1);
+      let agent_point_and_node = agent_id_to_agent_node.get(&agent_id);
+      let target_point_and_node = agent_id_to_target_node.get(&agent_id);
       match does_agent_need_repath(
         agent,
-        agent_node,
-        target_node,
+        agent_point_and_node.map(|(_, node)| *node),
+        target_point_and_node.map(|(_, node)| *node),
         &invalidated_boundary_links,
         &invalidated_islands,
       ) {
@@ -326,10 +322,14 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
         RepathResult::NeedsRepath => {
           agent.current_path = None;
 
+          let (agent_point, agent_node) = agent_point_and_node.unwrap();
+          let (target_point, target_node) = target_point_and_node.unwrap();
           let path_result = pathfinding::find_path(
             &self.nav_data,
-            agent_node.unwrap(),
-            target_node.unwrap(),
+            *agent_node,
+            *agent_point,
+            *target_node,
+            *target_point,
             &agent.override_node_type_to_cost,
           );
 

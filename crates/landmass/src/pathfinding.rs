@@ -241,11 +241,14 @@ pub(crate) struct PathResult {
 
 /// Finds a path in `nav_data` from `start_node` to `end_node`. Node costs are
 /// overriden with `override_node_type_to_cost`. Returns an `Err` if no path was
-/// found.
+/// found. `start_point` and `end_point` are assumed to be in the corresponding
+/// nodes, and in world space.
 pub(crate) fn find_path<CS: CoordinateSystem>(
   nav_data: &NavigationData<CS>,
   start_node: NodeRef,
+  start_point: Vec3,
   end_node: NodeRef,
+  end_point: Vec3,
   override_node_type_to_cost: &HashMap<NodeType, f32>,
 ) -> PathResult {
   if !nav_data.are_nodes_connected(start_node, end_node) {
@@ -256,18 +259,8 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
     nav_data,
     start_node,
     end_node,
-    start_point: {
-      let island = nav_data.get_island(start_node.island_id).unwrap();
-      island
-        .transform
-        .apply(island.nav_mesh.polygons[start_node.polygon_index].center)
-    },
-    end_point: {
-      let island = nav_data.get_island(end_node.island_id).unwrap();
-      island
-        .transform
-        .apply(island.nav_mesh.polygons[end_node.polygon_index].center)
-    },
+    start_point,
+    end_point,
     cheapest_node_type_cost: *nav_data
       .get_node_types()
       .map(|(node_type, cost)| {
