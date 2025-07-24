@@ -104,8 +104,7 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
           return None;
         }
 
-        let cost = conn.travel_distances.0 * current_node_cost
-          + conn.travel_distances.1 * target_node_cost;
+        let cost = todo!();
 
         Some((
           cost,

@@ -240,17 +240,13 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
           polygon_2,
           edge_2,
         } => {
-          let edge = polygons[polygon_1].get_edge_indices(edge_1);
-          let edge_center = (vertices[edge.0] + vertices[edge.1]) / 2.0;
-          let travel_distances = (
-            polygons[polygon_1].center.distance(edge_center),
-            polygons[polygon_2].center.distance(edge_center),
-          );
-          polygons[polygon_1].connectivity[edge_1] =
-            Some(Connectivity { polygon_index: polygon_2, travel_distances });
+          polygons[polygon_1].connectivity[edge_1] = Some(Connectivity {
+            polygon_index: polygon_2,
+            reverse_edge: edge_2,
+          });
           polygons[polygon_2].connectivity[edge_2] = Some(Connectivity {
             polygon_index: polygon_1,
-            travel_distances: (travel_distances.1, travel_distances.0),
+            reverse_edge: edge_1,
           });
         }
       }
@@ -349,11 +345,8 @@ pub(crate) struct ValidPolygon {
 pub(crate) struct Connectivity {
   /// The index of the polygon that this edge leads to.
   pub(crate) polygon_index: usize,
-  /// The distances of travelling across this connection. The first is the
-  /// distance travelled across the starting node, and the second is the
-  /// distance travelled across the destination node. These must be multiplied
-  /// by the actual node costs.
-  pub(crate) travel_distances: (f32, f32),
+  /// The index of the edge that would take us back to the original node.
+  pub(crate) reverse_edge: usize,
 }
 
 /// A reference to an edge on a navigation mesh.
