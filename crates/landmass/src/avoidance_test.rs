@@ -76,6 +76,7 @@ fn computes_obstacle_for_box() {
     ],
     polygons: vec![vec![0, 1, 2, 3]],
     polygon_type_indices: vec![0],
+    height_mesh: None,
   }
   .validate()
   .expect("Validation succeeds");
@@ -137,6 +138,7 @@ fn dead_end_makes_open_obstacle() {
       vec![9, 8, 10, 11],
     ],
     polygon_type_indices: vec![0, 0, 0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("Validation succeeds");
@@ -280,6 +282,7 @@ fn split_borders() {
       vec![23, 22, 21, 24],
     ],
     polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("Validation succeeds");
@@ -338,6 +341,7 @@ fn creates_obstacles_across_boundary_link() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("Validation succeeds"),
@@ -398,6 +402,7 @@ fn applies_no_avoidance_for_far_agents() {
     ],
     polygons: vec![vec![0, 1, 2, 3]],
     polygon_type_indices: vec![0],
+    height_mesh: None,
   }
   .validate()
   .expect("Validation succeeded.");
@@ -499,6 +504,7 @@ fn applies_avoidance_for_two_agents() {
     ],
     polygons: vec![vec![0, 1, 2, 3]],
     polygon_type_indices: vec![0],
+    height_mesh: None,
   }
   .validate()
   .expect("Validation succeeded.");
@@ -594,6 +600,7 @@ fn agent_avoids_character() {
     ],
     polygons: vec![vec![0, 1, 2, 3]],
     polygon_type_indices: vec![0],
+    height_mesh: None,
   }
   .validate()
   .expect("Validation succeeded.");
@@ -676,6 +683,7 @@ fn agent_speeds_up_to_avoid_character() {
     ],
     polygons: vec![vec![0, 1, 2, 3]],
     polygon_type_indices: vec![0],
+    height_mesh: None,
   }
   .validate()
   .expect("Validation succeeded.");
@@ -778,6 +786,7 @@ fn reached_target_agent_has_different_avoidance() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .unwrap(),
@@ -874,6 +883,7 @@ fn switching_nav_mesh_to_fewer_vertices_does_not_result_in_panic() {
     ],
     polygons: vec![vec![0, 1, 2, 3, 4, 5]],
     polygon_type_indices: vec![0],
+    height_mesh: None,
   }
   .validate()
   .unwrap();
@@ -888,6 +898,7 @@ fn switching_nav_mesh_to_fewer_vertices_does_not_result_in_panic() {
     ],
     polygons: vec![vec![0, 1, 2, 3]],
     polygon_type_indices: vec![0],
+    height_mesh: None,
   }
   .validate()
   .unwrap();

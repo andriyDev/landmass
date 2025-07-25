@@ -65,6 +65,7 @@ fn finds_path_in_archipelago() {
       vec![10, 4, 14, 13],
     ],
     polygon_type_indices: vec![0, 0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("Mesh is valid.");
@@ -164,6 +165,7 @@ fn finds_paths_on_two_islands() {
       vec![10, 4, 14, 13],
     ],
     polygon_type_indices: vec![0, 0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("Mesh is valid.");
@@ -251,6 +253,7 @@ fn no_path_between_disconnected_islands() {
       vec![10, 4, 14, 13],
     ],
     polygon_type_indices: vec![0, 0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("Mesh is valid.");
@@ -307,6 +310,7 @@ fn find_path_across_connected_islands() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("Mesh is valid."),
@@ -418,6 +422,7 @@ fn finds_path_across_different_islands() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("Mesh is valid."),
@@ -434,6 +439,7 @@ fn finds_path_across_different_islands() {
       ],
       polygons: vec![vec![0, 1, 2, 3], vec![2, 1, 4, 5]],
       polygon_type_indices: vec![0, 0],
+      height_mesh: None,
     }
     .validate()
     .expect("Mesh is valid."),
@@ -509,6 +515,7 @@ fn aborts_early_for_unconnected_regions() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("Mesh is valid."),
@@ -611,6 +618,7 @@ fn detour_for_high_cost_path() {
         vec![3, 2, 12, 14],
       ],
       polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 1],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -665,6 +673,7 @@ fn detour_for_high_cost_path_across_boundary_links() {
       ],
       polygons: vec![vec![0, 1, 2, 3], vec![2, 1, 4, 5], vec![5, 4, 6, 7]],
       polygon_type_indices: vec![0, 0, 0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -698,6 +707,7 @@ fn detour_for_high_cost_path_across_boundary_links() {
         vec![6, 4, 10, 11],
       ],
       polygon_type_indices: vec![0, 0, 0, 1, 0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -799,6 +809,7 @@ fn fast_path_not_ignored_by_heuristic() {
         vec![3, 2, 12, 14],
       ],
       polygon_type_indices: vec![1, 0, 0, 0, 0, 1, 1, 1],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -853,6 +864,7 @@ fn infinite_or_nan_cost_cannot_find_path_between_nodes() {
       ],
       polygons: vec![vec![0, 1, 2, 3], vec![2, 1, 4, 5], vec![5, 4, 6, 7]],
       polygon_type_indices: vec![0, 1, 0],
+      height_mesh: None,
     }
     .validate()
     .expect("mesh is valid"),
@@ -935,6 +947,7 @@ fn detour_for_overridden_high_cost_path() {
         vec![3, 2, 12, 14],
       ],
       polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 1],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -1023,6 +1036,7 @@ fn big_node_does_not_skew_pathing() {
         vec![4, 5, 9, 8, 17, 16],
       ],
       polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -1110,6 +1124,7 @@ fn start_and_end_point_influences_path() {
         vec![7, 8, 13, 12],
       ],
       polygon_type_indices: vec![0, 0, 0, 0, 0, 0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),

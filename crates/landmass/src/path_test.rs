@@ -67,6 +67,7 @@ fn finds_next_point_for_organic_map() {
       vec![10, 4, 14, 13],
     ],
     polygon_type_indices: vec![0, 0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("Mesh is valid.");
@@ -174,6 +175,7 @@ fn finds_next_point_in_zig_zag() {
       vec![25, 23, 26, 27],
     ],
     polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("Mesh is valid.");
@@ -251,6 +253,7 @@ fn starts_at_end_index_goes_to_end_point() {
     ],
     polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
     polygon_type_indices: vec![0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("Mesh is valid.");

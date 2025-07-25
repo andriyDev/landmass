@@ -66,6 +66,7 @@ let nav_mesh = NavigationMesh {
   ],
   polygons: vec![vec![0, 1, 2, 3]],
   polygon_type_indices: vec![0],
+  height_mesh: None,
 };
 
 let valid_nav_mesh = Arc::new(

@@ -37,6 +37,7 @@ fn samples_points() {
     ],
     polygons: vec![vec![0, 1, 6, 7], vec![1, 2, 5, 6], vec![2, 3, 4, 5]],
     polygon_type_indices: vec![0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("is valid");
@@ -192,6 +193,7 @@ fn link_edges_between_islands_links_touching_islands() {
         vec![6, 0, 5, 11],
       ],
       polygon_type_indices: vec![0, 1, 1, 1, 0, 0],
+      height_mesh: None,
     }
     .validate()
     .expect("is valid."),
@@ -221,6 +223,7 @@ fn link_edges_between_islands_links_touching_islands() {
         vec![10, 11, 2, 1],
       ],
       polygon_type_indices: vec![0, 0, 0, 0, 1],
+      height_mesh: None,
     }
     .validate()
     .expect("is valid."),
@@ -513,6 +516,7 @@ fn update_links_islands_and_unlinks_on_delete() {
       ],
       polygons: vec![vec![0, 1, 2, 5], vec![4, 5, 2, 3]],
       polygon_type_indices: vec![0, 0],
+      height_mesh: None,
     }
     .validate()
     .expect("is valid."),
@@ -808,6 +812,7 @@ fn modifies_node_boundaries_for_linked_islands() {
       ],
       polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
       polygon_type_indices: vec![0, 0],
+      height_mesh: None,
     }
     .validate()
     .expect("is valid."),
@@ -879,6 +884,7 @@ fn stale_modified_nodes_are_removed() {
       ],
       polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
       polygon_type_indices: vec![0, 0],
+      height_mesh: None,
     }
     .validate()
     .expect("is valid."),
@@ -920,6 +926,7 @@ fn empty_navigation_mesh_is_safe() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("A square nav mesh is valid."),
@@ -930,6 +937,7 @@ fn empty_navigation_mesh_is_safe() {
       vertices: vec![],
       polygons: vec![],
       polygon_type_indices: vec![],
+      height_mesh: None,
     }
     .validate()
     .expect("An empty nav mesh is valid."),
@@ -1000,6 +1008,7 @@ fn cannot_remove_used_node_type() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("mesh is valid"),
@@ -1075,6 +1084,7 @@ fn panics_on_invalid_node_type() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("mesh is valid"),

@@ -24,6 +24,7 @@ fn validation_computes_bounds() {
     ],
     polygons: vec![vec![0, 1, 2], vec![3, 4, 5]],
     polygon_type_indices: vec![0, 0],
+    height_mesh: None,
   };
 
   let valid_mesh =
@@ -44,6 +45,7 @@ fn correctly_computes_bounds_for_small_number_of_points() {
     ],
     polygons: vec![vec![0, 1, 2]],
     polygon_type_indices: vec![0],
+    height_mesh: None,
   }
   .validate()
   .expect("Validation succeeds");
@@ -67,6 +69,7 @@ fn polygons_derived_and_vertices_copied() {
     ],
     polygons: vec![vec![0, 1, 2], vec![3, 4, 5]],
     polygon_type_indices: vec![1337, 123],
+    height_mesh: None,
   };
 
   let expected_polygons = vec![
@@ -111,6 +114,7 @@ fn error_on_wrong_type_indices_length() {
     ],
     polygons: vec![vec![0, 1, 2]],
     polygon_type_indices: vec![0, 0],
+    height_mesh: None,
   };
 
   let error = source_mesh
@@ -139,6 +143,7 @@ fn error_on_concave_polygon() {
     ],
     polygons: vec![vec![0, 1, 2]],
     polygon_type_indices: vec![0],
+    height_mesh: None,
   };
 
   let error = source_mesh
@@ -160,6 +165,7 @@ fn error_on_small_polygon() {
     vertices: vec![Vec3::new(0.0, 0.0, 0.0), Vec3::new(1.0, 1.0, 0.0)],
     polygons: vec![vec![0, 1]],
     polygon_type_indices: vec![0],
+    height_mesh: None,
   };
 
   let error = source_mesh
@@ -187,6 +193,7 @@ fn error_on_bad_polygon_index() {
     ],
     polygons: vec![vec![0, 1, 3]],
     polygon_type_indices: vec![0],
+    height_mesh: None,
   };
 
   let error = source_mesh
@@ -214,6 +221,7 @@ fn error_on_degenerate_edge() {
     ],
     polygons: vec![vec![0, 1, 1, 2]],
     polygon_type_indices: vec![0],
+    height_mesh: None,
   };
 
   let error = source_mesh
@@ -245,6 +253,7 @@ fn error_on_doubly_connected_edge() {
     ],
     polygons: vec![vec![0, 1, 2], vec![1, 3, 4, 2], vec![1, 5, 6, 2]],
     polygon_type_indices: vec![0, 0, 0],
+    height_mesh: None,
   };
 
   let error = source_mesh
@@ -283,6 +292,7 @@ fn derives_connectivity_and_boundary_edges() {
       vec![2, 4, 8, 7],
     ],
     polygon_type_indices: vec![0, 0, 0, 0],
+    height_mesh: None,
   };
 
   let mut valid_mesh =
@@ -366,6 +376,7 @@ fn finds_regions() {
       vec![11, 10, 12, 13],
     ],
     polygon_type_indices: vec![0, 0, 0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("Mesh is valid.");
@@ -403,6 +414,7 @@ fn sample_point_returns_none_for_far_point() {
       vec![10, 4, 14, 13],
     ],
     polygon_type_indices: vec![0, 0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("Mesh is valid.");
@@ -487,6 +499,7 @@ fn sample_point_in_nodes() {
       vec![10, 4, 14, 13],
     ],
     polygon_type_indices: vec![0, 0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("Mesh is valid.");
@@ -589,6 +602,7 @@ fn sample_point_near_node() {
       vec![10, 4, 14, 13],
     ],
     polygon_type_indices: vec![0, 0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("Mesh is valid.");
@@ -681,6 +695,7 @@ fn sample_ignores_closer_horizontal() {
     ],
     polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
     polygon_type_indices: vec![0; 2],
+    height_mesh: None,
   }
   .validate()
   .expect("mesh is valid");
@@ -717,6 +732,7 @@ fn sample_favoring_vertical() {
     ],
     polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
     polygon_type_indices: vec![0; 2],
+    height_mesh: None,
   }
   .validate()
   .expect("mesh is valid");
@@ -748,6 +764,7 @@ fn sample_filters_vertical_points_differently() {
     ],
     polygons: vec![vec![0, 1, 2, 3]],
     polygon_type_indices: vec![0; 1],
+    height_mesh: None,
   }
   .validate()
   .expect("mesh is valid.");

@@ -5,7 +5,7 @@ use std::{
 };
 
 use disjoint::DisjointSet;
-use glam::{Vec3, swizzles::Vec3Swizzles};
+use glam::{U16Vec3, Vec3, swizzles::Vec3Swizzles};
 use thiserror::Error;
 
 use crate::{
@@ -26,6 +26,64 @@ pub struct NavigationMesh<CS: CoordinateSystem> {
   /// [`crate::NodeType`] when assigned to an [`crate::Archipelago`]. Must be
   /// the same length as [`Self::polygons`].
   pub polygon_type_indices: Vec<usize>,
+  /// A height mesh to accurately represent the height of the surface. See
+  /// [`HeightNavigationMesh`] for more details. If [`None`], uses the regular
+  /// polygons as the height of the surface.
+  pub height_mesh: Option<HeightNavigationMesh<CS>>,
+}
+
+/// An (optional) part of the navigation mesh dedicated to "refining" the height
+/// of a point.
+///
+/// [`NavigationMesh`] is used for the actual pathfinding. However, in order to
+/// get there we need to know where to start (and end) the search. Or in other
+/// words, we need to know which polygons the search should start and end at.
+///
+/// Navgation meshes may have very coarse/simplified polygons for improving
+/// search efficiency. However this can come at the cost of accurately
+/// representing the height of the geometry. This means an agent "on the ground"
+/// may actually be above or below the nav mesh. This "height mesh" is
+/// explicitly for accurately representing the height so that agents on the
+/// ground will be recognized as being on the correct node. In other words, we
+/// use the height mesh to figure out where the agent is, then use the regular
+/// nav mesh to do the actual pathfinding.
+pub struct HeightNavigationMesh<CS: CoordinateSystem> {
+  /// The list of height polygons that correspond to the original polygons.
+  ///
+  /// The length of this [`Vec`] must match the number of
+  /// [`NavigationMesh::polygons`].
+  pub polygons: Vec<HeightPolygon>,
+  /// The list of vertices that make up the height mesh.
+  ///
+  /// These are a pool of vertices that can be used to create the triangles.
+  pub vertices: Vec<CS::Coordinate>,
+  /// The list of triangles that make up the height mesh.
+  ///
+  /// The indices that make up the triangle are relative to
+  /// [`HeightPolygon::first_vertex_index`].
+  pub triangles: Vec<U16Vec3>,
+}
+
+/// A polygon specifically for "refining" the height of a point.
+///
+/// While regular polygons are used for finding paths, this polygon is used to
+/// help determine which node a given point is on.
+#[derive(Clone)]
+pub struct HeightPolygon {
+  /// The index of the first vertex in [`HeightNavigationMesh::vertices`] used
+  /// by this polygon's triangles. The indices that make up a triangle are
+  /// relative to this index.
+  pub first_vertex_index: usize,
+  /// The number of vertices that contribute to the triangles. Note only the
+  /// vertices in `first_vertex_index..(first_vertex_index + vertex_count)`
+  /// should be used by these triangles.
+  pub vertex_count: usize,
+  /// The index of the first triangle in [`HeightNavigationMesh::triangles`]
+  /// that makes up this polygon.
+  pub first_triangle_index: usize,
+  /// The number of triangles that make up this polygon. This will always be
+  /// the number after the [`Self::first_triangle_index`].
+  pub triangle_count: usize,
 }
 
 impl<CS: CoordinateSystem> Clone for NavigationMesh<CS>
@@ -37,6 +95,17 @@ where
       vertices: self.vertices.clone(),
       polygons: self.polygons.clone(),
       polygon_type_indices: self.polygon_type_indices.clone(),
+      height_mesh: self.height_mesh.clone(),
+    }
+  }
+}
+
+impl<CS: CoordinateSystem> Clone for HeightNavigationMesh<CS> {
+  fn clone(&self) -> Self {
+    Self {
+      polygons: self.polygons.clone(),
+      vertices: self.vertices.clone(),
+      triangles: self.triangles.clone(),
     }
   }
 }
