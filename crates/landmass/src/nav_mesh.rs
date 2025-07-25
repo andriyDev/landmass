@@ -60,7 +60,8 @@ pub struct HeightNavigationMesh<CS: CoordinateSystem> {
   /// The list of triangles that make up the height mesh.
   ///
   /// The indices that make up the triangle are relative to
-  /// [`HeightPolygon::first_vertex_index`].
+  /// [`HeightPolygon::first_vertex_index`]. The indices must be oriented
+  /// counter-clockwise.
   pub triangles: Vec<U16Vec3>,
 }
 
@@ -68,7 +69,7 @@ pub struct HeightNavigationMesh<CS: CoordinateSystem> {
 ///
 /// While regular polygons are used for finding paths, this polygon is used to
 /// help determine which node a given point is on.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HeightPolygon {
   /// The index of the first vertex in [`HeightNavigationMesh::vertices`] used
   /// by this polygon's triangles. The indices that make up a triangle are
@@ -139,6 +140,31 @@ pub enum ValidationError {
     "The edge made from vertices {0} and {1} is used by more than two polygons."
   )]
   DoublyConnectedEdge(usize, usize),
+  #[error(transparent)]
+  HeightMeshError(#[from] ValidateHeightMeshError),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Error)]
+pub enum ValidateHeightMeshError {
+  /// Stores the number of polygons in the regular mesh and the number in the
+  /// height mesh.
+  #[error(
+    "The height mesh contains a different number of polygons ({1}) than the regular mesh, which has {0}"
+  )]
+  IncorrectNumberOfPolygons(usize, usize),
+  /// Stores the index of the invalid polygon.
+  #[error(
+    "The polygon at index {0} in the height mesh contains out of range indices"
+  )]
+  InvalidPolygonIndices(usize),
+  #[error(
+    "The triangle at index {triangle} in the height mesh contains an out of range vertex index {vertex}"
+  )]
+  InvalidIndexInTriangle { triangle: usize, vertex: usize },
+  #[error(
+    "The triangle at index {0} in the height mesh is clockwise instead of counter-clockwise"
+  )]
+  ClockwiseTriangle(usize),
 }
 
 impl<CS: CoordinateSystem> NavigationMesh<CS> {
@@ -323,13 +349,82 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
       }
     }
 
+    let height_mesh = match self.height_mesh {
+      None => None,
+      Some(height_mesh) => Some(height_mesh.validate(polygons.len())?),
+    };
+
     Ok(ValidNavigationMesh {
       mesh_bounds,
       polygons,
       vertices,
       boundary_edges,
       used_type_indices,
+      height_mesh,
       marker: Default::default(),
+    })
+  }
+}
+
+impl<CS: CoordinateSystem> HeightNavigationMesh<CS> {
+  fn validate(
+    self,
+    expected_polygons: usize,
+  ) -> Result<ValidHeightNavigationMesh, ValidateHeightMeshError> {
+    if self.polygons.len() != expected_polygons {
+      return Err(ValidateHeightMeshError::IncorrectNumberOfPolygons(
+        expected_polygons,
+        self.polygons.len(),
+      ));
+    }
+
+    let vertices: Vec<Vec3> =
+      self.vertices.into_iter().map(|v| CS::to_landmass(&v)).collect();
+
+    for (polygon_index, polygon) in self.polygons.iter().enumerate() {
+      let last_triangle = polygon.first_triangle_index + polygon.triangle_count;
+      if last_triangle > self.triangles.len() {
+        return Err(ValidateHeightMeshError::InvalidPolygonIndices(
+          polygon_index,
+        ));
+      }
+
+      for triangle_index in polygon.first_triangle_index..last_triangle {
+        let triangle = self.triangles[triangle_index];
+
+        let check_index = |index: u16| {
+          let real_index = index as usize + polygon.first_triangle_index;
+          if real_index >= vertices.len()
+            || index as usize >= polygon.vertex_count
+          {
+            Err(ValidateHeightMeshError::InvalidIndexInTriangle {
+              triangle: triangle_index,
+              vertex: real_index,
+            })
+          } else {
+            Ok(real_index)
+          }
+        };
+        let a = check_index(triangle.x)?;
+        let b = check_index(triangle.y)?;
+        let c = check_index(triangle.z)?;
+
+        let a = vertices[a].xy();
+        let b = vertices[b].xy();
+        let c = vertices[c].xy();
+
+        if (b - a).perp_dot(c - a) < 0.0 {
+          return Err(ValidateHeightMeshError::ClockwiseTriangle(
+            polygon_index,
+          ));
+        }
+      }
+    }
+
+    Ok(ValidHeightNavigationMesh {
+      polygons: self.polygons,
+      vertices,
+      triangles: self.triangles,
     })
   }
 }
@@ -354,8 +449,31 @@ pub struct ValidNavigationMesh<CS: CoordinateSystem> {
   /// these don't correspond to [`crate::NodeType`]s yet. This occurs once
   /// assigned to an island.
   pub(crate) used_type_indices: HashSet<usize>,
+  /// The height mesh used to "refine" point positions. See
+  /// [`HeightNavigationMesh`] for more details.
+  pub(crate) height_mesh: Option<ValidHeightNavigationMesh>,
   /// Marker for the CoordinateSystem.
   pub(crate) marker: PhantomData<CS>,
+}
+
+/// A version of [`HeightNavigationMesh`] after it has been validated and
+/// converted to the standard coordinate system.
+#[derive(Clone, Debug)]
+pub(crate) struct ValidHeightNavigationMesh {
+  /// The list of height polygons that correspond to the original polygons.
+  ///
+  /// The length of this [`Vec`] must match the number of
+  /// [`ValidNavigationMesh::polygons`].
+  pub(crate) polygons: Vec<HeightPolygon>,
+  /// The list of vertices that make up the height mesh.
+  ///
+  /// These are a pool of vertices that can be used to create the triangles.
+  pub(crate) vertices: Vec<Vec3>,
+  /// The list of triangles that make up the height mesh.
+  ///
+  /// The indices that make up the triangle are relative to
+  /// [`HeightPolygon::first_vertex_index`].
+  pub(crate) triangles: Vec<U16Vec3>,
 }
 
 // Manual Debug impl to avoid Debug bound on CoordinateSystem.
@@ -367,6 +485,7 @@ impl<CS: CoordinateSystem> Clone for ValidNavigationMesh<CS> {
       polygons: self.polygons.clone(),
       boundary_edges: self.boundary_edges.clone(),
       used_type_indices: self.used_type_indices.clone(),
+      height_mesh: self.height_mesh.clone(),
       marker: self.marker,
     }
   }
@@ -381,6 +500,7 @@ impl<CS: CoordinateSystem> std::fmt::Debug for ValidNavigationMesh<CS> {
       .field("polygons", &self.polygons)
       .field("boundary_edges", &self.boundary_edges)
       .field("used_type_indices", &self.used_type_indices)
+      .field("height_mesh", &self.height_mesh)
       .field("marker", &self.marker)
       .finish()
   }
