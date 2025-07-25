@@ -143,6 +143,11 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
   let last_point = CS::to_landmass(&end_point.point());
 
   let mut path_points = vec![start_point.point()];
+  if current_index == last_index {
+    path_points.push(end_point.point.clone());
+    return Ok(path_points);
+  }
+
   while current_index != last_index {
     (current_index, current_point) = path.find_next_point_in_straight_path(
       &archipelago.nav_data,
