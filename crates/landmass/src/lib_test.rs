@@ -176,6 +176,7 @@ fn computes_and_follows_path() {
       vec![5, 6, 7, 8],
     ],
     polygon_type_indices: vec![0, 0, 0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("is valid");
@@ -429,6 +430,7 @@ fn agent_speeds_up_to_avoid_character() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("Validation succeeded."),
@@ -486,6 +488,7 @@ fn add_and_remove_islands() {
       vertices: vec![],
       polygons: vec![],
       polygon_type_indices: vec![],
+      height_mesh: None,
     }
     .validate()
     .unwrap(),
@@ -537,6 +540,7 @@ fn changed_island_is_not_dirty_after_update() {
         vertices: vec![],
         polygons: vec![],
         polygon_type_indices: vec![],
+        height_mesh: None,
       }
       .validate()
       .unwrap(),
@@ -577,6 +581,7 @@ fn samples_point() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -634,6 +639,7 @@ fn finds_path() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -718,6 +724,7 @@ fn agent_overrides_node_costs() {
         vec![3, 2, 13, 15],
       ],
       polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 1],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),

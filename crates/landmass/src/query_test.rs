@@ -24,6 +24,7 @@ fn error_on_dirty_nav_mesh() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -60,6 +61,7 @@ fn error_on_out_of_range() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -98,6 +100,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -170,6 +173,7 @@ fn samples_node_types() {
         vec![7, 6, 8, 9],
       ],
       polygon_type_indices: vec![0, 1, 2, 3],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -236,6 +240,7 @@ fn no_path() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -281,6 +286,7 @@ fn finds_path() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -365,6 +371,7 @@ fn finds_path_with_override_node_types() {
         vec![3, 2, 13, 15],
       ],
       polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 1],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -427,6 +434,7 @@ fn find_path_returns_error_on_invalid_node_cost() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -484,6 +492,7 @@ fn start_and_end_in_same_node() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),

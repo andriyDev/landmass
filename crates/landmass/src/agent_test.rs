@@ -88,6 +88,7 @@ fn has_reached_target_at_end_node() {
     vertices: vec![],
     polygons: vec![],
     polygon_type_indices: vec![],
+    height_mesh: None,
   }
   .validate()
   .expect("nav mesh is valid");
@@ -165,6 +166,7 @@ fn long_detour_reaches_target_in_different_ways() {
     ],
     polygons: vec![vec![0, 1, 2], vec![2, 1, 3, 4], vec![4, 3, 5]],
     polygon_type_indices: vec![0, 0, 0],
+    height_mesh: None,
   }
   .validate()
   .expect("nav mesh is valid");
