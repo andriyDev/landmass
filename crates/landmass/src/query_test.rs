@@ -468,3 +468,44 @@ fn find_path_returns_error_on_invalid_node_cost() {
     Err(FindPathError::NonPositiveNodeTypeCost(node_type, -0.5))
   );
 }
+
+#[test]
+fn start_and_end_in_same_node() {
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  archipelago.add_island(Island::new(
+    Transform::default(),
+    nav_mesh,
+    HashMap::default(),
+  ));
+
+  archipelago.update(1.0);
+
+  let start_point = Vec2::new(0.25, 0.25);
+  let end_point = Vec2::new(0.75, 0.75);
+
+  let start_sampled_point =
+    archipelago.sample_point(start_point, &0.1).unwrap();
+  let end_sampled_point = archipelago.sample_point(end_point, &0.1).unwrap();
+  let path = archipelago
+    .find_path(&start_sampled_point, &end_sampled_point, &HashMap::default())
+    .unwrap();
+
+  assert_eq!(path, &[start_point, end_point]);
+}
