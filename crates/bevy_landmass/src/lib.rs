@@ -22,9 +22,10 @@ mod island;
 mod landmass_structs;
 
 pub use landmass::{
-  AgentOptions, FindPathError, FromAgentRadius, NavigationMesh,
-  NewNodeTypeError, NodeType, PointSampleDistance3d, SamplePointError,
-  SetNodeTypeCostError, ValidNavigationMesh, ValidationError,
+  AgentOptions, FindPathError, FromAgentRadius, HeightNavigationMesh,
+  HeightPolygon, NavigationMesh, NewNodeTypeError, NodeType,
+  PointSampleDistance3d, SamplePointError, SetNodeTypeCostError,
+  ValidNavigationMesh, ValidationError,
 };
 
 pub use agent::*;

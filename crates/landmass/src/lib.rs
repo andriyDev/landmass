@@ -36,7 +36,10 @@ pub use island::{Island, IslandId};
 pub use nav_data::{
   IslandMut, NewNodeTypeError, NodeType, SetNodeTypeCostError,
 };
-pub use nav_mesh::{NavigationMesh, ValidNavigationMesh, ValidationError};
+pub use nav_mesh::{
+  HeightNavigationMesh, HeightPolygon, NavigationMesh, ValidNavigationMesh,
+  ValidationError,
+};
 pub use query::{FindPathError, SamplePointError, SampledPoint};
 pub use util::Transform;
 
