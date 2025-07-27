@@ -26,6 +26,8 @@ pub enum LineType {
   BoundaryEdge,
   /// An edge of a node that is connected to another node.
   ConnectivityEdge,
+  /// An edge of a triangle in the detail mesh.
+  HeightEdge,
   /// A link between two islands along their boundary edge.
   BoundaryLink,
   /// Part of an agent's current path. The corridor follows the path along
@@ -104,6 +106,42 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
             CS::from_landmass(&center_point),
           ],
         );
+      }
+
+      if let Some(height_mesh) = island.nav_mesh.height_mesh.as_ref() {
+        let height_polygon = &height_mesh.polygons[polygon_index];
+        let vertex_base = height_polygon.first_vertex_index;
+
+        for triangle_index in height_polygon.first_triangle_index
+          ..(height_polygon.first_triangle_index
+            + height_polygon.triangle_count)
+        {
+          let triangle = height_mesh.triangles[triangle_index];
+          let triangle =
+            (
+              CS::from_landmass(&island.get_transform().apply(
+                height_mesh.vertices[triangle.x as usize + vertex_base],
+              )),
+              CS::from_landmass(&island.get_transform().apply(
+                height_mesh.vertices[triangle.y as usize + vertex_base],
+              )),
+              CS::from_landmass(&island.get_transform().apply(
+                height_mesh.vertices[triangle.z as usize + vertex_base],
+              )),
+            );
+          debug_drawer.add_line(
+            LineType::HeightEdge,
+            [triangle.0.clone(), triangle.1.clone()],
+          );
+          debug_drawer.add_line(
+            LineType::HeightEdge,
+            [triangle.1.clone(), triangle.2.clone()],
+          );
+          debug_drawer.add_line(
+            LineType::HeightEdge,
+            [triangle.2.clone(), triangle.0.clone()],
+          );
+        }
       }
 
       for (edge_index, connection) in polygon.connectivity.iter().enumerate() {
