@@ -49,6 +49,7 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
       ],
       polygons: vec![vec![5, 4, 1, 0], vec![4, 3, 2, 1]],
       polygon_type_indices: vec![0, 0],
+      height_mesh: None,
     }
     .validate()
     .expect("is valid"),
@@ -380,6 +381,7 @@ fn adds_and_removes_islands() {
           vertices: vec![],
           polygons: vec![],
           polygon_type_indices: vec![],
+          height_mesh: None,
         }
         .validate()
         .unwrap(),
@@ -716,6 +718,7 @@ fn node_type_costs_are_used() {
         vec![3, 2, 13, 15],
       ],
       polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 1],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -838,6 +841,7 @@ fn overridden_node_type_costs_are_used() {
         vec![3, 2, 13, 15],
       ],
       polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 1],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -934,6 +938,7 @@ fn sample_point_error_on_out_of_range() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -992,6 +997,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -1082,6 +1088,7 @@ fn samples_node_types() {
       ],
       polygons: vec![vec![0, 1, 2, 3], vec![2, 1, 4, 5]],
       polygon_type_indices: vec![0, 1],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -1159,6 +1166,7 @@ fn finds_path() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -1241,6 +1249,7 @@ fn island_matches_rotation_3d() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
@@ -1308,6 +1317,7 @@ fn island_matches_rotation_2d() {
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("nav mesh is valid"),
