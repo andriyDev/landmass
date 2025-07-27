@@ -867,8 +867,8 @@ fn switching_nav_mesh_to_fewer_vertices_does_not_result_in_panic() {
     vertices: vec![
       Vec2::new(0.0, 0.0),
       Vec2::new(1.0, 0.0),
-      Vec2::new(1.0, 1.0),
-      Vec2::new(0.0, 1.0),
+      Vec2::new(1.0, 2.0),
+      Vec2::new(0.0, 2.0),
       Vec2::new(0.0, 0.6),
       Vec2::new(0.0, 0.2),
     ],
@@ -883,8 +883,8 @@ fn switching_nav_mesh_to_fewer_vertices_does_not_result_in_panic() {
     vertices: vec![
       Vec2::new(0.0, 0.0),
       Vec2::new(1.0, 0.0),
-      Vec2::new(1.0, 1.0),
-      Vec2::new(0.0, 1.0),
+      Vec2::new(1.0, 2.0),
+      Vec2::new(0.0, 2.0),
     ],
     polygons: vec![vec![0, 1, 2, 3]],
     polygon_type_indices: vec![0],
@@ -908,15 +908,13 @@ fn switching_nav_mesh_to_fewer_vertices_does_not_result_in_panic() {
 
   let agent = archipelago.add_agent({
     let mut agent =
-      Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 1.0);
+      Agent::create(Vec2::new(0.5, 1.25), Vec2::ZERO, 0.5, 1.0, 1.0);
 
-    agent.current_target = Some(Vec2::new(1.5, 0.5));
+    agent.current_target = Some(Vec2::new(1.5, 1.25));
 
     agent
   });
 
-  // Update twice to allow the velocity to "stabilize".
-  archipelago.update(0.01);
   archipelago.update(0.01);
 
   // This doesn't really matter for the test, but ensures that pathing +
