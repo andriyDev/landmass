@@ -99,6 +99,7 @@ fn draws_archipelago_debug() {
       ],
       polygons: vec![vec![3, 2, 1, 0]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("is valid"),
