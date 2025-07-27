@@ -331,7 +331,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   fn get_island_mut(
     &mut self,
     entity: Entity,
-  ) -> Option<landmass::IslandMut<CS>> {
+  ) -> Option<landmass::IslandMut<'_, CS>> {
     self
       .islands
       .get(&entity)
