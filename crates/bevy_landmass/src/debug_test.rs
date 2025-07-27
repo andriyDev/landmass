@@ -263,6 +263,7 @@ fn draws_avoidance_data_when_requested() {
       ],
       polygons: vec![vec![3, 2, 1, 0]],
       polygon_type_indices: vec![0],
+      height_mesh: None,
     }
     .validate()
     .expect("The mesh is valid."),

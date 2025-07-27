@@ -79,6 +79,7 @@ fn set_up_scene(
         vec![5, 4, 6, 7],
       ],
       polygon_type_indices: vec![0, 0, 0],
+      height_mesh: None,
     }.validate().expect("is valid"));
   nav_meshes.insert(&nav_mesh_handle, NavMesh2d{
     nav_mesh,
