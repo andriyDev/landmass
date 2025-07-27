@@ -1,11 +1,14 @@
 use std::collections::HashSet;
 
-use glam::Vec3;
+use glam::{U16Vec3, Vec3};
 
 use crate::{
   PointSampleDistance3d,
   coords::XYZ,
-  nav_mesh::{Connectivity, MeshEdgeRef, ValidPolygon},
+  nav_mesh::{
+    Connectivity, HeightNavigationMesh, HeightPolygon, MeshEdgeRef,
+    ValidPolygon,
+  },
   util::BoundingBox,
 };
 
@@ -794,5 +797,108 @@ fn sample_filters_vertical_points_differently() {
   assert_eq!(
     mesh.sample_point(Vec3::new(0.5, 0.5, 2.5), &point_sample_distance),
     None
+  );
+}
+
+/// Create a height mesh from some common pieces.
+///
+/// `vertices` is the pool of vertices that the polygons use. `polygons` are a
+/// collection of height polygons, which are themselves represented by polygons
+/// that are then triangulated. This allows us to match the number of regular
+/// polygons (using the outer most Vec), then create as many polygons as we want
+/// for that single regular polygon (the middle Vec).
+fn create_height_mesh(
+  vertices: Vec<Vec3>,
+  polygons: Vec<Vec<Vec<usize>>>,
+) -> HeightNavigationMesh<XYZ> {
+  let mut height_mesh = HeightNavigationMesh {
+    vertices: vec![],
+    polygons: vec![],
+    triangles: vec![],
+  };
+  for polygon in polygons.iter() {
+    let first_vertex_index = height_mesh.vertices.len();
+    let first_triangle_index = height_mesh.triangles.len();
+
+    for subpolygon in polygon {
+      let base_index = height_mesh.vertices.len() - first_vertex_index;
+      height_mesh.vertices.push(vertices[subpolygon[0]]);
+      height_mesh.vertices.push(vertices[subpolygon[1]]);
+
+      for i in 2..subpolygon.len() {
+        height_mesh.vertices.push(vertices[subpolygon[i]]);
+
+        height_mesh.triangles.push(U16Vec3::new(
+          base_index as _,
+          (base_index + i - 1) as _,
+          (base_index + i) as _,
+        ));
+      }
+    }
+
+    height_mesh.polygons.push(HeightPolygon {
+      first_vertex_index,
+      vertex_count: height_mesh.vertices.len() - first_vertex_index,
+      first_triangle_index,
+      triangle_count: height_mesh.triangles.len() - first_triangle_index,
+    });
+  }
+
+  height_mesh
+}
+
+#[test]
+fn sample_point_uses_height_mesh_if_available() {
+  let mesh = NavigationMesh::<XYZ> {
+    // The regular mesh considers the entire mesh as one big polygon. This
+    // unfortunately means we don't represent the height very well.
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 3.0, 1.0),
+      Vec3::new(0.0, 3.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0; 1],
+    height_mesh: Some(create_height_mesh(
+      // The height mesh tells us that the actual surface deviates heavily from
+      // the regular mesh. Namely, it looks like:
+      //
+      //   _
+      // _/
+      vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(0.0, 1.0, 0.0),
+        Vec3::new(1.0, 1.0, 0.0),
+        Vec3::new(0.0, 2.0, 1.0),
+        Vec3::new(1.0, 2.0, 1.0),
+        Vec3::new(0.0, 3.0, 1.0),
+        Vec3::new(1.0, 3.0, 1.0),
+      ],
+      // Polygons
+      vec![vec![vec![0, 1, 3, 2], vec![2, 3, 5, 4], vec![4, 5, 7, 6]]],
+    )),
+  }
+  .validate()
+  .expect("mesh is valid.");
+
+  let point_sample_distance = PointSampleDistance3d {
+    horizontal_distance: 100.0,
+    distance_above: 0.1,
+    distance_below: 0.1,
+    vertical_preference_ratio: 1.0,
+  };
+
+  // These points are on the height mesh, but not on the nav mesh (according to
+  // the distance thresholds above). So if we weren't using the detail mesh,
+  // these would not find a point.
+  assert_eq!(
+    mesh.sample_point(Vec3::new(0.5, 1.0, 0.0), &point_sample_distance),
+    Some((Vec3::new(0.5, 1.0, 0.0), 0))
+  );
+  assert_eq!(
+    mesh.sample_point(Vec3::new(0.5, 2.0, 1.0), &point_sample_distance),
+    Some((Vec3::new(0.5, 2.0, 1.0), 0))
   );
 }
