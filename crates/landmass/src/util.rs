@@ -1,9 +1,58 @@
-use std::mem::swap;
+use std::{cmp::Ordering, mem::swap, ops::Deref};
 
 use glam::{Quat, Vec3};
-use ord_subset::OrdVar;
 
 use crate::CoordinateSystem;
+
+/// An f32 that supports `Ord` operations.
+pub(crate) struct FloatOrd(pub(crate) f32);
+
+impl PartialEq for FloatOrd {
+  fn eq(&self, other: &Self) -> bool {
+    if self.0.is_nan() {
+      return other.0.is_nan();
+    }
+    self.0 == other.0
+  }
+}
+
+impl Eq for FloatOrd {}
+
+impl PartialOrd for FloatOrd {
+  #[inline]
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl Ord for FloatOrd {
+  fn cmp(&self, other: &Self) -> Ordering {
+    // Pretend NaN is the biggest value.
+    if self.0.is_nan() {
+      return if other.0.is_nan() {
+        Ordering::Equal
+      } else {
+        Ordering::Greater
+      };
+    }
+    if self.0 > other.0 {
+      Ordering::Greater
+    } else if self.0 == other.0 {
+      Ordering::Equal
+    } else {
+      // This case also handles other=NaN since other is not greater and its not
+      // equal.
+      Ordering::Less
+    }
+  }
+}
+
+impl Deref for FloatOrd {
+  type Target = f32;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
 
 /// A bounding box.
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -304,11 +353,11 @@ impl<ValueType> BoundingBoxHierarchy<ValueType> {
       .fold(BoundingBox::Empty, |acc, b| acc.expand_to_bounds(b));
     let bounds_size = bounding_box.size();
     if bounds_size.x > bounds_size.y && bounds_size.x > bounds_size.z {
-      values.sort_by_key(|v| OrdVar::new_unchecked(v.0.center().unwrap().x))
+      values.sort_by_key(|v| FloatOrd(v.0.center().unwrap().x))
     } else if bounds_size.y > bounds_size.z {
-      values.sort_by_key(|v| OrdVar::new_unchecked(v.0.center().unwrap().y))
+      values.sort_by_key(|v| FloatOrd(v.0.center().unwrap().y))
     } else {
-      values.sort_by_key(|v| OrdVar::new_unchecked(v.0.center().unwrap().z))
+      values.sort_by_key(|v| FloatOrd(v.0.center().unwrap().z))
     }
 
     let split_index = values.len() / 2;

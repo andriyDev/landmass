@@ -17,7 +17,6 @@ keywords = ["navigation", "system", "pathfinding", "avoidance"]
 dodgy_2d = "0.5.4"
 glam = "0.29.1"
 kdtree = "0.7.0"
-ord_subset = "3.1.1"
 geo = "0.30.0"
 disjoint = "0.8.0"
 slotmap = "1.0.7"
