@@ -4,7 +4,6 @@ use std::{
 };
 
 use glam::Vec3;
-use ord_subset::OrdVar;
 
 use crate::{
   CoordinateSystem, Island, NavigationData, NodeType,
@@ -12,6 +11,7 @@ use crate::{
   nav_data::{BoundaryLinkId, NodeRef},
   nav_mesh::MeshEdgeRef,
   path::{BoundaryLinkSegment, IslandSegment, Path},
+  util::FloatOrd,
 };
 
 /// A concrete A* problem specifically for [`crate::Archipelago`]s.
@@ -291,8 +291,8 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
         )
       })
       .filter(|pair| pair.1.is_finite())
-      .map(|pair| OrdVar::new_unchecked(pair.1))
-      .chain(std::iter::once(OrdVar::new_unchecked(1.0)))
+      .map(|pair| FloatOrd(pair.1))
+      .chain(std::iter::once(FloatOrd(1.0)))
       .min()
       .unwrap(),
     override_node_type_to_cost,
