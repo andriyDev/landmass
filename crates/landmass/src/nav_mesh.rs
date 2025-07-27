@@ -182,12 +182,23 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
       ));
     }
 
+    let height_mesh = match self.height_mesh {
+      None => None,
+      Some(height_mesh) => Some(height_mesh.validate(self.polygons.len())?),
+    };
+
     let vertices =
       self.vertices.iter().map(CS::to_landmass).collect::<Vec<_>>();
 
-    let mesh_bounds = vertices
-      .iter()
-      .fold(BoundingBox::Empty, |acc, &vertex| acc.expand_to_point(vertex));
+    // Use the height mesh for more accurate bounds when available, but
+    // otherwise, fall back to the regular mesh.
+    let mesh_bounds = if let Some(height_mesh) = height_mesh.as_ref() {
+      &height_mesh.vertices
+    } else {
+      &vertices
+    }
+    .iter()
+    .fold(BoundingBox::Empty, |acc, &vertex| acc.expand_to_point(vertex));
 
     let mut region_sets = DisjointSet::with_len(self.polygons.len());
 
@@ -295,28 +306,43 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
       .polygons
       .drain(..)
       .enumerate()
-      .map(|(polygon_index, polygon_vertices)| ValidPolygon {
-        bounds: polygon_vertices
-          .iter()
-          .fold(BoundingBox::Empty, |bounds, vertex| {
+      .map(|(polygon_index, polygon_vertices)| {
+        // If we're using a height mesh, we want the bounds of the polygon to
+        // use the height mesh's vertices, so that sampling doesn't miss the
+        // height polygon due to bad bounds.
+        let bounds = if let Some(height_mesh) = height_mesh.as_ref() {
+          let polygon = &height_mesh.polygons[polygon_index];
+          let range = polygon.first_vertex_index
+            ..(polygon.first_vertex_index + polygon.vertex_count);
+          range.fold(BoundingBox::Empty, |bounds, vertex| {
+            bounds.expand_to_point(height_mesh.vertices[vertex])
+          })
+        } else {
+          polygon_vertices.iter().fold(BoundingBox::Empty, |bounds, vertex| {
             bounds.expand_to_point(vertices[*vertex])
-          }),
-        center: polygon_vertices.iter().map(|i| vertices[*i]).sum::<Vec3>()
-          / polygon_vertices.len() as f32,
-        connectivity: vec![None; polygon_vertices.len()],
-        vertices: polygon_vertices,
-        region: {
-          let region = region_sets.root_of(polygon_index);
-          // Get around the borrow checker by deciding on the new normalized
-          // region beforehand.
-          let new_normalized_region = region_to_normalized_region.len();
-          // Either lookup the existing normalized region or insert the next
-          // unique index.
-          *region_to_normalized_region
-            .entry(region)
-            .or_insert_with(|| new_normalized_region)
-        },
-        type_index: self.polygon_type_indices[polygon_index],
+          })
+        };
+        ValidPolygon {
+          bounds,
+          // We still use the non-height polygon for the center since we just
+          // need a rough approximation.
+          center: polygon_vertices.iter().map(|i| vertices[*i]).sum::<Vec3>()
+            / polygon_vertices.len() as f32,
+          connectivity: vec![None; polygon_vertices.len()],
+          vertices: polygon_vertices,
+          region: {
+            let region = region_sets.root_of(polygon_index);
+            // Get around the borrow checker by deciding on the new normalized
+            // region beforehand.
+            let new_normalized_region = region_to_normalized_region.len();
+            // Either lookup the existing normalized region or insert the next
+            // unique index.
+            *region_to_normalized_region
+              .entry(region)
+              .or_insert_with(|| new_normalized_region)
+          },
+          type_index: self.polygon_type_indices[polygon_index],
+        }
       })
       .inspect(|polygon| {
         used_type_indices.insert(polygon.type_index);
@@ -348,11 +374,6 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
         }
       }
     }
-
-    let height_mesh = match self.height_mesh {
-      None => None,
-      Some(height_mesh) => Some(height_mesh.validate(polygons.len())?),
-    };
 
     Ok(ValidNavigationMesh {
       mesh_bounds,
