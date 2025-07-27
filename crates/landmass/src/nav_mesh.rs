@@ -647,14 +647,11 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
       if !sample_box.intersects_bounds(&polygon.bounds) {
         continue;
       }
-      for i in 2..polygon.vertices.len() {
-        let triangle =
-          (polygon.vertices[0], polygon.vertices[i - 1], polygon.vertices[i]);
-        let triangle = (
-          self.vertices[triangle.0],
-          self.vertices[triangle.1],
-          self.vertices[triangle.2],
-        );
+
+      // Whether we are using the normal mesh or the height mesh, we want the
+      // triangles to be handled the same. So factor out the test and turn it
+      // into a closure we can call in both cases.
+      let mut test_triangle = |triangle: (Vec3, Vec3, Vec3)| {
         let projected_point = project_to_triangle(triangle, point);
 
         let distance_to_triangle_horizontal =
@@ -682,6 +679,34 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
             best_node =
               Some((polygon_index, projected_point, distance_to_triangle));
           }
+        }
+      };
+
+      if let Some(height_mesh) = self.height_mesh.as_ref() {
+        let height_polygon = &height_mesh.polygons[polygon_index];
+        let vertex_base = height_polygon.first_vertex_index;
+        for i in height_polygon.first_triangle_index
+          ..(height_polygon.first_triangle_index
+            + height_polygon.triangle_count)
+        {
+          let triangle = &height_mesh.triangles[i];
+          let triangle = (
+            height_mesh.vertices[vertex_base + triangle.x as usize],
+            height_mesh.vertices[vertex_base + triangle.y as usize],
+            height_mesh.vertices[vertex_base + triangle.z as usize],
+          );
+          test_triangle(triangle);
+        }
+      } else {
+        for i in 2..polygon.vertices.len() {
+          let triangle =
+            (polygon.vertices[0], polygon.vertices[i - 1], polygon.vertices[i]);
+          let triangle = (
+            self.vertices[triangle.0],
+            self.vertices[triangle.1],
+            self.vertices[triangle.2],
+          );
+          test_triangle(triangle);
         }
       }
     }
