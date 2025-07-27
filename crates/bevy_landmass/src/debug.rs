@@ -49,6 +49,8 @@ pub enum LineType {
   BoundaryEdge,
   /// An edge of a node that is connected to another node.
   ConnectivityEdge,
+  /// An edge of a triangle in the detail mesh.
+  HeightEdge,
   /// A link between two islands along their boundary edge.
   BoundaryLink,
   /// Part of an agent's current path. The corridor follows the path along
@@ -127,6 +129,7 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
         landmass::debug::LineType::ConnectivityEdge => {
           LineType::ConnectivityEdge
         }
+        landmass::debug::LineType::HeightEdge => LineType::HeightEdge,
         landmass::debug::LineType::BoundaryLink => LineType::BoundaryLink,
         landmass::debug::LineType::AgentCorridor(agent_id) => {
           LineType::AgentCorridor(
@@ -328,6 +331,7 @@ impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
       match line_type {
         LineType::BoundaryEdge => Color::srgba(0.0, 0.0, 1.0, 0.6),
         LineType::ConnectivityEdge => Color::srgba(0.5, 0.5, 1.0, 0.6),
+        LineType::HeightEdge => Color::srgba_u8(33, 102, 57, 128),
         LineType::BoundaryLink => unreachable!(),
         LineType::AgentCorridor(_) => Color::srgba(0.6, 0.0, 0.6, 0.6),
         LineType::Target(_) => Color::srgba(1.0, 1.0, 0.0, 0.6),
