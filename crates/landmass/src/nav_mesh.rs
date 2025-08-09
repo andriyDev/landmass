@@ -414,7 +414,7 @@ impl<CS: CoordinateSystem> HeightNavigationMesh<CS> {
         let triangle = self.triangles[triangle_index];
 
         let check_index = |index: u16| {
-          let real_index = index as usize + polygon.first_triangle_index;
+          let real_index = index as usize + polygon.first_vertex_index;
           if real_index >= vertices.len()
             || index as usize >= polygon.vertex_count
           {
