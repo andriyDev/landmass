@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use glam::{U16Vec3, Vec3};
+use glam::Vec3;
 
 use crate::{
   PointSampleDistance3d,
@@ -817,30 +817,30 @@ fn create_height_mesh(
     triangles: vec![],
   };
   for polygon in polygons.iter() {
-    let first_vertex_index = height_mesh.vertices.len();
-    let first_triangle_index = height_mesh.triangles.len();
+    let base_vertex_index = height_mesh.vertices.len();
+    let base_triangle_index = height_mesh.triangles.len();
 
     for subpolygon in polygon {
-      let base_index = height_mesh.vertices.len() - first_vertex_index;
+      let base_index = height_mesh.vertices.len() - base_vertex_index;
       height_mesh.vertices.push(vertices[subpolygon[0]]);
       height_mesh.vertices.push(vertices[subpolygon[1]]);
 
       for i in 2..subpolygon.len() {
         height_mesh.vertices.push(vertices[subpolygon[i]]);
 
-        height_mesh.triangles.push(U16Vec3::new(
+        height_mesh.triangles.push([
           base_index as _,
           (base_index + i - 1) as _,
           (base_index + i) as _,
-        ));
+        ]);
       }
     }
 
     height_mesh.polygons.push(HeightPolygon {
-      first_vertex_index,
-      vertex_count: height_mesh.vertices.len() - first_vertex_index,
-      first_triangle_index,
-      triangle_count: height_mesh.triangles.len() - first_triangle_index,
+      base_vertex_index: base_vertex_index,
+      vertex_count: height_mesh.vertices.len() - base_vertex_index,
+      base_triangle_index: base_triangle_index,
+      triangle_count: height_mesh.triangles.len() - base_triangle_index,
     });
   }
 

@@ -110,25 +110,29 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
 
       if let Some(height_mesh) = island.nav_mesh.height_mesh.as_ref() {
         let height_polygon = &height_mesh.polygons[polygon_index];
-        let vertex_base = height_polygon.first_vertex_index;
+        let vertex_base = height_polygon.base_vertex_index;
 
-        for triangle_index in height_polygon.first_triangle_index
-          ..(height_polygon.first_triangle_index
-            + height_polygon.triangle_count)
+        for triangle_index in height_polygon.base_triangle_index
+          ..(height_polygon.base_triangle_index + height_polygon.triangle_count)
         {
-          let triangle = height_mesh.triangles[triangle_index];
-          let triangle =
-            (
-              CS::from_landmass(&island.get_transform().apply(
-                height_mesh.vertices[triangle.x as usize + vertex_base],
-              )),
-              CS::from_landmass(&island.get_transform().apply(
-                height_mesh.vertices[triangle.y as usize + vertex_base],
-              )),
-              CS::from_landmass(&island.get_transform().apply(
-                height_mesh.vertices[triangle.z as usize + vertex_base],
-              )),
-            );
+          let [a, b, c] = height_mesh.triangles[triangle_index];
+          let triangle = (
+            CS::from_landmass(
+              &island
+                .get_transform()
+                .apply(height_mesh.vertices[a as usize + vertex_base]),
+            ),
+            CS::from_landmass(
+              &island
+                .get_transform()
+                .apply(height_mesh.vertices[b as usize + vertex_base]),
+            ),
+            CS::from_landmass(
+              &island
+                .get_transform()
+                .apply(height_mesh.vertices[c as usize + vertex_base]),
+            ),
+          );
           debug_drawer.add_line(
             LineType::HeightEdge,
             [triangle.0.clone(), triangle.1.clone()],

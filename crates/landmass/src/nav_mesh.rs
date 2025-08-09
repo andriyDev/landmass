@@ -5,7 +5,7 @@ use std::{
 };
 
 use disjoint::DisjointSet;
-use glam::{U16Vec3, Vec3, swizzles::Vec3Swizzles};
+use glam::{Vec3, swizzles::Vec3Swizzles};
 use thiserror::Error;
 
 use crate::{
@@ -60,9 +60,9 @@ pub struct HeightNavigationMesh<CS: CoordinateSystem> {
   /// The list of triangles that make up the height mesh.
   ///
   /// The indices that make up the triangle are relative to
-  /// [`HeightPolygon::first_vertex_index`]. The indices must be oriented
+  /// [`HeightPolygon::base_vertex_index`]. The indices must be oriented
   /// counter-clockwise.
-  pub triangles: Vec<U16Vec3>,
+  pub triangles: Vec<[usize; 3]>,
 }
 
 /// A polygon specifically for "refining" the height of a point.
@@ -74,16 +74,16 @@ pub struct HeightPolygon {
   /// The index of the first vertex in [`HeightNavigationMesh::vertices`] used
   /// by this polygon's triangles. The indices that make up a triangle are
   /// relative to this index.
-  pub first_vertex_index: usize,
+  pub base_vertex_index: usize,
   /// The number of vertices that contribute to the triangles. Note only the
-  /// vertices in `first_vertex_index..(first_vertex_index + vertex_count)`
+  /// vertices in `base_vertex_index..(base_vertex_index + vertex_count)`
   /// should be used by these triangles.
   pub vertex_count: usize,
   /// The index of the first triangle in [`HeightNavigationMesh::triangles`]
   /// that makes up this polygon.
-  pub first_triangle_index: usize,
+  pub base_triangle_index: usize,
   /// The number of triangles that make up this polygon. This will always be
-  /// the number after the [`Self::first_triangle_index`].
+  /// the number after the [`Self::base_triangle_index`].
   pub triangle_count: usize,
 }
 
@@ -312,8 +312,8 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
         // height polygon due to bad bounds.
         let bounds = if let Some(height_mesh) = height_mesh.as_ref() {
           let polygon = &height_mesh.polygons[polygon_index];
-          let range = polygon.first_vertex_index
-            ..(polygon.first_vertex_index + polygon.vertex_count);
+          let range = polygon.base_vertex_index
+            ..(polygon.base_vertex_index + polygon.vertex_count);
           range.fold(BoundingBox::Empty, |bounds, vertex| {
             bounds.expand_to_point(height_mesh.vertices[vertex])
           })
@@ -403,18 +403,18 @@ impl<CS: CoordinateSystem> HeightNavigationMesh<CS> {
       self.vertices.into_iter().map(|v| CS::to_landmass(&v)).collect();
 
     for (polygon_index, polygon) in self.polygons.iter().enumerate() {
-      let last_triangle = polygon.first_triangle_index + polygon.triangle_count;
+      let last_triangle = polygon.base_triangle_index + polygon.triangle_count;
       if last_triangle > self.triangles.len() {
         return Err(ValidateHeightMeshError::InvalidPolygonIndices(
           polygon_index,
         ));
       }
 
-      for triangle_index in polygon.first_triangle_index..last_triangle {
+      for triangle_index in polygon.base_triangle_index..last_triangle {
         let triangle = self.triangles[triangle_index];
 
-        let check_index = |index: u16| {
-          let real_index = index as usize + polygon.first_triangle_index;
+        let check_index = |index: usize| {
+          let real_index = index + polygon.base_vertex_index;
           if real_index >= vertices.len()
             || index as usize >= polygon.vertex_count
           {
@@ -426,9 +426,10 @@ impl<CS: CoordinateSystem> HeightNavigationMesh<CS> {
             Ok(real_index)
           }
         };
-        let a = check_index(triangle.x)?;
-        let b = check_index(triangle.y)?;
-        let c = check_index(triangle.z)?;
+        let [a, b, c] = triangle;
+        let a = check_index(a)?;
+        let b = check_index(b)?;
+        let c = check_index(c)?;
 
         let a = vertices[a].xy();
         let b = vertices[b].xy();
@@ -493,8 +494,8 @@ pub(crate) struct ValidHeightNavigationMesh {
   /// The list of triangles that make up the height mesh.
   ///
   /// The indices that make up the triangle are relative to
-  /// [`HeightPolygon::first_vertex_index`].
-  pub(crate) triangles: Vec<U16Vec3>,
+  /// [`HeightPolygon::base_vertex_index`].
+  pub(crate) triangles: Vec<[usize; 3]>,
 }
 
 // Manual Debug impl to avoid Debug bound on CoordinateSystem.
@@ -684,16 +685,16 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
 
       if let Some(height_mesh) = self.height_mesh.as_ref() {
         let height_polygon = &height_mesh.polygons[polygon_index];
-        let vertex_base = height_polygon.first_vertex_index;
-        for i in height_polygon.first_triangle_index
-          ..(height_polygon.first_triangle_index
-            + height_polygon.triangle_count)
+        let vertex_base = height_polygon.base_vertex_index;
+        for i in height_polygon.base_triangle_index
+          ..(height_polygon.base_triangle_index + height_polygon.triangle_count)
         {
-          let triangle = &height_mesh.triangles[i];
+          let [a, b, c] = &height_mesh.triangles[i];
+
           let triangle = (
-            height_mesh.vertices[vertex_base + triangle.x as usize],
-            height_mesh.vertices[vertex_base + triangle.y as usize],
-            height_mesh.vertices[vertex_base + triangle.z as usize],
+            height_mesh.vertices[vertex_base + *a as usize],
+            height_mesh.vertices[vertex_base + *b as usize],
+            height_mesh.vertices[vertex_base + *c as usize],
           );
           test_triangle(triangle);
         }

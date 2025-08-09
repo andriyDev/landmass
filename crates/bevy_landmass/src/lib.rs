@@ -57,6 +57,8 @@ pub mod prelude {
   pub use crate::Character3dBundle;
   pub use crate::CharacterSettings;
   pub use crate::FromAgentRadius;
+  pub use crate::HeightNavigationMesh2d;
+  pub use crate::HeightNavigationMesh3d;
   pub use crate::Island;
   pub use crate::Island2dBundle;
   pub use crate::Island3dBundle;
@@ -378,6 +380,9 @@ impl<CS: CoordinateSystem> ArchipelagoRef<CS> {
 
 pub type NavigationMesh2d = NavigationMesh<TwoD>;
 pub type NavigationMesh3d = NavigationMesh<ThreeD>;
+
+pub type HeightNavigationMesh2d = HeightNavigationMesh<TwoD>;
+pub type HeightNavigationMesh3d = HeightNavigationMesh<ThreeD>;
 
 pub type ValidNavigationMesh2d = ValidNavigationMesh<TwoD>;
 pub type ValidNavigationMesh3d = ValidNavigationMesh<ThreeD>;
