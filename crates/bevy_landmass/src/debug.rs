@@ -323,11 +323,11 @@ pub struct LandmassGizmos {
   ///
   /// If [`None`], waypoints are not drawn.
   pub agent_corridor: Option<Color>,
-  /// The color to use when lines between targets.
+  /// The color to use when drawing lines between targets.
   ///
   /// If [`None`], waypoints are not drawn.
   pub target_line: Option<Color>,
-  /// The color to use when lines between waypoints.
+  /// The color to use when drawing lines between waypoints.
   ///
   /// If [`None`], waypoints are not drawn.
   pub waypoint_line: Option<Color>,
