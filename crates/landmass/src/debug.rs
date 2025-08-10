@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::{
   Agent, AgentId, Archipelago, CoordinateSystem, Island, nav_data::NodeRef,
-  path::Path,
+  nav_mesh::MeshEdgeRef, path::Path,
 };
 
 #[cfg(feature = "debug-avoidance")]
@@ -231,24 +231,49 @@ fn draw_path<CS: CoordinateSystem>(
     .clone()
     .expect("The path is valid, so the target is valid.");
 
-  let corridor_points = path
-    .island_segments
-    .iter()
-    .flat_map(|island_segment| {
-      island_segment.corridor.iter().copied().map(|polygon_index| {
-        let island = archipelago
-          .nav_data
-          .get_island(island_segment.island_id)
-          .expect("Island in corridor should be valid.");
-        island.transform.apply(island.nav_mesh.polygons[polygon_index].center)
-      })
-    })
-    .collect::<Vec<_>>();
-  for pair in corridor_points.windows(2) {
-    debug_drawer.add_line(
-      LineType::AgentCorridor(agent_id),
-      [CS::from_landmass(&pair[0]), CS::from_landmass(&pair[1])],
-    );
+  let mut last_point = CS::from_landmass(&path.start_point);
+
+  for (segment_index, island_segment) in path.island_segments.iter().enumerate()
+  {
+    let island = archipelago
+      .nav_data
+      .get_island(island_segment.island_id)
+      .expect("Island in corridor should be valid");
+    for (&polygon_index, &edge_index) in island_segment
+      .corridor
+      .iter()
+      .zip(island_segment.portal_edge_index.iter())
+    {
+      let (left, right) = island
+        .nav_mesh
+        .get_edge_points(MeshEdgeRef { polygon_index, edge_index });
+
+      let next_point =
+        CS::from_landmass(&island.transform.apply(left.midpoint(right)));
+      debug_drawer.add_line(
+        LineType::AgentCorridor(agent_id),
+        [last_point.clone(), next_point.clone()],
+      );
+      last_point = next_point;
+    }
+
+    if segment_index >= path.boundary_link_segments.len() {
+      debug_drawer.add_line(
+        LineType::AgentCorridor(agent_id),
+        [last_point.clone(), CS::from_landmass(&path.end_point)],
+      );
+    } else {
+      let link_segment = &path.boundary_link_segments[segment_index];
+      let (left, right) =
+        archipelago.nav_data.boundary_links[link_segment.boundary_link].portal;
+
+      let next_point = CS::from_landmass(&left.midpoint(right));
+      debug_drawer.add_line(
+        LineType::AgentCorridor(agent_id),
+        [last_point.clone(), next_point.clone()],
+      );
+      last_point = next_point;
+    }
   }
 
   let (agent_sample_point, agent_node_ref) = archipelago

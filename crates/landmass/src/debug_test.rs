@@ -1,6 +1,7 @@
 use std::{cmp::Ordering, collections::HashMap, sync::Arc};
 
 use glam::Vec3;
+use googletest::{expect_that, matchers::unordered_elements_are};
 
 use crate::{
   Agent, AgentOptions, Archipelago, FromAgentRadius, Island, NavigationMesh,
@@ -64,7 +65,7 @@ impl FakeDrawer {
   }
 }
 
-#[test]
+#[googletest::test]
 fn draws_island_meshes_and_agents() {
   let nav_mesh = NavigationMesh {
     vertices: vec![
@@ -122,121 +123,129 @@ fn draws_island_meshes_and_agents() {
   draw_archipelago_debug(&archipelago, &mut fake_drawer)
     .expect("the archipelago can be debug-drawed");
 
-  fake_drawer.sort();
+  let move_point = |v: &mut Vec3| {
+    *v = ((*v - TRANSLATION) * 100.0).round() / 100.0;
+  };
+  fake_drawer.points.iter_mut().for_each(|(_, point)| move_point(point));
+  fake_drawer.lines.iter_mut().for_each(|(_, line)| {
+    move_point(&mut line[0]);
+    move_point(&mut line[1]);
+  });
+  fake_drawer.triangles.iter_mut().for_each(|(_, tri)| {
+    move_point(&mut tri[0]);
+    move_point(&mut tri[1]);
+    move_point(&mut tri[2]);
+  });
 
-  assert_eq!(
+  expect_that!(
     fake_drawer.points,
-    [
-      (PointType::AgentPosition(agent_id), Vec3::new(3.9, 1.5, 0.0)),
-      (PointType::TargetPosition(agent_id), Vec3::new(1.5, 4.5, 0.0)),
-      (PointType::Waypoint(agent_id), Vec3::new(2.0, 3.0, 0.0)),
-    ]
-    .iter()
-    .copied()
-    .map(|(t, p)| (t, p + TRANSLATION))
-    .collect::<Vec<_>>()
+    unordered_elements_are!(
+      &(PointType::AgentPosition(agent_id), Vec3::new(3.9, 1.5, 0.0)),
+      &(PointType::TargetPosition(agent_id), Vec3::new(1.5, 4.5, 0.0)),
+      &(PointType::Waypoint(agent_id), Vec3::new(2.0, 3.0, 0.0)),
+    )
   );
-  assert_eq!(
+  expect_that!(
     fake_drawer.lines,
-    [
-      (
+    unordered_elements_are!(
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(0.0, 1.0, 0.0), Vec3::new(1.0, 0.0, 0.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(0.0, 2.0, 0.0), Vec3::new(0.0, 1.0, 0.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(1.0, 0.0, 0.0), Vec3::new(2.0, 0.0, 0.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(1.0, 3.0, 0.0), Vec3::new(0.0, 2.0, 0.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(1.0, 5.0, 0.0), Vec3::new(1.0, 3.0, 0.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(2.0, 0.0, 0.0), Vec3::new(4.0, 1.0, 0.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(2.0, 3.0, 0.0), Vec3::new(3.0, 3.0, -2.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(2.0, 4.0, 0.0), Vec3::new(3.0, 4.0, 1.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(2.0, 5.0, 0.0), Vec3::new(1.0, 5.0, 0.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(3.0, 3.0, -2.0), Vec3::new(3.0, 4.0, -2.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(3.0, 4.0, -2.0), Vec3::new(2.0, 4.0, 0.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(3.0, 4.0, 1.0), Vec3::new(3.0, 5.0, 1.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(3.0, 5.0, 1.0), Vec3::new(2.0, 5.0, 0.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(4.0, 1.0, 0.0), Vec3::new(4.0, 2.0, 0.0)]
       ),
-      (
+      &(
         LineType::BoundaryEdge,
         [Vec3::new(4.0, 2.0, 0.0), Vec3::new(2.0, 3.0, 0.0)]
       ),
       //
-      (
+      &(
         LineType::ConnectivityEdge,
         [Vec3::new(2.0, 3.0, 0.0), Vec3::new(1.0, 3.0, 0.0)]
       ),
-      (
+      &(
         LineType::ConnectivityEdge,
         [Vec3::new(2.0, 3.0, 0.0), Vec3::new(2.0, 4.0, 0.0)]
       ),
-      (
+      &(
         LineType::ConnectivityEdge,
         [Vec3::new(2.0, 4.0, 0.0), Vec3::new(2.0, 5.0, 0.0)]
       ),
       //
-      (
+      &(
         LineType::AgentCorridor(agent_id),
-        [Vec3::new(1.75, 1.5, 0.0), Vec3::new(1.6, 4.0, 0.0)]
+        [Vec3::new(3.9, 1.5, 0.0), Vec3::new(1.5, 3.0, 0.0)]
+      ),
+      &(
+        LineType::AgentCorridor(agent_id),
+        [Vec3::new(1.5, 3.0, 0.0), Vec3::new(1.5, 4.5, 0.0)]
       ),
       //
-      (
+      &(
         LineType::Target(agent_id),
         [Vec3::new(3.9, 1.5, 0.0), Vec3::new(1.5, 4.5, 0.0)]
       ),
       //
-      (
+      &(
         LineType::Waypoint(agent_id),
         [Vec3::new(3.9, 1.5, 0.0), Vec3::new(2.0, 3.0, 0.0)]
       ),
-    ]
-    .iter()
-    .copied()
-    .map(|(t, [p0, p1])| (t, [p0 + TRANSLATION, p1 + TRANSLATION]))
-    .collect::<Vec<_>>()
+    )
   );
-  assert_eq!(
+  expect_that!(
     fake_drawer.triangles,
-    [
-      (
+    unordered_elements_are!(
+      &(
         TriangleType::Node,
         [
           Vec3::new(0.0, 1.0, 0.0),
@@ -244,7 +253,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(0.0, 2.0, 0.0),
@@ -252,7 +261,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(1.0, 0.0, 0.0),
@@ -260,7 +269,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(1.0, 3.0, 0.0),
@@ -268,7 +277,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(1.0, 3.0, 0.0),
@@ -276,7 +285,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(1.6, 4.0, 0.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(1.0, 5.0, 0.0),
@@ -284,7 +293,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(1.6, 4.0, 0.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(2.0, 0.0, 0.0),
@@ -292,7 +301,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(2.0, 3.0, 0.0),
@@ -300,7 +309,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(2.0, 3.0, 0.0),
@@ -308,7 +317,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(1.6, 4.0, 0.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(2.0, 3.0, 0.0),
@@ -316,7 +325,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(2.5, 3.5, -1.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(2.0, 4.0, 0.0),
@@ -324,7 +333,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(2.5, 3.5, -1.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(2.0, 4.0, 0.0),
@@ -332,7 +341,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(1.6, 4.0, 0.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(2.0, 4.0, 0.0),
@@ -340,7 +349,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(2.5, 4.5, 0.5)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(2.0, 5.0, 0.0),
@@ -348,7 +357,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(1.6, 4., 0.00)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(2.0, 5.0, 0.0),
@@ -356,7 +365,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(2.5, 4.5, 0.5)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(3.0, 3.0, -2.0),
@@ -364,7 +373,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(2.5, 3.5, -1.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(3.0, 4.0, -2.0),
@@ -372,7 +381,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(2.5, 3.5, -1.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(3.0, 4.0, 1.0),
@@ -380,7 +389,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(2.5, 4.5, 0.5)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(3.0, 5.0, 1.0),
@@ -388,7 +397,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(2.5, 4.5, 0.5)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(4.0, 1.0, 0.0),
@@ -396,7 +405,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
-      (
+      &(
         TriangleType::Node,
         [
           Vec3::new(4.0, 2.0, 0.0),
@@ -404,14 +413,7 @@ fn draws_island_meshes_and_agents() {
           Vec3::new(1.75, 1.5, 0.0)
         ]
       ),
-    ]
-    .iter()
-    .copied()
-    .map(|(t, [p0, p1, p2])| (
-      t,
-      [p0 + TRANSLATION, p1 + TRANSLATION, p2 + TRANSLATION]
-    ))
-    .collect::<Vec<_>>()
+    )
   );
 }
 
