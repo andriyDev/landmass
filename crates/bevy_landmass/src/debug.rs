@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ops::Deref};
 
 use bevy_app::{Plugin, Update};
 use bevy_color::Color;
@@ -17,7 +17,6 @@ use bevy_math::{Isometry3d, Quat};
 use bevy_reflect::Reflect;
 use bevy_time::Time;
 use bevy_transform::components::Transform;
-use landmass::debug::LandmassDebugDrawConfig;
 
 use crate::{
   Archipelago, LandmassSystemSet,
@@ -88,7 +87,6 @@ pub trait DebugDrawer<CS: CoordinateSystem> {
 pub fn draw_archipelago_debug<CS: CoordinateSystem>(
   archipelago: &crate::Archipelago<CS>,
   debug_drawer: &mut impl DebugDrawer<CS>,
-  config: LandmassGizmoConfigGroup,
 ) -> Result<(), DebugDrawError> {
   struct DebugDrawerAdapter<'a, CS: CoordinateSystem, D: DebugDrawer<CS>> {
     archipelago: &'a crate::Archipelago<CS>,
@@ -160,12 +158,9 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
     }
   }
 
-  let config =
-    LandmassDebugDrawConfig { navmesh: config.navmesh, agent: config.agent };
   landmass::debug::draw_archipelago_debug(
     &archipelago.archipelago,
     &mut DebugDrawerAdapter { archipelago, drawer: debug_drawer },
-    config,
   )
 }
 
@@ -267,7 +262,7 @@ impl<CS: CoordinateSystem> Plugin for LandmassDebugPlugin<CS> {
           .run_if(|enable: Res<EnableLandmassDebug>| enable.0),
       )
       .insert_gizmo_config(
-        LandmassGizmoConfigGroup::default(),
+        LandmassGizmos::default(),
         GizmoConfig { depth_bias: -1.0, ..Default::default() },
       );
   }
@@ -291,47 +286,105 @@ impl std::ops::DerefMut for EnableLandmassDebug {
 }
 
 /// A config group for landmass debug gizmos.
-#[derive(
-  Reflect, GizmoConfigGroup, Debug, Clone, Copy, Eq, PartialEq, Hash,
-)]
-pub struct LandmassGizmoConfigGroup {
-  /// Whether to draw the namesh geometry or not.
+#[derive(Reflect, GizmoConfigGroup, Debug, Clone, Copy, PartialEq)]
+pub struct LandmassGizmos {
+  // points
+  /// The color to use when drawing an agent's current position.
   ///
-  /// Default: `true`
-  pub navmesh: bool,
-  /// Whether to draw the agent pathfinding or not.
+  /// If [`None`], agent positions are not drawn.
+  pub agent_position: Option<Color>,
+  /// The color to use when drawing an agent's target position.
   ///
-  /// Default: `true`
-  pub agent: bool,
+  /// If [`None`], target positions are not drawn.
+  pub target_position: Option<Color>,
+  /// The color to use when drawing waypoints along a path.
+  ///
+  /// If [`None`], waypoints are not drawn.
+  pub waypoint_position: Option<Color>,
+
+  // lines
+  /// The color to use when drawing boundary edges on a navmesh.
+  ///
+  /// If [`None`], waypoints are not drawn.
+  pub boundary_edge: Option<Color>,
+  /// The color to use when drawing connectivity edges on a navmesh.
+  ///
+  /// If [`None`], waypoints are not drawn.
+  pub connectivity_edge: Option<Color>,
+  /// The color to use when drawing height edges on a navmesh.
+  ///
+  /// If [`None`], waypoints are not drawn.
+  pub height_edge: Option<Color>,
+  /// The color to use when drawing boundary links on a navmesh.
+  ///
+  /// If [`None`], waypoints are not drawn.
+  pub boundary_link: Option<Color>,
+  /// The color to use when drawing agent corridors.
+  ///
+  /// If [`None`], waypoints are not drawn.
+  pub agent_corridor: Option<Color>,
+  /// The color to use when lines between targets.
+  ///
+  /// If [`None`], waypoints are not drawn.
+  pub target_line: Option<Color>,
+  /// The color to use when lines between waypoints.
+  ///
+  /// If [`None`], waypoints are not drawn.
+  pub waypoint_line: Option<Color>,
 }
 
-impl Default for LandmassGizmoConfigGroup {
+impl Default for LandmassGizmos {
   fn default() -> Self {
-    Self { navmesh: true, agent: true }
+    Self {
+      agent_position: Color::srgba(0.0, 1.0, 0.0, 0.6).into(),
+      target_position: Color::srgba(1.0, 1.0, 0.0, 0.6).into(),
+      waypoint_position: Color::srgba(0.6, 0.6, 0.6, 0.6).into(),
+      boundary_edge: Color::srgba(0.0, 0.0, 1.0, 0.6).into(),
+      connectivity_edge: Color::srgba_u8(33, 102, 57, 128).into(),
+      height_edge: Color::srgba_u8(33, 102, 57, 128).into(),
+      boundary_link: Color::srgba(0.0, 1.0, 0.0, 0.6).into(),
+      agent_corridor: Color::srgba(0.6, 0.0, 0.6, 0.6).into(),
+      target_line: Color::srgba(1.0, 1.0, 0.0, 0.6).into(),
+      waypoint_line: Color::srgba(0.6, 0.6, 0.6, 0.6).into(),
+    }
   }
 }
 
 /// A gizmo debug drawer.
 struct GizmoDrawer<'w, 's, 'a, CS: CoordinateSystem>(
-  &'a mut Gizmos<'w, 's, LandmassGizmoConfigGroup>,
+  &'a mut Gizmos<'w, 's, LandmassGizmos>,
   PhantomData<CS>,
 );
 
+impl<'w, 's, 'a, CS: CoordinateSystem> Deref for GizmoDrawer<'w, 's, 'a, CS> {
+  type Target = Gizmos<'w, 's, LandmassGizmos>;
+
+  fn deref(&self) -> &Self::Target {
+    self.0
+  }
+}
+
 impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
   fn add_point(&mut self, point_type: PointType, point: CS::Coordinate) {
+    let Some(color) = (match point_type {
+      PointType::AgentPosition(_) => self.config_ext.agent_position,
+      PointType::TargetPosition(_) => self.config_ext.target_position,
+      PointType::Waypoint(_) => self.config_ext.waypoint_position,
+    }) else {
+      return;
+    };
     self.0.sphere(
       Isometry3d::new(CS::to_world_position(&point), Quat::IDENTITY),
       0.2,
-      match point_type {
-        PointType::AgentPosition(_) => Color::srgba(0.0, 1.0, 0.0, 0.6),
-        PointType::TargetPosition(_) => Color::srgba(1.0, 1.0, 0.0, 0.6),
-        PointType::Waypoint(_) => Color::srgba(0.6, 0.6, 0.6, 0.6),
-      },
+      color,
     );
   }
 
   fn add_line(&mut self, line_type: LineType, line: [CS::Coordinate; 2]) {
     if line_type == LineType::BoundaryLink {
+      let Some(color) = self.config_ext.boundary_link else {
+        return;
+      };
       let line =
         [CS::to_world_position(&line[0]), CS::to_world_position(&line[1])];
       self.0.cuboid(
@@ -343,22 +396,25 @@ impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
             0.01,
             line[0].distance(line[1]),
           )),
-        Color::srgba(0.0, 1.0, 0.0, 0.6),
+        color,
       );
       return;
     }
+    let Some(color) = (match line_type {
+      LineType::BoundaryEdge => self.config_ext.boundary_edge,
+      LineType::ConnectivityEdge => self.config_ext.connectivity_edge,
+      LineType::HeightEdge => self.config_ext.height_edge,
+      LineType::BoundaryLink => self.config_ext.boundary_link,
+      LineType::AgentCorridor(..) => self.config_ext.agent_corridor,
+      LineType::Target(..) => self.config_ext.target_line,
+      LineType::Waypoint(..) => self.config_ext.waypoint_line,
+    }) else {
+      return;
+    };
     self.0.line(
       CS::to_world_position(&line[0]),
       CS::to_world_position(&line[1]),
-      match line_type {
-        LineType::BoundaryEdge => Color::srgba(0.0, 0.0, 1.0, 0.6),
-        LineType::ConnectivityEdge => Color::srgba(0.5, 0.5, 1.0, 0.6),
-        LineType::HeightEdge => Color::srgba_u8(33, 102, 57, 128),
-        LineType::BoundaryLink => unreachable!(),
-        LineType::AgentCorridor(_) => Color::srgba(0.6, 0.0, 0.6, 0.6),
-        LineType::Target(_) => Color::srgba(1.0, 1.0, 0.0, 0.6),
-        LineType::Waypoint(_) => Color::srgba(0.6, 0.6, 0.6, 0.6),
-      },
+      color,
     );
   }
 
@@ -375,15 +431,14 @@ impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
 fn draw_archipelagos_default<CS: CoordinateSystem>(
   time: Res<Time>,
   archipelagos: Query<&Archipelago<CS>>,
-  mut gizmos: Gizmos<'_, '_, LandmassGizmoConfigGroup>,
+  mut gizmos: Gizmos<'_, '_, LandmassGizmos>,
 ) {
   if time.delta_secs() == 0.0 {
     return;
   }
-  let config = *gizmos.config_ext;
   let mut drawer = GizmoDrawer(&mut gizmos, PhantomData::<CS>);
   for archipelago in archipelagos.iter() {
-    draw_archipelago_debug(archipelago, &mut drawer, config)
+    draw_archipelago_debug(archipelago, &mut drawer)
       .expect("the archipelago can be debug-drawn");
   }
 }

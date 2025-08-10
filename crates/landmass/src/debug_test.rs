@@ -119,7 +119,7 @@ fn draws_island_meshes_and_agents() {
   archipelago.update(1.0);
 
   let mut fake_drawer = FakeDrawer::new();
-  draw_archipelago_debug(&archipelago, &mut fake_drawer, Default::default())
+  draw_archipelago_debug(&archipelago, &mut fake_drawer)
     .expect("the archipelago can be debug-drawed");
 
   fake_drawer.sort();
@@ -450,7 +450,7 @@ fn draws_boundary_links() {
   archipelago.update(1.0);
 
   let mut fake_drawer = FakeDrawer::new();
-  draw_archipelago_debug(&archipelago, &mut fake_drawer, Default::default())
+  draw_archipelago_debug(&archipelago, &mut fake_drawer)
     .expect("the archipelago can be debug-drawed");
   fake_drawer.sort();
 
@@ -487,10 +487,7 @@ fn fails_to_draw_dirty_archipelago() {
   // A brand new archipelago is considered clean.
   let mut archipelago =
     Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
-  assert_eq!(
-    draw_archipelago_debug(&archipelago, &mut fake_drawer, Default::default()),
-    Ok(())
-  );
+  assert_eq!(draw_archipelago_debug(&archipelago, &mut fake_drawer), Ok(()));
 
   // Creating an island marks the nav data as dirty.
   let island_id = archipelago.add_island(Island::new(
@@ -499,21 +496,18 @@ fn fails_to_draw_dirty_archipelago() {
     HashMap::new(),
   ));
   assert_eq!(
-    draw_archipelago_debug(&archipelago, &mut fake_drawer, Default::default()),
+    draw_archipelago_debug(&archipelago, &mut fake_drawer),
     Err(DebugDrawError::NavDataDirty)
   );
 
   archipelago.update(1.0);
   // Nav data is clean again.
-  assert_eq!(
-    draw_archipelago_debug(&archipelago, &mut fake_drawer, Default::default()),
-    Ok(())
-  );
+  assert_eq!(draw_archipelago_debug(&archipelago, &mut fake_drawer), Ok(()));
 
   // Setting a nav mesh marks the nav data as dirty.
   archipelago.get_island_mut(island_id).unwrap().set_nav_mesh(nav_mesh.clone());
   assert_eq!(
-    draw_archipelago_debug(&archipelago, &mut fake_drawer, Default::default()),
+    draw_archipelago_debug(&archipelago, &mut fake_drawer),
     Err(DebugDrawError::NavDataDirty)
   );
 }
