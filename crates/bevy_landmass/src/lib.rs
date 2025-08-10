@@ -378,7 +378,18 @@ impl<CS: CoordinateSystem> ArchipelagoRef<CS> {
   }
 }
 
+///[`NavigationMesh`] using 2D Bevy coordinates.
+/// That means that the mesh expects vertices to be on the XY plane.
+///
+/// The expected winding order is *counter-clockwise*
 pub type NavigationMesh2d = NavigationMesh<TwoD>;
+///[`NavigationMesh`] using 3D Bevy coordinates.
+/// That means that the mesh expects vertices to be in
+/// - X right
+/// - Y up
+/// - Z forward
+///
+/// The expected winding order is *clockwise*
 pub type NavigationMesh3d = NavigationMesh<ThreeD>;
 
 pub type HeightNavigationMesh2d = HeightNavigationMesh<TwoD>;
