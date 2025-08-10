@@ -389,7 +389,7 @@ pub type NavigationMesh2d = NavigationMesh<TwoD>;
 /// - Y up
 /// - Z forward
 ///
-/// The expected winding order is *clockwise*
+/// The expected winding order is *counter-clockwise*
 pub type NavigationMesh3d = NavigationMesh<ThreeD>;
 
 pub type HeightNavigationMesh2d = HeightNavigationMesh<TwoD>;
