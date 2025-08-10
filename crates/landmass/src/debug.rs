@@ -73,11 +73,15 @@ pub struct LandmassDebugDrawConfig {
   ///
   /// Default: `true`
   pub navmesh: bool,
+  /// Whether to draw the agent pathfinding or not.
+  ///
+  /// Default: `true`
+  pub agent: bool,
 }
 
 impl Default for LandmassDebugDrawConfig {
   fn default() -> Self {
-    Self { navmesh: true }
+    Self { navmesh: true, agent: true }
   }
 }
 
@@ -217,19 +221,21 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
     }
   }
 
-  for (agent_id, agent) in archipelago.agents.iter() {
-    debug_drawer
-      .add_point(PointType::AgentPosition(agent_id), agent.position.clone());
-    if let Some(target) = &agent.current_target {
-      debug_drawer.add_line(
-        LineType::Target(agent_id),
-        [agent.position.clone(), target.clone()],
-      );
+  if config.agent {
+    for (agent_id, agent) in archipelago.agents.iter() {
       debug_drawer
-        .add_point(PointType::TargetPosition(agent_id), target.clone());
-    }
-    if let Some(path) = agent.current_path.as_ref() {
-      draw_path(path, agent_id, agent, archipelago, debug_drawer);
+        .add_point(PointType::AgentPosition(agent_id), agent.position.clone());
+      if let Some(target) = &agent.current_target {
+        debug_drawer.add_line(
+          LineType::Target(agent_id),
+          [agent.position.clone(), target.clone()],
+        );
+        debug_drawer
+          .add_point(PointType::TargetPosition(agent_id), target.clone());
+      }
+      if let Some(path) = agent.current_path.as_ref() {
+        draw_path(path, agent_id, agent, archipelago, debug_drawer);
+      }
     }
   }
 

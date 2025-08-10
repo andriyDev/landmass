@@ -160,7 +160,8 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
     }
   }
 
-  let config = LandmassDebugDrawConfig { navmesh: config.navmesh };
+  let config =
+    LandmassDebugDrawConfig { navmesh: config.navmesh, agent: config.agent };
   landmass::debug::draw_archipelago_debug(
     &archipelago.archipelago,
     &mut DebugDrawerAdapter { archipelago, drawer: debug_drawer },
@@ -298,11 +299,15 @@ pub struct LandmassGizmoConfigGroup {
   ///
   /// Default: `true`
   pub navmesh: bool,
+  /// Whether to draw the agent pathfinding or not.
+  ///
+  /// Default: `true`
+  pub agent: bool,
 }
 
 impl Default for LandmassGizmoConfigGroup {
   fn default() -> Self {
-    Self { navmesh: true }
+    Self { navmesh: true, agent: true }
   }
 }
 
