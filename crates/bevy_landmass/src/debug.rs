@@ -1,4 +1,7 @@
-use std::{marker::PhantomData, ops::Deref};
+use std::{
+  marker::PhantomData,
+  ops::{Deref, DerefMut},
+};
 
 use bevy_app::{Plugin, Update};
 use bevy_color::Color;
@@ -364,6 +367,14 @@ impl<'w, 's, 'a, CS: CoordinateSystem> Deref for GizmoDrawer<'w, 's, 'a, CS> {
   }
 }
 
+impl<'w, 's, 'a, CS: CoordinateSystem> DerefMut
+  for GizmoDrawer<'w, 's, 'a, CS>
+{
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
+
 impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
   fn add_point(&mut self, point_type: PointType, point: CS::Coordinate) {
     let Some(color) = (match point_type {
@@ -373,7 +384,7 @@ impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
     }) else {
       return;
     };
-    self.0.sphere(
+    self.sphere(
       Isometry3d::new(CS::to_world_position(&point), Quat::IDENTITY),
       0.2,
       color,
@@ -387,7 +398,7 @@ impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
       };
       let line =
         [CS::to_world_position(&line[0]), CS::to_world_position(&line[1])];
-      self.0.cuboid(
+      self.cuboid(
         Transform::default()
           .looking_to(line[1] - line[0], bevy_math::Vec3::new(0.0, 1.0, 0.0))
           .with_translation((line[0] + line[1]) * 0.5)
@@ -411,7 +422,7 @@ impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
     }) else {
       return;
     };
-    self.0.line(
+    self.line(
       CS::to_world_position(&line[0]),
       CS::to_world_position(&line[1]),
       color,
