@@ -20,7 +20,7 @@ kdtree = "0.7.0"
 geo = "0.30.0"
 disjoint = "0.8.0"
 slotmap = "1.0.7"
-thiserror = "1.0"
+thiserror = "2.0"
 
 [dev-dependencies]
 googletest = "0.14.2"
