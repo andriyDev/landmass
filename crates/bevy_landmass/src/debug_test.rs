@@ -144,8 +144,7 @@ fn draws_archipelago_debug() {
     .expect("archipelago exists");
 
   let mut fake_drawer = FakeDrawer::new();
-  draw_archipelago_debug(archipelago, &mut fake_drawer, Default::default())
-    .unwrap();
+  draw_archipelago_debug(archipelago, &mut fake_drawer).unwrap();
 
   fake_drawer.sort();
 
