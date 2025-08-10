@@ -217,12 +217,16 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
     }
     let mut connectivity_set = HashMap::new();
 
-    for (polygon_index, polygon) in self.polygons.iter().enumerate() {
+    for (polygon_index, polygon) in self.polygons.iter_mut().enumerate() {
       if polygon.len() < 3 {
         return Err(ValidationError::NotEnoughVerticesInPolygon(polygon_index));
       }
 
-      for vertex_index in polygon {
+      if CS::FLIP_POLYGONS {
+        polygon.reverse();
+      }
+
+      for vertex_index in &*polygon {
         if *vertex_index >= vertices.len() {
           return Err(ValidationError::InvalidVertexIndexInPolygon(
             polygon_index,
@@ -389,7 +393,7 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
 
 impl<CS: CoordinateSystem> HeightNavigationMesh<CS> {
   fn validate(
-    self,
+    mut self,
     expected_polygons: usize,
   ) -> Result<ValidHeightNavigationMesh, ValidateHeightMeshError> {
     if self.polygons.len() != expected_polygons {
@@ -401,6 +405,12 @@ impl<CS: CoordinateSystem> HeightNavigationMesh<CS> {
 
     let vertices: Vec<Vec3> =
       self.vertices.into_iter().map(|v| CS::to_landmass(&v)).collect();
+
+    if CS::FLIP_POLYGONS {
+      for tri in self.triangles.iter_mut() {
+        tri.swap(1, 2);
+      }
+    }
 
     for (polygon_index, polygon) in self.polygons.iter().enumerate() {
       let last_triangle = polygon.base_triangle_index + polygon.triangle_count;

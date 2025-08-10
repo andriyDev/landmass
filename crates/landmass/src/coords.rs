@@ -9,6 +9,13 @@ pub trait CoordinateSystem {
   /// The type to use for point sampling options.
   type SampleDistance: PointSampleDistance;
 
+  /// Whether to flip polygons after conversion.
+  ///
+  /// Landmass coordinates expect polygons are in CCW order. However, your
+  /// coordinate system could flip one of the axes, such that CCW polygons in
+  /// your coordinate system become CW polygons in landmass coordinates.
+  const FLIP_POLYGONS: bool;
+
   /// Converts a coordinate in this system to the standard coordinate system.
   fn to_landmass(v: &Self::Coordinate) -> Vec3;
 
@@ -64,6 +71,8 @@ pub struct XYZ;
 impl CoordinateSystem for XYZ {
   type Coordinate = Vec3;
   type SampleDistance = PointSampleDistance3d;
+
+  const FLIP_POLYGONS: bool = false;
 
   fn to_landmass(v: &Self::Coordinate) -> Vec3 {
     *v
@@ -132,6 +141,8 @@ pub struct XY;
 impl CoordinateSystem for XY {
   type Coordinate = Vec2;
   type SampleDistance = f32;
+
+  const FLIP_POLYGONS: bool = false;
 
   fn to_landmass(v: &Self::Coordinate) -> Vec3 {
     Vec3::new(v.x, v.y, 0.0)
