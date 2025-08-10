@@ -367,9 +367,9 @@ impl<'w, 's, 'a, CS: CoordinateSystem> Deref for GizmoDrawer<'w, 's, 'a, CS> {
 impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
   fn add_point(&mut self, point_type: PointType, point: CS::Coordinate) {
     let Some(color) = (match point_type {
-      PointType::AgentPosition(_) => self.config_ext.agent_position,
-      PointType::TargetPosition(_) => self.config_ext.target_position,
-      PointType::Waypoint(_) => self.config_ext.waypoint_position,
+      PointType::AgentPosition(..) => self.config_ext.agent_position,
+      PointType::TargetPosition(..) => self.config_ext.target_position,
+      PointType::Waypoint(..) => self.config_ext.waypoint_position,
     }) else {
       return;
     };
