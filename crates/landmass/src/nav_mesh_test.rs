@@ -837,10 +837,11 @@ fn create_height_mesh(
     }
 
     height_mesh.polygons.push(HeightPolygon {
-      base_vertex_index: base_vertex_index,
-      vertex_count: height_mesh.vertices.len() - base_vertex_index,
-      base_triangle_index: base_triangle_index,
-      triangle_count: height_mesh.triangles.len() - base_triangle_index,
+      base_vertex_index: base_vertex_index as u32,
+      vertex_count: (height_mesh.vertices.len() - base_vertex_index) as u32,
+      base_triangle_index: base_triangle_index as u32,
+      triangle_count: (height_mesh.triangles.len() - base_triangle_index)
+        as u32,
     });
   }
 

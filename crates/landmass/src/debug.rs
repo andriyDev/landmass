@@ -115,24 +115,19 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
         for triangle_index in height_polygon.base_triangle_index
           ..(height_polygon.base_triangle_index + height_polygon.triangle_count)
         {
-          let [a, b, c] = height_mesh.triangles[triangle_index];
-          let triangle = (
-            CS::from_landmass(
-              &island
-                .get_transform()
-                .apply(height_mesh.vertices[a as usize + vertex_base]),
-            ),
-            CS::from_landmass(
-              &island
-                .get_transform()
-                .apply(height_mesh.vertices[b as usize + vertex_base]),
-            ),
-            CS::from_landmass(
-              &island
-                .get_transform()
-                .apply(height_mesh.vertices[c as usize + vertex_base]),
-            ),
-          );
+          let [a, b, c] = height_mesh.triangles[triangle_index as usize];
+          let triangle =
+            (
+              CS::from_landmass(&island.get_transform().apply(
+                height_mesh.vertices[a as usize + vertex_base as usize],
+              )),
+              CS::from_landmass(&island.get_transform().apply(
+                height_mesh.vertices[b as usize + vertex_base as usize],
+              )),
+              CS::from_landmass(&island.get_transform().apply(
+                height_mesh.vertices[c as usize + vertex_base as usize],
+              )),
+            );
           debug_drawer.add_line(
             LineType::HeightEdge,
             [triangle.0.clone(), triangle.1.clone()],
