@@ -8,7 +8,7 @@ use crate::{
 };
 
 /// A path computed on the navigation data.
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Path {
   /// The segments of this path on islands. These are joined together with
   /// [`Path::boundary_link_segments`]. Note even if an island is only used to
@@ -17,6 +17,14 @@ pub struct Path {
   /// The boundary links that connect the island segments. Must have exactly
   /// one less element than [`Path::island_segments`].
   pub(crate) boundary_link_segments: Vec<BoundaryLinkSegment>,
+  /// The point where this path was started from.
+  ///
+  /// This is not used, but is good for debugging.
+  pub(crate) start_point: Vec3,
+  /// The point where this path was originally targetting.
+  ///
+  /// This is not used, but is good for debugging.
+  pub(crate) end_point: Vec3,
 }
 
 /// Part of a path entirely along a single island.

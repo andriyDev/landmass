@@ -21,20 +21,24 @@ fn find_path_between_nodes<CS: CoordinateSystem>(
   start_node: NodeRef,
   end_node: NodeRef,
   override_node_type_to_cost: &HashMap<NodeType, f32>,
-) -> PathResult {
+) -> (Vec3, Vec3, PathResult) {
   let start_island = nav_data.get_island(start_node.island_id).unwrap();
   let start_point =
     start_island.nav_mesh.polygons[start_node.polygon_index].center;
   let end_island = nav_data.get_island(end_node.island_id).unwrap();
   let end_point = end_island.nav_mesh.polygons[end_node.polygon_index].center;
 
-  find_path(
-    nav_data,
-    start_node,
+  (
     start_point,
-    end_node,
     end_point,
-    override_node_type_to_cost,
+    find_path(
+      nav_data,
+      start_node,
+      start_point,
+      end_node,
+      end_point,
+      override_node_type_to_cost,
+    ),
   )
 }
 
@@ -80,7 +84,7 @@ fn finds_path_in_archipelago() {
 
   let nav_data = &archipelago.nav_data;
 
-  let path_result = find_path_between_nodes(
+  let (start_point, end_point, path_result) = find_path_between_nodes(
     nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 2 },
@@ -96,10 +100,12 @@ fn finds_path_in_archipelago() {
         portal_edge_index: vec![4, 2],
       }],
       boundary_link_segments: vec![],
+      start_point,
+      end_point,
     })
   );
 
-  let path_result = find_path_between_nodes(
+  let (start_point, end_point, path_result) = find_path_between_nodes(
     nav_data,
     NodeRef { island_id, polygon_index: 2 },
     NodeRef { island_id, polygon_index: 0 },
@@ -115,10 +121,12 @@ fn finds_path_in_archipelago() {
         portal_edge_index: vec![0, 0],
       }],
       boundary_link_segments: vec![],
+      start_point,
+      end_point,
     })
   );
 
-  let path_result = find_path_between_nodes(
+  let (start_point, end_point, path_result) = find_path_between_nodes(
     nav_data,
     NodeRef { island_id, polygon_index: 3 },
     NodeRef { island_id, polygon_index: 0 },
@@ -134,6 +142,8 @@ fn finds_path_in_archipelago() {
         portal_edge_index: vec![0, 0],
       }],
       boundary_link_segments: vec![],
+      start_point,
+      end_point,
     })
   );
 }
@@ -187,7 +197,7 @@ fn finds_paths_on_two_islands() {
 
   let nav_data = &archipelago.nav_data;
 
-  let path_result = find_path_between_nodes(
+  let (start_point, end_point, path_result) = find_path_between_nodes(
     nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_1, polygon_index: 2 },
@@ -203,10 +213,12 @@ fn finds_paths_on_two_islands() {
         portal_edge_index: vec![4, 2],
       }],
       boundary_link_segments: vec![],
+      start_point,
+      end_point,
     })
   );
 
-  let path_result = find_path_between_nodes(
+  let (start_point, end_point, path_result) = find_path_between_nodes(
     nav_data,
     NodeRef { island_id: island_id_2, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 2 },
@@ -222,6 +234,8 @@ fn finds_paths_on_two_islands() {
         portal_edge_index: vec![4, 2],
       }],
       boundary_link_segments: vec![],
+      start_point,
+      end_point,
     })
   );
 }
@@ -282,6 +296,7 @@ fn no_path_between_disconnected_islands() {
       NodeRef { island_id: island_id_2, polygon_index: 0 },
       &HashMap::new(),
     )
+    .2
     .path
     .is_none()
   );
@@ -293,6 +308,7 @@ fn no_path_between_disconnected_islands() {
       NodeRef { island_id: island_id_1, polygon_index: 0 },
       &HashMap::new(),
     )
+    .2
     .path
     .is_none()
   );
@@ -360,7 +376,7 @@ fn find_path_across_connected_islands() {
     })
     .collect::<HashMap<_, _>>();
 
-  let path_result = find_path_between_nodes(
+  let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_5, polygon_index: 0 },
@@ -406,6 +422,8 @@ fn find_path_across_connected_islands() {
           boundary_link: boundary_links[&(island_id_4, island_id_5)],
         },
       ],
+      start_point,
+      end_point,
     })
   );
 }
@@ -473,7 +491,7 @@ fn finds_path_across_different_islands() {
     })
     .collect::<HashMap<_, _>>();
 
-  let path_result = find_path_between_nodes(
+  let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 1 },
@@ -499,6 +517,8 @@ fn finds_path_across_different_islands() {
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
         boundary_link: boundary_links[&(island_id_1, island_id_2)],
       }],
+      start_point,
+      end_point,
     })
   );
 }
@@ -550,6 +570,7 @@ fn aborts_early_for_unconnected_regions() {
       NodeRef { island_id: island_id_2, polygon_index: 0 },
       &HashMap::new(),
     )
+    .2
     .path
     .is_some()
   );
@@ -558,7 +579,7 @@ fn aborts_early_for_unconnected_regions() {
   archipelago.remove_island(island_id_3);
   archipelago.update(1.0);
 
-  let path_result = find_path_between_nodes(
+  let (_, _, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 0 },
@@ -632,7 +653,7 @@ fn detour_for_high_cost_path() {
     HashMap::from([(1, slow_node_type)]),
   ));
 
-  let path_result = find_path_between_nodes(
+  let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 6 },
@@ -648,6 +669,8 @@ fn detour_for_high_cost_path() {
         portal_edge_index: vec![1, 2, 3, 2, 3, 2],
       }],
       boundary_link_segments: vec![],
+      start_point,
+      end_point,
     })
   );
 }
@@ -728,7 +751,7 @@ fn detour_for_high_cost_path_across_boundary_links() {
 
   archipelago.update(1.0);
 
-  let path_result = find_path_between_nodes(
+  let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id: island_id_1, polygon_index: 0 },
     NodeRef { island_id: island_id_2, polygon_index: 0 },
@@ -758,7 +781,9 @@ fn detour_for_high_cost_path_across_boundary_links() {
           .unwrap()
           .clone(),
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 2 },
-      }]
+      }],
+      start_point,
+      end_point,
     })
   )
 }
@@ -824,7 +849,7 @@ fn fast_path_not_ignored_by_heuristic() {
     HashMap::from([(1, fast_type)]),
   ));
 
-  let path_result = find_path_between_nodes(
+  let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 2 },
     NodeRef { island_id, polygon_index: 4 },
@@ -841,6 +866,8 @@ fn fast_path_not_ignored_by_heuristic() {
         portal_edge_index: vec![0, 0, 2, 2, 0, 0],
       }],
       boundary_link_segments: vec![],
+      start_point,
+      end_point,
     })
   );
 }
@@ -878,7 +905,7 @@ fn infinite_or_nan_cost_cannot_find_path_between_nodes() {
     HashMap::from([(1, node_type)]),
   ));
 
-  let path_result = find_path_between_nodes(
+  let (_, _, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 2 },
@@ -890,7 +917,7 @@ fn infinite_or_nan_cost_cannot_find_path_between_nodes() {
 
   archipelago.set_node_type_cost(node_type, f32::NAN).unwrap();
 
-  let path_result = find_path_between_nodes(
+  let (_, _, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 2 },
@@ -961,7 +988,7 @@ fn detour_for_overridden_high_cost_path() {
     HashMap::from([(1, slow_node_type)]),
   ));
 
-  let path_result = find_path_between_nodes(
+  let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 6 },
@@ -977,6 +1004,8 @@ fn detour_for_overridden_high_cost_path() {
         portal_edge_index: vec![1, 2, 3, 2, 3, 2],
       }],
       boundary_link_segments: vec![],
+      start_point,
+      end_point,
     })
   );
 }
@@ -1048,7 +1077,7 @@ fn big_node_does_not_skew_pathing() {
     HashMap::default(),
   ));
 
-  let path_result = find_path_between_nodes(
+  let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 3 },
@@ -1064,6 +1093,8 @@ fn big_node_does_not_skew_pathing() {
         portal_edge_index: vec![2, 2],
       }],
       boundary_link_segments: vec![],
+      start_point,
+      end_point,
     })
   );
 }
@@ -1130,7 +1161,6 @@ fn start_and_end_point_influences_path() {
     .expect("nav mesh is valid"),
   );
 
-  // TODO: Use these in the test.
   let start_point = Vec3::new(1.5, 0.5, 0.0);
   let end_point = Vec3::new(1.5, 2.5, 0.0);
 
@@ -1158,6 +1188,8 @@ fn start_and_end_point_influences_path() {
         portal_edge_index: vec![7, 2, 2, 1],
       }],
       boundary_link_segments: vec![],
+      start_point,
+      end_point,
     })
   );
 }

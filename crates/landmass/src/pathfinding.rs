@@ -303,8 +303,12 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
     return PathResult { stats: path_result.stats, path: None };
   };
 
-  let mut output_path =
-    Path { island_segments: vec![], boundary_link_segments: vec![] };
+  let mut output_path = Path {
+    island_segments: vec![],
+    boundary_link_segments: vec![],
+    start_point,
+    end_point,
+  };
 
   output_path.island_segments.push(IslandSegment {
     island_id: start_node.island_id,
