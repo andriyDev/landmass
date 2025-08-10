@@ -13,3 +13,6 @@ coverage:
 comment:
   layout: "files"
   require_changes: true
+
+ignore:
+  - "**/*_test.rs"
