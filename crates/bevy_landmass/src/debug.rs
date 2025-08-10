@@ -17,6 +17,7 @@ use bevy_math::{Isometry3d, Quat};
 use bevy_reflect::Reflect;
 use bevy_time::Time;
 use bevy_transform::components::Transform;
+use landmass::debug::LandmassDebugDrawConfig;
 
 use crate::{
   Archipelago, LandmassSystemSet,
@@ -87,6 +88,7 @@ pub trait DebugDrawer<CS: CoordinateSystem> {
 pub fn draw_archipelago_debug<CS: CoordinateSystem>(
   archipelago: &crate::Archipelago<CS>,
   debug_drawer: &mut impl DebugDrawer<CS>,
+  config: LandmassGizmoConfigGroup,
 ) -> Result<(), DebugDrawError> {
   struct DebugDrawerAdapter<'a, CS: CoordinateSystem, D: DebugDrawer<CS>> {
     archipelago: &'a crate::Archipelago<CS>,
@@ -158,9 +160,11 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
     }
   }
 
+  let config = LandmassDebugDrawConfig { navmesh: config.navmesh };
   landmass::debug::draw_archipelago_debug(
     &archipelago.archipelago,
     &mut DebugDrawerAdapter { archipelago, drawer: debug_drawer },
+    config,
   )
 }
 
@@ -262,7 +266,7 @@ impl<CS: CoordinateSystem> Plugin for LandmassDebugPlugin<CS> {
           .run_if(|enable: Res<EnableLandmassDebug>| enable.0),
       )
       .insert_gizmo_config(
-        LandmassGizmoConfigGroup,
+        LandmassGizmoConfigGroup::default(),
         GizmoConfig { depth_bias: -1.0, ..Default::default() },
       );
   }
@@ -286,8 +290,21 @@ impl std::ops::DerefMut for EnableLandmassDebug {
 }
 
 /// A config group for landmass debug gizmos.
-#[derive(Default, Reflect, GizmoConfigGroup)]
-pub struct LandmassGizmoConfigGroup;
+#[derive(
+  Reflect, GizmoConfigGroup, Debug, Clone, Copy, Eq, PartialEq, Hash,
+)]
+pub struct LandmassGizmoConfigGroup {
+  /// Whether to draw the namesh geometry or not.
+  ///
+  /// Default: `true`
+  pub navmesh: bool,
+}
+
+impl Default for LandmassGizmoConfigGroup {
+  fn default() -> Self {
+    Self { navmesh: true }
+  }
+}
 
 /// A gizmo debug drawer.
 struct GizmoDrawer<'w, 's, 'a, CS: CoordinateSystem>(
@@ -358,9 +375,10 @@ fn draw_archipelagos_default<CS: CoordinateSystem>(
   if time.delta_secs() == 0.0 {
     return;
   }
+  let config = *gizmos.config_ext;
   let mut drawer = GizmoDrawer(&mut gizmos, PhantomData::<CS>);
   for archipelago in archipelagos.iter() {
-    draw_archipelago_debug(archipelago, &mut drawer)
+    draw_archipelago_debug(archipelago, &mut drawer, config)
       .expect("the archipelago can be debug-drawn");
   }
 }

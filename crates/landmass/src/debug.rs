@@ -67,10 +67,25 @@ pub enum DebugDrawError {
   NavDataDirty,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct LandmassDebugDrawConfig {
+  /// Whether to draw the namesh geometry or not.
+  ///
+  /// Default: `true`
+  pub navmesh: bool,
+}
+
+impl Default for LandmassDebugDrawConfig {
+  fn default() -> Self {
+    Self { navmesh: true }
+  }
+}
+
 /// Draws all parts of `archipelago` to `debug_drawer`.
 pub fn draw_archipelago_debug<CS: CoordinateSystem>(
   archipelago: &Archipelago<CS>,
   debug_drawer: &mut impl DebugDrawer<CS>,
+  config: LandmassDebugDrawConfig,
 ) -> Result<(), DebugDrawError> {
   if archipelago.nav_data.dirty {
     return Err(DebugDrawError::NavDataDirty);
@@ -83,41 +98,43 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
     CS::from_landmass(&island.transform.apply(island.nav_mesh.vertices[index]))
   }
 
-  for island_id in archipelago.get_island_ids() {
-    let island = archipelago.get_island(island_id).unwrap();
-    assert!(
-      !island.dirty,
-      "Drawing an archipelago while things are dirty is unsafe! Update the archipelago first."
-    );
-    for (polygon_index, polygon) in island.nav_mesh.polygons.iter().enumerate()
-    {
-      let center_point = island.transform.apply(polygon.center);
-      for i in 0..polygon.vertices.len() {
-        let j = (i + 1) % polygon.vertices.len();
+  if config.navmesh {
+    for island_id in archipelago.get_island_ids() {
+      let island = archipelago.get_island(island_id).unwrap();
+      assert!(
+        !island.dirty,
+        "Drawing an archipelago while things are dirty is unsafe! Update the archipelago first."
+      );
+      for (polygon_index, polygon) in
+        island.nav_mesh.polygons.iter().enumerate()
+      {
+        let center_point = island.transform.apply(polygon.center);
+        for i in 0..polygon.vertices.len() {
+          let j = (i + 1) % polygon.vertices.len();
 
-        let i = polygon.vertices[i];
-        let j = polygon.vertices[j];
+          let i = polygon.vertices[i];
+          let j = polygon.vertices[j];
 
-        debug_drawer.add_triangle(
-          TriangleType::Node,
-          [
-            index_to_vertex(i, island),
-            index_to_vertex(j, island),
-            CS::from_landmass(&center_point),
-          ],
-        );
-      }
+          debug_drawer.add_triangle(
+            TriangleType::Node,
+            [
+              index_to_vertex(i, island),
+              index_to_vertex(j, island),
+              CS::from_landmass(&center_point),
+            ],
+          );
+        }
 
-      if let Some(height_mesh) = island.nav_mesh.height_mesh.as_ref() {
-        let height_polygon = &height_mesh.polygons[polygon_index];
-        let vertex_base = height_polygon.base_vertex_index;
+        if let Some(height_mesh) = island.nav_mesh.height_mesh.as_ref() {
+          let height_polygon = &height_mesh.polygons[polygon_index];
+          let vertex_base = height_polygon.base_vertex_index;
 
-        for triangle_index in height_polygon.base_triangle_index
-          ..(height_polygon.base_triangle_index + height_polygon.triangle_count)
-        {
-          let [a, b, c] = height_mesh.triangles[triangle_index as usize];
-          let triangle =
-            (
+          for triangle_index in height_polygon.base_triangle_index
+            ..(height_polygon.base_triangle_index
+              + height_polygon.triangle_count)
+          {
+            let [a, b, c] = height_mesh.triangles[triangle_index as usize];
+            let triangle = (
               CS::from_landmass(&island.get_transform().apply(
                 height_mesh.vertices[a as usize + vertex_base as usize],
               )),
@@ -128,71 +145,73 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
                 height_mesh.vertices[c as usize + vertex_base as usize],
               )),
             );
+            debug_drawer.add_line(
+              LineType::HeightEdge,
+              [triangle.0.clone(), triangle.1.clone()],
+            );
+            debug_drawer.add_line(
+              LineType::HeightEdge,
+              [triangle.1.clone(), triangle.2.clone()],
+            );
+            debug_drawer.add_line(
+              LineType::HeightEdge,
+              [triangle.2.clone(), triangle.0.clone()],
+            );
+          }
+        }
+
+        for (edge_index, connection) in polygon.connectivity.iter().enumerate()
+        {
+          let line_type = match connection.as_ref() {
+            None => LineType::BoundaryEdge,
+            Some(connection) => {
+              // Ignore connections where the connected polygon has a greater
+              // index. This prevents drawing the same edge multiple
+              // times by picking one of the edges to draw.
+              if polygon_index > connection.polygon_index {
+                continue;
+              }
+              LineType::ConnectivityEdge
+            }
+          };
+
+          let i = edge_index;
+          let j = (i + 1) % polygon.vertices.len();
+
+          let i = polygon.vertices[i];
+          let j = polygon.vertices[j];
+
           debug_drawer.add_line(
-            LineType::HeightEdge,
-            [triangle.0.clone(), triangle.1.clone()],
-          );
-          debug_drawer.add_line(
-            LineType::HeightEdge,
-            [triangle.1.clone(), triangle.2.clone()],
-          );
-          debug_drawer.add_line(
-            LineType::HeightEdge,
-            [triangle.2.clone(), triangle.0.clone()],
+            line_type,
+            [index_to_vertex(i, island), index_to_vertex(j, island)],
           );
         }
-      }
 
-      for (edge_index, connection) in polygon.connectivity.iter().enumerate() {
-        let line_type = match connection.as_ref() {
-          None => LineType::BoundaryEdge,
-          Some(connection) => {
-            // Ignore connections where the connected polygon has a greater
-            // index. This prevents drawing the same edge multiple
-            // times by picking one of the edges to draw.
-            if polygon_index > connection.polygon_index {
+        let node_ref = NodeRef { island_id, polygon_index };
+        if let Some(boundary_link_ids) =
+          archipelago.nav_data.node_to_boundary_link_ids.get(&node_ref)
+        {
+          for &boundary_link_id in boundary_link_ids.iter() {
+            let boundary_link = archipelago
+              .nav_data
+              .boundary_links
+              .get(boundary_link_id)
+              .expect("Boundary links are present.");
+            // Ignore links where the connected node has a greater node_ref.
+            // This prevents drawing the same link multiple times by
+            // picking one of the links to draw.
+            if node_ref > boundary_link.destination_node {
               continue;
             }
-            LineType::ConnectivityEdge
+
+            debug_drawer.add_line(
+              LineType::BoundaryLink,
+              [
+                CS::from_landmass(&boundary_link.portal.0),
+                CS::from_landmass(&boundary_link.portal.1),
+              ],
+            );
           }
-        };
-
-        let i = edge_index;
-        let j = (i + 1) % polygon.vertices.len();
-
-        let i = polygon.vertices[i];
-        let j = polygon.vertices[j];
-
-        debug_drawer.add_line(
-          line_type,
-          [index_to_vertex(i, island), index_to_vertex(j, island)],
-        );
-      }
-
-      let node_ref = NodeRef { island_id, polygon_index };
-      if let Some(boundary_link_ids) =
-        archipelago.nav_data.node_to_boundary_link_ids.get(&node_ref)
-      {
-        for &boundary_link_id in boundary_link_ids.iter() {
-          let boundary_link = archipelago
-            .nav_data
-            .boundary_links
-            .get(boundary_link_id)
-            .expect("Boundary links are present.");
-          // Ignore links where the connected node has a greater node_ref. This
-          // prevents drawing the same link multiple times by picking one of the
-          // links to draw.
-          if node_ref > boundary_link.destination_node {
-            continue;
-          }
-
-          debug_drawer.add_line(
-            LineType::BoundaryLink,
-            [
-              CS::from_landmass(&boundary_link.portal.0),
-              CS::from_landmass(&boundary_link.portal.1),
-            ],
-          );
         }
       }
     }
