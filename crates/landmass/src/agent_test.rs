@@ -116,6 +116,8 @@ fn has_reached_target_at_end_node() {
       portal_edge_index: vec![],
     }],
     boundary_link_segments: vec![],
+    start_point: Vec3::ZERO,
+    end_point: Vec3::ZERO,
   };
 
   let first_path_index = PathIndex::from_corridor_index(0, 0);
@@ -196,6 +198,8 @@ fn long_detour_reaches_target_in_different_ways() {
       portal_edge_index: vec![1, 2],
     }],
     boundary_link_segments: vec![],
+    start_point: Vec3::ZERO,
+    end_point: Vec3::ZERO,
   };
 
   {
@@ -375,8 +379,12 @@ fn nothing_or_clear_path_for_no_target() {
     RepathResult::DoNothing
   );
 
-  agent.current_path =
-    Some(Path { island_segments: vec![], boundary_link_segments: vec![] });
+  agent.current_path = Some(Path {
+    island_segments: vec![],
+    boundary_link_segments: vec![],
+    start_point: Vec3::ZERO,
+    end_point: Vec3::ZERO,
+  });
 
   assert_eq!(
     does_agent_need_repath(
@@ -463,6 +471,8 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
       portal_edge_index: vec![],
     }],
     boundary_link_segments: vec![],
+    start_point: Vec3::ZERO,
+    end_point: Vec3::ZERO,
   });
 
   // Invalidated island.

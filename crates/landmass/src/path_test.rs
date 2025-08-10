@@ -89,6 +89,8 @@ fn finds_next_point_for_organic_map() {
       portal_edge_index: vec![4, 2],
     }],
     boundary_link_segments: vec![],
+    start_point: transform.apply(Vec3::new(3.0, 1.5, 0.0)),
+    end_point: transform.apply(Vec3::new(2.5, 4.5, 0.5)),
   };
 
   assert_eq!(
@@ -96,15 +98,9 @@ fn finds_next_point_for_organic_map() {
       &path,
       &archipelago.nav_data,
       /* start= */
-      (
-        PathIndex::from_corridor_index(0, 0),
-        transform.apply(Vec3::new(3.0, 1.5, 0.0))
-      ),
+      (PathIndex::from_corridor_index(0, 0), path.start_point),
       /* end= */
-      (
-        PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.5, 4.5, 0.5))
-      ),
+      (PathIndex::from_corridor_index(0, 2), path.end_point),
       /* iteration_limit= */ 3,
     ),
     [
@@ -197,6 +193,8 @@ fn finds_next_point_in_zig_zag() {
       portal_edge_index: vec![2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
     }],
     boundary_link_segments: vec![],
+    start_point: transform.apply(Vec3::new(0.5, 0.5, 0.0)),
+    end_point: transform.apply(Vec3::new(-3.5, 14.0, 0.0)),
   };
 
   assert_eq!(
@@ -204,15 +202,9 @@ fn finds_next_point_in_zig_zag() {
       &path,
       &archipelago.nav_data,
       /* start= */
-      (
-        PathIndex::from_corridor_index(0, 0),
-        transform.apply(Vec3::new(0.5, 0.5, 0.0))
-      ),
+      (PathIndex::from_corridor_index(0, 0), path.start_point),
       /* end= */
-      (
-        PathIndex::from_corridor_index(0, 14),
-        transform.apply(Vec3::new(-3.5, 14.0, 0.0))
-      ),
+      (PathIndex::from_corridor_index(0, 14), path.end_point),
       /* iteration_limit= */ 5,
     ),
     [
@@ -273,6 +265,8 @@ fn starts_at_end_index_goes_to_end_point() {
       portal_edge_index: vec![2],
     }],
     boundary_link_segments: vec![],
+    start_point: Vec3::ZERO,
+    end_point: Vec3::ZERO,
   };
 
   assert_eq!(
@@ -326,6 +320,8 @@ fn path_not_valid_for_invalidated_islands_or_boundary_links() {
         boundary_link: boundary_link_id_2,
       },
     ],
+    start_point: Vec3::ZERO,
+    end_point: Vec3::ZERO,
   };
 
   assert!(path.is_valid(
@@ -400,6 +396,8 @@ fn indices_in_path_are_found() {
         boundary_link: boundary_link_id_2,
       },
     ],
+    start_point: Vec3::ZERO,
+    end_point: Vec3::ZERO,
   };
 
   assert_eq!(
@@ -476,6 +474,8 @@ fn indices_in_path_are_found_rev() {
         boundary_link: boundary_link_id_2,
       },
     ],
+    start_point: Vec3::ZERO,
+    end_point: Vec3::ZERO,
   };
 
   assert_eq!(
