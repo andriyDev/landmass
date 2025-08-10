@@ -339,7 +339,7 @@ pub struct LandmassGizmos {
   // triangles
   /// The color to use when drawing a node in a navmesh
   ///
-  /// If [`None`], waypoints are not drawn.
+  /// If [`None`], nodes are not drawn.
   pub node: Option<Color>,
 }
 
