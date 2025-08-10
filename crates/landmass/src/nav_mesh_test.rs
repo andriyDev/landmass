@@ -884,6 +884,170 @@ fn create_height_mesh<CS: CoordinateSystem>(
 }
 
 #[test]
+fn error_on_wrong_number_of_height_polygons() {
+  let source_mesh = NavigationMesh::<XYZ> {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+    ],
+    polygons: vec![vec![0, 1, 2]],
+    polygon_type_indices: vec![0],
+    height_mesh: Some(create_height_mesh(
+      vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 1.0, 0.0),
+        Vec3::new(0.0, 1.0, 0.0),
+      ],
+      vec![vec![vec![0, 1, 2]], vec![vec![2, 3, 0]]],
+    )),
+  };
+
+  let error =
+    source_mesh.clone().validate().expect_err("error should be detected.");
+  match error {
+    ValidationError::HeightMeshError(
+      ValidateHeightMeshError::IncorrectNumberOfPolygons(
+        normal_polygons,
+        height_polygons,
+      ),
+    ) => {
+      assert_eq!(normal_polygons, 1);
+      assert_eq!(height_polygons, 2);
+    }
+    _ => panic!(
+      "Wrong error variant! Expected IncorrectNumberOfPolygons but got: {:?}",
+      error
+    ),
+  };
+}
+
+#[test]
+fn error_on_invalid_height_polygon_index() {
+  let source_mesh = NavigationMesh::<XYZ> {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+    ],
+    polygons: vec![vec![0, 1, 2]],
+    polygon_type_indices: vec![0],
+    height_mesh: Some(HeightNavigationMesh {
+      vertices: vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 1.0, 0.0),
+      ],
+      triangles: vec![[0, 1, 2]],
+      polygons: vec![HeightPolygon {
+        base_vertex_index: 0,
+        vertex_count: 3,
+        base_triangle_index: 0,
+        triangle_count: 2,
+      }],
+    }),
+  };
+
+  let error =
+    source_mesh.clone().validate().expect_err("error should be detected.");
+  match error {
+    ValidationError::HeightMeshError(
+      ValidateHeightMeshError::InvalidPolygonIndices(index),
+    ) => assert_eq!(index, 0),
+    _ => panic!(
+      "Wrong error variant! Expected InvalidPolygonIndices but got: {:?}",
+      error
+    ),
+  };
+}
+
+#[test]
+fn error_on_invalid_index_in_triangle_for_out_of_bounds() {
+  let source_mesh = NavigationMesh::<XYZ> {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+    ],
+    polygons: vec![vec![0, 1, 2]],
+    polygon_type_indices: vec![0],
+    height_mesh: Some(HeightNavigationMesh {
+      vertices: vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 1.0, 0.0),
+      ],
+      triangles: vec![[0, 1, 2]],
+      polygons: vec![HeightPolygon {
+        base_vertex_index: 1,
+        vertex_count: 3,
+        base_triangle_index: 0,
+        triangle_count: 1,
+      }],
+    }),
+  };
+
+  let error =
+    source_mesh.clone().validate().expect_err("error should be detected.");
+  match error {
+    ValidationError::HeightMeshError(
+      ValidateHeightMeshError::InvalidIndexInTriangle { triangle, vertex },
+    ) => {
+      assert_eq!(triangle, 0);
+      assert_eq!(vertex, 3);
+    }
+    _ => panic!(
+      "Wrong error variant! Expected InvalidIndexInTriangle but got: {:?}",
+      error
+    ),
+  };
+}
+
+#[test]
+fn error_on_invalid_index_in_triangle_for_wrong_vertex_count() {
+  let source_mesh = NavigationMesh::<XYZ> {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+    ],
+    polygons: vec![vec![0, 1, 2]],
+    polygon_type_indices: vec![0],
+    height_mesh: Some(HeightNavigationMesh {
+      vertices: vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 1.0, 0.0),
+        Vec3::new(0.0, 1.0, 0.0),
+      ],
+      triangles: vec![[0, 1, 2], [2, 3, 0]],
+      polygons: vec![HeightPolygon {
+        base_vertex_index: 0,
+        vertex_count: 3,
+        base_triangle_index: 0,
+        triangle_count: 2,
+      }],
+    }),
+  };
+
+  let error =
+    source_mesh.clone().validate().expect_err("error should be detected.");
+  match error {
+    ValidationError::HeightMeshError(
+      ValidateHeightMeshError::InvalidIndexInTriangle { triangle, vertex },
+    ) => {
+      assert_eq!(triangle, 1);
+      assert_eq!(vertex, 3);
+    }
+    _ => panic!(
+      "Wrong error variant! Expected InvalidIndexInTriangle but got: {:?}",
+      error
+    ),
+  };
+}
+
+#[test]
 fn error_on_concave_height_polygon() {
   let source_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
