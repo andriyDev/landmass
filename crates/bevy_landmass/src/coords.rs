@@ -35,6 +35,8 @@ impl LandmassCoordinateSystem for ThreeD {
   type Coordinate = bevy_math::Vec3;
   type SampleDistance = PointSampleDistance3d;
 
+  const FLIP_POLYGONS: bool = true;
+
   fn to_landmass(v: &Self::Coordinate) -> landmass::Vec3 {
     landmass::Vec3::new(v.x, -v.z, v.y)
   }
@@ -69,6 +71,8 @@ pub struct TwoD;
 impl LandmassCoordinateSystem for TwoD {
   type Coordinate = bevy_math::Vec2;
   type SampleDistance = f32;
+
+  const FLIP_POLYGONS: bool = false;
 
   fn to_landmass(v: &Self::Coordinate) -> landmass::Vec3 {
     landmass::Vec3::new(v.x, v.y, 0.0)
