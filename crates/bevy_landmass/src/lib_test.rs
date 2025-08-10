@@ -47,7 +47,7 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
         Vec3::new(3.0, 0.0, 2.0),
         Vec3::new(1.0, 0.0, 2.0),
       ],
-      polygons: vec![vec![5, 4, 1, 0], vec![4, 3, 2, 1]],
+      polygons: vec![vec![0, 1, 4, 5], vec![1, 2, 3, 4]],
       polygon_type_indices: vec![0, 0],
       height_mesh: None,
     }
@@ -1244,8 +1244,8 @@ fn island_matches_rotation_3d() {
       vertices: vec![
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(1.0, 0.0, 0.0),
-        Vec3::new(1.0, 0.0, -1.0),
-        Vec3::new(0.0, 0.0, -1.0),
+        Vec3::new(1.0, 0.0, 1.0),
+        Vec3::new(0.0, 0.0, 1.0),
       ],
       polygons: vec![vec![0, 1, 2, 3]],
       polygon_type_indices: vec![0],
