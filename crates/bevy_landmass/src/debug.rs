@@ -1,4 +1,5 @@
 use std::{
+  iter,
   marker::PhantomData,
   ops::{Deref, DerefMut},
 };
@@ -334,6 +335,12 @@ pub struct LandmassGizmos {
   ///
   /// If [`None`], waypoints are not drawn.
   pub waypoint_line: Option<Color>,
+
+  // triangles
+  /// The color to use when drawing a node in a navmesh
+  ///
+  /// If [`None`], waypoints are not drawn.
+  pub node: Option<Color>,
 }
 
 impl Default for LandmassGizmos {
@@ -349,6 +356,7 @@ impl Default for LandmassGizmos {
       agent_corridor: Color::srgba(0.6, 0.0, 0.6, 0.6).into(),
       target_line: Color::srgba(1.0, 1.0, 0.0, 0.6).into(),
       waypoint_line: Color::srgba(0.6, 0.6, 0.6, 0.6).into(),
+      node: None,
     }
   }
 }
@@ -431,10 +439,20 @@ impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
 
   fn add_triangle(
     &mut self,
-    _triangle_type: TriangleType,
-    _triangle: [CS::Coordinate; 3],
+    triangle_type: TriangleType,
+    triangle: [CS::Coordinate; 3],
   ) {
-    // Bevy doesn't have a way to draw triangles :'(
+    let Some(color) = (match triangle_type {
+      TriangleType::Node => self.config_ext.node,
+    }) else {
+      return;
+    };
+    let tris = triangle
+      .clone()
+      .into_iter()
+      .chain(iter::once(triangle[0].clone()))
+      .map(|t| CS::to_world_position(&t));
+    self.linestrip(tris, color)
   }
 }
 
