@@ -379,7 +379,7 @@ impl<'w, 's, 'a, CS: CoordinateSystem> DerefMut
   for GizmoDrawer<'w, 's, 'a, CS>
 {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.0
+    self.0
   }
 }
 
