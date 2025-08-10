@@ -3,11 +3,11 @@ use std::collections::HashSet;
 use glam::Vec3;
 
 use crate::{
-  PointSampleDistance3d,
+  CoordinateSystem, PointSampleDistance3d,
   coords::XYZ,
   nav_mesh::{
     Connectivity, HeightNavigationMesh, HeightPolygon, MeshEdgeRef,
-    ValidPolygon,
+    ValidPolygon, ValidateHeightMeshError,
   },
   util::BoundingBox,
 };
@@ -136,6 +136,23 @@ fn error_on_wrong_type_indices_length() {
   };
 }
 
+struct FlippedXYZ;
+
+impl CoordinateSystem for FlippedXYZ {
+  type Coordinate = Vec3;
+  type SampleDistance = PointSampleDistance3d;
+
+  const FLIP_POLYGONS: bool = true;
+
+  fn from_landmass(v: &Vec3) -> Self::Coordinate {
+    *v
+  }
+
+  fn to_landmass(v: &Self::Coordinate) -> Vec3 {
+    *v
+  }
+}
+
 #[test]
 fn error_on_concave_polygon() {
   let source_mesh = NavigationMesh::<XYZ> {
@@ -160,6 +177,24 @@ fn error_on_concave_polygon() {
       error
     ),
   };
+}
+
+#[test]
+fn no_error_on_concave_polygon_with_flipped_coordinate_system() {
+  let source_mesh = NavigationMesh::<FlippedXYZ> {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+    ],
+    // This polygon is flipped from what it "should be", but the coordinate
+    // system does this for us!
+    polygons: vec![vec![0, 1, 2]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  };
+
+  source_mesh.clone().validate().unwrap();
 }
 
 #[test]
@@ -807,10 +842,10 @@ fn sample_filters_vertical_points_differently() {
 /// that are then triangulated. This allows us to match the number of regular
 /// polygons (using the outer most Vec), then create as many polygons as we want
 /// for that single regular polygon (the middle Vec).
-fn create_height_mesh(
-  vertices: Vec<Vec3>,
+fn create_height_mesh<CS: CoordinateSystem>(
+  vertices: Vec<CS::Coordinate>,
   polygons: Vec<Vec<Vec<usize>>>,
-) -> HeightNavigationMesh<XYZ> {
+) -> HeightNavigationMesh<CS> {
   let mut height_mesh = HeightNavigationMesh {
     vertices: vec![],
     polygons: vec![],
@@ -822,11 +857,11 @@ fn create_height_mesh(
 
     for subpolygon in polygon {
       let base_index = height_mesh.vertices.len() - base_vertex_index;
-      height_mesh.vertices.push(vertices[subpolygon[0]]);
-      height_mesh.vertices.push(vertices[subpolygon[1]]);
+      height_mesh.vertices.push(vertices[subpolygon[0]].clone());
+      height_mesh.vertices.push(vertices[subpolygon[1]].clone());
 
       for i in 2..subpolygon.len() {
-        height_mesh.vertices.push(vertices[subpolygon[i]]);
+        height_mesh.vertices.push(vertices[subpolygon[i]].clone());
 
         height_mesh.triangles.push([
           base_index as _,
@@ -846,6 +881,66 @@ fn create_height_mesh(
   }
 
   height_mesh
+}
+
+#[test]
+fn error_on_concave_height_polygon() {
+  let source_mesh = NavigationMesh::<XYZ> {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+    ],
+    polygons: vec![vec![0, 1, 2]],
+    polygon_type_indices: vec![0],
+    height_mesh: Some(create_height_mesh(
+      vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 1.0, 0.0),
+      ],
+      vec![vec![vec![2, 1, 0]]],
+    )),
+  };
+
+  let error = source_mesh
+    .clone()
+    .validate()
+    .expect_err("Concave polygon should be detected.");
+  match error {
+    ValidationError::HeightMeshError(
+      ValidateHeightMeshError::ClockwiseTriangle(triangle),
+    ) => assert_eq!(triangle, 0),
+    _ => panic!(
+      "Wrong error variant! Expected ConcavePolygon but got: {:?}",
+      error
+    ),
+  };
+}
+
+#[test]
+fn no_error_on_concave_height_polygon_with_flipped_coordinate_system() {
+  let source_mesh = NavigationMesh::<FlippedXYZ> {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+    ],
+    polygons: vec![vec![2, 1, 0]],
+    polygon_type_indices: vec![0],
+    height_mesh: Some(create_height_mesh(
+      vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 1.0, 0.0),
+      ],
+      // This polygon is flipped from what it "should be", but the coordinate
+      // system does this for us!
+      vec![vec![vec![2, 1, 0]]],
+    )),
+  };
+
+  source_mesh.clone().validate().unwrap();
 }
 
 #[test]
