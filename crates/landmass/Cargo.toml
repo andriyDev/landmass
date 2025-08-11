@@ -15,7 +15,7 @@ keywords = ["navigation", "system", "pathfinding", "avoidance"]
 
 [dependencies]
 dodgy_2d = "0.5.4"
-glam = "0.29.1"
+glam = "0.30.5"
 kdtree = "0.7.0"
 geo = "0.31.0"
 disjoint = "0.8.0"
