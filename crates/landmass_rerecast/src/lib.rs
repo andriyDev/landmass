@@ -239,7 +239,12 @@ fn update_navmesh_conversion(
 
         let landmass_mesh = match landmass_unvalidated_mesh.validate() {
           Ok(landmass_mesh) => landmass_mesh,
-          Err(err) => todo!(),
+          Err(err) => {
+            bevy_log::error!(
+              "Conversion from rerecast nav mesh to landmass nav mesh produced an invalid nav mesh: {err}"
+            );
+            continue;
+          }
         };
 
         landmass_assets.insert(
