@@ -1,0 +1,12 @@
+[package]
+name = "landmass_rerecast"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bevy_landmass = { version = "0.10", path = "../bevy_landmass" }
+
+bevy_app = { version = "0.16", default-features = false }
+bevy_rerecast_core = { version = "0.2", default-features = false, features = [
+    "bevy_asset",
+] }
