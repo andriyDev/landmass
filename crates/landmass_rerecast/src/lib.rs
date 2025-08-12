@@ -8,13 +8,15 @@ use bevy_ecs::{
   intern::Interned,
   resource::Resource,
   schedule::{IntoScheduleConfigs, ScheduleLabel, SystemSet},
-  system::ResMut,
+  system::{Res, ResMut, SystemParam},
 };
 use bevy_platform::collections::{HashMap, hash_map::Entry};
 use thiserror::Error;
 
 use bevy_landmass::{LandmassSystemSet, NavMesh3d as LandmassNavMesh};
 use bevy_rerecast_core::Navmesh as RerecastNavMesh;
+
+pub use bevy_rerecast_core::NavmeshSettings;
 
 pub struct LandmassRerecastPlugin {
   schedule: Interned<dyn ScheduleLabel>,
@@ -55,6 +57,71 @@ impl Plugin for LandmassRerecastPlugin {
 /// System set for systems converting between `landmass` and `rerecast`.
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 pub struct LandmassRerecastSystems;
+
+/// System param for generating navmeshes.
+///
+/// This mirrors [`bevy_rerecast_core::generator::NavmeshGenerator`].
+#[derive(SystemParam)]
+pub struct NavmeshGenerator<'w> {
+  /// The landmass meshes so we can reserve handles from it.
+  landmass_meshes: Res<'w, Assets<LandmassNavMesh>>,
+  /// The conversions from landmass meshes to rerecast meshes so we can add to
+  /// it.
+  conversion: ResMut<'w, NavMeshConversion>,
+  /// The rerecast generator so we can queue the actual nav mesh generation.
+  rerecast_generator: bevy_rerecast_core::generator::NavmeshGenerator<'w>,
+}
+
+impl NavmeshGenerator<'_> {
+  /// Queue a navmesh generation task.
+  ///
+  /// When you call this method, a new navmesh will be generated asynchronously.
+  /// Calling it multiple times will queue multiple navmeshes to be generated.
+  /// Obstacles existing this frame at [`PostUpdate`] will be used to generate
+  /// the navmesh.
+  pub fn generate(
+    &mut self,
+    settings: NavmeshSettings,
+  ) -> Handle<LandmassNavMesh> {
+    let landmass_handle = self.landmass_meshes.reserve_handle();
+    let rerecast_handle = self.rerecast_generator.generate(settings);
+
+    self
+      .conversion
+      .add_conversion(landmass_handle.id(), rerecast_handle)
+      .expect("Both handles are new, so they cannot be mapped");
+
+    landmass_handle
+  }
+
+  /// Queue a navmesh regeneration task.
+  ///
+  /// When you call this method, an existing navmesh will be regenerated
+  /// asynchronously. Calling it multiple times will have no effect until the
+  /// regeneration is complete. Obstacles existing this frame at [`PostUpdate`]
+  /// will be used to generate the navmesh.
+  ///
+  /// Returns `true` if the regeneration was successfully queued now, `false` if
+  /// it was already previously queued.
+  pub fn regenerate(
+    &mut self,
+    id: &Handle<LandmassNavMesh>,
+    settings: NavmeshSettings,
+  ) -> Result<bool, MissingConversionError> {
+    let Some(rerecast_id) = self.conversion.landmass_to_rerecast.get(&id.id())
+    else {
+      return Err(MissingConversionError(id.id()));
+    };
+
+    Ok(self.rerecast_generator.regenerate(rerecast_id, settings))
+  }
+}
+
+#[derive(Debug, Error, Clone, Copy)]
+#[error(
+  "Landmass nav mesh {0} does not have an existing conversion to a rerecast nav mesh. Use `generate` to create the conversion."
+)]
+pub struct MissingConversionError(pub AssetId<LandmassNavMesh>);
 
 /// A mapping of tracked conversions between landmass and rerecast nav meshes.
 #[derive(Resource)]
