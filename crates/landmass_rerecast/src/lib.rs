@@ -1,10 +1,20 @@
-use bevy_app::{Plugin, RunFixedMainLoop, RunFixedMainLoopSystem};
-use bevy_ecs::{
-  intern::Interned,
-  schedule::{IntoScheduleConfigs, ScheduleLabel, SystemSet},
-};
+use std::sync::Arc;
 
-use bevy_landmass::LandmassSystemSet;
+use bevy_app::{Plugin, RunFixedMainLoop, RunFixedMainLoopSystem};
+use bevy_asset::{AssetEvent, AssetId, Assets, Handle};
+use bevy_ecs::{
+  error::BevyError,
+  event::EventReader,
+  intern::Interned,
+  resource::Resource,
+  schedule::{IntoScheduleConfigs, ScheduleLabel, SystemSet},
+  system::ResMut,
+};
+use bevy_platform::collections::{HashMap, hash_map::Entry};
+use thiserror::Error;
+
+use bevy_landmass::{LandmassSystemSet, NavMesh3d as LandmassNavMesh};
+use bevy_rerecast_core::Navmesh as RerecastNavMesh;
 
 pub struct LandmassRerecastPlugin {
   schedule: Interned<dyn ScheduleLabel>,
@@ -34,9 +44,150 @@ impl Plugin for LandmassRerecastPlugin {
         .before(LandmassSystemSet::SyncExistence)
         .in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
     );
+
+    app.add_systems(
+      self.schedule,
+      update_navmesh_conversion.in_set(LandmassRerecastSystems),
+    );
   }
 }
 
 /// System set for systems converting between `landmass` and `rerecast`.
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 pub struct LandmassRerecastSystems;
+
+/// A mapping of tracked conversions between landmass and rerecast nav meshes.
+#[derive(Resource)]
+struct NavMeshConversion {
+  /// Maps from a landmass ID to the rerecast nav mesh handle. Note this keeps
+  /// the rerecast nav mesh alive for as long as the mapping exists.
+  landmass_to_rerecast:
+    HashMap<AssetId<LandmassNavMesh>, Handle<RerecastNavMesh>>,
+  /// Maps from a rerecast nav mesh handle back to the landmass ID. This
+  /// mapping is always the reverse mapping of [`Self::landmass_to_recast`].
+  rerecast_to_landmass:
+    HashMap<AssetId<RerecastNavMesh>, AssetId<LandmassNavMesh>>,
+}
+
+impl NavMeshConversion {
+  /// Add a new conversion between a rerecast mesh handle and a landmass asset
+  /// ID. The rerecast asset will now be tracked and will automatically update
+  /// the associated landmass asset.
+  fn add_conversion(
+    &mut self,
+    landmass: AssetId<LandmassNavMesh>,
+    rerecast: Handle<RerecastNavMesh>,
+  ) -> Result<(), AddConversionError> {
+    let landmass_to_rerecast_entry =
+      match self.landmass_to_rerecast.entry(landmass) {
+        Entry::Vacant(entry) => entry,
+        Entry::Occupied(entry) => {
+          return Err(AddConversionError::LandmassMapped(
+            landmass,
+            entry.get().id(),
+          ));
+        }
+      };
+    let rerecast_to_landmass_entry =
+      match self.rerecast_to_landmass.entry(rerecast.id()) {
+        Entry::Vacant(entry) => entry,
+        Entry::Occupied(entry) => {
+          return Err(AddConversionError::RerecastMapped(
+            rerecast.id(),
+            *entry.get(),
+          ));
+        }
+      };
+
+    landmass_to_rerecast_entry.insert(rerecast);
+    rerecast_to_landmass_entry.insert(landmass);
+    Ok(())
+  }
+
+  /// Removes the conversion between `landmass` and what it previously mapped
+  /// to. Does nothing if `landmass` is not converted.
+  fn remove_conversion(&mut self, landmass: AssetId<LandmassNavMesh>) {
+    let Some(rerecast) = self.landmass_to_rerecast.remove(&landmass) else {
+      // Silently do nothing if the landmass ID isn't mapped.
+      return;
+    };
+
+    self.rerecast_to_landmass.remove(&rerecast.id()).expect(
+      "The rerecast mapping exists since the landmass asset referenced it",
+    );
+  }
+}
+
+/// An error while adding a new conversion to [`NavMeshConversion`].
+#[derive(Debug, Error, Clone, Copy)]
+enum AddConversionError {
+  #[error(
+    "Landmass asset ID {0} is already mapped to another rerecast asset {1}"
+  )]
+  LandmassMapped(AssetId<LandmassNavMesh>, AssetId<RerecastNavMesh>),
+  #[error(
+    "Rerecast asset ID {0} is already mapped to another landmass asset {1}"
+  )]
+  RerecastMapped(AssetId<RerecastNavMesh>, AssetId<LandmassNavMesh>),
+}
+
+/// Updates the assets of landmass nav meshes based on the changes in their
+/// rerecast assets.
+fn update_navmesh_conversion(
+  mut conversion: ResMut<NavMeshConversion>,
+  mut landmass_assets: ResMut<Assets<LandmassNavMesh>>,
+  mut rerecast_assets: ResMut<Assets<RerecastNavMesh>>,
+  mut landmass_events: EventReader<AssetEvent<LandmassNavMesh>>,
+  mut rerecast_events: EventReader<AssetEvent<RerecastNavMesh>>,
+) -> Result<(), BevyError> {
+  for event in landmass_events.read() {
+    match event {
+      AssetEvent::Unused { id } => {
+        conversion.remove_conversion(*id);
+      }
+      _ => {}
+    }
+  }
+
+  for event in rerecast_events.read() {
+    match event {
+      AssetEvent::Added { id } | AssetEvent::Modified { id } => {
+        let Some(&landmass_id) = conversion.rerecast_to_landmass.get(id) else {
+          continue;
+        };
+
+        let Some(rerecast_asset) = rerecast_assets.remove(*id) else {
+          // This could fail if the asset was removed by the time we processed
+          // these events, or if an add and modify happened on the same frame.
+          continue;
+        };
+
+        let landmass_unvalidated_mesh = rerecast_to_landmass(&rerecast_asset);
+
+        let landmass_mesh = match landmass_unvalidated_mesh.validate() {
+          Ok(landmass_mesh) => landmass_mesh,
+          Err(err) => todo!(),
+        };
+
+        landmass_assets.insert(
+          landmass_id,
+          LandmassNavMesh {
+            nav_mesh: Arc::new(landmass_mesh),
+            // TODO: Figure out how to set this appropriately.
+            type_index_to_node_type: Default::default(),
+          },
+        );
+      }
+      _ => {}
+    }
+  }
+
+  Ok(())
+}
+
+/// Converts a [`RerecastNavMesh`] into a raw, unvalidated landmass nav mesh.
+fn rerecast_to_landmass(
+  rerecast_navmesh: &RerecastNavMesh,
+) -> bevy_landmass::NavigationMesh3d {
+  todo!()
+}
