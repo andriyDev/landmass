@@ -7,7 +7,10 @@ use bevy_ecs::{
   event::EventReader,
   intern::Interned,
   resource::Resource,
-  schedule::{IntoScheduleConfigs, ScheduleLabel, SystemSet},
+  schedule::{
+    Condition, IntoScheduleConfigs, ScheduleLabel, SystemSet,
+    common_conditions::on_event,
+  },
   system::{Res, ResMut, SystemParam},
 };
 use bevy_math::Vec3;
@@ -55,7 +58,12 @@ impl Plugin for LandmassRerecastPlugin {
 
     app.add_systems(
       self.schedule,
-      update_navmesh_conversion.in_set(LandmassRerecastSystems),
+      update_navmesh_conversion
+        .run_if(
+          on_event::<AssetEvent<LandmassNavMesh>>
+            .or(on_event::<AssetEvent<RerecastNavMesh>>),
+        )
+        .in_set(LandmassRerecastSystems),
     );
   }
 }
