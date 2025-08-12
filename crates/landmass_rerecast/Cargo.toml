@@ -11,6 +11,7 @@ thiserror = "2"
 bevy_app = { version = "0.16", default-features = false }
 bevy_asset = { version = "0.16", default-features = false }
 bevy_ecs = { version = "0.16", default-features = false }
+bevy_math = { version = "0.16", default-features = false }
 bevy_platform = { version = "0.16", default-features = false }
 
 bevy_rerecast_core = { version = "0.2", default-features = false, features = [
