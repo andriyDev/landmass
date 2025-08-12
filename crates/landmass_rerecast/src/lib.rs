@@ -16,7 +16,7 @@ use thiserror::Error;
 
 use bevy_landmass::{
   HeightNavigationMesh3d, HeightPolygon, LandmassSystemSet,
-  NavMesh3d as LandmassNavMesh, NavigationMesh3d,
+  NavMesh3d as LandmassNavMesh, NavigationMesh3d, NodeType,
 };
 use bevy_rerecast_core::{
   Navmesh as RerecastNavMesh, rerecast::PolygonNavmesh,
@@ -88,13 +88,18 @@ impl NavmeshGenerator<'_> {
   pub fn generate(
     &mut self,
     settings: NavmeshSettings,
+    type_index_to_node_type: HashMap<usize, NodeType>,
   ) -> Handle<LandmassNavMesh> {
     let landmass_handle = self.landmass_meshes.reserve_handle();
     let rerecast_handle = self.rerecast_generator.generate(settings);
 
     self
       .conversion
-      .add_conversion(landmass_handle.id(), rerecast_handle)
+      .add_conversion(
+        landmass_handle.id(),
+        rerecast_handle,
+        type_index_to_node_type,
+      )
       .expect("Both handles are new, so they cannot be mapped");
 
     landmass_handle
@@ -107,19 +112,32 @@ impl NavmeshGenerator<'_> {
   /// regeneration is complete. Obstacles existing this frame at [`PostUpdate`]
   /// will be used to generate the navmesh.
   ///
+  /// If `type_index_to_node_type` is [`Some`], the existing type index map will
+  /// be replaced. Otherwise, the existing type index map will be used for
+  /// regeneration.
+  ///
   /// Returns `true` if the regeneration was successfully queued now, `false` if
   /// it was already previously queued.
   pub fn regenerate(
     &mut self,
     id: &Handle<LandmassNavMesh>,
     settings: NavmeshSettings,
+    type_index_to_node_type: Option<HashMap<usize, NodeType>>,
   ) -> Result<bool, MissingConversionError> {
-    let Some(rerecast_id) = self.conversion.landmass_to_rerecast.get(&id.id())
+    let Some(rerecast_id) =
+      self.conversion.landmass_to_rerecast.get(&id.id()).cloned()
     else {
       return Err(MissingConversionError(id.id()));
     };
 
-    Ok(self.rerecast_generator.regenerate(rerecast_id, settings))
+    if let Some(type_index_to_node_type) = type_index_to_node_type {
+      self
+        .conversion
+        .landmass_to_type_index_map
+        .insert(id.id(), type_index_to_node_type);
+    }
+
+    Ok(self.rerecast_generator.regenerate(&rerecast_id, settings))
   }
 }
 
@@ -140,6 +158,11 @@ struct NavMeshConversion {
   /// mapping is always the reverse mapping of [`Self::landmass_to_recast`].
   rerecast_to_landmass:
     HashMap<AssetId<RerecastNavMesh>, AssetId<LandmassNavMesh>>,
+  /// Maps the landmass ID to the type index map that should be applied when
+  /// finalizing the landmass nav mesh. See
+  /// [`bevy_landmass::NavMesh::type_index_to_node_type`] for more.
+  landmass_to_type_index_map:
+    HashMap<AssetId<LandmassNavMesh>, HashMap<usize, NodeType>>,
 }
 
 impl NavMeshConversion {
@@ -150,6 +173,7 @@ impl NavMeshConversion {
     &mut self,
     landmass: AssetId<LandmassNavMesh>,
     rerecast: Handle<RerecastNavMesh>,
+    type_index_to_node_type: HashMap<usize, NodeType>,
   ) -> Result<(), AddConversionError> {
     let landmass_to_rerecast_entry =
       match self.landmass_to_rerecast.entry(landmass) {
@@ -174,6 +198,7 @@ impl NavMeshConversion {
 
     landmass_to_rerecast_entry.insert(rerecast);
     rerecast_to_landmass_entry.insert(landmass);
+    self.landmass_to_type_index_map.insert(landmass, type_index_to_node_type);
     Ok(())
   }
 
@@ -187,6 +212,10 @@ impl NavMeshConversion {
 
     self.rerecast_to_landmass.remove(&rerecast.id()).expect(
       "The rerecast mapping exists since the landmass asset referenced it",
+    );
+
+    self.landmass_to_type_index_map.remove(&landmass).expect(
+      "The type index map exists if the landmass asset was being converted",
     );
   }
 }
@@ -235,6 +264,8 @@ fn update_navmesh_conversion(
           continue;
         };
 
+        let type_index_map = conversion.landmass_to_type_index_map.get(&landmass_id).expect("the type index map should exist because we mapped the rerecast mesh to this landmass mesh");
+
         let landmass_unvalidated_mesh = rerecast_to_landmass(&rerecast_asset);
 
         let landmass_mesh = match landmass_unvalidated_mesh.validate() {
@@ -251,8 +282,14 @@ fn update_navmesh_conversion(
           landmass_id,
           LandmassNavMesh {
             nav_mesh: Arc::new(landmass_mesh),
-            // TODO: Figure out how to set this appropriately.
-            type_index_to_node_type: Default::default(),
+            type_index_to_node_type: type_index_map
+              .iter()
+              .map(|(&i, &n)| (i, n))
+              // landmass uses `std::collections::HashMap`, so we need to
+              // "manually clone". We could let type inference figure this out,
+              // but this will make it fail to compile if in the future we use
+              // bevy_platform HashMap for example.
+              .collect::<std::collections::HashMap<_, _>>(),
           },
         );
       }
