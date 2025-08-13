@@ -4,7 +4,7 @@ use glam::{Vec2, Vec3};
 
 use crate::{
   AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
-  NodeType, Transform,
+  Transform,
   coords::{XY, XYZ},
   nav_data::{NavigationData, NodeRef},
   nav_mesh::NavigationMesh,
@@ -20,7 +20,7 @@ fn find_path_between_nodes<CS: CoordinateSystem>(
   nav_data: &NavigationData<CS>,
   start_node: NodeRef,
   end_node: NodeRef,
-  override_node_type_to_cost: &HashMap<NodeType, f32>,
+  override_type_index_to_cost: &HashMap<usize, f32>,
 ) -> (Vec3, Vec3, PathResult) {
   let start_island = nav_data.get_island(start_node.island_id).unwrap();
   let start_point =
@@ -37,7 +37,7 @@ fn find_path_between_nodes<CS: CoordinateSystem>(
       start_point,
       end_node,
       end_point,
-      override_node_type_to_cost,
+      override_type_index_to_cost,
     ),
   )
 }
@@ -79,7 +79,6 @@ fn finds_path_in_archipelago() {
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::new(nav_mesh),
-    HashMap::new(),
   ));
 
   let nav_data = &archipelago.nav_data;
@@ -186,13 +185,11 @@ fn finds_paths_on_two_islands() {
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::clone(&nav_mesh),
-    HashMap::new(),
   ));
 
   let island_id_2 = archipelago.add_island(Island::new(
     Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * -0.5 },
     Arc::clone(&nav_mesh),
-    HashMap::new(),
   ));
 
   let nav_data = &archipelago.nav_data;
@@ -278,13 +275,11 @@ fn no_path_between_disconnected_islands() {
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::clone(&nav_mesh),
-    HashMap::new(),
   ));
 
   let island_id_2 = archipelago.add_island(Island::new(
     Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * -0.5 },
     Arc::clone(&nav_mesh),
-    HashMap::new(),
   ));
 
   let nav_data = &archipelago.nav_data;
@@ -338,28 +333,23 @@ fn find_path_across_connected_islands() {
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { rotation: 0.0, translation: Vec3::ZERO },
     Arc::clone(&nav_mesh),
-    HashMap::new(),
   ));
   let island_id_2 = archipelago.add_island(Island::new(
     Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 0.0) },
     Arc::clone(&nav_mesh),
-    HashMap::new(),
   ));
   // island_id_3 is unused.
   archipelago.add_island(Island::new(
     Transform { rotation: 0.0, translation: Vec3::new(1.0, -1.0, 0.0) },
     Arc::clone(&nav_mesh),
-    HashMap::new(),
   ));
   let island_id_4 = archipelago.add_island(Island::new(
     Transform { rotation: 0.0, translation: Vec3::new(1.0, 1.0, 0.0) },
     Arc::clone(&nav_mesh),
-    HashMap::new(),
   ));
   let island_id_5 = archipelago.add_island(Island::new(
     Transform { rotation: 0.0, translation: Vec3::new(1.0, 2.0, 0.0) },
     Arc::clone(&nav_mesh),
-    HashMap::new(),
   ));
 
   archipelago.update(1.0);
@@ -469,12 +459,10 @@ fn finds_path_across_different_islands() {
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { rotation: 0.0, translation: Vec3::ZERO },
     nav_mesh_1,
-    HashMap::new(),
   ));
   let island_id_2 = archipelago.add_island(Island::new(
     Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 0.0) },
     nav_mesh_2,
-    HashMap::new(),
   ));
 
   archipelago.update(1.0);
@@ -547,17 +535,14 @@ fn aborts_early_for_unconnected_regions() {
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     nav_mesh.clone(),
-    HashMap::new(),
   ));
   let island_id_2 = archipelago.add_island(Island::new(
     Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
-    HashMap::new(),
   ));
   let island_id_3 = archipelago.add_island(Island::new(
     Transform { translation: Vec3::new(1.5, 2.0, 0.0), rotation: PI * 0.5 },
     nav_mesh.clone(),
-    HashMap::new(),
   ));
 
   archipelago.update(1.0);
@@ -645,13 +630,10 @@ fn detour_for_high_cost_path() {
     .expect("nav mesh is valid"),
   );
 
-  let slow_node_type = archipelago.add_node_type(10.0).unwrap();
+  archipelago.set_type_index_cost(1, 10.0).unwrap();
 
-  let island_id = archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh,
-    HashMap::from([(1, slow_node_type)]),
-  ));
+  let island_id =
+    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
 
   let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
@@ -736,18 +718,12 @@ fn detour_for_high_cost_path_across_boundary_links() {
     .expect("nav mesh is valid"),
   );
 
-  let slow_node_type = archipelago.add_node_type(5.1).unwrap();
+  archipelago.set_type_index_cost(1, 5.1).unwrap();
 
-  let island_id_1 = archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh_1,
-    HashMap::new(),
-  ));
-  let island_id_2 = archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh_2,
-    HashMap::from([(1, slow_node_type)]),
-  ));
+  let island_id_1 =
+    archipelago.add_island(Island::new(Transform::default(), nav_mesh_1));
+  let island_id_2 =
+    archipelago.add_island(Island::new(Transform::default(), nav_mesh_2));
 
   archipelago.update(1.0);
 
@@ -840,14 +816,11 @@ fn fast_path_not_ignored_by_heuristic() {
     .expect("nav mesh is valid"),
   );
 
-  // This node type is faster than default.
-  let fast_type = archipelago.add_node_type(0.5).unwrap();
+  // This type index is faster than default.
+  archipelago.set_type_index_cost(1, 0.5).unwrap();
 
-  let island_id = archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh,
-    HashMap::from([(1, fast_type)]),
-  ));
+  let island_id =
+    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
 
   let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
@@ -897,13 +870,10 @@ fn infinite_or_nan_cost_cannot_find_path_between_nodes() {
     .expect("mesh is valid"),
   );
 
-  let node_type = archipelago.add_node_type(f32::INFINITY).unwrap();
+  archipelago.set_type_index_cost(1, f32::INFINITY).unwrap();
 
-  let island_id = archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh,
-    HashMap::from([(1, node_type)]),
-  ));
+  let island_id =
+    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
 
   let (_, _, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
@@ -915,7 +885,7 @@ fn infinite_or_nan_cost_cannot_find_path_between_nodes() {
   assert_eq!(path_result.path, None);
   assert_eq!(path_result.stats.explored_nodes, 1);
 
-  archipelago.set_node_type_cost(node_type, f32::NAN).unwrap();
+  archipelago.set_type_index_cost(1, f32::NAN).unwrap();
 
   let (_, _, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
@@ -980,19 +950,16 @@ fn detour_for_overridden_high_cost_path() {
     .expect("nav mesh is valid"),
   );
 
-  let slow_node_type = archipelago.add_node_type(1.0).unwrap();
+  archipelago.set_type_index_cost(1, 1.0).unwrap();
 
-  let island_id = archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh,
-    HashMap::from([(1, slow_node_type)]),
-  ));
+  let island_id =
+    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
 
   let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
     NodeRef { island_id, polygon_index: 0 },
     NodeRef { island_id, polygon_index: 6 },
-    &HashMap::from([(slow_node_type, 10.0)]),
+    &HashMap::from([(1, 10.0)]),
   );
 
   assert_eq!(
@@ -1071,11 +1038,8 @@ fn big_node_does_not_skew_pathing() {
     .expect("nav mesh is valid"),
   );
 
-  let island_id = archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh,
-    HashMap::default(),
-  ));
+  let island_id =
+    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
 
   let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
@@ -1164,11 +1128,8 @@ fn start_and_end_point_influences_path() {
   let start_point = Vec3::new(1.5, 0.5, 0.0);
   let end_point = Vec3::new(1.5, 2.5, 0.0);
 
-  let island_id = archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh,
-    HashMap::default(),
-  ));
+  let island_id =
+    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
 
   let path_result = find_path(
     &archipelago.nav_data,
