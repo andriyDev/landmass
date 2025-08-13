@@ -35,6 +35,16 @@
   - Note: counter-clockwise is defined as having a cross-product that points "up" (we love the
     right-hand rule!). If converting to `landmass` coordinates would result in a cross product
     pointing towards negative Z, you should enable flipping!
+- No more `type_index_to_node_type`!
+  - In previous versions, nav meshes stored a type index, but this type index needed to be
+    "translated" into an actual node type, which you could then assign a cost to. This was a lot of
+    steps! The more pressing concern was that it was difficult to apply that "translation" to the
+    node type when loading a nav mesh. Node types needed to be created on the archipelago itself,
+    and then when loading up a nav mesh, you would need to set the node type mappings on it (which
+    could be difficult from `bevy_landmass` for example).
+  - Now, node types are gone, and you can just set the cost of a type index! Note this means that
+    all your nav meshes must share the same meaning for each type index (e.g., 1 means road in every
+    nav mesh).
 - `bevy_landmass`: More configurable debug rendering.
   - While the `bevy_landmass` API allows you to create your own `DebugDrawer`, the default one is
     good enough for a **lot** of cases. To further expand its usefulness, we have replaced
@@ -58,6 +68,11 @@
 
 - `CoordinateSystem` now has a `const FLIP_POLYGONS: bool`. To maintain existing behaviour, set it
   to `false`.
+- `NodeType` has been removed. Replace it with the corresponding type indices. This could require
+  mutating any serialized nav meshes to ensure their type indices are "globally-unique" relative to
+  other nav meshes.
+- All node type functions (e.g., `add_node_type`, `get_node_type_cost`) have been replaced by
+  versions directly relevant to type indices.
 - `bevy_landmass`: The `ThreeD` coordinate system is now flipped! In previous versions, navigation
   meshes in 3D were expected to have clockwise-oriented polygons. Now, they are expected to be
   counter-clockwise oriented. This puts it in sync with every other coordinate system in `landmass`/
@@ -66,3 +81,4 @@
 - `bevy_landmass`: `LandmassGizmoConfigGroup` has been replaced by `LandmassGizmos`. If you were
   configuring the `LandmassGizmoConfigGroup`, replace it with `LandmassGizmos::default()` (since it
   is no longer a ZST).
+- `bevy_landmass`: `NavMesh` no longer contains a `type_index_to_node_type` field. Just remove it!
