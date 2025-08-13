@@ -8,8 +8,8 @@ use bevy_transform::{TransformPlugin, components::Transform};
 
 use crate::{
   Agent2dBundle, Agent3dBundle, AgentDesiredVelocity2d, AgentDesiredVelocity3d,
-  AgentNodeTypeCostOverrides, AgentOptions, AgentSettings, AgentState,
-  AgentTarget2d, AgentTarget3d, Archipelago2d, Archipelago3d, ArchipelagoRef2d,
+  AgentOptions, AgentSettings, AgentState, AgentTarget2d, AgentTarget3d,
+  AgentTypeIndexCostOverrides, Archipelago2d, Archipelago3d, ArchipelagoRef2d,
   ArchipelagoRef3d, Character3dBundle, CharacterSettings, FromAgentRadius,
   Island, Island2dBundle, Island3dBundle, Landmass2dPlugin, Landmass3dPlugin,
   NavMesh2d, NavMesh3d, NavMeshHandle, NavigationMesh, NavigationMesh3d,
@@ -71,10 +71,10 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
     },
   ));
 
-  app.world_mut().resource_mut::<Assets<NavMesh3d>>().insert(
-    &nav_mesh_handle,
-    NavMesh3d { nav_mesh, type_index_to_node_type: Default::default() },
-  );
+  app
+    .world_mut()
+    .resource_mut::<Assets<NavMesh3d>>()
+    .insert(&nav_mesh_handle, NavMesh3d { nav_mesh });
 
   let agent_id = app
     .world_mut()
@@ -386,7 +386,6 @@ fn adds_and_removes_islands() {
         .validate()
         .unwrap(),
       ),
-      type_index_to_node_type: HashMap::new(),
     });
 
   let island_id_1 = app
@@ -656,7 +655,7 @@ fn changing_character_fields_changes_landmass_character() {
 }
 
 #[test]
-fn node_type_costs_are_used() {
+fn type_index_costs_are_used() {
   let mut app = App::new();
 
   app
@@ -674,7 +673,7 @@ fn node_type_costs_are_used() {
 
   let mut archipelago =
     Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
-  let slow_node_type = archipelago.add_node_type(10.0).unwrap();
+  archipelago.set_type_index_cost(1, 10.0).unwrap();
 
   let archipelago_id = app.world_mut().spawn(archipelago).id();
 
@@ -737,13 +736,10 @@ fn node_type_costs_are_used() {
     nav_mesh: NavMeshHandle(nav_mesh_handle.clone()),
   });
 
-  app.world_mut().resource_mut::<Assets<NavMesh2d>>().insert(
-    &nav_mesh_handle,
-    NavMesh2d {
-      nav_mesh,
-      type_index_to_node_type: HashMap::from([(1, slow_node_type)]),
-    },
-  );
+  app
+    .world_mut()
+    .resource_mut::<Assets<NavMesh2d>>()
+    .insert(&nav_mesh_handle, NavMesh2d { nav_mesh });
 
   let agent_id = app
     .world_mut()
@@ -779,7 +775,7 @@ fn node_type_costs_are_used() {
 }
 
 #[test]
-fn overridden_node_type_costs_are_used() {
+fn overridden_type_index_costs_are_used() {
   let mut app = App::new();
 
   app
@@ -795,9 +791,7 @@ fn overridden_node_type_costs_are_used() {
   // Update early to allow the time to not be 0.0.
   app.update();
 
-  let mut archipelago =
-    Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
-  let slow_node_type = archipelago.add_node_type(1.0).unwrap();
+  let archipelago = Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
 
   let archipelago_id = app.world_mut().spawn(archipelago).id();
 
@@ -860,13 +854,10 @@ fn overridden_node_type_costs_are_used() {
     nav_mesh: NavMeshHandle(nav_mesh_handle.clone()),
   });
 
-  app.world_mut().resource_mut::<Assets<NavMesh2d>>().insert(
-    &nav_mesh_handle,
-    NavMesh2d {
-      nav_mesh,
-      type_index_to_node_type: HashMap::from([(1, slow_node_type)]),
-    },
-  );
+  app
+    .world_mut()
+    .resource_mut::<Assets<NavMesh2d>>()
+    .insert(&nav_mesh_handle, NavMesh2d { nav_mesh });
 
   let agent_id = app
     .world_mut()
@@ -883,8 +874,8 @@ fn overridden_node_type_costs_are_used() {
       },
       AgentTarget2d::Point(Vec2::new(0.5, 11.5)),
       {
-        let mut overrides = AgentNodeTypeCostOverrides::default();
-        overrides.set_node_type_cost(slow_node_type, 10.0);
+        let mut overrides = AgentTypeIndexCostOverrides::default();
+        overrides.set_type_index_cost(1, 10.0);
         overrides
       },
     ))
@@ -946,7 +937,7 @@ fn sample_point_error_on_out_of_range() {
   let nav_mesh_handle = app
     .world_mut()
     .resource_mut::<Assets<NavMesh2d>>()
-    .add(NavMesh2d { nav_mesh, type_index_to_node_type: HashMap::new() });
+    .add(NavMesh2d { nav_mesh });
 
   app.world_mut().spawn((Island2dBundle {
     island: Island,
@@ -1005,7 +996,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
   let nav_mesh_handle = app
     .world_mut()
     .resource_mut::<Assets<NavMesh2d>>()
-    .add(NavMesh2d { nav_mesh, type_index_to_node_type: HashMap::new() });
+    .add(NavMesh2d { nav_mesh });
 
   let offset = Vec2::new(10.0, 10.0);
   let island_id = app
@@ -1055,7 +1046,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
 }
 
 #[test]
-fn samples_node_types() {
+fn samples_type_indices() {
   let mut app = App::new();
 
   app
@@ -1071,9 +1062,7 @@ fn samples_node_types() {
   // Update early to allow the time to not be 0.0.
   app.update();
 
-  let mut archipelago =
-    Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
-  let node_type = archipelago.add_node_type(2.0).unwrap();
+  let archipelago = Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
   let archipelago_entity = app.world_mut().spawn(archipelago).id();
 
   let nav_mesh = Arc::new(
@@ -1093,11 +1082,10 @@ fn samples_node_types() {
     .validate()
     .expect("nav mesh is valid"),
   );
-  let nav_mesh_handle =
-    app.world_mut().resource_mut::<Assets<NavMesh2d>>().add(NavMesh2d {
-      nav_mesh,
-      type_index_to_node_type: HashMap::from([(1, node_type)]),
-    });
+  let nav_mesh_handle = app
+    .world_mut()
+    .resource_mut::<Assets<NavMesh2d>>()
+    .add(NavMesh2d { nav_mesh });
 
   let offset = Vec2::new(10.0, 10.0);
   app.world_mut().spawn((
@@ -1120,8 +1108,8 @@ fn samples_node_types() {
         /* point= */ offset + Vec2::new(0.5, 0.5),
         /* distance_to_node= */ &0.1
       )
-      .map(|p| p.node_type()),
-    Ok(None)
+      .map(|p| p.type_index()),
+    Ok(0)
   );
   assert_eq!(
     archipelago
@@ -1129,8 +1117,8 @@ fn samples_node_types() {
         /* point= */ offset + Vec2::new(1.5, 0.5),
         /* distance_to_node= */ &0.1
       )
-      .map(|p| p.node_type()),
-    Ok(Some(node_type))
+      .map(|p| p.type_index()),
+    Ok(1)
   );
 }
 
@@ -1175,7 +1163,7 @@ fn finds_path() {
   let nav_mesh = app
     .world_mut()
     .resource_mut::<Assets<NavMesh2d>>()
-    .add(NavMesh2d { nav_mesh, type_index_to_node_type: HashMap::new() });
+    .add(NavMesh2d { nav_mesh });
 
   app.world_mut().spawn((Island2dBundle {
     island: Island,
@@ -1258,7 +1246,7 @@ fn island_matches_rotation_3d() {
   let nav_mesh = app
     .world_mut()
     .resource_mut::<Assets<NavMesh3d>>()
-    .add(NavMesh3d { nav_mesh, type_index_to_node_type: HashMap::new() });
+    .add(NavMesh3d { nav_mesh });
 
   let island = app
     .world_mut()
@@ -1326,7 +1314,7 @@ fn island_matches_rotation_2d() {
   let nav_mesh = app
     .world_mut()
     .resource_mut::<Assets<NavMesh2d>>()
-    .add(NavMesh2d { nav_mesh, type_index_to_node_type: HashMap::new() });
+    .add(NavMesh2d { nav_mesh });
 
   let island = app
     .world_mut()

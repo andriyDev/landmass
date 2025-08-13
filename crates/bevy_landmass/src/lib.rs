@@ -23,9 +23,8 @@ mod landmass_structs;
 
 pub use landmass::{
   AgentOptions, FindPathError, FromAgentRadius, HeightNavigationMesh,
-  HeightPolygon, NavigationMesh, NewNodeTypeError, NodeType,
-  PointSampleDistance3d, SamplePointError, SetTypeIndexCostError,
-  ValidNavigationMesh, ValidationError,
+  HeightPolygon, NavigationMesh, PointSampleDistance3d, SamplePointError,
+  SetTypeIndexCostError, ValidNavigationMesh, ValidationError,
 };
 
 pub use agent::*;
@@ -211,39 +210,27 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     &mut self.archipelago.agent_options
   }
 
-  /// Creates a new node type with the specified `cost`. The cost is a
-  /// multiplier on the distance travelled along this node (essentially the cost
-  /// per meter). Agents will prefer to travel along low-cost terrain. The
-  /// returned node type is distinct from all other node types (for this
-  /// archipelago).
-  pub fn add_node_type(
+  /// Sets the cost of `type_index` to `cost`. The cost is a multiplier on the
+  /// distance travelled along this node (essentially the cost per meter).
+  /// Agents will prefer to travel along low-cost terrain.
+  pub fn set_type_index_cost(
     &mut self,
-    cost: f32,
-  ) -> Result<NodeType, NewNodeTypeError> {
-    self.archipelago.add_node_type(cost)
-  }
-
-  /// Sets the cost of `node_type` to `cost`. See
-  /// [`Archipelago::add_node_type`] for the meaning of cost.
-  pub fn set_node_type_cost(
-    &mut self,
-    node_type: NodeType,
+    type_index: usize,
     cost: f32,
   ) -> Result<(), SetTypeIndexCostError> {
-    self.archipelago.set_node_type_cost(node_type, cost)
+    self.archipelago.set_type_index_cost(type_index, cost)
   }
 
-  /// Gets the cost of `node_type`. Returns [`None`] if `node_type` is not in
-  /// this archipelago.
-  pub fn get_node_type_cost(&self, node_type: NodeType) -> Option<f32> {
-    self.archipelago.get_node_type_cost(node_type)
+  /// Gets the cost of `type_index`.
+  pub fn get_type_index_cost(&self, type_index: usize) -> Option<f32> {
+    self.archipelago.get_type_index_cost(type_index)
   }
 
-  /// Removes the node type from the archipelago. Returns false if this
-  /// archipelago does not contain `node_type` or any islands still use this
-  /// node type (so the node type cannot be removed). Otherwise, returns true.
-  pub fn remove_node_type(&mut self, node_type: NodeType) -> bool {
-    self.archipelago.remove_node_type(node_type)
+  /// Gets the current registered type indices and their costs.
+  pub fn get_type_index_costs(
+    &self,
+  ) -> impl Iterator<Item = (usize, f32)> + '_ {
+    self.archipelago.get_type_index_costs()
   }
 
   /// Finds the nearest point on the navigation meshes to (and within
@@ -273,12 +260,12 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     &self,
     start_point: &SampledPoint<'_, CS>,
     end_point: &SampledPoint<'_, CS>,
-    override_node_type_costs: &HashMap<NodeType, f32>,
+    override_type_index_costs: &HashMap<usize, f32>,
   ) -> Result<Vec<CS::Coordinate>, FindPathError> {
     self.archipelago.find_path(
       &start_point.sampled_point,
       &end_point.sampled_point,
-      override_node_type_costs,
+      override_type_index_costs,
     )
   }
 
@@ -403,11 +390,6 @@ pub type ValidNavigationMesh3d = ValidNavigationMesh<ThreeD>;
 pub struct NavMesh<CS: CoordinateSystem> {
   /// The nav mesh data.
   pub nav_mesh: Arc<ValidNavigationMesh<CS>>,
-  /// A map from the type indices used by [`Self::nav_mesh`] to the
-  /// [`NodeType`]s used in the [`crate::Archipelago`]. Type indices not
-  /// present in this map are implicitly assigned the "default" node type,
-  /// which always has a cost of 1.0.
-  pub type_index_to_node_type: HashMap<usize, NodeType>,
 }
 
 pub type NavMesh2d = NavMesh<TwoD>;
@@ -452,9 +434,8 @@ impl<CS: CoordinateSystem> SampledPoint<'_, CS> {
     self.island
   }
 
-  /// Gets the node type of the sampled point. Returns None if the node type
-  /// is the default node type.
-  pub fn node_type(&self) -> Option<NodeType> {
+  /// Gets the type index of the sampled point.
+  pub fn type_index(&self) -> usize {
     self.sampled_point.type_index()
   }
 }

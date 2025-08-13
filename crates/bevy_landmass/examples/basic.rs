@@ -1,16 +1,15 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use bevy::{
   color::palettes::css, input::common_conditions::input_just_pressed,
   prelude::*, render::mesh::Mesh2d,
 };
 use bevy_landmass::{
-  AgentNodeTypeCostOverrides, FromAgentRadius, NavMeshHandle,
+  AgentTypeIndexCostOverrides, FromAgentRadius, NavMeshHandle,
   debug::{EnableLandmassDebug, Landmass2dDebugPlugin},
   nav_mesh::bevy_mesh_to_landmass_nav_mesh,
   prelude::*,
 };
-use landmass::NodeType;
 
 fn main() {
   App::new()
@@ -33,7 +32,6 @@ struct ConvertMesh {
   mesh: Handle<Mesh>,
   nav_mesh: Handle<NavMesh2d>,
   slow_area: Rect,
-  slow_node_type: bevy_landmass::NodeType,
 }
 
 fn convert_mesh(
@@ -53,13 +51,7 @@ fn convert_mesh(
     let valid_nav_mesh = nav_mesh.validate().unwrap();
     nav_meshes.insert(
       &converter.nav_mesh,
-      NavMesh2d {
-        nav_mesh: Arc::new(valid_nav_mesh),
-        type_index_to_node_type: HashMap::from([(
-          1usize,
-          converter.slow_node_type,
-        )]),
-      },
+      NavMesh2d { nav_mesh: Arc::new(valid_nav_mesh) },
     );
     commands.entity(entity).remove::<ConvertMesh>();
   }
@@ -76,6 +68,8 @@ fn mark_slow_polygons(nav_mesh: &mut NavigationMesh2d, slow_area: Rect) {
     nav_mesh.polygon_type_indices[index] = 1;
   }
 }
+
+const SLOW_TYPE_INDEX: usize = 1;
 
 fn setup(
   mut commands: Commands,
@@ -122,7 +116,7 @@ fn setup(
 
   let mut archipelago =
     Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
-  let slow_node_type = archipelago.add_node_type(1000.0).unwrap();
+  archipelago.set_type_index_cost(SLOW_TYPE_INDEX, 1000.0).unwrap();
   let archipelago_entity = commands.spawn(archipelago).id();
 
   // Spawn the islands.
@@ -139,12 +133,7 @@ fn setup(
       island: Island,
       nav_mesh: NavMeshHandle(nav_mesh_1.clone()),
     },
-    ConvertMesh {
-      mesh: mesh_1,
-      nav_mesh: nav_mesh_1,
-      slow_node_type,
-      slow_area,
-    },
+    ConvertMesh { mesh: mesh_1, nav_mesh: nav_mesh_1, slow_area },
   ));
 
   let mesh_2: Handle<Mesh> = asset_server.load("nav_mesh.glb#Mesh1/Primitive0");
@@ -161,12 +150,7 @@ fn setup(
       island: Island,
       nav_mesh: NavMeshHandle(nav_mesh_2.clone()),
     },
-    ConvertMesh {
-      mesh: mesh_2,
-      nav_mesh: nav_mesh_2,
-      slow_node_type,
-      slow_area: Rect::EMPTY,
-    },
+    ConvertMesh { mesh: mesh_2, nav_mesh: nav_mesh_2, slow_area: Rect::EMPTY },
   ));
 
   // Spawn the target.
@@ -194,7 +178,6 @@ fn setup(
       color: css::BLUE_VIOLET.into(),
       ..Default::default()
     }),
-    slow_node_type,
   });
 }
 
@@ -205,7 +188,6 @@ struct AgentSpawner {
   archipelago_entity: Entity,
   target_entity: Entity,
   fast_material: Handle<ColorMaterial>,
-  slow_node_type: NodeType,
 }
 
 impl AgentSpawner {
@@ -232,9 +214,9 @@ impl AgentSpawner {
       commands.entity(entity).insert((
         MeshMaterial2d(self.fast_material.clone()),
         {
-          let mut node_cost_overrides = AgentNodeTypeCostOverrides::default();
+          let mut node_cost_overrides = AgentTypeIndexCostOverrides::default();
           assert!(
-            node_cost_overrides.set_node_type_cost(self.slow_node_type, 1.0)
+            node_cost_overrides.set_type_index_cost(SLOW_TYPE_INDEX, 1.0)
           );
           node_cost_overrides
         },

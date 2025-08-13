@@ -7,11 +7,11 @@ use bevy_ecs::{
 use bevy_platform::collections::HashMap;
 use bevy_transform::{components::Transform, helper::TransformHelper};
 
+use crate::ArchipelagoRef;
 use crate::{
   AgentState, Archipelago, TargetReachedCondition, Velocity,
   coords::{CoordinateSystem, ThreeD, TwoD},
 };
-use crate::{ArchipelagoRef, NodeType};
 
 /// A bundle to create agents. This omits the GlobalTransform component, since
 /// this is commonly added in other bundles (which is redundant and can override
@@ -58,30 +58,24 @@ pub struct AgentSettings {
 }
 
 #[derive(Component, Default, Debug)]
-pub struct AgentNodeTypeCostOverrides(HashMap<NodeType, f32>);
+pub struct AgentTypeIndexCostOverrides(HashMap<usize, f32>);
 
-impl Deref for AgentNodeTypeCostOverrides {
-  type Target = HashMap<NodeType, f32>;
+impl Deref for AgentTypeIndexCostOverrides {
+  type Target = HashMap<usize, f32>;
   fn deref(&self) -> &Self::Target {
     &self.0
   }
 }
 
-impl AgentNodeTypeCostOverrides {
-  /// Sets the node type cost for this agent to `cost`. Returns false if the
+impl AgentTypeIndexCostOverrides {
+  /// Sets the type index cost for this agent to `cost`. Returns false if the
   /// cost is <= 0.0. Otherwise returns true.
-  pub fn set_node_type_cost(&mut self, node_type: NodeType, cost: f32) -> bool {
+  pub fn set_type_index_cost(&mut self, type_index: usize, cost: f32) -> bool {
     if cost <= 0.0 {
       return false;
     }
-    self.0.insert(node_type, cost);
+    self.0.insert(type_index, cost);
     true
-  }
-
-  /// Removes the override cost for `node_type`. Returns true if `node_type` was
-  /// overridden, false otherwise.
-  pub fn remove_override(&mut self, node_type: NodeType) -> bool {
-    self.0.remove(&node_type).is_some()
   }
 }
 
@@ -257,7 +251,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
       Option<&Velocity<CS>>,
       Option<&AgentTarget<CS>>,
       Option<&TargetReachedCondition>,
-      Option<Ref<AgentNodeTypeCostOverrides>>,
+      Option<Ref<AgentTypeIndexCostOverrides>>,
       HasKeepAvoidanceData,
     ),
     With<Transform>,
@@ -272,7 +266,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
     velocity,
     target,
     target_reached_condition,
-    node_type_cost_overrides,
+    type_index_cost_overrides,
     keep_avoidance_data,
   ) in agent_query.iter()
   {
@@ -304,30 +298,30 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
       } else {
         landmass::TargetReachedCondition::Distance(None)
       };
-    match node_type_cost_overrides {
+    match type_index_cost_overrides {
       None => {
-        for (node_type, _) in
+        for (type_index, _) in
           landmass_agent.get_type_index_cost_overrides().collect::<Vec<_>>()
         {
-          landmass_agent.remove_overridden_node_type_cost(node_type);
+          landmass_agent.remove_overridden_type_index_cost(type_index);
         }
       }
-      Some(node_type_cost_overrides) => {
-        if !node_type_cost_overrides.is_changed() {
+      Some(type_index_cost_overrides) => {
+        if !type_index_cost_overrides.is_changed() {
           continue;
         }
 
-        for (node_type, _) in
+        for (type_index, _) in
           landmass_agent.get_type_index_cost_overrides().collect::<Vec<_>>()
         {
-          if node_type_cost_overrides.0.contains_key(&node_type) {
+          if type_index_cost_overrides.0.contains_key(&type_index) {
             continue;
           }
-          landmass_agent.remove_overridden_node_type_cost(node_type);
+          landmass_agent.remove_overridden_type_index_cost(type_index);
         }
 
-        for (&node_type, &cost) in node_type_cost_overrides.0.iter() {
-          assert!(landmass_agent.override_type_index_cost(node_type, cost));
+        for (&type_index, &cost) in type_index_cost_overrides.0.iter() {
+          assert!(landmass_agent.override_type_index_cost(type_index, cost));
         }
       }
     }
