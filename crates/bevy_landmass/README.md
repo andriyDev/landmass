@@ -9,12 +9,13 @@ A plugin for [Bevy](https://bevyengine.org) to allow using
 direction for characters using pathfinding.
 
 To use `bevy_landmass`:
-1) Add `LandmassPlugin` to your app.
-2) Spawn an entity with an `Archipelago` component.
-3) Spawn an entity with an `IslandBundle`, a `TransformBundle` (or any other
+
+1. Add `LandmassPlugin` to your app.
+2. Spawn an entity with an `Archipelago` component.
+3. Spawn an entity with an `IslandBundle`, a `TransformBundle` (or any other
    bundle which includes a `Transform` and `GlobalTransform`), and an
    `IslandNavMesh` component.
-4) Spawn entities with the `AgentBundle` and a `TransformBundle` (or any other
+4. Spawn entities with the `AgentBundle` and a `TransformBundle` (or any other
    bundle which includes a `Transform` and `GlobalTransform`).
 
 Note the `Archipelago` can be created later, even if the agents/islands already
@@ -59,7 +60,7 @@ fn set_up_scene(
         nav_mesh: NavMeshHandle(nav_mesh_handle.clone()),
       },
     ));
-  
+
   // The nav mesh can be populated in another system, or even several frames
   // later.
   let nav_mesh = Arc::new(NavigationMesh2d {
@@ -81,10 +82,7 @@ fn set_up_scene(
       polygon_type_indices: vec![0, 0, 0],
       height_mesh: None,
     }.validate().expect("is valid"));
-  nav_meshes.insert(&nav_mesh_handle, NavMesh2d{
-    nav_mesh,
-    type_index_to_node_type: Default::default(),
-  });
+  nav_meshes.insert(&nav_mesh_handle, NavMesh2d { nav_mesh });
 
   commands.spawn((
     Transform::from_translation(Vec3::new(1.5, 1.5, 0.0)),
@@ -120,8 +118,8 @@ fn quit(mut exit: EventWriter<AppExit>) {
 
 License under either of
 
-* Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
-* MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 

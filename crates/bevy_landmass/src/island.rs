@@ -81,7 +81,6 @@ pub(crate) fn sync_islands_to_archipelago<CS: CoordinateSystem>(
           archipelago.archipelago.add_island(landmass::Island::new(
             landmass_transform,
             island_nav_mesh.nav_mesh.clone(),
-            island_nav_mesh.type_index_to_node_type.clone(),
           ));
         archipelago.islands.insert(island_entity, island_id);
         archipelago.reverse_islands.insert(island_id, island_entity);
@@ -92,13 +91,6 @@ pub(crate) fn sync_islands_to_archipelago<CS: CoordinateSystem>(
         }
         if !Arc::ptr_eq(&island.get_nav_mesh(), &island_nav_mesh.nav_mesh) {
           island.set_nav_mesh(island_nav_mesh.nav_mesh.clone());
-        }
-        if island.get_type_index_to_node_type()
-          != &island_nav_mesh.type_index_to_node_type
-        {
-          island.set_type_index_to_node_type(
-            island_nav_mesh.type_index_to_node_type.clone(),
-          );
         }
       }
     };

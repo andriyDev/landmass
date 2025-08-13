@@ -108,7 +108,7 @@ fn draws_archipelago_debug() {
   let nav_mesh_handle = app
     .world_mut()
     .resource_mut::<Assets<NavMesh3d>>()
-    .add(NavMesh3d { nav_mesh, type_index_to_node_type: Default::default() });
+    .add(NavMesh3d { nav_mesh });
 
   app.world_mut().spawn((
     Transform::from_translation(Vec3::new(1.0, 1.0, 1.0)),
@@ -272,7 +272,7 @@ fn draws_avoidance_data_when_requested() {
   let nav_mesh_handle = app
     .world_mut()
     .resource_mut::<Assets<NavMesh3d>>()
-    .add(NavMesh3d { nav_mesh, type_index_to_node_type: Default::default() });
+    .add(NavMesh3d { nav_mesh });
 
   app.world_mut().spawn((Island3dBundle {
     island: Island,
