@@ -115,8 +115,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
   /// Sets the cost of `type_index` to `cost`. The cost is a multiplier on the
   /// distance travelled along this node (essentially the cost per meter).
-  /// Agents will prefer to travel along low-cost terrain. This node type is
-  /// distinct from all other node types.
+  /// Agents will prefer to travel along low-cost terrain.
   pub(crate) fn set_type_index_cost(
     &mut self,
     type_index: usize,
@@ -134,7 +133,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     self.type_index_to_cost.get(&type_index).copied()
   }
 
-  /// Gets the current node types and their costs.
+  /// Gets the current type indices and their costs.
   pub(crate) fn get_type_index_costs(
     &self,
   ) -> impl Iterator<Item = (usize, f32)> + '_ {

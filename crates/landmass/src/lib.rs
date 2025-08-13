@@ -174,8 +174,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
 
   /// Sets the cost of `type_index` to `cost`. The cost is a multiplier on the
   /// distance travelled along this node (essentially the cost per meter).
-  /// Agents will prefer to travel along low-cost terrain. This node type is
-  /// distinct from all other node types.
+  /// Agents will prefer to travel along low-cost terrain.
   pub fn set_type_index_cost(
     &mut self,
     type_index: usize,
@@ -189,7 +188,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     self.nav_data.get_type_index_cost(type_index)
   }
 
-  /// Gets the current node types and their costs.
+  /// Gets the current registered type indices and their costs.
   pub fn get_type_index_costs(
     &self,
   ) -> impl Iterator<Item = (usize, f32)> + '_ {
