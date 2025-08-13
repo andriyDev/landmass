@@ -6,7 +6,7 @@ use std::{
 use glam::Vec3;
 
 use crate::{
-  CoordinateSystem, Island, NavigationData, NodeType,
+  CoordinateSystem, NavigationData,
   astar::{self, AStarProblem, PathStats},
   nav_data::{BoundaryLinkId, NodeRef},
   nav_mesh::MeshEdgeRef,
@@ -30,8 +30,8 @@ struct ArchipelagoPathProblem<'a, CS: CoordinateSystem> {
   /// The cheapest node type cost in [`Self::nav_data`]. This is cached once
   /// since it is constant for the whole problem.
   cheapest_node_type_cost: f32,
-  /// Replacement costs for the `nav_data.node_type_to_cost`.
-  override_node_type_to_cost: &'a HashMap<NodeType, f32>,
+  /// Replacement costs for the `nav_data.type_index_to_cost`.
+  override_type_index_to_cost: &'a HashMap<usize, f32>,
 }
 
 /// An action taken in the path.
@@ -66,27 +66,10 @@ enum PathNode {
 }
 
 impl<CS: CoordinateSystem> ArchipelagoPathProblem<'_, CS> {
-  /// Determines the cost of the node type corresponding to `type_index` in
-  /// `island`.
-  fn type_index_to_cost(&self, island: &Island<CS>, type_index: usize) -> f32 {
-    self.node_type_to_cost(
-      island.type_index_to_node_type.get(&type_index).copied(),
-    )
-  }
-
-  /// Returns the cost associated with `node_type`. Returns 1.0 if the node_type
-  /// is unset.
-  fn node_type_to_cost(&self, node_type: Option<NodeType>) -> f32 {
-    let Some(node_type) = node_type else {
-      return 1.0;
-    };
-    self.override_node_type_to_cost.get(&node_type).copied().unwrap_or_else(
-      || {
-        self
-          .nav_data
-          .get_node_type_cost(node_type)
-          .expect("The node type is valid in the NavigationData.")
-      },
+  /// Determines the cost of `type_index`.
+  fn type_index_to_cost(&self, type_index: usize) -> f32 {
+    self.override_type_index_to_cost.get(&type_index).copied().unwrap_or_else(
+      || self.nav_data.get_type_index_cost(type_index).unwrap_or(1.0),
     )
   }
 }
@@ -152,7 +135,7 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
       .get(&node_ref)
       .map_or(Cow::Owned(HashSet::new()), Cow::Borrowed);
 
-    let current_node_cost = self.type_index_to_cost(island, polygon.type_index);
+    let current_node_cost = self.type_index_to_cost(polygon.type_index);
 
     if node_ref == self.end_node {
       let cost = point.distance(self.end_point) * current_node_cost;
@@ -174,7 +157,6 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
         }
 
         let target_node_cost = self.type_index_to_cost(
-          island,
           island.nav_mesh.polygons[conn.polygon_index].type_index,
         );
         if !target_node_cost.is_finite() {
@@ -208,7 +190,7 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
 
         let link = self.nav_data.boundary_links.get(*link_id).unwrap();
         let destination_node_cost =
-          self.node_type_to_cost(link.destination_node_type);
+          self.type_index_to_cost(link.destination_type_index);
         if !destination_node_cost.is_finite() {
           return None;
         }
@@ -258,17 +240,17 @@ pub(crate) struct PathResult {
   pub(crate) path: Option<Path>,
 }
 
-/// Finds a path in `nav_data` from `start_node` to `end_node`. Node costs are
-/// overriden with `override_node_type_to_cost`. Returns an `Err` if no path was
-/// found. `start_point` and `end_point` are assumed to be in the corresponding
-/// nodes, and in world space.
+/// Finds a path in `nav_data` from `start_node` to `end_node`. Type index costs
+/// are overriden with `override_type_index_to_cost`. Returns an `Err` if no
+/// path was found. `start_point` and `end_point` are assumed to be in the
+/// corresponding nodes, and in world space.
 pub(crate) fn find_path<CS: CoordinateSystem>(
   nav_data: &NavigationData<CS>,
   start_node: NodeRef,
   start_point: Vec3,
   end_node: NodeRef,
   end_point: Vec3,
-  override_node_type_to_cost: &HashMap<NodeType, f32>,
+  override_type_index_to_cost: &HashMap<usize, f32>,
 ) -> PathResult {
   if !nav_data.are_nodes_connected(start_node, end_node) {
     return PathResult { stats: PathStats { explored_nodes: 0 }, path: None };
@@ -281,13 +263,13 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
     start_point,
     end_point,
     cheapest_node_type_cost: *nav_data
-      .get_node_types()
-      .map(|(node_type, cost)| {
+      .get_type_index_costs()
+      .map(|(type_index, cost)| {
         (
-          node_type,
-          // Replace any node types with their overriden value, but only if it
-          // was overriden.
-          override_node_type_to_cost.get(&node_type).copied().unwrap_or(cost),
+          type_index,
+          // Replace any type indices with their overriden value, but only if
+          // it was overriden.
+          override_type_index_to_cost.get(&type_index).copied().unwrap_or(cost),
         )
       })
       .filter(|pair| pair.1.is_finite())
@@ -295,7 +277,7 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
       .chain(std::iter::once(FloatOrd(1.0)))
       .min()
       .unwrap(),
-    override_node_type_to_cost,
+    override_type_index_to_cost,
   };
 
   let path_result = astar::find_path(&path_problem);

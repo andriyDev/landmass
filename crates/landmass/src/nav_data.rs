@@ -26,9 +26,9 @@ use crate::{
 pub(crate) struct NavigationData<CS: CoordinateSystem> {
   /// The islands in the [`crate::Archipelago`].
   islands: HopSlotMap<IslandId, Island<CS>>,
-  /// The "default" cost of each node type. This also defines the node types
-  /// (excluding the `None` type which has an implicit cost of 0.0).
-  node_type_to_cost: HopSlotMap<NodeType, f32>,
+  /// The "default" cost of each type index. Missing type indices default to a
+  /// cost of 1.0.
+  type_index_to_cost: HashMap<usize, f32>,
   /// Whether the navigation data has been mutated since the last update.
   /// Reading should not occur unless the navigation data is not dirty.
   pub(crate) dirty: bool,
@@ -50,11 +50,6 @@ pub(crate) struct NavigationData<CS: CoordinateSystem> {
   pub(crate) deleted_islands: HashSet<IslandId>,
 }
 
-new_key_type! {
-  /// A unique type of node.
-  pub struct NodeType;
-}
-
 /// A reference to a node in the navigation data.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
 pub(crate) struct NodeRef {
@@ -74,10 +69,9 @@ new_key_type! {
 pub(crate) struct BoundaryLink {
   /// The node that taking this link leads to.
   pub(crate) destination_node: NodeRef,
-  /// The node type of the destination node. This is stored for convenience
-  /// since it is stable once the boundary link is created. [`None`] if the
-  /// destination node is the "default" node type.
-  pub(crate) destination_node_type: Option<NodeType>,
+  /// The type index of the destination node. This is stored for convenience
+  /// since it is stable once the boundary link is created.
+  pub(crate) destination_type_index: usize,
   /// The portal that this link occupies on the boundary of the source node.
   /// This is essentially the intersection of the linked islands' linkable
   /// edges. The portal is in world-space.
@@ -106,7 +100,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   pub(crate) fn new() -> Self {
     Self {
       islands: HopSlotMap::with_key(),
-      node_type_to_cost: HopSlotMap::with_key(),
+      type_index_to_cost: HashMap::new(),
       // The navigation data is empty, so there's nothing to update (so not
       // dirty).
       dirty: false,
@@ -119,74 +113,35 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     }
   }
 
-  /// Creates a new node type with the specified `cost`. The cost is a
-  /// multiplier on the distance travelled along this node (essentially the cost
-  /// per meter). Agents will prefer to travel along low-cost terrain. This node
-  /// type is distinct from all other node types.
-  pub(crate) fn add_node_type(
+  /// Sets the cost of `type_index` to `cost`. The cost is a multiplier on the
+  /// distance travelled along this node (essentially the cost per meter).
+  /// Agents will prefer to travel along low-cost terrain. This node type is
+  /// distinct from all other node types.
+  pub(crate) fn set_type_index_cost(
     &mut self,
+    type_index: usize,
     cost: f32,
-  ) -> Result<NodeType, NewNodeTypeError> {
+  ) -> Result<(), SetTypeIndexCostError> {
     if cost <= 0.0 {
-      return Err(NewNodeTypeError::NonPositiveCost(cost));
+      return Err(SetTypeIndexCostError::NonPositiveCost(cost));
     }
-    Ok(self.node_type_to_cost.insert(cost))
-  }
-
-  /// Sets the cost of `node_type` to `cost`. See
-  /// [`NavigationData::add_node_type`] for the meaning of cost.
-  pub(crate) fn set_node_type_cost(
-    &mut self,
-    node_type: NodeType,
-    cost: f32,
-  ) -> Result<(), SetNodeTypeCostError> {
-    if cost <= 0.0 {
-      return Err(SetNodeTypeCostError::NonPositiveCost(cost));
-    }
-    let Some(node_type_cost) = self.node_type_to_cost.get_mut(node_type) else {
-      return Err(SetNodeTypeCostError::NodeTypeDoesNotExist(node_type));
-    };
-    *node_type_cost = cost;
+    self.type_index_to_cost.insert(type_index, cost);
     Ok(())
   }
 
-  /// Gets the cost of `node_type`. Returns [`None`] if `node_type` is not in
-  /// this nav data.
-  pub(crate) fn get_node_type_cost(&self, node_type: NodeType) -> Option<f32> {
-    self.node_type_to_cost.get(node_type).copied()
-  }
-
-  /// Removes the node type from the navigation data. Returns false if any
-  /// islands still use this node type (so the node type cannot be removed).
-  /// Otherwise, returns true.
-  pub(crate) fn remove_node_type(&mut self, node_type: NodeType) -> bool {
-    if !self.node_type_to_cost.contains_key(node_type) {
-      return false;
-    }
-
-    for island in self.islands.values() {
-      for type_index in island.nav_mesh.used_type_indices.iter() {
-        let Some(island_node_type) =
-          island.type_index_to_node_type.get(type_index)
-        else {
-          continue;
-        };
-
-        if *island_node_type == node_type {
-          return false;
-        }
-      }
-    }
-
-    self.node_type_to_cost.remove(node_type);
-    true
+  /// Gets the cost of `type_index`.
+  pub(crate) fn get_type_index_cost(&self, type_index: usize) -> Option<f32> {
+    self.type_index_to_cost.get(&type_index).copied()
   }
 
   /// Gets the current node types and their costs.
-  pub(crate) fn get_node_types(
+  pub(crate) fn get_type_index_costs(
     &self,
-  ) -> impl Iterator<Item = (NodeType, f32)> + '_ {
-    self.node_type_to_cost.iter().map(|(node_type, &cost)| (node_type, cost))
+  ) -> impl Iterator<Item = (usize, f32)> + '_ {
+    self
+      .type_index_to_cost
+      .iter()
+      .map(|(&type_index, &cost)| (type_index, cost))
   }
 
   /// Adds a new island to the navigation data.
@@ -366,18 +321,6 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
     for &dirty_island_id in dirty_islands.iter() {
       let dirty_island = self.islands.get(dirty_island_id).unwrap();
-      // Check that all the island's node types are valid.
-      for type_index in dirty_island.nav_mesh.used_type_indices.iter() {
-        if let Some(&node_type) =
-          dirty_island.type_index_to_node_type.get(type_index)
-        {
-          assert!(
-            self.node_type_to_cost.contains_key(node_type),
-            "Island {dirty_island_id:?} uses node type {node_type:?} which is not in this navigation data."
-          );
-        }
-      }
-
       if dirty_island.nav_mesh.boundary_edges.is_empty() {
         continue;
       }
@@ -686,24 +629,13 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   }
 }
 
-/// An error for creating a new node type.
+/// An error for settings the cost of a type index.
 #[derive(Clone, Copy, PartialEq, Error, Debug)]
-pub enum NewNodeTypeError {
+pub enum SetTypeIndexCostError {
   #[error(
-    "The provided cost {0} is non-positive. Node costs must be positive."
+    "The provided cost {0} is non-positive. Type index costs must be positive."
   )]
   NonPositiveCost(f32),
-}
-
-/// An error for settings the cost of an existing node type.
-#[derive(Clone, Copy, PartialEq, Error, Debug)]
-pub enum SetNodeTypeCostError {
-  #[error(
-    "The provided cost {0} is non-positive. Node costs must be positive."
-  )]
-  NonPositiveCost(f32),
-  #[error("The node type {0:?} does not exist.")]
-  NodeTypeDoesNotExist(NodeType),
 }
 
 /// A mutable borrow to an island.
@@ -811,14 +743,9 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
         let polygon_2 =
           &island_2.nav_mesh.polygons[island_2_edge_ref.polygon_index];
 
-        let node_type_1 =
-          island_1.type_index_to_node_type.get(&polygon_1.type_index).copied();
-        let node_type_2 =
-          island_2.type_index_to_node_type.get(&polygon_2.type_index).copied();
-
         let id_1 = boundary_links.insert(BoundaryLink {
           destination_node: node_2,
-          destination_node_type: node_type_2,
+          destination_type_index: polygon_2.type_index,
           portal,
           // Set the reverse link to the default and we'll replace it with the
           // correct ID later.
@@ -826,7 +753,7 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
         });
         let id_2 = boundary_links.insert(BoundaryLink {
           destination_node: node_1,
-          destination_node_type: node_type_1,
+          destination_type_index: polygon_1.type_index,
           portal: (portal.1, portal.0),
           reverse_link: id_1,
         });

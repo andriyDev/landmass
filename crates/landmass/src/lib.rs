@@ -33,9 +33,7 @@ pub use coords::{
   PointSampleDistance3d, XY, XYZ,
 };
 pub use island::{Island, IslandId};
-pub use nav_data::{
-  IslandMut, NewNodeTypeError, NodeType, SetNodeTypeCostError,
-};
+pub use nav_data::{IslandMut, SetTypeIndexCostError};
 pub use nav_mesh::{
   HeightNavigationMesh, HeightPolygon, NavigationMesh, ValidNavigationMesh,
   ValidationError,
@@ -174,39 +172,28 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     self.nav_data.get_island_ids()
   }
 
-  /// Creates a new node type with the specified `cost`. The cost is a
-  /// multiplier on the distance travelled along this node (essentially the cost
-  /// per meter). Agents will prefer to travel along low-cost terrain. The
-  /// returned node type is distinct from all other node types (for this
-  /// archipelago).
-  pub fn add_node_type(
+  /// Sets the cost of `type_index` to `cost`. The cost is a multiplier on the
+  /// distance travelled along this node (essentially the cost per meter).
+  /// Agents will prefer to travel along low-cost terrain. This node type is
+  /// distinct from all other node types.
+  pub fn set_type_index_cost(
     &mut self,
+    type_index: usize,
     cost: f32,
-  ) -> Result<NodeType, NewNodeTypeError> {
-    self.nav_data.add_node_type(cost)
+  ) -> Result<(), SetTypeIndexCostError> {
+    self.nav_data.set_type_index_cost(type_index, cost)
   }
 
-  /// Sets the cost of `node_type` to `cost`. See
-  /// [`Archipelago::add_node_type`] for the meaning of cost.
-  pub fn set_node_type_cost(
-    &mut self,
-    node_type: NodeType,
-    cost: f32,
-  ) -> Result<(), SetNodeTypeCostError> {
-    self.nav_data.set_node_type_cost(node_type, cost)
+  /// Gets the cost of `type_index`.
+  pub fn get_type_index_cost(&self, type_index: usize) -> Option<f32> {
+    self.nav_data.get_type_index_cost(type_index)
   }
 
-  /// Gets the cost of `node_type`. Returns [`None`] if `node_type` is not in
-  /// this archipelago.
-  pub fn get_node_type_cost(&self, node_type: NodeType) -> Option<f32> {
-    self.nav_data.get_node_type_cost(node_type)
-  }
-
-  /// Removes the node type from the archipelago. Returns false if this
-  /// archipelago does not contain `node_type` or any islands still use this
-  /// node type (so the node type cannot be removed). Otherwise, returns true.
-  pub fn remove_node_type(&mut self, node_type: NodeType) -> bool {
-    self.nav_data.remove_node_type(node_type)
+  /// Gets the current node types and their costs.
+  pub fn get_type_index_costs(
+    &self,
+  ) -> impl Iterator<Item = (usize, f32)> + '_ {
+    self.nav_data.get_type_index_costs()
   }
 
   /// Gets the pathing results from the last [`Self::update`] call.
@@ -233,9 +220,9 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     &self,
     start_point: &SampledPoint<'_, CS>,
     end_point: &SampledPoint<'_, CS>,
-    override_node_type_costs: &HashMap<NodeType, f32>,
+    override_type_index_costs: &HashMap<usize, f32>,
   ) -> Result<Vec<CS::Coordinate>, FindPathError> {
-    query::find_path(self, start_point, end_point, override_node_type_costs)
+    query::find_path(self, start_point, end_point, override_type_index_costs)
   }
 
   pub fn update(&mut self, delta_time: f32) {
@@ -333,7 +320,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
             *agent_point,
             *target_node,
             *target_point,
-            &agent.override_node_type_to_cost,
+            &agent.override_type_index_to_cost,
           );
 
           self.pathing_results.push(PathingResult {

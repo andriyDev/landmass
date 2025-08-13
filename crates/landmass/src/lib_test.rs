@@ -746,7 +746,7 @@ fn agent_overrides_node_costs() {
       /* desired_speed= */ 1.0,
       /* max_speed= */ 1.0,
     );
-    assert!(agent.override_node_type_cost(node_type, 10.0));
+    assert!(agent.override_type_index_cost(node_type, 10.0));
     agent.current_target = Some(Vec2::new(0.5, 11.5));
     agent
   });

@@ -1,9 +1,9 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use slotmap::new_key_type;
 
 use crate::{
-  CoordinateSystem, NodeType, ValidNavigationMesh,
+  CoordinateSystem, ValidNavigationMesh,
   util::{BoundingBox, Transform},
 };
 
@@ -18,9 +18,6 @@ pub struct Island<CS: CoordinateSystem> {
   pub(crate) transform: Transform<CS>,
   /// The navigation mesh for the island.
   pub(crate) nav_mesh: Arc<ValidNavigationMesh<CS>>,
-  /// A map from the type indices used by [`Self::nav_mesh`] to the
-  /// [`NodeType`]s used in the [`crate::Archipelago`].
-  pub(crate) type_index_to_node_type: HashMap<usize, NodeType>,
 
   /// The bounds of `nav_mesh` after being transformed by `transform`.
   pub(crate) transformed_bounds: BoundingBox,
@@ -29,18 +26,15 @@ pub struct Island<CS: CoordinateSystem> {
 }
 
 impl<CS: CoordinateSystem> Island<CS> {
-  /// Creates a new island. For details on the `type_index_to_node_type`
-  /// argument, see [`Self::set_type_index_to_node_type`].
+  /// Creates a new island.
   pub fn new(
     transform: Transform<CS>,
     nav_mesh: Arc<ValidNavigationMesh<CS>>,
-    type_index_to_node_type: HashMap<usize, NodeType>,
   ) -> Self {
     Self {
       transformed_bounds: nav_mesh.get_bounds().transform(&transform),
       transform,
       nav_mesh,
-      type_index_to_node_type,
       dirty: true,
     }
   }
@@ -71,25 +65,5 @@ impl<CS: CoordinateSystem> Island<CS> {
 
     self.transformed_bounds =
       self.nav_mesh.get_bounds().transform(&self.transform);
-  }
-
-  /// Gets the current `type_index_to_node_type` used by the island.
-  pub fn get_type_index_to_node_type(&self) -> &HashMap<usize, NodeType> {
-    &self.type_index_to_node_type
-  }
-
-  /// Sets the "translation" from the type indices used in the navigation mesh
-  /// into [`NodeType`]s from the [`crate::Archipelago`]. Type indices without a
-  /// corresponding node type will be treated as the "default" node type, which
-  /// has a cost of 1.0. See [`crate::Archipelago::add_node_type`] for
-  /// details on cost. [`NodeType`]s not present in the corresponding
-  /// [`crate::Archipelago`] will cause a panic, so do not mix [`NodeType`]s
-  /// across [`crate::Archipelago`]s.
-  pub fn set_type_index_to_node_type(
-    &mut self,
-    type_index_to_node_type: HashMap<usize, NodeType>,
-  ) {
-    self.type_index_to_node_type = type_index_to_node_type;
-    self.dirty = true;
   }
 }
