@@ -30,11 +30,7 @@ fn error_on_dirty_nav_mesh() {
     .expect("nav mesh is valid"),
   );
 
-  archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh,
-    HashMap::new(),
-  ));
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
   assert_eq!(
     sample_point(
       &archipelago,
@@ -67,11 +63,7 @@ fn error_on_out_of_range() {
     .expect("nav mesh is valid"),
   );
 
-  archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh,
-    HashMap::new(),
-  ));
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
   archipelago.update(1.0);
 
   assert_eq!(
@@ -110,7 +102,6 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh,
-    HashMap::new(),
   ));
   archipelago.update(1.0);
 
@@ -148,9 +139,9 @@ fn samples_node_types() {
   let mut archipelago =
     Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
 
-  let node_type_1 = archipelago.add_node_type(1.0).unwrap();
-  let node_type_2 = archipelago.add_node_type(2.0).unwrap();
-  let node_type_3 = archipelago.add_node_type(3.0).unwrap();
+  archipelago.set_type_index_cost(1, 1.0).unwrap();
+  archipelago.set_type_index_cost(2, 2.0).unwrap();
+  archipelago.set_type_index_cost(3, 3.0).unwrap();
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -183,7 +174,6 @@ fn samples_node_types() {
   archipelago.add_island(Island::new(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh,
-    HashMap::from([(1, node_type_1), (2, node_type_2), (3, node_type_3)]),
   ));
   archipelago.update(1.0);
 
@@ -194,7 +184,7 @@ fn samples_node_types() {
       /* distance_to_node= */ &0.1
     )
     .map(|p| p.type_index()),
-    Ok(None)
+    Ok(0)
   );
   assert_eq!(
     sample_point(
@@ -203,7 +193,7 @@ fn samples_node_types() {
       /* distance_to_node= */ &0.1
     )
     .map(|p| p.type_index()),
-    Ok(Some(node_type_1))
+    Ok(1)
   );
   assert_eq!(
     sample_point(
@@ -212,7 +202,7 @@ fn samples_node_types() {
       /* distance_to_node= */ &0.1
     )
     .map(|p| p.type_index()),
-    Ok(Some(node_type_2))
+    Ok(2)
   );
   assert_eq!(
     sample_point(
@@ -221,7 +211,7 @@ fn samples_node_types() {
       /* distance_to_node= */ &0.1
     )
     .map(|p| p.type_index()),
-    Ok(Some(node_type_3))
+    Ok(3)
   );
 }
 
@@ -250,12 +240,10 @@ fn no_path() {
   archipelago.add_island(Island::new(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh.clone(),
-    HashMap::new(),
   ));
   archipelago.add_island(Island::new(
     Transform { translation: offset + Vec2::new(2.0, 0.0), rotation: 0.0 },
     nav_mesh,
-    HashMap::new(),
   ));
   archipelago.update(1.0);
 
@@ -296,17 +284,14 @@ fn finds_path() {
   archipelago.add_island(Island::new(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh.clone(),
-    HashMap::new(),
   ));
   archipelago.add_island(Island::new(
     Transform { translation: offset + Vec2::new(1.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
-    HashMap::new(),
   ));
   archipelago.add_island(Island::new(
     Transform { translation: offset + Vec2::new(2.0, 0.5), rotation: 0.0 },
     nav_mesh,
-    HashMap::new(),
   ));
   archipelago.update(1.0);
 
@@ -377,13 +362,7 @@ fn finds_path_with_override_node_types() {
     .expect("nav mesh is valid"),
   );
 
-  let node_type = archipelago.add_node_type(1.0).unwrap();
-
-  archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh,
-    HashMap::from([(1, node_type)]),
-  ));
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
 
   archipelago.update(1.0);
 
@@ -404,7 +383,7 @@ fn finds_path_with_override_node_types() {
     &archipelago,
     &start_point,
     &end_point,
-    &HashMap::from([(node_type, 10.0)]),
+    &HashMap::from([(1, 10.0)]),
   )
   .expect("Path found");
 
@@ -440,13 +419,7 @@ fn find_path_returns_error_on_invalid_node_cost() {
     .expect("nav mesh is valid"),
   );
 
-  let node_type = archipelago.add_node_type(1.0).unwrap();
-
-  archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh,
-    HashMap::from([(0, node_type)]),
-  ));
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
 
   archipelago.update(1.0);
 
@@ -462,18 +435,18 @@ fn find_path_returns_error_on_invalid_node_cost() {
       &archipelago,
       &start_point,
       &end_point,
-      &HashMap::from([(node_type, 0.0)]),
+      &HashMap::from([(0, 0.0)]),
     ),
-    Err(FindPathError::NonPositiveTypeIndexCost(node_type, 0.0))
+    Err(FindPathError::NonPositiveTypeIndexCost(0, 0.0))
   );
   assert_eq!(
     find_path(
       &archipelago,
       &start_point,
       &end_point,
-      &HashMap::from([(node_type, -0.5)]),
+      &HashMap::from([(0, -0.5)]),
     ),
-    Err(FindPathError::NonPositiveTypeIndexCost(node_type, -0.5))
+    Err(FindPathError::NonPositiveTypeIndexCost(0, -0.5))
   );
 }
 
@@ -498,11 +471,7 @@ fn start_and_end_in_same_node() {
     .expect("nav mesh is valid"),
   );
 
-  archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh,
-    HashMap::default(),
-  ));
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
 
   archipelago.update(1.0);
 

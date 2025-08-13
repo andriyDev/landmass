@@ -1,15 +1,11 @@
-use std::{
-  collections::{HashMap, HashSet},
-  f32::consts::PI,
-  sync::Arc,
-};
+use std::{collections::HashSet, f32::consts::PI, sync::Arc};
 
 use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
 
 use crate::{
   Agent, AgentOptions, Archipelago, FromAgentRadius, Island, IslandId,
-  NavigationMesh, NodeType, TargetReachedCondition, Transform,
+  NavigationMesh, TargetReachedCondition, Transform,
   agent::{RepathResult, does_agent_need_repath},
   coords::{XY, XYZ},
   nav_data::NodeRef,
@@ -17,12 +13,7 @@ use crate::{
 };
 
 #[test]
-fn overrides_node_type_costs() {
-  // Create a fake slotmap just to get the NodeTypes out of it.
-  let mut slotmap = HopSlotMap::<NodeType, _>::with_key();
-  let node_type_1 = slotmap.insert(0);
-  let node_type_2 = slotmap.insert(0);
-
+fn overrides_type_index_costs() {
   let mut agent = Agent::<XY>::create(
     /* position= */ Vec2::ZERO,
     /* velocity= */ Vec2::ZERO,
@@ -30,8 +21,8 @@ fn overrides_node_type_costs() {
     /* desired_speed= */ 1.0,
     /* max_speed= */ 1.0,
   );
-  assert!(agent.override_type_index_cost(node_type_1, 3.0));
-  assert!(agent.override_type_index_cost(node_type_2, 0.5));
+  assert!(agent.override_type_index_cost(1, 3.0));
+  assert!(agent.override_type_index_cost(2, 0.5));
 
   assert_eq!(
     {
@@ -39,10 +30,10 @@ fn overrides_node_type_costs() {
       vec.sort_by_key(|&(a, _)| a);
       vec
     },
-    [(node_type_1, 3.0), (node_type_2, 0.5)]
+    [(1, 3.0), (2, 0.5)]
   );
 
-  agent.override_type_index_cost(node_type_1, 5.0);
+  agent.override_type_index_cost(1, 5.0);
 
   assert_eq!(
     {
@@ -50,27 +41,12 @@ fn overrides_node_type_costs() {
       vec.sort_by_key(|&(a, _)| a);
       vec
     },
-    [(node_type_1, 5.0), (node_type_2, 0.5)]
-  );
-
-  agent.remove_overridden_node_type_cost(node_type_1);
-
-  assert_eq!(
-    {
-      let mut vec = agent.get_type_index_cost_overrides().collect::<Vec<_>>();
-      vec.sort_by_key(|&(a, _)| a);
-      vec
-    },
-    [(node_type_2, 0.5)]
+    [(1, 5.0), (2, 0.5)]
   );
 }
 
 #[test]
-fn negative_or_zero_node_type_cost_returns_false() {
-  // Create a fake slotmap just to get the NodeTypes out of it.
-  let mut slotmap = HopSlotMap::<NodeType, _>::with_key();
-  let node_type = slotmap.insert(0);
-
+fn negative_or_zero_type_index_cost_returns_false() {
   let mut agent = Agent::<XY>::create(
     /* position= */ Vec2::ZERO,
     /* velocity= */ Vec2::ZERO,
@@ -78,8 +54,8 @@ fn negative_or_zero_node_type_cost_returns_false() {
     /* desired_speed= */ 1.0,
     /* max_speed= */ 1.0,
   );
-  assert!(!agent.override_type_index_cost(node_type, 0.0));
-  assert!(!agent.override_type_index_cost(node_type, -0.5));
+  assert!(!agent.override_type_index_cost(0, 0.0));
+  assert!(!agent.override_type_index_cost(0, -0.5));
 }
 
 #[test]
@@ -96,11 +72,8 @@ fn has_reached_target_at_end_node() {
     Transform { translation: Vec3::new(2.0, 3.0, 4.0), rotation: PI * 0.85 };
   let mut archipelago =
     Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
-  let island_id = archipelago.add_island(Island::new(
-    transform.clone(),
-    Arc::new(nav_mesh),
-    HashMap::new(),
-  ));
+  let island_id =
+    archipelago.add_island(Island::new(transform.clone(), Arc::new(nav_mesh)));
   let mut agent = Agent::create(
     /* position= */ transform.apply(Vec3::new(1.0, 0.0, 1.0)),
     /* velocity= */ Vec3::ZERO,
@@ -177,11 +150,8 @@ fn long_detour_reaches_target_in_different_ways() {
     Transform { translation: Vec3::new(2.0, 4.0, 3.0), rotation: PI * -0.85 };
   let mut archipelago =
     Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
-  let island_id = archipelago.add_island(Island::new(
-    transform.clone(),
-    Arc::new(nav_mesh),
-    HashMap::new(),
-  ));
+  let island_id =
+    archipelago.add_island(Island::new(transform.clone(), Arc::new(nav_mesh)));
 
   let mut agent = Agent::create(
     /* position= */ Vec3::ZERO,

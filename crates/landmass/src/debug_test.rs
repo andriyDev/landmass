@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::HashMap, sync::Arc};
+use std::{cmp::Ordering, sync::Arc};
 
 use glam::Vec3;
 use googletest::{expect_that, matchers::unordered_elements_are};
@@ -103,7 +103,6 @@ fn draws_island_meshes_and_agents() {
   archipelago.add_island(Island::new(
     Transform { translation: TRANSLATION, rotation: 0.0 },
     Arc::new(nav_mesh),
-    HashMap::new(),
   ));
 
   let agent_id = archipelago.add_agent(Agent::create(
@@ -437,15 +436,10 @@ fn draws_boundary_links() {
 
   let mut archipelago =
     Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
-  archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh.clone(),
-    HashMap::new(),
-  ));
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
   archipelago.add_island(Island::new(
     Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
-    HashMap::new(),
   ));
 
   // Update so everything is in sync.
@@ -492,11 +486,8 @@ fn fails_to_draw_dirty_archipelago() {
   assert_eq!(draw_archipelago_debug(&archipelago, &mut fake_drawer), Ok(()));
 
   // Creating an island marks the nav data as dirty.
-  let island_id = archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh.clone(),
-    HashMap::new(),
-  ));
+  let island_id =
+    archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
   assert_eq!(
     draw_archipelago_debug(&archipelago, &mut fake_drawer),
     Err(DebugDrawError::NavDataDirty)
@@ -519,6 +510,7 @@ fn fails_to_draw_dirty_archipelago() {
 fn draws_avoidance_data_when_requested() {
   use glam::Vec2;
   use googletest::{matcher::MatcherResult, prelude::*};
+  use std::collections::HashMap;
 
   use crate::{
     AgentId,
@@ -549,11 +541,7 @@ fn draws_avoidance_data_when_requested() {
     obstacle_avoidance_time_horizon: 100.0,
     ..AgentOptions::from_agent_radius(0.5)
   });
-  archipelago.add_island(Island::new(
-    Transform::default(),
-    nav_mesh.clone(),
-    HashMap::new(),
-  ));
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
 
   let agent_1 = archipelago.add_agent({
     let mut agent = Agent::create(
