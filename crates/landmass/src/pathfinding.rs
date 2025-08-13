@@ -27,9 +27,9 @@ struct ArchipelagoPathProblem<'a, CS: CoordinateSystem> {
   end_node: NodeRef,
   /// The center of the end_node. This is just a cached point for easy access.
   end_point: Vec3,
-  /// The cheapest node type cost in [`Self::nav_data`]. This is cached once
+  /// The cheapest type index cost in [`Self::nav_data`]. This is cached once
   /// since it is constant for the whole problem.
-  cheapest_node_type_cost: f32,
+  cheapest_type_index_cost: f32,
   /// Replacement costs for the `nav_data.type_index_to_cost`.
   override_type_index_to_cost: &'a HashMap<usize, f32>,
 }
@@ -223,7 +223,7 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
         boundary_link.portal.0.midpoint(boundary_link.portal.1)
       }
     };
-    world_point.distance(self.end_point) * self.cheapest_node_type_cost
+    world_point.distance(self.end_point) * self.cheapest_type_index_cost
   }
 
   fn is_goal_state(&self, state: &Self::StateType) -> bool {
@@ -262,7 +262,7 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
     end_node,
     start_point,
     end_point,
-    cheapest_node_type_cost: *nav_data
+    cheapest_type_index_cost: *nav_data
       .get_type_index_costs()
       .map(|(type_index, cost)| {
         (

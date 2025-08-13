@@ -929,7 +929,7 @@ fn empty_navigation_mesh_is_safe() {
 }
 
 #[test]
-fn error_on_create_zero_or_negative_node_type() {
+fn error_on_set_zero_or_negative_type_index_cost() {
   let mut archipelago =
     Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
   assert_eq!(

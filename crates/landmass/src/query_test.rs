@@ -135,7 +135,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
 }
 
 #[test]
-fn samples_node_types() {
+fn samples_type_indices() {
   let mut archipelago =
     Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
 
@@ -312,7 +312,7 @@ fn finds_path() {
 }
 
 #[test]
-fn finds_path_with_override_node_types() {
+fn finds_path_with_override_type_index_costs() {
   let mut archipelago =
     Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
 
