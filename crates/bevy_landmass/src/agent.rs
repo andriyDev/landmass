@@ -307,7 +307,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
     match node_type_cost_overrides {
       None => {
         for (node_type, _) in
-          landmass_agent.get_node_type_cost_overrides().collect::<Vec<_>>()
+          landmass_agent.get_type_index_cost_overrides().collect::<Vec<_>>()
         {
           landmass_agent.remove_overridden_node_type_cost(node_type);
         }
@@ -318,7 +318,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
         }
 
         for (node_type, _) in
-          landmass_agent.get_node_type_cost_overrides().collect::<Vec<_>>()
+          landmass_agent.get_type_index_cost_overrides().collect::<Vec<_>>()
         {
           if node_type_cost_overrides.0.contains_key(&node_type) {
             continue;
@@ -327,7 +327,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
         }
 
         for (&node_type, &cost) in node_type_cost_overrides.0.iter() {
-          assert!(landmass_agent.override_node_type_cost(node_type, cost));
+          assert!(landmass_agent.override_type_index_cost(node_type, cost));
         }
       }
     }

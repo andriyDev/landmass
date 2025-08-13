@@ -193,7 +193,7 @@ fn samples_node_types() {
       /* point= */ offset + Vec2::new(0.5, 0.5),
       /* distance_to_node= */ &0.1
     )
-    .map(|p| p.node_type()),
+    .map(|p| p.type_index()),
     Ok(None)
   );
   assert_eq!(
@@ -202,7 +202,7 @@ fn samples_node_types() {
       /* point= */ offset + Vec2::new(1.5, 0.5),
       /* distance_to_node= */ &0.1
     )
-    .map(|p| p.node_type()),
+    .map(|p| p.type_index()),
     Ok(Some(node_type_1))
   );
   assert_eq!(
@@ -211,7 +211,7 @@ fn samples_node_types() {
       /* point= */ offset + Vec2::new(2.5, 0.5),
       /* distance_to_node= */ &0.1
     )
-    .map(|p| p.node_type()),
+    .map(|p| p.type_index()),
     Ok(Some(node_type_2))
   );
   assert_eq!(
@@ -220,7 +220,7 @@ fn samples_node_types() {
       /* point= */ offset + Vec2::new(3.5, 0.5),
       /* distance_to_node= */ &0.1
     )
-    .map(|p| p.node_type()),
+    .map(|p| p.type_index()),
     Ok(Some(node_type_3))
   );
 }
@@ -464,7 +464,7 @@ fn find_path_returns_error_on_invalid_node_cost() {
       &end_point,
       &HashMap::from([(node_type, 0.0)]),
     ),
-    Err(FindPathError::NonPositiveNodeTypeCost(node_type, 0.0))
+    Err(FindPathError::NonPositiveTypeIndexCost(node_type, 0.0))
   );
   assert_eq!(
     find_path(
@@ -473,7 +473,7 @@ fn find_path_returns_error_on_invalid_node_cost() {
       &end_point,
       &HashMap::from([(node_type, -0.5)]),
     ),
-    Err(FindPathError::NonPositiveNodeTypeCost(node_type, -0.5))
+    Err(FindPathError::NonPositiveTypeIndexCost(node_type, -0.5))
   );
 }
 

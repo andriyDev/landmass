@@ -24,7 +24,7 @@ mod landmass_structs;
 pub use landmass::{
   AgentOptions, FindPathError, FromAgentRadius, HeightNavigationMesh,
   HeightPolygon, NavigationMesh, NewNodeTypeError, NodeType,
-  PointSampleDistance3d, SamplePointError, SetNodeTypeCostError,
+  PointSampleDistance3d, SamplePointError, SetTypeIndexCostError,
   ValidNavigationMesh, ValidationError,
 };
 
@@ -229,7 +229,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     &mut self,
     node_type: NodeType,
     cost: f32,
-  ) -> Result<(), SetNodeTypeCostError> {
+  ) -> Result<(), SetTypeIndexCostError> {
     self.archipelago.set_node_type_cost(node_type, cost)
   }
 
@@ -455,7 +455,7 @@ impl<CS: CoordinateSystem> SampledPoint<'_, CS> {
   /// Gets the node type of the sampled point. Returns None if the node type
   /// is the default node type.
   pub fn node_type(&self) -> Option<NodeType> {
-    self.sampled_point.node_type()
+    self.sampled_point.type_index()
   }
 }
 

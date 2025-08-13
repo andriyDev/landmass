@@ -4,7 +4,7 @@ use glam::Vec3;
 use slotmap::new_key_type;
 
 use crate::{
-  CoordinateSystem, IslandId, NavigationData, NodeType,
+  CoordinateSystem, IslandId, NavigationData,
   nav_data::{BoundaryLinkId, NodeRef},
   path::{Path, PathIndex},
 };
@@ -58,8 +58,8 @@ pub struct Agent<CS: CoordinateSystem> {
   /// If true, avoidance debug data will be stored during update iterations.
   /// This can later be used for visualization.
   pub keep_avoidance_data: bool,
-  /// Overrides for the "default" costs of each [`NodeType`].
-  pub(crate) override_node_type_to_cost: HashMap<NodeType, f32>,
+  /// Overrides for the "default" costs of each type index.
+  pub(crate) override_type_index_to_cost: HashMap<usize, f32>,
   /// The current path of the agent. None if a path is unavailable or a new
   /// path has not been computed yet (i.e., no path).
   pub(crate) current_path: Option<Path>,
@@ -127,7 +127,7 @@ impl<CS: CoordinateSystem> Agent<CS> {
       target_reached_condition: TargetReachedCondition::Distance(None),
       #[cfg(feature = "debug-avoidance")]
       keep_avoidance_data: false,
-      override_node_type_to_cost: HashMap::new(),
+      override_type_index_to_cost: HashMap::new(),
       current_path: None,
       current_desired_move: CS::from_landmass(&Vec3::ZERO),
       state: AgentState::Idle,
@@ -136,37 +136,37 @@ impl<CS: CoordinateSystem> Agent<CS> {
     }
   }
 
-  /// Sets the node type cost for this agent to `cost`. Returns false if the
+  /// Sets the type index cost for this agent to `cost`. Returns false if the
   /// cost is <= 0.0. Otherwise returns true.
-  pub fn override_node_type_cost(
+  pub fn override_type_index_cost(
     &mut self,
-    node_type: NodeType,
+    type_index: usize,
     cost: f32,
   ) -> bool {
     if cost <= 0.0 {
       return false;
     }
-    self.override_node_type_to_cost.insert(node_type, cost);
+    self.override_type_index_to_cost.insert(type_index, cost);
     true
   }
 
-  /// Removes the override cost for `node_type`. Returns true if `node_type` was
-  /// overridden, false otherwise.
-  pub fn remove_overridden_node_type_cost(
+  /// Removes the override cost for `type_index`. Returns true if `type_index`
+  /// was overridden, false otherwise.
+  pub fn remove_overridden_type_index_cost(
     &mut self,
-    node_type: NodeType,
+    type_index: usize,
   ) -> bool {
-    self.override_node_type_to_cost.remove(&node_type).is_some()
+    self.override_type_index_to_cost.remove(&type_index).is_some()
   }
 
-  /// Returns the currently overriden node type costs.
-  pub fn get_node_type_cost_overrides(
+  /// Returns the currently overriden type index costs.
+  pub fn get_type_index_cost_overrides(
     &self,
-  ) -> impl Iterator<Item = (NodeType, f32)> + '_ {
+  ) -> impl Iterator<Item = (usize, f32)> + '_ {
     self
-      .override_node_type_to_cost
+      .override_type_index_to_cost
       .iter()
-      .map(|(&node_type, &cost)| (node_type, cost))
+      .map(|(&type_index, &cost)| (type_index, cost))
   }
 
   /// Returns the desired velocity. This will only be updated if `update` was

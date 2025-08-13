@@ -3,8 +3,8 @@ use std::{collections::HashMap, marker::PhantomData};
 use thiserror::Error;
 
 use crate::{
-  Archipelago, CoordinateSystem, IslandId, NodeType, nav_data::NodeRef,
-  path::PathIndex, pathfinding,
+  Archipelago, CoordinateSystem, IslandId, nav_data::NodeRef, path::PathIndex,
+  pathfinding,
 };
 
 /// A point on the navigation meshes.
@@ -13,8 +13,8 @@ pub struct SampledPoint<'archipelago, CS: CoordinateSystem> {
   point: CS::Coordinate,
   /// The node that the point is on.
   node_ref: NodeRef,
-  /// The node type for `node_ref`.
-  node_type: Option<NodeType>,
+  /// The type index for `node_ref`.
+  type_index: usize,
   /// Marker to prevent this object from out-living a borrow to the
   /// archipelago.
   marker: PhantomData<&'archipelago ()>,
@@ -26,7 +26,7 @@ impl<CS: CoordinateSystem> Clone for SampledPoint<'_, CS> {
     Self {
       point: self.point.clone(),
       node_ref: self.node_ref,
-      node_type: self.node_type,
+      type_index: self.type_index,
       marker: self.marker,
     }
   }
@@ -43,10 +43,9 @@ impl<CS: CoordinateSystem> SampledPoint<'_, CS> {
     self.node_ref.island_id
   }
 
-  /// Gets the node type the sampled point is on. Returns None if the node type
-  /// is the default node type.
-  pub fn node_type(&self) -> Option<NodeType> {
-    self.node_type
+  /// Gets the type index the sampled point is on.
+  pub fn type_index(&self) -> usize {
+    self.type_index
   }
 }
 
@@ -84,7 +83,7 @@ pub(crate) fn sample_point<'archipelago, CS: CoordinateSystem>(
   Ok(SampledPoint {
     point: CS::from_landmass(&point),
     node_ref,
-    node_type: island.type_index_to_node_type.get(&type_index).copied(),
+    type_index,
     marker: PhantomData,
   })
 }
@@ -92,8 +91,8 @@ pub(crate) fn sample_point<'archipelago, CS: CoordinateSystem>(
 /// An error from finding a path between two sampled points.
 #[derive(Clone, Copy, Debug, PartialEq, Error)]
 pub enum FindPathError {
-  #[error("The node type {0:?} had a cost of {1}, which is non-positive.")]
-  NonPositiveNodeTypeCost(NodeType, f32),
+  #[error("The type index {0:?} had a cost of {1}, which is non-positive.")]
+  NonPositiveTypeIndexCost(usize, f32),
   #[error("No path was found between the start and end points.")]
   NoPathFound,
 }
@@ -104,7 +103,7 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
   archipelago: &'a Archipelago<CS>,
   start_point: &SampledPoint<'a, CS>,
   end_point: &SampledPoint<'a, CS>,
-  override_node_type_costs: &HashMap<NodeType, f32>,
+  override_type_index_costs: &HashMap<usize, f32>,
 ) -> Result<Vec<CS::Coordinate>, FindPathError> {
   // This assert can actually be triggered. This can happen if a user samples
   // points from one archipelago, but finds a path in a **different**
@@ -117,9 +116,9 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
     "The navigation data has been mutated, but we have SampledPoints, so this should be impossible."
   );
 
-  for (node_type, cost) in override_node_type_costs.iter() {
+  for (type_index, cost) in override_type_index_costs.iter() {
     if *cost <= 0.0 {
-      return Err(FindPathError::NonPositiveNodeTypeCost(*node_type, *cost));
+      return Err(FindPathError::NonPositiveTypeIndexCost(*type_index, *cost));
     }
   }
 
@@ -129,7 +128,7 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
     CS::to_landmass(&start_point.point),
     end_point.node_ref,
     CS::to_landmass(&end_point.point),
-    override_node_type_costs,
+    override_type_index_costs,
   )
   .path
   else {

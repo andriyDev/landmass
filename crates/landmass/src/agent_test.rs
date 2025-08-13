@@ -30,23 +30,23 @@ fn overrides_node_type_costs() {
     /* desired_speed= */ 1.0,
     /* max_speed= */ 1.0,
   );
-  assert!(agent.override_node_type_cost(node_type_1, 3.0));
-  assert!(agent.override_node_type_cost(node_type_2, 0.5));
+  assert!(agent.override_type_index_cost(node_type_1, 3.0));
+  assert!(agent.override_type_index_cost(node_type_2, 0.5));
 
   assert_eq!(
     {
-      let mut vec = agent.get_node_type_cost_overrides().collect::<Vec<_>>();
+      let mut vec = agent.get_type_index_cost_overrides().collect::<Vec<_>>();
       vec.sort_by_key(|&(a, _)| a);
       vec
     },
     [(node_type_1, 3.0), (node_type_2, 0.5)]
   );
 
-  agent.override_node_type_cost(node_type_1, 5.0);
+  agent.override_type_index_cost(node_type_1, 5.0);
 
   assert_eq!(
     {
-      let mut vec = agent.get_node_type_cost_overrides().collect::<Vec<_>>();
+      let mut vec = agent.get_type_index_cost_overrides().collect::<Vec<_>>();
       vec.sort_by_key(|&(a, _)| a);
       vec
     },
@@ -57,7 +57,7 @@ fn overrides_node_type_costs() {
 
   assert_eq!(
     {
-      let mut vec = agent.get_node_type_cost_overrides().collect::<Vec<_>>();
+      let mut vec = agent.get_type_index_cost_overrides().collect::<Vec<_>>();
       vec.sort_by_key(|&(a, _)| a);
       vec
     },
@@ -78,8 +78,8 @@ fn negative_or_zero_node_type_cost_returns_false() {
     /* desired_speed= */ 1.0,
     /* max_speed= */ 1.0,
   );
-  assert!(!agent.override_node_type_cost(node_type, 0.0));
-  assert!(!agent.override_node_type_cost(node_type, -0.5));
+  assert!(!agent.override_type_index_cost(node_type, 0.0));
+  assert!(!agent.override_type_index_cost(node_type, -0.5));
 }
 
 #[test]
