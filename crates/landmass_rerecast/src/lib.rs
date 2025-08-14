@@ -6,6 +6,10 @@ use bevy_ecs::{
 
 use bevy_landmass::LandmassSystemSet;
 
+mod raw_conversion;
+
+pub use raw_conversion::convert_rerecast_navmesh_to_landmass_navmesh;
+
 pub struct LandmassRerecastPlugin {
   schedule: Interned<dyn ScheduleLabel>,
 }
