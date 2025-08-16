@@ -15,7 +15,9 @@ use bevy_rerecast_core::{
   RerecastPlugin,
   rerecast::{Aabb3d, AreaType, DetailNavmesh, PolygonNavmesh, SubMesh},
 };
-use googletest::{expect_false, expect_that, expect_true, matchers::*};
+use googletest::{
+  expect_eq, expect_false, expect_that, expect_true, matchers::*,
+};
 
 use crate::{LandmassRerecastPlugin, NavMeshHandle3d};
 
@@ -327,4 +329,41 @@ fn existing_rerecast_mesh_is_converted() {
       .is_some(),
     "landmass mesh is set"
   );
+}
+
+#[googletest::test]
+fn shared_rerecast_mesh_maps_to_same_handle() {
+  let mut app = App::new();
+  app
+    .add_plugins((
+      AssetPlugin::default(),
+      RerecastPlugin::default(),
+      LandmassRerecastPlugin::default(),
+    ))
+    .init_asset::<NavMesh3d>();
+
+  let rerecast_handle = app
+    .world_mut()
+    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .reserve_handle();
+
+  let entity_1 =
+    app.world_mut().spawn(NavMeshHandle3d(rerecast_handle.clone())).id();
+  let entity_2 = app.world_mut().spawn(NavMeshHandle3d(rerecast_handle)).id();
+
+  let landmass_handle_1 = app
+    .world()
+    .entity(entity_1)
+    .get::<bevy_landmass::NavMeshHandle3d>()
+    .unwrap()
+    .0
+    .clone();
+  let landmass_handle_2 = app
+    .world()
+    .entity(entity_2)
+    .get::<bevy_landmass::NavMeshHandle3d>()
+    .unwrap()
+    .0
+    .clone();
+  expect_eq!(landmass_handle_1, landmass_handle_2);
 }
