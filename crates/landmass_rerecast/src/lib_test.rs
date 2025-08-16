@@ -3,10 +3,12 @@ use bevy::{
   transform::{TransformPlugin, components::Transform},
 };
 use bevy_app::App;
-use bevy_asset::{AssetPlugin, Assets};
+use bevy_asset::{AssetApp, AssetEvent, AssetPlugin, Assets};
+use bevy_ecs::event::Events;
 use bevy_landmass::{
   Agent, Agent3dBundle, AgentOptions, AgentSettings, AgentState, AgentTarget3d,
   Archipelago3d, ArchipelagoRef, FromAgentRadius, Island, Landmass3dPlugin,
+  NavMesh3d,
 };
 use bevy_math::{U16Vec3, Vec3};
 use bevy_rerecast_core::{
@@ -17,12 +19,53 @@ use googletest::{expect_false, expect_that, expect_true, matchers::*};
 
 use crate::{LandmassRerecastPlugin, NavMeshHandle3d};
 
+/// Creates a rerecast nav mesh that is just a unit square.
+fn square_rerecast_nav_mesh() -> bevy_rerecast_core::Navmesh {
+  bevy_rerecast_core::Navmesh {
+    polygon: PolygonNavmesh {
+      aabb: Aabb3d { min: Vec3::ZERO, max: Vec3::ONE * 100.0 },
+      cell_size: 1.0,
+      cell_height: 1.0,
+      max_vertices_per_polygon: 4,
+      vertices: vec![
+        U16Vec3::new(0, 0, 0),
+        U16Vec3::new(1, 0, 0),
+        U16Vec3::new(1, 0, 1),
+        U16Vec3::new(0, 0, 1),
+      ],
+      polygons: vec![0, 1, 2, 3],
+      areas: vec![AreaType(0)],
+      polygon_neighbors: vec![],
+      regions: vec![],
+      border_size: 0,
+      flags: vec![],
+      max_edge_error: 0.0,
+    },
+    detail: DetailNavmesh {
+      vertices: vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 1.0),
+        Vec3::new(0.0, 0.0, 1.0),
+      ],
+      triangles: vec![[0, 1, 2], [2, 3, 0]],
+      meshes: vec![SubMesh {
+        base_vertex_index: 0,
+        vertex_count: 4,
+        base_triangle_index: 0,
+        triangle_count: 2,
+      }],
+      triangle_flags: vec![],
+    },
+    settings: Default::default(),
+  }
+}
+
 #[googletest::test]
 fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
-  let mut app = App::new();
-
   const DURATION: std::time::Duration = std::time::Duration::from_millis(10);
 
+  let mut app = App::new();
   app
     .add_plugins((
       TransformPlugin,
@@ -100,44 +143,7 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
     some(eq(&AgentState::AgentNotOnNavMesh))
   );
 
-  let rerecast_mesh = bevy_rerecast_core::Navmesh {
-    polygon: PolygonNavmesh {
-      aabb: Aabb3d { min: Vec3::ZERO, max: Vec3::ONE * 100.0 },
-      cell_size: 1.0,
-      cell_height: 1.0,
-      max_vertices_per_polygon: 4,
-      vertices: vec![
-        U16Vec3::new(0, 0, 0),
-        U16Vec3::new(1, 0, 0),
-        U16Vec3::new(1, 0, 1),
-        U16Vec3::new(0, 0, 1),
-      ],
-      polygons: vec![0, 1, 2, 3],
-      areas: vec![AreaType(0)],
-      polygon_neighbors: vec![],
-      regions: vec![],
-      border_size: 0,
-      flags: vec![],
-      max_edge_error: 0.0,
-    },
-    detail: DetailNavmesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(1.0, 0.0, 0.0),
-        Vec3::new(1.0, 0.0, 1.0),
-        Vec3::new(0.0, 0.0, 1.0),
-      ],
-      triangles: vec![[0, 1, 2], [2, 3, 0]],
-      meshes: vec![SubMesh {
-        base_vertex_index: 0,
-        vertex_count: 4,
-        base_triangle_index: 0,
-        triangle_count: 2,
-      }],
-      triangle_flags: vec![],
-    },
-    settings: Default::default(),
-  };
+  let rerecast_mesh = square_rerecast_nav_mesh();
   app
     .world_mut()
     .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
@@ -152,6 +158,15 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
       .world()
       .resource::<Assets<bevy_landmass::NavMesh3d>>()
       .get(&landmass_handle)
+      .is_some(),
+    "landmass mesh is set"
+  );
+  // The rerecast mesh was consumed (so we don't waste RAM).
+  expect_false!(
+    app
+      .world()
+      .resource::<Assets<bevy_rerecast_core::Navmesh>>()
+      .get(&rerecast_handle)
       .is_some(),
     "landmass mesh is set"
   );
@@ -233,10 +248,83 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
       .is_some(),
     "landmass mesh is set"
   );
+  // The rerecast mesh was consumed again.
+  expect_false!(
+    app
+      .world()
+      .resource::<Assets<bevy_rerecast_core::Navmesh>>()
+      .get(&rerecast_handle)
+      .is_some(),
+    "landmass mesh is set"
+  );
   // The agent is now on the mesh and its target is on the mesh, since the new
   // nav mesh is big enough.
   expect_that!(
     app.world().entity(agent).get::<AgentState>(),
     some(eq(&AgentState::Moving))
+  );
+}
+
+#[googletest::test]
+fn existing_rerecast_mesh_is_converted() {
+  let mut app = App::new();
+
+  app
+    .add_plugins((
+      AssetPlugin::default(),
+      RerecastPlugin::default(),
+      LandmassRerecastPlugin::default(),
+    ))
+    .init_asset::<NavMesh3d>();
+
+  let rerecast_mesh = square_rerecast_nav_mesh();
+  let rerecast_handle = app
+    .world_mut()
+    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .add(rerecast_mesh);
+
+  // Asset events are sent in PostUpdate, so we need two frames for landmass
+  // systems to see any new assets. In this case, nothing should happen, so just
+  // let the asset event go away.
+  app.update();
+  app.update();
+
+  // Clear out the asset events in the pipe so we are sure we're testing the
+  // case of handling an existing asset.
+  app
+    .world_mut()
+    .resource_mut::<Events<AssetEvent<bevy_rerecast_core::Navmesh>>>()
+    .clear();
+
+  let entity =
+    app.world_mut().spawn(NavMeshHandle3d(rerecast_handle.clone())).id();
+
+  let landmass_handle = app
+    .world()
+    .entity(entity)
+    .get::<bevy_landmass::NavMeshHandle3d>()
+    .expect("landmass handle should be added by the rerecast version")
+    .0
+    .clone();
+
+  app.update();
+
+  // We now have a landmass mesh!
+  expect_true!(
+    app
+      .world()
+      .resource::<Assets<bevy_landmass::NavMesh3d>>()
+      .get(&landmass_handle)
+      .is_some(),
+    "landmass mesh is set"
+  );
+  // The rerecast mesh was consumed (so we don't waste RAM).
+  expect_false!(
+    app
+      .world()
+      .resource::<Assets<bevy_rerecast_core::Navmesh>>()
+      .get(&rerecast_handle)
+      .is_some(),
+    "landmass mesh is set"
   );
 }
