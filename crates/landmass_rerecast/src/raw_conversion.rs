@@ -54,3 +54,7 @@ pub fn convert_rerecast_navmesh_to_landmass_navmesh(
     .into(),
   }
 }
+
+#[cfg(test)]
+#[path = "raw_conversion_test.rs"]
+mod test;
