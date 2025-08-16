@@ -258,3 +258,7 @@ fn convert_changed_rerecast_meshes_to_landmass(
     );
   }
 }
+
+#[cfg(test)]
+#[path = "lib_test.rs"]
+mod test;

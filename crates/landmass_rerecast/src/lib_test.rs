@@ -1,0 +1,242 @@
+use bevy::{
+  time::Time,
+  transform::{TransformPlugin, components::Transform},
+};
+use bevy_app::App;
+use bevy_asset::{AssetPlugin, Assets};
+use bevy_landmass::{
+  Agent, Agent3dBundle, AgentOptions, AgentSettings, AgentState, AgentTarget3d,
+  Archipelago3d, ArchipelagoRef, FromAgentRadius, Island, Landmass3dPlugin,
+};
+use bevy_math::{U16Vec3, Vec3};
+use bevy_rerecast_core::{
+  RerecastPlugin,
+  rerecast::{Aabb3d, AreaType, DetailNavmesh, PolygonNavmesh, SubMesh},
+};
+use googletest::{expect_false, expect_that, expect_true, matchers::*};
+
+use crate::{LandmassRerecastPlugin, NavMeshHandle3d};
+
+#[googletest::test]
+fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
+  let mut app = App::new();
+
+  const DURATION: std::time::Duration = std::time::Duration::from_millis(10);
+
+  app
+    .add_plugins((
+      TransformPlugin,
+      AssetPlugin::default(),
+      Landmass3dPlugin::default(),
+      RerecastPlugin::default(),
+      LandmassRerecastPlugin::default(),
+    ))
+    .insert_resource({
+      // Insert time and make sure its delta is positive.
+      let mut time = Time::new(std::time::Instant::now());
+      time.advance_by(DURATION);
+      time.as_generic()
+    });
+
+  let rerecast_handle = app
+    .world()
+    .resource::<Assets<bevy_rerecast_core::Navmesh>>()
+    .reserve_handle();
+
+  // Once the nav meshes are converted, we need to know whether the mesh is
+  // actually correct, so set up a situation that will show us that.
+  let archipelago = app
+    .world_mut()
+    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(1.0)))
+    .id();
+  let island = app
+    .world_mut()
+    .spawn(crate::Island3dBundle {
+      island: Island,
+      archipelago_ref: ArchipelagoRef::new(archipelago),
+      nav_mesh: NavMeshHandle3d(rerecast_handle.clone()),
+    })
+    .id();
+  let agent = app
+    .world_mut()
+    .spawn((
+      Agent3dBundle {
+        agent: Agent::default(),
+        archipelago_ref: ArchipelagoRef::new(archipelago),
+        settings: AgentSettings {
+          desired_speed: 1.0,
+          max_speed: 1.0,
+          radius: 1.0,
+        },
+      },
+      Transform::from_xyz(0.5, 0.0, 0.5),
+      AgentTarget3d::Point(Vec3::new(1.5, 0.0, 0.5)),
+    ))
+    .id();
+
+  let landmass_handle = app
+    .world()
+    .entity(island)
+    .get::<bevy_landmass::NavMeshHandle3d>()
+    .expect("landmass handle should be added by the rerecast version")
+    .0
+    .clone();
+
+  // Asset events are sent in PostUpdate, so we need two frames for landmass
+  // systems to see any new assets.
+  app.update();
+  app.update();
+
+  // The landmass mesh is still not populated.
+  expect_false!(
+    app
+      .world()
+      .resource::<Assets<bevy_landmass::NavMesh3d>>()
+      .contains(&landmass_handle)
+  );
+  // The agent is not on the nav mesh.
+  expect_that!(
+    app.world().entity(agent).get::<AgentState>(),
+    some(eq(&AgentState::AgentNotOnNavMesh))
+  );
+
+  let rerecast_mesh = bevy_rerecast_core::Navmesh {
+    polygon: PolygonNavmesh {
+      aabb: Aabb3d { min: Vec3::ZERO, max: Vec3::ONE * 100.0 },
+      cell_size: 1.0,
+      cell_height: 1.0,
+      max_vertices_per_polygon: 4,
+      vertices: vec![
+        U16Vec3::new(0, 0, 0),
+        U16Vec3::new(1, 0, 0),
+        U16Vec3::new(1, 0, 1),
+        U16Vec3::new(0, 0, 1),
+      ],
+      polygons: vec![0, 1, 2, 3],
+      areas: vec![AreaType(0)],
+      polygon_neighbors: vec![],
+      regions: vec![],
+      border_size: 0,
+      flags: vec![],
+      max_edge_error: 0.0,
+    },
+    detail: DetailNavmesh {
+      vertices: vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 1.0),
+        Vec3::new(0.0, 0.0, 1.0),
+      ],
+      triangles: vec![[0, 1, 2], [2, 3, 0]],
+      meshes: vec![SubMesh {
+        base_vertex_index: 0,
+        vertex_count: 4,
+        base_triangle_index: 0,
+        triangle_count: 2,
+      }],
+      triangle_flags: vec![],
+    },
+    settings: Default::default(),
+  };
+  app
+    .world_mut()
+    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .insert(&rerecast_handle, rerecast_mesh);
+
+  app.update();
+  app.update();
+
+  // We now have a landmass mesh!
+  expect_true!(
+    app
+      .world()
+      .resource::<Assets<bevy_landmass::NavMesh3d>>()
+      .get(&landmass_handle)
+      .is_some(),
+    "landmass mesh is set"
+  );
+  // The agent is now on the landmass mesh! But their target is still not on the
+  // nav mesh.
+  expect_that!(
+    app.world().entity(agent).get::<AgentState>(),
+    some(eq(&AgentState::TargetNotOnNavMesh))
+  );
+
+  // We now mutate the rerecast nav mesh. This should result in the nav mesh
+  // being modified.
+  let rerecast_mesh = bevy_rerecast_core::Navmesh {
+    polygon: PolygonNavmesh {
+      aabb: Aabb3d { min: Vec3::ZERO, max: Vec3::ONE * 100.0 },
+      cell_size: 1.0,
+      cell_height: 1.0,
+      max_vertices_per_polygon: 4,
+      vertices: vec![
+        U16Vec3::new(0, 0, 0),
+        U16Vec3::new(1, 0, 0),
+        U16Vec3::new(1, 0, 1),
+        U16Vec3::new(0, 0, 1),
+        U16Vec3::new(2, 0, 0),
+        U16Vec3::new(2, 0, 1),
+      ],
+      polygons: vec![0, 1, 2, 3, 2, 1, 4, 5],
+      areas: vec![AreaType(0), AreaType(0)],
+      polygon_neighbors: vec![],
+      regions: vec![],
+      border_size: 0,
+      flags: vec![],
+      max_edge_error: 0.0,
+    },
+    detail: DetailNavmesh {
+      vertices: vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 1.0),
+        Vec3::new(0.0, 0.0, 1.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(2.0, 0.0, 0.0),
+        Vec3::new(2.0, 0.0, 1.0),
+        Vec3::new(1.0, 0.0, 1.0),
+      ],
+      triangles: vec![[0, 1, 2], [2, 3, 0], [0, 1, 2], [2, 3, 0]],
+      meshes: vec![
+        SubMesh {
+          base_vertex_index: 0,
+          vertex_count: 4,
+          base_triangle_index: 0,
+          triangle_count: 2,
+        },
+        SubMesh {
+          base_vertex_index: 4,
+          vertex_count: 4,
+          base_triangle_index: 2,
+          triangle_count: 2,
+        },
+      ],
+      triangle_flags: vec![],
+    },
+    settings: Default::default(),
+  };
+  app
+    .world_mut()
+    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .insert(&rerecast_handle, rerecast_mesh);
+
+  app.update();
+  app.update();
+
+  // We still have a landmass mesh.
+  expect_true!(
+    app
+      .world()
+      .resource::<Assets<bevy_landmass::NavMesh3d>>()
+      .get(&landmass_handle)
+      .is_some(),
+    "landmass mesh is set"
+  );
+  // The agent is now on the mesh and its target is on the mesh, since the new
+  // nav mesh is big enough.
+  expect_that!(
+    app.world().entity(agent).get::<AgentState>(),
+    some(eq(&AgentState::Moving))
+  );
+}
