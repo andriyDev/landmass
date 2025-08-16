@@ -5,6 +5,7 @@ use bevy_asset::{
   AssetEvent, AssetHandleProvider, AssetId, Assets, Handle, StrongHandle,
 };
 use bevy_ecs::{
+  bundle::Bundle,
   component::{Component, HookContext},
   event::{Event, EventReader},
   intern::Interned,
@@ -16,7 +17,7 @@ use bevy_ecs::{
   system::{Res, ResMut},
   world::DeferredWorld,
 };
-use bevy_landmass::LandmassSystemSet;
+use bevy_landmass::{ArchipelagoRef3d, Island, LandmassSystemSet};
 use bevy_platform::collections::{HashMap, HashSet, hash_map::Entry};
 
 mod raw_conversion;
@@ -66,6 +67,18 @@ impl Plugin for LandmassRerecastPlugin {
 /// System set for systems converting between `landmass` and `rerecast`.
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 pub struct LandmassRerecastSystems;
+
+/// A replacement for [`bevy_landmass::Island3dBundle`] that uses a rerecast
+/// mesh instead.
+#[derive(Bundle)]
+pub struct Island3dBundle {
+  /// An island marker component.
+  pub island: Island,
+  /// A reference pointing to the Archipelago to associate this entity with.
+  pub archipelago_ref: ArchipelagoRef3d,
+  /// A handle to the nav mesh that this island needs.
+  pub nav_mesh: NavMeshHandle3d,
+}
 
 /// A replacement for [`bevy_landmass::NavMeshHandle3d`] that stores a
 /// [`bevy_rerecast_core::Navmesh`] handle.
