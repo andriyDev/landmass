@@ -18,4 +18,5 @@ bevy_rerecast_core = { version = "0.2", default-features = false, features = [
 ] }
 
 [dev-dependencies]
+bevy = "0.16"
 googletest = "0.14.2"
