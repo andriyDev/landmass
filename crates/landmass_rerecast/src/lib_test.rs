@@ -367,3 +367,66 @@ fn shared_rerecast_mesh_maps_to_same_handle() {
     .clone();
   expect_eq!(landmass_handle_1, landmass_handle_2);
 }
+
+#[googletest::test]
+fn added_then_removed_mesh_does_not_convert() {
+  let mut app = App::new();
+
+  app
+    .add_plugins((
+      AssetPlugin::default(),
+      RerecastPlugin::default(),
+      LandmassRerecastPlugin::default(),
+    ))
+    .init_asset::<NavMesh3d>();
+
+  let rerecast_mesh = square_rerecast_nav_mesh();
+  let rerecast_handle = app
+    .world_mut()
+    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .add(rerecast_mesh);
+
+  // Asset events are sent in PostUpdate, so we need two frames for landmass
+  // systems to see any new assets. In this case, nothing should happen, so just
+  // let the asset event go away.
+  app.update();
+  app.update();
+
+  // Clear out the asset events in the pipe so we are sure we're testing the
+  // case of handling an existing asset.
+  app
+    .world_mut()
+    .resource_mut::<Events<AssetEvent<bevy_rerecast_core::Navmesh>>>()
+    .clear();
+
+  let entity = app.world_mut().spawn(NavMeshHandle3d(rerecast_handle)).id();
+  let landmass_handle = app
+    .world()
+    .entity(entity)
+    .get::<bevy_landmass::NavMeshHandle3d>()
+    .unwrap()
+    .0
+    .clone();
+
+  // Despawn the entity, so the handles are dropped.
+  app.world_mut().entity_mut(entity).despawn();
+
+  app.update();
+
+  // The landmass mesh wasn't converted.
+  expect_false!(
+    app
+      .world()
+      .resource::<Assets<bevy_landmass::NavMesh3d>>()
+      .contains(&landmass_handle)
+  );
+  // We never converted it!
+  expect_that!(
+    app
+      .world_mut()
+      .resource_mut::<Events<AssetEvent<bevy_landmass::NavMesh3d>>>()
+      .drain()
+      .collect::<Vec<_>>(),
+    is_empty()
+  );
+}
