@@ -69,7 +69,7 @@ pub struct HeightNavigationMesh<CS: CoordinateSystem> {
 ///
 /// While regular polygons are used for finding paths, this polygon is used to
 /// help determine which node a given point is on.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HeightPolygon {
   /// The index of the first vertex in [`HeightNavigationMesh::vertices`] used
   /// by this polygon's triangles. The indices that make up a triangle are
