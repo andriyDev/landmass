@@ -3,6 +3,16 @@ name = "landmass_rerecast"
 version = "0.1.0"
 edition = "2024"
 
+description = "An integration to allow use of rerecast navigation meshes in landmass."
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/andriyDev/landmass"
+
+categories = ["game-development"]
+keywords = ["navigation", "system", "pathfinding"]
+
 [dependencies]
 bevy_landmass = { version = "0.10", path = "../bevy_landmass" }
 
