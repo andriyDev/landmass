@@ -14,7 +14,7 @@ categories = ["game-development"]
 keywords = ["navigation", "system", "pathfinding"]
 
 [dependencies]
-bevy_landmass = { version = "0.10", path = "../bevy_landmass" }
+bevy_landmass = { version = "0.10", path = "../bevy_landmass", default-features = false }
 
 bevy_app = { version = "0.16", default-features = false }
 bevy_asset = { version = "0.16", default-features = false }
