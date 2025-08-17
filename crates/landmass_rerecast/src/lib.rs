@@ -1,11 +1,9 @@
 #![doc = include_str!("../README.md")]
 
-use std::sync::{Arc, Weak};
+use std::sync::Arc;
 
 use bevy_app::{Plugin, RunFixedMainLoop, RunFixedMainLoopSystem};
-use bevy_asset::{
-  AssetEvent, AssetHandleProvider, AssetId, Assets, Handle, StrongHandle,
-};
+use bevy_asset::{AssetEvent, AssetHandleProvider, AssetId, Assets, Handle};
 use bevy_ecs::{
   bundle::Bundle,
   component::{Component, HookContext},
@@ -139,7 +137,10 @@ fn on_replace_rerecast_navmesh(
 /// landmass equivalents.
 #[derive(Resource, Default)]
 struct RerecastToLandmassIds(
-  HashMap<AssetId<bevy_rerecast_core::Navmesh>, Weak<StrongHandle>>,
+  HashMap<
+    AssetId<bevy_rerecast_core::Navmesh>,
+    Handle<bevy_landmass::NavMesh3d>,
+  >,
 );
 
 impl RerecastToLandmassIds {
@@ -156,19 +157,10 @@ impl RerecastToLandmassIds {
     landmass_handle_provider: AssetHandleProvider,
   ) -> (Handle<bevy_landmass::NavMesh3d>, bool) {
     match self.0.entry(rerecast_id) {
-      Entry::Occupied(entry) => {
-        let handle = entry
-          .get()
-          .upgrade()
-          .expect("mapping exists so the handle should still be alive");
-        (Handle::Strong(handle), false)
-      }
+      Entry::Occupied(entry) => (entry.get().clone(), false),
       Entry::Vacant(entry) => {
         let handle = landmass_handle_provider.reserve_handle().typed();
-        let Handle::Strong(arc) = &handle else {
-          unreachable!("reserve_handle should always return a Strong handle");
-        };
-        entry.insert(Arc::downgrade(arc));
+        entry.insert(handle.clone());
         (handle, true)
       }
     }
@@ -184,17 +176,7 @@ impl RerecastToLandmassIds {
     &self,
     rerecast_id: AssetId<bevy_rerecast_core::Navmesh>,
   ) -> Option<AssetId<bevy_landmass::NavMesh3d>> {
-    self
-      .0
-      .get(&rerecast_id)
-      .map(|weak| {
-        weak
-          .upgrade()
-          .expect("mapping exists so the handle should still be alive")
-      })
-      // Turn the StrongHandle into its id. We have to go through Handle to do
-      // so.
-      .map(|arc| Handle::Strong(arc).id())
+    self.0.get(&rerecast_id).map(|handle| handle.id())
   }
 }
 
