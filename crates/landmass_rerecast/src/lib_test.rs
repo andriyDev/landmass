@@ -445,3 +445,68 @@ fn added_then_removed_mesh_does_not_convert() {
     is_empty()
   );
 }
+
+#[googletest::test]
+fn converted_mesh_retained_until_original_mesh_dropped() {
+  // Since we consume the rerecast nav mesh during conversion, we should also
+  // keep the landmass nav mesh alive as long as the rerecast handle is alive.
+  // Otherwise, we could consume the rerecast mesh, then drop the landmass mesh
+  // and create a new handle - which would never be populated since the rerecast
+  // mesh was consumed.
+
+  let mut app = App::new();
+  app
+    .add_plugins((
+      AssetPlugin::default(),
+      RerecastPlugin::default(),
+      LandmassRerecastPlugin::default(),
+    ))
+    .init_asset::<NavMesh3d>();
+
+  let rerecast_handle = app
+    .world_mut()
+    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .add(square_rerecast_nav_mesh());
+
+  // Spawn the entity but retain our rerecast handle.
+  let entity =
+    app.world_mut().spawn(NavMeshHandle3d(rerecast_handle.clone())).id();
+
+  // Use IDs instead of handles so we aren't keeping the landmass asset alive.
+  let landmass_id = app
+    .world()
+    .entity(entity)
+    .get::<bevy_landmass::NavMeshHandle3d>()
+    .unwrap()
+    .0
+    .id();
+
+  app.update();
+  app.update();
+
+  // Despawn, and update the app to make sure everything propagates through.
+  // Note, we are still holding the rerecast handle.
+  app.world_mut().entity_mut(entity).despawn();
+  app.update();
+
+  // Respawn the entity.
+  let entity =
+    app.world_mut().spawn(NavMeshHandle3d(rerecast_handle.clone())).id();
+
+  // Use IDs instead of handles so we aren't keeping the landmass asset alive.
+  let new_landmass_id = app
+    .world()
+    .entity(entity)
+    .get::<bevy_landmass::NavMeshHandle3d>()
+    .unwrap()
+    .0
+    .id();
+  expect_eq!(new_landmass_id, landmass_id);
+  // Make sure the landmass handle is actually populated still.
+  expect_true!(
+    app
+      .world()
+      .resource::<Assets<bevy_landmass::NavMesh3d>>()
+      .contains(landmass_id)
+  );
+}
