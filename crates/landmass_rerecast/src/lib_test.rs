@@ -349,7 +349,8 @@ fn shared_rerecast_mesh_maps_to_same_handle() {
 
   let entity_1 =
     app.world_mut().spawn(NavMeshHandle3d(rerecast_handle.clone())).id();
-  let entity_2 = app.world_mut().spawn(NavMeshHandle3d(rerecast_handle)).id();
+  let entity_2 =
+    app.world_mut().spawn(NavMeshHandle3d(rerecast_handle.clone())).id();
 
   let landmass_handle_1 = app
     .world()
@@ -358,6 +359,20 @@ fn shared_rerecast_mesh_maps_to_same_handle() {
     .unwrap()
     .0
     .clone();
+  let landmass_handle_2 = app
+    .world()
+    .entity(entity_2)
+    .get::<bevy_landmass::NavMeshHandle3d>()
+    .unwrap()
+    .0
+    .clone();
+  expect_eq!(landmass_handle_1, landmass_handle_2);
+
+  // Despawn one of the entities to ensure respawning it will give us the same
+  // handle.
+  app.world_mut().entity_mut(entity_2).despawn();
+  let entity_2 = app.world_mut().spawn(NavMeshHandle3d(rerecast_handle)).id();
+
   let landmass_handle_2 = app
     .world()
     .entity(entity_2)
