@@ -510,3 +510,57 @@ fn converted_mesh_retained_until_original_mesh_dropped() {
       .contains(landmass_id)
   );
 }
+
+#[googletest::test]
+fn handles_have_same_lifetime_even_without_mesh() {
+  // Same as `converted_mesh_retained_until_original_mesh_dropped`, except no
+  // real mesh is involved - it's all handles.
+  let mut app = App::new();
+  app
+    .add_plugins((
+      AssetPlugin::default(),
+      RerecastPlugin::default(),
+      LandmassRerecastPlugin::default(),
+    ))
+    .init_asset::<NavMesh3d>();
+
+  let rerecast_handle = app
+    .world_mut()
+    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .reserve_handle();
+
+  // Spawn the entity but retain our rerecast handle.
+  let entity =
+    app.world_mut().spawn(NavMeshHandle3d(rerecast_handle.clone())).id();
+
+  // Use IDs instead of handles so we aren't keeping the landmass asset alive.
+  let landmass_id = app
+    .world()
+    .entity(entity)
+    .get::<bevy_landmass::NavMeshHandle3d>()
+    .unwrap()
+    .0
+    .id();
+
+  app.update();
+  app.update();
+
+  // Despawn, and update the app to make sure everything propagates through.
+  // Note, we are still holding the rerecast handle.
+  app.world_mut().entity_mut(entity).despawn();
+  app.update();
+
+  // Respawn the entity.
+  let entity =
+    app.world_mut().spawn(NavMeshHandle3d(rerecast_handle.clone())).id();
+
+  // Use IDs instead of handles so we aren't keeping the landmass asset alive.
+  let new_landmass_id = app
+    .world()
+    .entity(entity)
+    .get::<bevy_landmass::NavMeshHandle3d>()
+    .unwrap()
+    .0
+    .id();
+  expect_eq!(new_landmass_id, landmass_id);
+}
