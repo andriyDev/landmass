@@ -1,3 +1,4 @@
+use bevy::color::palettes::tailwind;
 use bevy::picking::events::Pressed;
 use bevy::{color::palettes::css, prelude::*, scene::SceneInstanceReady};
 use bevy_landmass::{Agent3d, PointSampleDistance3d};
@@ -42,7 +43,10 @@ fn setup(
   ));
 
   commands.spawn((
-    DirectionalLight::default(),
+    DirectionalLight {
+      color: tailwind::AMBER_100.into(),
+      ..Default::default()
+    },
     Transform::default().looking_to(Vec3::NEG_ONE, Vec3::Y),
   ));
 
