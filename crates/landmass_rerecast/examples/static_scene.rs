@@ -46,6 +46,8 @@ fn setup(
     Transform::default().looking_to(Vec3::NEG_ONE, Vec3::Y),
   ));
 
+  commands.spawn(Text("LMB - Spawn agent\nRMB - Set agent target".into()));
+
   let archipelago = commands
     .spawn(Archipelago3d::new(AgentOptions {
       point_sample_distance: PointSampleDistance3d {
