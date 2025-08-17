@@ -16,7 +16,7 @@ use bevy_ecs::{
     Condition, IntoScheduleConfigs, ScheduleLabel, SystemSet,
     common_conditions::on_event,
   },
-  system::{Res, ResMut},
+  system::ResMut,
   world::DeferredWorld,
 };
 use bevy_landmass::{ArchipelagoRef3d, Island, LandmassSystemSet};
@@ -127,11 +127,6 @@ fn on_replace_rerecast_navmesh(
   mut world: DeferredWorld,
   HookContext { entity, .. }: HookContext,
 ) {
-  let rerecast_id =
-    world.entity(entity).get::<crate::NavMeshHandle3d>().unwrap().0.id();
-  // Stop tracking this mapping.
-  world.resource_mut::<RerecastToLandmassIds>().remove(rerecast_id);
-
   let mut commands = world.commands();
   if let Ok(mut entity) = commands.get_entity(entity) {
     // Remove the landmass handle from this entity. It's ok if the user deleted
@@ -215,7 +210,7 @@ struct NewRerecastConversion(AssetId<bevy_rerecast_core::Navmesh>);
 fn convert_changed_rerecast_meshes_to_landmass(
   mut rerecast_events: EventReader<AssetEvent<bevy_rerecast_core::Navmesh>>,
   mut new_conversion_events: EventReader<NewRerecastConversion>,
-  mapping: Res<RerecastToLandmassIds>,
+  mut mapping: ResMut<RerecastToLandmassIds>,
   mut rerecast_meshes: ResMut<Assets<bevy_rerecast_core::Navmesh>>,
   mut landmass_meshes: ResMut<Assets<bevy_landmass::NavMesh3d>>,
 ) {
@@ -224,6 +219,9 @@ fn convert_changed_rerecast_meshes_to_landmass(
     match event {
       AssetEvent::Added { id } | AssetEvent::Modified { id } => {
         changed_rerecast_ids.insert(*id);
+      }
+      AssetEvent::Unused { id } => {
+        mapping.remove(*id);
       }
       _ => {}
     }
