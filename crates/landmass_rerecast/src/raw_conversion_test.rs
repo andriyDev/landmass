@@ -115,11 +115,11 @@ fn converts_mesh() {
   expect_that!(
     landmass_mesh.polygons,
     elements_are!(
-      elements_are!(&0, &1, &3),
-      elements_are!(&1, &2, &3),
-      elements_are!(&1, &4, &5, &6, &7, &8, &2),
-      elements_are!(&7, &6, &9, &10),
-      elements_are!(&8, &7, &11, &12),
+      elements_are!(&3, &1, &0),
+      elements_are!(&3, &2, &1),
+      elements_are!(&2, &8, &7, &6, &5, &4, &1),
+      elements_are!(&10, &9, &6, &7),
+      elements_are!(&12, &11, &7, &8),
     )
   );
   expect_that!(
@@ -139,7 +139,7 @@ fn converts_mesh() {
       &Vec3::new(1.0, 1.0, 2.0),
     )
   );
-  expect_that!(height_mesh.triangles, elements_are!(&[0, 1, 2], &[2, 3, 0]));
+  expect_that!(height_mesh.triangles, elements_are!(&[0, 2, 1], &[2, 0, 3]));
   expect_that!(
     height_mesh.polygons,
     elements_are!(&HeightPolygon {
