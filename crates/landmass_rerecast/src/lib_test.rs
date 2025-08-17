@@ -35,7 +35,7 @@ fn square_rerecast_nav_mesh() -> bevy_rerecast_core::Navmesh {
         U16Vec3::new(1, 0, 1),
         U16Vec3::new(0, 0, 1),
       ],
-      polygons: vec![0, 1, 2, 3],
+      polygons: vec![3, 2, 1, 0],
       areas: vec![AreaType(0)],
       polygon_neighbors: vec![],
       regions: vec![],
@@ -50,7 +50,7 @@ fn square_rerecast_nav_mesh() -> bevy_rerecast_core::Navmesh {
         Vec3::new(1.0, 0.0, 1.0),
         Vec3::new(0.0, 0.0, 1.0),
       ],
-      triangles: vec![[0, 1, 2], [2, 3, 0]],
+      triangles: vec![[0, 2, 1], [2, 0, 3]],
       meshes: vec![SubMesh {
         base_vertex_index: 0,
         vertex_count: 4,
@@ -195,7 +195,7 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
         U16Vec3::new(2, 0, 0),
         U16Vec3::new(2, 0, 1),
       ],
-      polygons: vec![0, 1, 2, 3, 2, 1, 4, 5],
+      polygons: vec![3, 2, 1, 0, 5, 4, 1, 2],
       areas: vec![AreaType(0), AreaType(0)],
       polygon_neighbors: vec![],
       regions: vec![],
@@ -214,7 +214,7 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
         Vec3::new(2.0, 0.0, 1.0),
         Vec3::new(1.0, 0.0, 1.0),
       ],
-      triangles: vec![[0, 1, 2], [2, 3, 0], [0, 1, 2], [2, 3, 0]],
+      triangles: vec![[0, 2, 1], [2, 0, 3], [0, 2, 1], [2, 0, 3]],
       meshes: vec![
         SubMesh {
           base_vertex_index: 0,

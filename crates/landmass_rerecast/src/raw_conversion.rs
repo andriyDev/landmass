@@ -25,6 +25,7 @@ pub fn convert_rerecast_navmesh_to_landmass_navmesh(
       .map(|i| {
         rerecast_navmesh.polygon.polygons[i * nvp..][..nvp]
           .iter()
+          .rev()
           .filter(|i| **i != PolygonNavmesh::NO_INDEX)
           .map(|i| *i as usize)
           .collect::<Vec<_>>()
@@ -48,7 +49,13 @@ pub fn convert_rerecast_navmesh_to_landmass_navmesh(
           triangle_count: submesh.triangle_count,
         })
         .collect(),
-      triangles: rerecast_navmesh.detail.triangles.clone(),
+      triangles: rerecast_navmesh
+        .detail
+        .triangles
+        .iter()
+        .cloned()
+        .map(|[a, b, c]| [a, c, b])
+        .collect(),
       vertices: rerecast_navmesh.detail.vertices.clone(),
     }
     .into(),
