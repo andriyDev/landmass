@@ -11,7 +11,7 @@ use bevy_landmass::{
   NavMesh3d,
 };
 use bevy_math::{U16Vec3, Vec3};
-use bevy_rerecast_core::{
+use bevy_rerecast::{
   RerecastPlugin,
   rerecast::{Aabb3d, AreaType, DetailNavmesh, PolygonNavmesh, SubMesh},
 };
@@ -22,8 +22,8 @@ use googletest::{
 use crate::{LandmassRerecastPlugin, NavMeshHandle3d};
 
 /// Creates a rerecast nav mesh that is just a unit square.
-fn square_rerecast_nav_mesh() -> bevy_rerecast_core::Navmesh {
-  bevy_rerecast_core::Navmesh {
+fn square_rerecast_nav_mesh() -> bevy_rerecast::Navmesh {
+  bevy_rerecast::Navmesh {
     polygon: PolygonNavmesh {
       aabb: Aabb3d { min: Vec3::ZERO, max: Vec3::ONE * 100.0 },
       cell_size: 1.0,
@@ -83,10 +83,8 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
       time.as_generic()
     });
 
-  let rerecast_handle = app
-    .world()
-    .resource::<Assets<bevy_rerecast_core::Navmesh>>()
-    .reserve_handle();
+  let rerecast_handle =
+    app.world().resource::<Assets<bevy_rerecast::Navmesh>>().reserve_handle();
 
   // Once the nav meshes are converted, we need to know whether the mesh is
   // actually correct, so set up a situation that will show us that.
@@ -148,7 +146,7 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
   let rerecast_mesh = square_rerecast_nav_mesh();
   app
     .world_mut()
-    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .resource_mut::<Assets<bevy_rerecast::Navmesh>>()
     .insert(&rerecast_handle, rerecast_mesh);
 
   app.update();
@@ -167,7 +165,7 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
   expect_false!(
     app
       .world()
-      .resource::<Assets<bevy_rerecast_core::Navmesh>>()
+      .resource::<Assets<bevy_rerecast::Navmesh>>()
       .get(&rerecast_handle)
       .is_some(),
     "landmass mesh is set"
@@ -181,7 +179,7 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
 
   // We now mutate the rerecast nav mesh. This should result in the nav mesh
   // being modified.
-  let rerecast_mesh = bevy_rerecast_core::Navmesh {
+  let rerecast_mesh = bevy_rerecast::Navmesh {
     polygon: PolygonNavmesh {
       aabb: Aabb3d { min: Vec3::ZERO, max: Vec3::ONE * 100.0 },
       cell_size: 1.0,
@@ -235,7 +233,7 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
   };
   app
     .world_mut()
-    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .resource_mut::<Assets<bevy_rerecast::Navmesh>>()
     .insert(&rerecast_handle, rerecast_mesh);
 
   app.update();
@@ -254,7 +252,7 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
   expect_false!(
     app
       .world()
-      .resource::<Assets<bevy_rerecast_core::Navmesh>>()
+      .resource::<Assets<bevy_rerecast::Navmesh>>()
       .get(&rerecast_handle)
       .is_some(),
     "landmass mesh is set"
@@ -282,7 +280,7 @@ fn existing_rerecast_mesh_is_converted() {
   let rerecast_mesh = square_rerecast_nav_mesh();
   let rerecast_handle = app
     .world_mut()
-    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .resource_mut::<Assets<bevy_rerecast::Navmesh>>()
     .add(rerecast_mesh);
 
   // Asset events are sent in PostUpdate, so we need two frames for landmass
@@ -295,7 +293,7 @@ fn existing_rerecast_mesh_is_converted() {
   // case of handling an existing asset.
   app
     .world_mut()
-    .resource_mut::<Events<AssetEvent<bevy_rerecast_core::Navmesh>>>()
+    .resource_mut::<Events<AssetEvent<bevy_rerecast::Navmesh>>>()
     .clear();
 
   let entity =
@@ -324,7 +322,7 @@ fn existing_rerecast_mesh_is_converted() {
   expect_false!(
     app
       .world()
-      .resource::<Assets<bevy_rerecast_core::Navmesh>>()
+      .resource::<Assets<bevy_rerecast::Navmesh>>()
       .get(&rerecast_handle)
       .is_some(),
     "landmass mesh is set"
@@ -344,7 +342,7 @@ fn shared_rerecast_mesh_maps_to_same_handle() {
 
   let rerecast_handle = app
     .world_mut()
-    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .resource_mut::<Assets<bevy_rerecast::Navmesh>>()
     .reserve_handle();
 
   let entity_1 =
@@ -398,7 +396,7 @@ fn added_then_removed_mesh_does_not_convert() {
   let rerecast_mesh = square_rerecast_nav_mesh();
   let rerecast_handle = app
     .world_mut()
-    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .resource_mut::<Assets<bevy_rerecast::Navmesh>>()
     .add(rerecast_mesh);
 
   // Asset events are sent in PostUpdate, so we need two frames for landmass
@@ -411,7 +409,7 @@ fn added_then_removed_mesh_does_not_convert() {
   // case of handling an existing asset.
   app
     .world_mut()
-    .resource_mut::<Events<AssetEvent<bevy_rerecast_core::Navmesh>>>()
+    .resource_mut::<Events<AssetEvent<bevy_rerecast::Navmesh>>>()
     .clear();
 
   let entity = app.world_mut().spawn(NavMeshHandle3d(rerecast_handle)).id();
@@ -465,7 +463,7 @@ fn converted_mesh_retained_until_original_mesh_dropped() {
 
   let rerecast_handle = app
     .world_mut()
-    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .resource_mut::<Assets<bevy_rerecast::Navmesh>>()
     .add(square_rerecast_nav_mesh());
 
   // Spawn the entity but retain our rerecast handle.
@@ -526,7 +524,7 @@ fn handles_have_same_lifetime_even_without_mesh() {
 
   let rerecast_handle = app
     .world_mut()
-    .resource_mut::<Assets<bevy_rerecast_core::Navmesh>>()
+    .resource_mut::<Assets<bevy_rerecast::Navmesh>>()
     .reserve_handle();
 
   // Spawn the entity but retain our rerecast handle.

@@ -1,6 +1,6 @@
 use bevy_landmass::HeightPolygon;
 use bevy_math::{U16Vec3, Vec3};
-use bevy_rerecast_core::{
+use bevy_rerecast::{
   Navmesh as RerecastNavMesh,
   rerecast::{Aabb3d, AreaType, DetailNavmesh, PolygonNavmesh, SubMesh},
 };

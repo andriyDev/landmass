@@ -3,7 +3,7 @@ use bevy::picking::events::Pressed;
 use bevy::{color::palettes::css, prelude::*, scene::SceneInstanceReady};
 use bevy_landmass::{Agent3d, PointSampleDistance3d};
 use bevy_landmass::{debug::Landmass3dDebugPlugin, prelude::*};
-use bevy_rerecast_core::{NavmeshSettings, prelude::NavmeshGenerator};
+use bevy_rerecast::{NavmeshSettings, prelude::NavmeshGenerator};
 use landmass_rerecast::{
   Island3dBundle, LandmassRerecastPlugin, NavMeshHandle3d,
 };
@@ -12,8 +12,8 @@ fn main() {
   App::new()
     .add_plugins((DefaultPlugins, MeshPickingPlugin))
     .add_plugins((
-      bevy_rerecast_core::RerecastPlugin::default(),
-      bevy_rerecast_core::Mesh3dBackendPlugin::default(),
+      bevy_rerecast::RerecastPlugin::default(),
+      bevy_rerecast::Mesh3dBackendPlugin::default(),
     ))
     .add_plugins((
       Landmass3dPlugin::default(),
@@ -31,7 +31,7 @@ fn main() {
 
 fn setup(
   mut commands: Commands,
-  nav_meshes: Res<Assets<bevy_rerecast_core::Navmesh>>,
+  nav_meshes: Res<Assets<bevy_rerecast::Navmesh>>,
   asset_server: Res<AssetServer>,
   mut meshes: ResMut<Assets<Mesh>>,
   mut materials: ResMut<Assets<StandardMaterial>>,
