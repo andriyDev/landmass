@@ -12,7 +12,7 @@ fn main() {
   App::new()
     .add_plugins((DefaultPlugins, MeshPickingPlugin))
     .add_plugins((
-      bevy_rerecast::RerecastPlugin::default(),
+      bevy_rerecast::NavmeshPlugins::default(),
       bevy_rerecast::Mesh3dBackendPlugin::default(),
     ))
     .add_plugins((

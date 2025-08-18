@@ -27,7 +27,7 @@ navigation mesh in a `landmass` island! To use it:
 ```rust
 use bevy::prelude::*;
 use bevy_landmass::{Agent, PointSampleDistance3d, prelude::*};
-use bevy_rerecast::{Mesh3dBackendPlugin, RerecastPlugin, prelude::*};
+use bevy_rerecast::{Mesh3dBackendPlugin, prelude::*};
 use landmass_rerecast::LandmassRerecastPlugin;
 use landmass_rerecast::{Island3dBundle, NavMeshHandle3d};
 
@@ -37,7 +37,7 @@ fn main() {
       MinimalPlugins,
       AssetPlugin::default(),
       TransformPlugin,
-      RerecastPlugin::default(),
+      NavmeshPlugins::default(),
       Mesh3dBackendPlugin::default(),
       Landmass3dPlugin::default(),
       LandmassRerecastPlugin::default(),
