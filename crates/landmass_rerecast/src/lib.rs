@@ -57,7 +57,7 @@ impl Plugin for LandmassRerecastPlugin {
       .add_systems(
         self.schedule,
         convert_changed_rerecast_meshes_to_landmass.run_if(
-          on_event::<AssetEvent<bevy_rerecast_core::Navmesh>>
+          on_event::<AssetEvent<bevy_rerecast::Navmesh>>
             .or(on_event::<NewRerecastConversion>),
         ),
       );
@@ -81,10 +81,10 @@ pub struct Island3dBundle {
 }
 
 /// A replacement for [`bevy_landmass::NavMeshHandle3d`] that stores a
-/// [`bevy_rerecast_core::Navmesh`] handle.
+/// [`bevy_rerecast::Navmesh`] handle.
 #[derive(Component, Clone, Debug)]
 #[component(immutable, on_insert=on_insert_rerecast_navmesh, on_replace=on_replace_rerecast_navmesh)]
-pub struct NavMeshHandle3d(pub Handle<bevy_rerecast_core::Navmesh>);
+pub struct NavMeshHandle3d(pub Handle<bevy_rerecast::Navmesh>);
 
 // Due to https://github.com/rust-lang/rust/issues/73191, users could be using
 // `bevy_landmass::NavMeshHandle` instead of `bevy_landmass::NavMeshHandle3d`.
@@ -137,10 +137,7 @@ fn on_replace_rerecast_navmesh(
 /// landmass equivalents.
 #[derive(Resource, Default)]
 struct RerecastToLandmassIds(
-  HashMap<
-    AssetId<bevy_rerecast_core::Navmesh>,
-    Handle<bevy_landmass::NavMesh3d>,
-  >,
+  HashMap<AssetId<bevy_rerecast::Navmesh>, Handle<bevy_landmass::NavMesh3d>>,
 );
 
 impl RerecastToLandmassIds {
@@ -153,7 +150,7 @@ impl RerecastToLandmassIds {
   // resource in the hook.
   fn get_or_alloc(
     &mut self,
-    rerecast_id: AssetId<bevy_rerecast_core::Navmesh>,
+    rerecast_id: AssetId<bevy_rerecast::Navmesh>,
     landmass_handle_provider: AssetHandleProvider,
   ) -> (Handle<bevy_landmass::NavMesh3d>, bool) {
     match self.0.entry(rerecast_id) {
@@ -167,14 +164,14 @@ impl RerecastToLandmassIds {
   }
 
   /// Removes the mapping for `rerecast_id`.
-  fn remove(&mut self, rerecast_id: AssetId<bevy_rerecast_core::Navmesh>) {
+  fn remove(&mut self, rerecast_id: AssetId<bevy_rerecast::Navmesh>) {
     self.0.remove(&rerecast_id);
   }
 
   /// Looks up the landmass mesh ID associated with the rerecast mesh ID.
   fn get(
     &self,
-    rerecast_id: AssetId<bevy_rerecast_core::Navmesh>,
+    rerecast_id: AssetId<bevy_rerecast::Navmesh>,
   ) -> Option<AssetId<bevy_landmass::NavMesh3d>> {
     self.0.get(&rerecast_id).map(|handle| handle.id())
   }
@@ -186,14 +183,14 @@ impl RerecastToLandmassIds {
 /// This gives us an opportunity to do a conversion if the rerecast mesh is
 /// already loaded.
 #[derive(Event)]
-struct NewRerecastConversion(AssetId<bevy_rerecast_core::Navmesh>);
+struct NewRerecastConversion(AssetId<bevy_rerecast::Navmesh>);
 
 /// A system to do the actual conversion between rerecast and landmass.
 fn convert_changed_rerecast_meshes_to_landmass(
-  mut rerecast_events: EventReader<AssetEvent<bevy_rerecast_core::Navmesh>>,
+  mut rerecast_events: EventReader<AssetEvent<bevy_rerecast::Navmesh>>,
   mut new_conversion_events: EventReader<NewRerecastConversion>,
   mut mapping: ResMut<RerecastToLandmassIds>,
-  mut rerecast_meshes: ResMut<Assets<bevy_rerecast_core::Navmesh>>,
+  mut rerecast_meshes: ResMut<Assets<bevy_rerecast::Navmesh>>,
   mut landmass_meshes: ResMut<Assets<bevy_landmass::NavMesh3d>>,
 ) {
   let mut changed_rerecast_ids = HashSet::new();

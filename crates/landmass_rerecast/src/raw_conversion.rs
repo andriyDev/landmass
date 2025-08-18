@@ -1,8 +1,6 @@
 use bevy_landmass::{HeightNavigationMesh3d, HeightPolygon, NavigationMesh3d};
 use bevy_math::Vec3;
-use bevy_rerecast_core::{
-  Navmesh as RerecastNavMesh, rerecast::PolygonNavmesh,
-};
+use bevy_rerecast::{Navmesh as RerecastNavMesh, rerecast::PolygonNavmesh};
 
 /// Converts a [`RerecastNavMesh`] into a raw, unvalidated landmass nav mesh.
 pub fn convert_rerecast_navmesh_to_landmass_navmesh(
