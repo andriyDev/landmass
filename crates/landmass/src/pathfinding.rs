@@ -117,17 +117,21 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
         let polygon =
           &island.nav_mesh.polygons[link.destination_node.polygon_index];
 
+        let (portal, ignore_step) = match &link.kinded {
+          KindedOffMeshLink::BoundaryLink { reverse_link } => {
+            (link.portal, Some(PathStep::OffMeshLink(*reverse_link)))
+          }
+          KindedOffMeshLink::AnimationLink { destination_portal, .. } => {
+            (*destination_portal, None)
+          }
+        };
+
         (
           link.destination_node,
           island,
           polygon,
-          link.portal.0.midpoint(link.portal.1),
-          match &link.kinded {
-            KindedOffMeshLink::BoundaryLink { reverse_link } => {
-              Some(PathStep::OffMeshLink(*reverse_link))
-            }
-            KindedOffMeshLink::AnimationLink { .. } => None,
-          },
+          portal.0.midpoint(portal.1),
+          ignore_step,
         )
       }
       PathNode::End => {
@@ -200,8 +204,15 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
           return None;
         }
 
+        let link_cost = match link.kinded {
+          // Boundary links have no additional cost, so 0.0 is correct.
+          KindedOffMeshLink::BoundaryLink { .. } => 0.0,
+          KindedOffMeshLink::AnimationLink { cost, .. } => cost,
+        };
+
         let cost = point.distance(link.portal.0.midpoint(link.portal.1))
-          * current_node_cost;
+          * current_node_cost
+          + link_cost;
         Some((
           cost,
           PathStep::OffMeshLink(*link_id),
@@ -225,7 +236,13 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
       }
       PathNode::OffMeshLink(link) => {
         let off_mesh_link = self.nav_data.off_mesh_links.get(*link).unwrap();
-        off_mesh_link.portal.0.midpoint(off_mesh_link.portal.1)
+        let portal = match &off_mesh_link.kinded {
+          KindedOffMeshLink::BoundaryLink { .. } => off_mesh_link.portal,
+          KindedOffMeshLink::AnimationLink { destination_portal, .. } => {
+            *destination_portal
+          }
+        };
+        portal.0.midpoint(portal.1)
       }
     };
     world_point.distance(self.end_point) * self.cheapest_type_index_cost
