@@ -6,7 +6,8 @@ use crate::{
   AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
   Transform,
   coords::{XY, XYZ},
-  nav_data::{NavigationData, NodeRef},
+  link::{AnimationLink, AnimationLinkId},
+  nav_data::{KindedOffMeshLink, NavigationData, NodeRef, OffMeshLinkId},
   nav_mesh::NavigationMesh,
   path::{IslandSegment, OffMeshLinkSegment, Path},
   pathfinding::PathResult,
@@ -1149,6 +1150,252 @@ fn start_and_end_point_influences_path() {
         portal_edge_index: vec![7, 2, 2, 1],
       }],
       off_mesh_link_segments: vec![],
+      start_point,
+      end_point,
+    })
+  );
+}
+
+fn off_mesh_link_for_animation_link<CS: CoordinateSystem>(
+  archipelago: &Archipelago<CS>,
+  animation_link_id: AnimationLinkId,
+) -> OffMeshLinkId {
+  for (link_id, link) in archipelago.nav_data.off_mesh_links.iter() {
+    let KindedOffMeshLink::AnimationLink { animation_link, .. } = &link.kinded
+    else {
+      continue;
+    };
+    if *animation_link == animation_link_id {
+      return link_id;
+    }
+  }
+  panic!("No corresponding off mesh link found for {animation_link_id:?}")
+}
+
+#[test]
+fn animation_link_is_used() {
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+
+  // The start and end have a gap between them in the nav mesh, but an animation
+  // link exists to connect them.
+  //
+  // +----+-+
+  // |EXXX|X|
+  // +----+-+
+  //  L   |X|
+  // +----+-+
+  // |SXXX|X|
+  // +----+-+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(2.0, 0.0),
+        Vec2::new(3.0, 0.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(2.0, 1.0),
+        Vec2::new(3.0, 1.0),
+        Vec2::new(0.0, 2.0),
+        Vec2::new(2.0, 2.0),
+        Vec2::new(3.0, 2.0),
+        Vec2::new(0.0, 3.0),
+        Vec2::new(2.0, 3.0),
+        Vec2::new(3.0, 3.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 4, 3],
+        vec![1, 2, 5, 4],
+        vec![4, 5, 8, 7],
+        vec![7, 8, 11, 10],
+        vec![6, 7, 10, 9],
+      ],
+      polygon_type_indices: vec![0; 5],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let island_id = archipelago.add_island(Island::new(
+    Transform { translation: Vec2::new(10.0, 10.0), ..Default::default() },
+    nav_mesh,
+  ));
+
+  let link_id = archipelago.add_animation_link(AnimationLink {
+    start_edge: (Vec2::new(10.0, 11.0), Vec2::new(11.0, 11.0)),
+    end_edge: (Vec2::new(10.0, 12.0), Vec2::new(11.0, 12.0)),
+    cost: 1.0,
+    kind: 0,
+  });
+  archipelago.update(1.0);
+
+  let off_mesh_link = off_mesh_link_for_animation_link(&archipelago, link_id);
+
+  let start_point = Vec3::new(0.5, 0.5, 0.0) + Vec3::new(10.0, 10.0, 0.0);
+  let end_point = Vec3::new(0.5, 2.5, 0.0) + Vec3::new(10.0, 10.0, 0.0);
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id, polygon_index: 0 },
+    start_point,
+    NodeRef { island_id, polygon_index: 4 },
+    end_point,
+    &HashMap::default(),
+  );
+
+  assert_eq!(
+    path_result.path,
+    Some(Path {
+      island_segments: vec![
+        IslandSegment {
+          island_id,
+          corridor: vec![0],
+          portal_edge_index: vec![],
+        },
+        IslandSegment {
+          island_id,
+          corridor: vec![4],
+          portal_edge_index: vec![],
+        },
+      ],
+      off_mesh_link_segments: vec![OffMeshLinkSegment {
+        starting_node: NodeRef { island_id, polygon_index: 0 },
+        off_mesh_link,
+      }],
+      start_point,
+      end_point,
+    })
+  );
+}
+
+#[test]
+fn animation_link_is_used_if_cheaper() {
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+
+  // There are two routes from start-to-end. One takes the nav mesh. The other
+  // takes the animation link. The animation link should only be taken if it
+  // ends up making the path cheaper.
+  //
+  // +----+-+
+  // |EXXX|X|
+  // +----+-+
+  //  L   |X|
+  // +----+-+
+  // |XXXX|S|
+  // +----+-+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(2.0, 0.0),
+        Vec2::new(3.0, 0.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(2.0, 1.0),
+        Vec2::new(3.0, 1.0),
+        Vec2::new(0.0, 2.0),
+        Vec2::new(2.0, 2.0),
+        Vec2::new(3.0, 2.0),
+        Vec2::new(0.0, 3.0),
+        Vec2::new(2.0, 3.0),
+        Vec2::new(3.0, 3.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 4, 3],
+        vec![1, 2, 5, 4],
+        vec![4, 5, 8, 7],
+        vec![7, 8, 11, 10],
+        vec![6, 7, 10, 9],
+      ],
+      polygon_type_indices: vec![0; 5],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let island_id = archipelago.add_island(Island::new(
+    Transform { translation: Vec2::new(10.0, 10.0), ..Default::default() },
+    nav_mesh,
+  ));
+
+  // Portals are in world space.
+  let start_edge = (Vec2::new(10.0, 11.0), Vec2::new(11.0, 11.0));
+  let end_edge = (Vec2::new(10.0, 12.0), Vec2::new(11.0, 12.0));
+  let link_id = archipelago.add_animation_link(AnimationLink {
+    start_edge,
+    end_edge,
+    kind: 0,
+    // This link is more expensive than taking the nav mesh.
+    cost: 1.5,
+  });
+  archipelago.update(1.0);
+
+  let start_point = Vec3::new(2.5, 0.5, 0.0) + Vec3::new(10.0, 10.0, 0.0);
+  let end_point = Vec3::new(0.5, 2.5, 0.0) + Vec3::new(10.0, 10.0, 0.0);
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id, polygon_index: 1 },
+    start_point,
+    NodeRef { island_id, polygon_index: 4 },
+    end_point,
+    &HashMap::default(),
+  );
+
+  assert_eq!(
+    path_result.path,
+    Some(Path {
+      island_segments: vec![IslandSegment {
+        island_id,
+        corridor: vec![1, 2, 3, 4],
+        portal_edge_index: vec![2, 2, 3],
+      }],
+      off_mesh_link_segments: vec![],
+      start_point,
+      end_point,
+    })
+  );
+
+  archipelago.remove_animation_link(link_id);
+  let link_id = archipelago.add_animation_link(AnimationLink {
+    start_edge,
+    end_edge,
+    kind: 0,
+    // Now the link is cheaper than taking the nav mesh.
+    cost: 0.75,
+  });
+  archipelago.update(1.0);
+
+  let off_mesh_link = off_mesh_link_for_animation_link(&archipelago, link_id);
+
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id, polygon_index: 1 },
+    start_point,
+    NodeRef { island_id, polygon_index: 4 },
+    end_point,
+    &HashMap::default(),
+  );
+
+  assert_eq!(
+    path_result.path,
+    Some(Path {
+      island_segments: vec![
+        IslandSegment {
+          island_id,
+          corridor: vec![1, 0],
+          portal_edge_index: vec![3],
+        },
+        IslandSegment {
+          island_id,
+          corridor: vec![4],
+          portal_edge_index: vec![],
+        },
+      ],
+      off_mesh_link_segments: vec![OffMeshLinkSegment {
+        starting_node: NodeRef { island_id, polygon_index: 0 },
+        off_mesh_link,
+      }],
       start_point,
       end_point,
     })
