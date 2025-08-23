@@ -77,13 +77,35 @@ pub(crate) struct OffMeshLink {
   /// The type index of the destination node. This is stored for convenience
   /// since it is stable once the link is created.
   pub(crate) destination_type_index: usize,
-  /// The portal that this link can be taken from. The portal is in
-  /// world-space. For boundary links, the points must be in left-to-right
-  /// order relative to the center of the node.
+  /// The portal that this link occupies on the source node. The portal is in
+  /// world-space. For [`KindedOffMeshLink::BoundaryLink`], the portal points
+  /// are written "left-to-right" wrt the start node center. For
+  /// [`KindedOffMeshLink::AnimationLink`], this is written in no particular
+  /// order and **must** be manually made left-to-right.
   pub(crate) portal: (Vec3, Vec3),
-  /// The ID of the boundary link that goes back to the original node.
-  // TODO: Make this specific to boundary links.
-  pub(crate) reverse_link: OffMeshLinkId,
+  /// The kind-specific data for the off mesh link.
+  pub(crate) kinded: KindedOffMeshLink,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub(crate) enum KindedOffMeshLink {
+  /// A single link between two nodes on the boundary of an island.
+  BoundaryLink {
+    /// The ID of the boundary link that goes back to the original node.
+    reverse_link: OffMeshLinkId,
+  },
+  /// A link where the agent will play some animation (or otherwise handle the
+  /// motion outside landmass) to get to a new location.
+  AnimationLink {
+    /// The portal that this link leads to. The portal is in world-space. This
+    /// portal must be in the same orientation as [`OffMeshLink::portal`] (so
+    /// portal.0 corresponds to destination_portal.0).
+    destination_portal: (Vec3, Vec3),
+    /// The cost to take this link.
+    cost: f32,
+    /// The animation link that produced this off-mesh link.
+    animation_link: AnimationLinkId,
+  },
 }
 
 /// A node that has been modified (e.g., by being connected with a boundary link
@@ -788,15 +810,22 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
           portal,
           // Set the reverse link to the default and we'll replace it with the
           // correct ID later.
-          reverse_link: OffMeshLinkId::default(),
+          kinded: KindedOffMeshLink::BoundaryLink {
+            reverse_link: OffMeshLinkId::default(),
+          },
         });
         let id_2 = off_mesh_links.insert(OffMeshLink {
           destination_node: node_1,
           destination_type_index: polygon_1.type_index,
           portal: (portal.1, portal.0),
-          reverse_link: id_1,
+          kinded: KindedOffMeshLink::BoundaryLink { reverse_link: id_1 },
         });
-        off_mesh_links.get_mut(id_1).unwrap().reverse_link = id_2;
+        let KindedOffMeshLink::BoundaryLink { ref mut reverse_link } =
+          off_mesh_links.get_mut(id_1).unwrap().kinded
+        else {
+          unreachable!();
+        };
+        *reverse_link = id_2;
 
         node_to_off_mesh_link_ids.entry(node_1).or_default().insert(id_1);
         node_to_off_mesh_link_ids.entry(node_2).or_default().insert(id_2);
