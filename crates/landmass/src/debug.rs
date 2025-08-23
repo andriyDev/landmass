@@ -171,27 +171,28 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
       }
 
       let node_ref = NodeRef { island_id, polygon_index };
-      if let Some(boundary_link_ids) =
+      if let Some(off_mesh_link_ids) =
         archipelago.nav_data.node_to_off_mesh_link_ids.get(&node_ref)
       {
-        for &boundary_link_id in boundary_link_ids.iter() {
-          let boundary_link = archipelago
+        for &off_mesh_link_id in off_mesh_link_ids.iter() {
+          let off_mesh_link = archipelago
             .nav_data
             .off_mesh_links
-            .get(boundary_link_id)
+            .get(off_mesh_link_id)
             .expect("Boundary links are present.");
           // Ignore links where the connected node has a greater node_ref.
           // This prevents drawing the same link multiple times by
           // picking one of the links to draw.
-          if node_ref > boundary_link.destination_node {
+          if node_ref > off_mesh_link.destination_node {
             continue;
           }
 
+          // TODO: Handle animation links in some way.
           debug_drawer.add_line(
             LineType::BoundaryLink,
             [
-              CS::from_landmass(&boundary_link.portal.0),
-              CS::from_landmass(&boundary_link.portal.1),
+              CS::from_landmass(&off_mesh_link.portal.0),
+              CS::from_landmass(&off_mesh_link.portal.1),
             ],
           );
         }

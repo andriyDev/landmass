@@ -8,7 +8,7 @@ use glam::Vec3;
 use crate::{
   CoordinateSystem, NavigationData,
   astar::{self, AStarProblem, PathStats},
-  nav_data::{NodeRef, OffMeshLinkId},
+  nav_data::{KindedOffMeshLink, NodeRef, OffMeshLinkId},
   nav_mesh::MeshEdgeRef,
   path::{IslandSegment, OffMeshLinkSegment, Path},
   util::FloatOrd,
@@ -122,7 +122,12 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
           island,
           polygon,
           link.portal.0.midpoint(link.portal.1),
-          Some(PathStep::OffMeshLink(link.reverse_link)),
+          match &link.kinded {
+            KindedOffMeshLink::BoundaryLink { reverse_link } => {
+              Some(PathStep::OffMeshLink(*reverse_link))
+            }
+            KindedOffMeshLink::AnimationLink { .. } => None,
+          },
         )
       }
       PathNode::End => {
