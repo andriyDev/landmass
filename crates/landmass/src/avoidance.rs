@@ -265,8 +265,12 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
 
         let (vertex_1, vertex_2) = polygon.get_edge_indices(edge_index);
         (
-          vertex_index_to_dodgy_vec(island, vertex_1, agent_point),
+          // dodgy represents the inside of an obstacle as counter-clockwise,
+          // but we actually want to treat the "solid" part as the outside of
+          // the node. So reverse the order of the vertices so we get a
+          // clockwise polygon.
           vertex_index_to_dodgy_vec(island, vertex_2, agent_point),
+          vertex_index_to_dodgy_vec(island, vertex_1, agent_point),
           NodeRef {
             island_id: node.island_id,
             polygon_index: connectivity.polygon_index,
@@ -279,8 +283,12 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
           .map(|link_id| nav_data.boundary_links.get(*link_id).unwrap())
           .map(|link| {
             (
-              to_dodgy_vec2(link.portal.0.xy() - agent_point),
+              // dodgy represents the inside of an obstacle as
+              // counter-clockwise, but we actually want to treat the "solid"
+              // part as the outside of the node. So reverse the order of the
+              // vertices so we get a clockwise polygon.
               to_dodgy_vec2(link.portal.1.xy() - agent_point),
+              to_dodgy_vec2(link.portal.0.xy() - agent_point),
               link.destination_node,
             )
           })
@@ -350,7 +358,11 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
       }
     } else {
       for border_edge in remaining_edges {
-        let (border_vertex_1, border_vertex_2) =
+        // dodgy represents the inside of an obstacle as counter-clockwise,
+        // but we actually want to treat the "solid" part as the outside of
+        // the node. So reverse the order of the vertices so we get a
+        // clockwise polygon.
+        let (border_vertex_2, border_vertex_1) =
           polygon.get_edge_indices(border_edge);
         let (vertex_1, vertex_2) = (
           vertex_index_to_dodgy_vec(island, border_vertex_1, agent_point),

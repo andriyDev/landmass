@@ -713,9 +713,9 @@ fn valid_polygon_gets_edge_indices() {
     center: Vec3::ZERO,
   };
 
-  assert_eq!(polygon.get_edge_indices(0), (1, 3));
-  assert_eq!(polygon.get_edge_indices(2), (9, 2));
-  assert_eq!(polygon.get_edge_indices(4), (7, 1));
+  assert_eq!(polygon.get_edge_indices(0), (3, 1));
+  assert_eq!(polygon.get_edge_indices(2), (2, 9));
+  assert_eq!(polygon.get_edge_indices(4), (1, 7));
 }
 
 #[test]
