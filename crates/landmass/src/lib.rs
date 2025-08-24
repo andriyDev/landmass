@@ -40,7 +40,7 @@ pub use nav_mesh::{
   HeightNavigationMesh, HeightPolygon, NavigationMesh, ValidNavigationMesh,
   ValidationError,
 };
-pub use query::{FindPathError, SamplePointError, SampledPoint};
+pub use query::{FindPathError, PathStep, SamplePointError, SampledPoint};
 pub use util::Transform;
 
 use crate::{
@@ -253,7 +253,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     start_point: &SampledPoint<'_, CS>,
     end_point: &SampledPoint<'_, CS>,
     override_type_index_costs: &HashMap<usize, f32>,
-  ) -> Result<Vec<CS::Coordinate>, FindPathError> {
+  ) -> Result<Vec<PathStep<CS>>, FindPathError> {
     query::find_path(self, start_point, end_point, override_type_index_costs)
   }
 
