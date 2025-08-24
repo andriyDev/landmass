@@ -1,5 +1,5 @@
 use std::{
-  collections::{HashMap, HashSet},
+  collections::{HashMap, HashSet, VecDeque},
   mem::swap,
   ops::{Deref, DerefMut},
   sync::Mutex,
@@ -42,6 +42,11 @@ pub(crate) struct NavigationData<CS: CoordinateSystem> {
   /// Connectedness of regions based on their "region number" in
   /// [`Self::region_id_to_number`].
   pub(crate) region_connections: Mutex<DisjointSet>,
+  /// Maps a region number (the key of [`Self::region_connections`]) to the set
+  /// of links that **could** connect the regions if agents are allowed to use
+  /// them.
+  pub(crate) region_number_to_possible_links:
+    HashMap<usize, Vec<(AnimationLinkId, usize)>>,
   /// The links that go off the mesh, connecting two node refs.
   pub(crate) off_mesh_links: SlotMap<OffMeshLinkId, OffMeshLink>,
   /// The links that can be taken from a particular node ref.
@@ -137,6 +142,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       dirty: false,
       region_id_to_number: HashMap::new(),
       region_connections: Mutex::new(DisjointSet::new()),
+      region_number_to_possible_links: HashMap::default(),
       off_mesh_links: SlotMap::with_key(),
       node_to_off_mesh_link_ids: HashMap::new(),
       modified_nodes: HashMap::new(),
@@ -982,11 +988,39 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       return false;
     };
 
-    self
-      .region_connections
-      .lock()
-      .unwrap()
-      .is_joined(region_number_1, region_number_2)
+    let region_connections = self.region_connections.lock().unwrap();
+    // If the regions are already connected, we're done!
+    if region_connections.is_joined(region_number_1, region_number_2) {
+      return true;
+    }
+
+    // Otherwise, we may need to use some possible links to get to the correct
+    // region. Use a BFS to see if we can find the region.
+    let mut seen_regions = HashSet::new();
+    let mut region_queue = VecDeque::new();
+    seen_regions.insert(region_number_1);
+    region_queue.push_back(region_number_1);
+    while let Some(region_number) = region_queue.pop_front() {
+      if region_number == region_number_2 {
+        return true;
+      }
+
+      let Some(possible_links) =
+        self.region_number_to_possible_links.get(&region_number)
+      else {
+        continue;
+      };
+
+      for (_possible_link, destination_region) in possible_links {
+        if !seen_regions.insert(*destination_region) {
+          continue;
+        }
+        // TODO: Check if we are allowed to use this link.
+        region_queue.push_back(*destination_region);
+      }
+    }
+
+    false
   }
 
   fn update_regions(&mut self) {
@@ -994,14 +1028,21 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     let mut region_connections = self.region_connections.lock().unwrap();
     region_connections.clear();
 
-    for (node_ref, link) in
+    let links =
       self.node_to_off_mesh_link_ids.iter().flat_map(|(&node_ref, links)| {
         links
           .iter()
           .map(|link_id| self.off_mesh_links.get(*link_id).unwrap())
           .map(move |link| (node_ref, link))
-      })
-    {
+      });
+
+    // First, join all the regions where we know for sure they will be
+    // connected.
+    for (node_ref, link) in links.clone() {
+      match &link.kinded {
+        KindedOffMeshLink::BoundaryLink { .. } => {}
+        KindedOffMeshLink::AnimationLink { .. } => continue,
+      }
       let start_region = self.node_to_region_id(node_ref);
       let end_region = self.node_to_region_id(link.destination_node);
 
@@ -1014,8 +1055,42 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         .region_id_to_number
         .entry(end_region)
         .or_insert_with(|| region_connections.add_singleton());
-
       region_connections.join(start_region, end_region);
+    }
+
+    // Then, any links that could potentially link two regions (but not always)
+    // are stored in `self.region_number_to_animation_links`.
+    for (node_ref, link) in links {
+      let animation_link_id = match &link.kinded {
+        KindedOffMeshLink::BoundaryLink { .. } => continue,
+        KindedOffMeshLink::AnimationLink { animation_link, .. } => {
+          *animation_link
+        }
+      };
+
+      let start_region = self.node_to_region_id(node_ref);
+      let end_region = self.node_to_region_id(link.destination_node);
+
+      let start_region = *self
+        .region_id_to_number
+        .entry(start_region)
+        .or_insert_with(|| region_connections.add_singleton());
+
+      let end_region = *self
+        .region_id_to_number
+        .entry(end_region)
+        .or_insert_with(|| region_connections.add_singleton());
+      // If both regions are already connected, there's no sense in recording
+      // the link for potential connections.
+      if region_connections.is_joined(start_region, end_region) {
+        continue;
+      }
+
+      self
+        .region_number_to_possible_links
+        .entry(start_region)
+        .or_default()
+        .push((animation_link_id, end_region));
     }
   }
 
@@ -1029,12 +1104,15 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     }
     self.dirty = false;
 
+    let animation_links_changed = !self.new_animation_links.is_empty()
+      || !self.deleted_animation_links.is_empty();
+
     let (dropped_links, changed_islands, modified_node_refs_to_update) =
       self.update_islands(edge_link_distance, animation_link_distance);
     for node_ref in modified_node_refs_to_update {
       self.update_modified_node(node_ref, edge_link_distance);
     }
-    if !changed_islands.is_empty() {
+    if animation_links_changed || !changed_islands.is_empty() {
       self.update_regions();
     }
     (dropped_links, changed_islands)
