@@ -588,7 +588,9 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
     self.mesh_bounds
   }
 
-  // Gets the points that make up the specified edge.
+  /// Gets the points that make up the specified edge.
+  ///
+  /// Returns points in left-to-right order.
   pub(crate) fn get_edge_points(&self, edge_ref: MeshEdgeRef) -> (Vec3, Vec3) {
     let polygon = &self.polygons[edge_ref.polygon_index];
     let (left_vertex_index, right_vertex_index) =
@@ -731,10 +733,12 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
 
 impl ValidPolygon {
   /// Determines the vertices corresponding to `edge`.
+  ///
+  /// Returns indices in left-to-right order.
   pub(crate) fn get_edge_indices(&self, edge: usize) -> (usize, usize) {
     (
-      self.vertices[edge],
       self.vertices[if edge == self.vertices.len() - 1 { 0 } else { edge + 1 }],
+      self.vertices[edge],
     )
   }
 }

@@ -457,7 +457,7 @@ fn draws_boundary_links() {
     .map(|(_, edge)| *edge)
     .collect::<Vec<_>>();
 
-  assert_eq!(lines, [[Vec3::new(2.0, 1.0, 1.0), Vec3::new(2.0, 2.0, 1.0)]]);
+  assert_eq!(lines, [[Vec3::new(2.0, 2.0, 1.0), Vec3::new(2.0, 1.0, 1.0)]]);
 }
 
 #[test]

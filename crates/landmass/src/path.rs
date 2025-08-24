@@ -189,8 +189,8 @@ impl Path {
         self.get_portal_endpoints(portal_index, nav_data)
       };
 
-      if triangle_area_2(apex, current_right, portal_right) <= 0.0 {
-        if triangle_area_2(apex, current_left, portal_right) >= 0.0 {
+      if triangle_area_2(apex, current_right, portal_right) >= 0.0 {
+        if triangle_area_2(apex, current_left, portal_right) <= 0.0 {
           right_index = portal_index;
           current_right = portal_right;
         } else {
@@ -198,8 +198,8 @@ impl Path {
         }
       }
 
-      if triangle_area_2(apex, current_left, portal_left) >= 0.0 {
-        if triangle_area_2(apex, current_right, portal_left) <= 0.0 {
+      if triangle_area_2(apex, current_left, portal_left) <= 0.0 {
+        if triangle_area_2(apex, current_right, portal_left) >= 0.0 {
           left_index = portal_index;
           current_left = portal_left;
         } else {
