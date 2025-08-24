@@ -1036,6 +1036,69 @@ fn changed_island_rebuilds_region_connectivity() {
   ));
 }
 
+#[googletest::test]
+fn changed_animation_link_rebuilds_region_connectivity() {
+  let mut nav_data = NavigationData::<XY>::new();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("A square nav mesh is valid."),
+  );
+
+  let island_1 =
+    nav_data.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+  let island_2 = nav_data.add_island(Island::new(
+    Transform { translation: Vec2::new(0.0, 2.0), rotation: 0.0 },
+    nav_mesh,
+  ));
+  nav_data.update(
+    /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
+  );
+
+  expect_false!(nav_data.are_nodes_connected(
+    NodeRef { island_id: island_1, polygon_index: 0 },
+    NodeRef { island_id: island_2, polygon_index: 0 },
+  ));
+
+  // Creating a new link should result in the regions being connected.
+  let link_id = nav_data.add_animation_link(AnimationLink {
+    start_edge: (Vec2::new(0.1, 0.9), Vec2::new(0.9, 0.9)),
+    end_edge: (Vec2::new(0.1, 2.1), Vec2::new(0.9, 2.1)),
+    cost: 1.0,
+    kind: 0,
+  });
+  nav_data.update(
+    /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
+  );
+
+  expect_true!(nav_data.are_nodes_connected(
+    NodeRef { island_id: island_1, polygon_index: 0 },
+    NodeRef { island_id: island_2, polygon_index: 0 },
+  ));
+
+  // Removing the link should remove the connectivity.
+  nav_data.remove_animation_link(link_id);
+  nav_data.update(
+    /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
+  );
+
+  expect_false!(nav_data.are_nodes_connected(
+    NodeRef { island_id: island_1, polygon_index: 0 },
+    NodeRef { island_id: island_2, polygon_index: 0 },
+  ));
+}
+
 fn get_off_mesh_links_for_node<CS: CoordinateSystem>(
   nav_data: &NavigationData<CS>,
   node_ref: NodeRef,
