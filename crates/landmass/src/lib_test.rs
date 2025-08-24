@@ -5,7 +5,7 @@ use googletest::{expect_eq, expect_that, matchers::*, prelude::Matcher};
 
 use crate::{
   Agent, AgentId, AgentOptions, AgentState, Archipelago, Character,
-  CharacterId, FromAgentRadius, Island, IslandId, NavigationMesh,
+  CharacterId, FromAgentRadius, Island, IslandId, NavigationMesh, PathStep,
   PointSampleDistance3d, Transform,
   coords::{XY, XYZ},
   nav_data::NodeRef,
@@ -656,9 +656,9 @@ fn finds_path() {
   assert_eq!(
     archipelago.find_path(&start_point, &end_point, &HashMap::new()),
     Ok(vec![
-      offset + Vec2::new(0.5, 0.5),
-      offset + Vec2::new(2.0, 1.0),
-      offset + Vec2::new(2.5, 1.25)
+      PathStep::Waypoint(offset + Vec2::new(0.5, 0.5)),
+      PathStep::Waypoint(offset + Vec2::new(2.0, 1.0)),
+      PathStep::Waypoint(offset + Vec2::new(2.5, 1.25))
     ])
   );
 }

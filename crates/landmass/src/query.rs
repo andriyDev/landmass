@@ -5,6 +5,7 @@ use thiserror::Error;
 use crate::{
   Archipelago, CoordinateSystem, IslandId,
   coords::CorePointSampleDistance,
+  link::AnimationLinkId,
   nav_data::NodeRef,
   path::{PathIndex, StraightPathStep},
   pathfinding,
@@ -100,6 +101,84 @@ pub enum FindPathError {
   NoPathFound,
 }
 
+/// A single step in a path.
+pub enum PathStep<CS: CoordinateSystem> {
+  /// A point along the path that can be walked directly towards.
+  Waypoint(CS::Coordinate),
+  /// An animation link that should be used. The path should move directly
+  /// towards the `start_point`, then use the animation link, which should
+  /// result in the path being at `end_point`.
+  AnimationLink {
+    /// The point that needs to be reached to use the animation link.
+    start_point: CS::Coordinate,
+    /// The point that using the animation link should take the path to.
+    end_point: CS::Coordinate,
+    /// The animation link that will be used here.
+    link_id: AnimationLinkId,
+  },
+}
+
+impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
+  for PathStep<CS>
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::Waypoint(arg0) => f.debug_tuple("Waypoint").field(arg0).finish(),
+      Self::AnimationLink { start_point, end_point, link_id } => f
+        .debug_struct("AnimationLink")
+        .field("start_point", start_point)
+        .field("end_point", end_point)
+        .field("link_id", link_id)
+        .finish(),
+    }
+  }
+}
+
+// Manual implementations of derived traits so we don't require the CS to have
+// the trait.
+
+impl<CS: CoordinateSystem<Coordinate: Clone>> Clone for PathStep<CS> {
+  fn clone(&self) -> Self {
+    match self {
+      Self::Waypoint(arg0) => Self::Waypoint(arg0.clone()),
+      Self::AnimationLink { start_point, end_point, link_id } => {
+        Self::AnimationLink {
+          start_point: start_point.clone(),
+          end_point: end_point.clone(),
+          link_id: *link_id,
+        }
+      }
+    }
+  }
+}
+
+impl<CS: CoordinateSystem<Coordinate: Copy>> Copy for PathStep<CS> {}
+
+impl<CS: CoordinateSystem<Coordinate: PartialEq>> PartialEq for PathStep<CS> {
+  fn eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (Self::Waypoint(l0), Self::Waypoint(r0)) => l0 == r0,
+      (
+        Self::AnimationLink {
+          start_point: l_start_point,
+          end_point: l_end_point,
+          link_id: l_link_id,
+        },
+        Self::AnimationLink {
+          start_point: r_start_point,
+          end_point: r_end_point,
+          link_id: r_link_id,
+        },
+      ) => {
+        l_start_point == r_start_point
+          && l_end_point == r_end_point
+          && l_link_id == r_link_id
+      }
+      _ => false,
+    }
+  }
+}
+
 /// Finds a straight-line path across the navigation meshes from `start_point`
 /// to `end_point`.
 pub(crate) fn find_path<'a, CS: CoordinateSystem>(
@@ -107,7 +186,7 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
   start_point: &SampledPoint<'a, CS>,
   end_point: &SampledPoint<'a, CS>,
   override_type_index_costs: &HashMap<usize, f32>,
-) -> Result<Vec<CS::Coordinate>, FindPathError> {
+) -> Result<Vec<PathStep<CS>>, FindPathError> {
   // This assert can actually be triggered. This can happen if a user samples
   // points from one archipelago, but finds a path in a **different**
   // archipelago. This seems almost malicious though, so I don't think we should
@@ -144,13 +223,18 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
   let last_index = path.last_index();
   let last_point = CS::to_landmass(&end_point.point());
 
-  let mut path_points = vec![start_point.point()];
+  let mut path_points = vec![PathStep::Waypoint(start_point.point())];
   if current_index == last_index {
-    path_points.push(end_point.point.clone());
+    path_points.push(PathStep::Waypoint(end_point.point.clone()));
     return Ok(path_points);
   }
 
-  while current_index != last_index {
+  // Keep looping until we reach the end index. If it's the last index, but the
+  // previous step was an animation link, run once more to get the waypoint to
+  // the end point.
+  while current_index != last_index
+    || matches!(path_points.last().unwrap(), PathStep::AnimationLink { .. })
+  {
     let next_step;
     (current_index, next_step) = path.find_next_point_in_straight_path(
       &archipelago.nav_data,
@@ -159,11 +243,22 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
       last_index,
       last_point,
     );
-    current_point = match next_step {
-      StraightPathStep::Waypoint(point) => point,
-      StraightPathStep::AnimationLink { .. } => todo!(),
+    let next_path_step;
+    (current_point, next_path_step) = match next_step {
+      StraightPathStep::Waypoint(point) => {
+        (point, PathStep::Waypoint(CS::from_landmass(&point)))
+      }
+      StraightPathStep::AnimationLink { start_point, end_point, link_id } => (
+        // Using this animation link leads to the end point of the link.
+        end_point,
+        PathStep::AnimationLink {
+          start_point: CS::from_landmass(&start_point),
+          end_point: CS::from_landmass(&end_point),
+          link_id,
+        },
+      ),
     };
-    path_points.push(CS::from_landmass(&current_point));
+    path_points.push(next_path_step);
   }
 
   Ok(path_points)

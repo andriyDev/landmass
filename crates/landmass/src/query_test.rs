@@ -1,11 +1,13 @@
 use std::{collections::HashMap, sync::Arc};
 
 use glam::Vec2;
+use googletest::{expect_that, matchers::*};
 
 use crate::{
   AgentOptions, Archipelago, FindPathError, FromAgentRadius, Island,
-  NavigationMesh, SamplePointError, Transform,
+  NavigationMesh, PathStep, SamplePointError, Transform,
   coords::{CorePointSampleDistance, XY},
+  link::AnimationLink,
 };
 
 use super::{find_path, sample_point};
@@ -305,9 +307,9 @@ fn finds_path() {
   assert_eq!(
     find_path(&archipelago, &start_point, &end_point, &HashMap::new()),
     Ok(vec![
-      offset + Vec2::new(0.5, 0.5),
-      offset + Vec2::new(2.0, 1.0),
-      offset + Vec2::new(2.5, 1.25)
+      PathStep::Waypoint(offset + Vec2::new(0.5, 0.5)),
+      PathStep::Waypoint(offset + Vec2::new(2.0, 1.0)),
+      PathStep::Waypoint(offset + Vec2::new(2.5, 1.25))
     ])
   );
 }
@@ -391,10 +393,10 @@ fn finds_path_with_override_type_index_costs() {
   assert_eq!(
     path,
     [
-      Vec2::new(0.5, 0.5),
-      Vec2::new(2.0, 1.0),
-      Vec2::new(2.0, 11.0),
-      Vec2::new(0.5, 11.5)
+      PathStep::Waypoint(Vec2::new(0.5, 0.5)),
+      PathStep::Waypoint(Vec2::new(2.0, 1.0)),
+      PathStep::Waypoint(Vec2::new(2.0, 11.0)),
+      PathStep::Waypoint(Vec2::new(0.5, 11.5))
     ]
   );
 }
@@ -486,5 +488,76 @@ fn start_and_end_in_same_node() {
     .find_path(&start_sampled_point, &end_sampled_point, &HashMap::default())
     .unwrap();
 
-  assert_eq!(path, &[start_point, end_point]);
+  assert_eq!(
+    path,
+    &[PathStep::Waypoint(start_point), PathStep::Waypoint(end_point)]
+  );
+}
+
+#[googletest::test]
+fn one_animation_link_path() {
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+
+  // +-+
+  // |E|
+  // +-+
+  //  L
+  // +-+
+  // |S|
+  // +-+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        // Step 1
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        // Step 2
+        Vec2::new(0.0, 2.0),
+        Vec2::new(1.0, 2.0),
+        Vec2::new(1.0, 3.0),
+        Vec2::new(0.0, 3.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
+      polygon_type_indices: vec![0; 2],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  let link_id = archipelago.add_animation_link(AnimationLink {
+    start_edge: (Vec2::new(0.0, 1.0), Vec2::new(1.0, 1.0)),
+    end_edge: (Vec2::new(0.0, 2.0), Vec2::new(1.0, 2.0)),
+    cost: 1.0,
+    kind: 0,
+  });
+
+  archipelago.update(1.0);
+
+  let start_point = Vec2::new(0.25, 0.25);
+  let end_point = Vec2::new(0.75, 2.75);
+
+  let start_sampled_point =
+    archipelago.sample_point(start_point, &0.1).unwrap();
+  let end_sampled_point = archipelago.sample_point(end_point, &0.1).unwrap();
+  let path = archipelago
+    .find_path(&start_sampled_point, &end_sampled_point, &HashMap::default())
+    .unwrap();
+
+  expect_that!(
+    path,
+    elements_are!(
+      &PathStep::Waypoint(start_point),
+      &PathStep::AnimationLink {
+        start_point: Vec2::new(0.25, 1.0),
+        end_point: Vec2::new(0.25, 2.0),
+        link_id,
+      },
+      &PathStep::Waypoint(end_point)
+    )
+  );
 }
