@@ -169,6 +169,25 @@ pub(crate) fn clip_edge_to_triangle(
   Some((edge_tmin.lerp(edge_tmax, t0), edge_tmin.lerp(edge_tmax, t1)))
 }
 
+/// Projects a point onto the line segment.
+///
+/// Returns the projected point and the percentage along the line segment that
+/// the point is at.
+pub(crate) fn project_point_to_line_segment(
+  point: Vec3,
+  (start, end): (Vec3, Vec3),
+) -> (Vec3, f32) {
+  let dir = end - start;
+  let dir_length_squared = dir.length_squared();
+  if dir_length_squared == 0.0 {
+    return (start, 0.0);
+  }
+  let rel = point - start;
+  let fraction = rel.dot(dir) / dir_length_squared;
+  let fraction = fraction.clamp(0.0, 1.0);
+  (dir * fraction + start, fraction)
+}
+
 #[cfg(test)]
 #[path = "geometry_test.rs"]
 mod test;
