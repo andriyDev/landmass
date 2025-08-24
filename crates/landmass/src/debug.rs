@@ -2,8 +2,10 @@ use thiserror::Error;
 
 use crate::{
   Agent, AgentId, Archipelago, CoordinateSystem, Island,
-  coords::CorePointSampleDistance, nav_data::NodeRef, nav_mesh::MeshEdgeRef,
-  path::Path,
+  coords::CorePointSampleDistance,
+  nav_data::NodeRef,
+  nav_mesh::MeshEdgeRef,
+  path::{Path, StraightPathStep},
 };
 
 #[cfg(feature = "debug-avoidance")]
@@ -320,6 +322,12 @@ fn draw_path<CS: CoordinateSystem>(
       target_sample_point,
     )
     .1;
+  // Convert the path step into the point the agent is walking towards.
+  let waypoint = match waypoint {
+    StraightPathStep::Waypoint(point) => point,
+    // TODO: Consider also rendering the expected end point.
+    StraightPathStep::AnimationLink { start_point, .. } => start_point,
+  };
   debug_drawer.add_line(
     LineType::Waypoint(agent_id),
     [agent.position.clone(), CS::from_landmass(&waypoint)],

@@ -4,12 +4,15 @@ use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
 
 use crate::{
-  Agent, AgentOptions, Archipelago, FromAgentRadius, Island, IslandId,
-  NavigationMesh, TargetReachedCondition, Transform,
+  Agent, AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
+  IslandId, NavigationMesh, TargetReachedCondition, Transform,
   agent::{RepathResult, does_agent_need_repath},
   coords::{XY, XYZ},
-  nav_data::NodeRef,
-  path::{IslandSegment, Path, PathIndex},
+  link::{AnimationLink, AnimationLinkId},
+  nav_data::{KindedOffMeshLink, NodeRef, OffMeshLinkId},
+  path::{
+    IslandSegment, OffMeshLinkSegment, Path, PathIndex, StraightPathStep,
+  },
 };
 
 #[test]
@@ -104,25 +107,37 @@ fn has_reached_target_at_end_node() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (first_path_index, transform.apply(Vec3::new(2.5, 0.0, 1.0))),
+      (
+        first_path_index,
+        StraightPathStep::Waypoint(transform.apply(Vec3::new(2.5, 0.0, 1.0)))
+      ),
       (first_path_index, transform.apply(Vec3::new(2.5, 0.0, 1.0))),
     ));
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (first_path_index, transform.apply(Vec3::new(3.5, 0.0, 1.0))),
+      (
+        first_path_index,
+        StraightPathStep::Waypoint(transform.apply(Vec3::new(3.5, 0.0, 1.0)))
+      ),
       (first_path_index, transform.apply(Vec3::new(3.5, 0.0, 1.0))),
     ));
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (first_path_index, transform.apply(Vec3::new(2.0, 0.0, 2.0))),
+      (
+        first_path_index,
+        StraightPathStep::Waypoint(transform.apply(Vec3::new(2.0, 0.0, 2.0)))
+      ),
       (first_path_index, transform.apply(Vec3::new(2.0, 0.0, 2.0))),
     ));
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      (first_path_index, transform.apply(Vec3::new(2.5, 0.0, 2.5))),
+      (
+        first_path_index,
+        StraightPathStep::Waypoint(transform.apply(Vec3::new(2.5, 0.0, 2.5)))
+      ),
       (first_path_index, transform.apply(Vec3::new(2.5, 0.0, 2.5))),
     ));
   }
@@ -184,7 +199,7 @@ fn long_detour_reaches_target_in_different_ways() {
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 1),
-        transform.apply(Vec3::new(1.0, 11.0, 0.0))
+        StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
@@ -200,7 +215,7 @@ fn long_detour_reaches_target_in_different_ways() {
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 1),
-        transform.apply(Vec3::new(1.0, 11.0, 0.0))
+        StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
@@ -220,7 +235,7 @@ fn long_detour_reaches_target_in_different_ways() {
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 1),
-        transform.apply(Vec3::new(1.0, 11.0, 0.0))
+        StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
@@ -236,7 +251,7 @@ fn long_detour_reaches_target_in_different_ways() {
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 1),
-        transform.apply(Vec3::new(1.0, 11.0, 0.0))
+        StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
@@ -252,7 +267,7 @@ fn long_detour_reaches_target_in_different_ways() {
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 1.0, 0.0))
+        StraightPathStep::Waypoint(transform.apply(Vec3::new(2.0, 1.0, 0.0)))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
@@ -267,7 +282,7 @@ fn long_detour_reaches_target_in_different_ways() {
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 1.0, 0.0))
+        StraightPathStep::Waypoint(transform.apply(Vec3::new(2.0, 1.0, 0.0)))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
@@ -287,7 +302,7 @@ fn long_detour_reaches_target_in_different_ways() {
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 1),
-        transform.apply(Vec3::new(1.0, 11.0, 0.0))
+        StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
@@ -303,7 +318,7 @@ fn long_detour_reaches_target_in_different_ways() {
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 1),
-        transform.apply(Vec3::new(1.0, 11.0, 0.0))
+        StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
@@ -318,7 +333,7 @@ fn long_detour_reaches_target_in_different_ways() {
       &archipelago.nav_data,
       (
         PathIndex::from_corridor_index(0, 2),
-        transform.apply(Vec3::new(2.0, 1.0, 0.0))
+        StraightPathStep::Waypoint(transform.apply(Vec3::new(2.0, 1.0, 0.0)))
       ),
       (
         PathIndex::from_corridor_index(0, 2),
@@ -326,6 +341,175 @@ fn long_detour_reaches_target_in_different_ways() {
       ),
     ));
   }
+}
+
+fn off_mesh_link_for_animation_link<CS: CoordinateSystem>(
+  archipelago: &Archipelago<CS>,
+  animation_link_id: AnimationLinkId,
+) -> OffMeshLinkId {
+  for (link_id, link) in archipelago.nav_data.off_mesh_links.iter() {
+    let KindedOffMeshLink::AnimationLink { animation_link, .. } = &link.kinded
+    else {
+      continue;
+    };
+    if *animation_link == animation_link_id {
+      return link_id;
+    }
+  }
+  panic!("No corresponding off mesh link found for {animation_link_id:?}")
+}
+
+#[test]
+fn using_animation_link_does_not_reach_target() {
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+
+  // +----+-+
+  // |XXXX|X|
+  // +----+-+
+  //  L   |X|
+  // +----+-+
+  // |XXXX|X|
+  // +----+-+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(2.0, 0.0),
+        Vec2::new(3.0, 0.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(2.0, 1.0),
+        Vec2::new(3.0, 1.0),
+        Vec2::new(0.0, 2.0),
+        Vec2::new(2.0, 2.0),
+        Vec2::new(3.0, 2.0),
+        Vec2::new(0.0, 3.0),
+        Vec2::new(2.0, 3.0),
+        Vec2::new(3.0, 3.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 4, 3],
+        vec![1, 2, 5, 4],
+        vec![4, 5, 8, 7],
+        vec![7, 8, 11, 10],
+        vec![6, 7, 10, 9],
+      ],
+      polygon_type_indices: vec![0; 5],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let island_id = archipelago.add_island(Island::new(
+    Transform { translation: Vec2::new(10.0, 10.0), ..Default::default() },
+    nav_mesh,
+  ));
+
+  let animation_link_id = archipelago.add_animation_link(AnimationLink {
+    // Portals are in world space.
+    start_edge: (Vec2::new(10.0, 11.0), Vec2::new(11.0, 11.0)),
+    end_edge: (Vec2::new(10.0, 12.0), Vec2::new(11.0, 12.0)),
+    cost: 1.0,
+    kind: 0,
+  });
+
+  archipelago.update(1.0);
+
+  let off_mesh_link =
+    off_mesh_link_for_animation_link(&archipelago, animation_link_id);
+
+  let mut agent = Agent::<XY>::create(
+    /* position= */ Vec2::new(12.5, 10.5),
+    /* velocity= */ Vec2::ZERO,
+    /* radius= */ 0.0,
+    /* desired_speed= */ 0.0,
+    /* max_speed= */ 0.0,
+  );
+
+  let path = Path {
+    island_segments: vec![
+      IslandSegment {
+        island_id,
+        corridor: vec![1, 0],
+        portal_edge_index: vec![3],
+      },
+      IslandSegment { island_id, corridor: vec![4], portal_edge_index: vec![] },
+    ],
+    off_mesh_link_segments: vec![OffMeshLinkSegment {
+      off_mesh_link,
+      starting_node: NodeRef { island_id, polygon_index: 0 },
+    }],
+    start_point: Vec3::ZERO,
+    end_point: Vec3::ZERO,
+  };
+
+  // Using the Distance condition should succeed even though we have an
+  // animation link.
+  agent.target_reached_condition = TargetReachedCondition::Distance(Some(10.0));
+  assert!(agent.has_reached_target(
+    &path,
+    &archipelago.nav_data,
+    (
+      PathIndex::from_corridor_index(0, 1),
+      StraightPathStep::AnimationLink {
+        start_point: Vec3::new(10.5, 11.0, 0.0),
+        end_point: Vec3::new(10.5, 12.0, 0.0),
+        link_id: animation_link_id
+      }
+    ),
+    (PathIndex::from_corridor_index(1, 0), Vec3::new(10.5, 12.5, 0.0)),
+  ));
+
+  // The animation link prevents reaching the target immediately for
+  // VisibleAtDistance condition.
+  agent.target_reached_condition =
+    TargetReachedCondition::VisibleAtDistance(Some(10.0));
+  assert!(!agent.has_reached_target(
+    &path,
+    &archipelago.nav_data,
+    (
+      PathIndex::from_corridor_index(0, 1),
+      StraightPathStep::AnimationLink {
+        start_point: Vec3::new(10.5, 11.0, 0.0),
+        end_point: Vec3::new(10.5, 12.0, 0.0),
+        link_id: animation_link_id
+      }
+    ),
+    (PathIndex::from_corridor_index(1, 0), Vec3::new(10.5, 12.5, 0.0)),
+  ));
+
+  // The animation link prevents reaching the target immediately for
+  // StraightPathDistance condition.
+  agent.target_reached_condition =
+    TargetReachedCondition::StraightPathDistance(Some(10.0));
+  assert!(!agent.has_reached_target(
+    &path,
+    &archipelago.nav_data,
+    (
+      PathIndex::from_corridor_index(0, 1),
+      StraightPathStep::AnimationLink {
+        start_point: Vec3::new(10.5, 11.0, 0.0),
+        end_point: Vec3::new(10.5, 12.0, 0.0),
+        link_id: animation_link_id
+      }
+    ),
+    (PathIndex::from_corridor_index(1, 0), Vec3::new(10.5, 12.5, 0.0)),
+  ));
+
+  // The animation link prevents reaching the target for StraightPathDistance
+  // condition, even when it's not the next waypoint.
+  agent.target_reached_condition =
+    TargetReachedCondition::StraightPathDistance(Some(10.0));
+  assert!(!agent.has_reached_target(
+    &path,
+    &archipelago.nav_data,
+    (
+      PathIndex::from_corridor_index(0, 0),
+      StraightPathStep::Waypoint(Vec3::new(12.5, 10.5, 0.0)),
+    ),
+    (PathIndex::from_corridor_index(1, 0), Vec3::new(10.5, 12.5, 0.0)),
+  ));
 }
 
 #[test]

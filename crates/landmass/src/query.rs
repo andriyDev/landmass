@@ -3,8 +3,11 @@ use std::{collections::HashMap, marker::PhantomData};
 use thiserror::Error;
 
 use crate::{
-  Archipelago, CoordinateSystem, IslandId, coords::CorePointSampleDistance,
-  nav_data::NodeRef, path::PathIndex, pathfinding,
+  Archipelago, CoordinateSystem, IslandId,
+  coords::CorePointSampleDistance,
+  nav_data::NodeRef,
+  path::{PathIndex, StraightPathStep},
+  pathfinding,
 };
 
 /// A point on the navigation meshes.
@@ -148,13 +151,18 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
   }
 
   while current_index != last_index {
-    (current_index, current_point) = path.find_next_point_in_straight_path(
+    let next_step;
+    (current_index, next_step) = path.find_next_point_in_straight_path(
       &archipelago.nav_data,
       current_index,
       current_point,
       last_index,
       last_point,
     );
+    current_point = match next_step {
+      StraightPathStep::Waypoint(point) => point,
+      StraightPathStep::AnimationLink { .. } => todo!(),
+    };
     path_points.push(CS::from_landmass(&current_point));
   }
 
