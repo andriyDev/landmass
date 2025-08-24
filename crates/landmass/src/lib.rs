@@ -45,6 +45,7 @@ pub use util::Transform;
 
 use crate::{
   avoidance::apply_avoidance_to_agents, coords::CorePointSampleDistance,
+  path::StraightPathStep,
 };
 
 pub struct Archipelago<CS: CoordinateSystem> {
@@ -441,7 +442,13 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
         agent.current_desired_move = CS::from_landmass(&Vec3::ZERO);
         agent.state = AgentState::ReachedTarget;
       } else {
-        let desired_move = (next_waypoint.1 - CS::to_landmass(&agent.position))
+        let waypoint = match next_waypoint.1 {
+          StraightPathStep::Waypoint(point) => point,
+          // TODO: Tell the user when they should be using the animation link.
+          StraightPathStep::AnimationLink { start_point, .. } => start_point,
+        };
+
+        let desired_move = (waypoint - CS::to_landmass(&agent.position))
           .xy()
           .normalize_or_zero()
           * agent.desired_speed;

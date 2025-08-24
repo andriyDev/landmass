@@ -6,7 +6,7 @@ use slotmap::new_key_type;
 use crate::{
   CoordinateSystem, IslandId, NavigationData,
   nav_data::{NodeRef, OffMeshLinkId},
-  path::{Path, PathIndex},
+  path::{Path, PathIndex, StraightPathStep},
 };
 
 new_key_type! {
@@ -199,7 +199,7 @@ impl<CS: CoordinateSystem> Agent<CS> {
     &self,
     path: &Path,
     nav_data: &NavigationData<CS>,
-    next_waypoint: (PathIndex, Vec3),
+    next_waypoint: (PathIndex, StraightPathStep),
     target_waypoint: (PathIndex, Vec3),
   ) -> bool {
     let position = CS::to_landmass(&self.position);
@@ -208,10 +208,15 @@ impl<CS: CoordinateSystem> Agent<CS> {
         let distance = distance.unwrap_or(self.radius);
         position.distance_squared(target_waypoint.1) < distance * distance
       }
-      TargetReachedCondition::VisibleAtDistance(distance) => {
+      TargetReachedCondition::VisibleAtDistance(distance) => 'result: {
         let distance = distance.unwrap_or(self.radius);
+        let StraightPathStep::Waypoint(next_point) = next_waypoint.1 else {
+          // If the next waypoint isn't just a walk step, we assume we can't see
+          // the target (since there's no straight line walkable path).
+          break 'result false;
+        };
         next_waypoint.0 == target_waypoint.0
-          && position.distance_squared(next_waypoint.1) < distance * distance
+          && position.distance_squared(next_point) < distance * distance
       }
       TargetReachedCondition::StraightPathDistance(distance) => 'result: {
         let distance = distance.unwrap_or(self.radius);
@@ -227,8 +232,15 @@ impl<CS: CoordinateSystem> Agent<CS> {
           break 'result true;
         }
 
-        let mut straight_line_distance = position.distance(next_waypoint.1);
-        let mut current_waypoint = next_waypoint;
+        let StraightPathStep::Waypoint(next_point) = next_waypoint.1 else {
+          // If the next waypoint isn't just a walk step, we don't consider
+          // ourselves within the straight path distance (since an animation
+          // link does not count as a straight path).
+          break 'result false;
+        };
+
+        let mut straight_line_distance = position.distance(next_point);
+        let mut current_waypoint = (next_waypoint.0, next_point);
 
         while current_waypoint.0 != target_waypoint.0
           && straight_line_distance < distance
@@ -241,9 +253,15 @@ impl<CS: CoordinateSystem> Agent<CS> {
             target_waypoint.1,
           );
 
-          straight_line_distance +=
-            current_waypoint.1.distance(next_waypoint.1);
-          current_waypoint = next_waypoint;
+          let StraightPathStep::Waypoint(next_point) = next_waypoint.1 else {
+            // If the next waypoint isn't just a walk step, we don't consider
+            // ourselves within the straight path distance (since an animation
+            // link does not count as a straight path).
+            break 'result false;
+          };
+
+          straight_line_distance += current_waypoint.1.distance(next_point);
+          current_waypoint = (next_waypoint.0, next_point);
         }
 
         straight_line_distance < distance

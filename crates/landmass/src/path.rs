@@ -4,7 +4,9 @@ use glam::{Vec3, Vec3Swizzles};
 
 use crate::{
   CoordinateSystem, IslandId, NavigationData,
-  nav_data::{NodeRef, OffMeshLinkId},
+  geometry::project_point_to_line_segment,
+  link::AnimationLinkId,
+  nav_data::{KindedOffMeshLink, NodeRef, OffMeshLinkId},
 };
 
 /// A path computed on the navigation data.
@@ -50,13 +52,31 @@ pub(crate) struct OffMeshLinkSegment {
   pub(crate) off_mesh_link: OffMeshLinkId,
 }
 
+/// A portal retrieved from a segment. All portals are in world-space.
+enum Portal {
+  /// The portal is walkable by an agent. This portal must be oriented
+  /// left-to-right wrt the node it comes from.
+  Walkable(Vec3, Vec3),
+  /// The portal is from an animation link.
+  AnimationLink {
+    /// The portal to reach in order to initiate the animation link. The order
+    /// is not defined.
+    start_portal: (Vec3, Vec3),
+    /// The portal that the agent gets sent to after using the animation link.
+    /// The orientation must match the start_portal.
+    end_portal: (Vec3, Vec3),
+    /// The ID of the animation link that this portal came from.
+    link_id: AnimationLinkId,
+  },
+}
+
 impl IslandSegment {
   /// Determines the endpoints of the portal at `portal_index` in `nav_data`.
   fn get_portal_endpoints<CS: CoordinateSystem>(
     &self,
     portal_index: usize,
     nav_data: &NavigationData<CS>,
-  ) -> (Vec3, Vec3) {
+  ) -> Portal {
     let polygon_index = self.corridor[portal_index];
     let edge = self.portal_edge_index[portal_index];
 
@@ -66,7 +86,7 @@ impl IslandSegment {
     let (left_vertex, right_vertex) =
       island_data.nav_mesh.polygons[polygon_index].get_edge_indices(edge);
 
-    (
+    Portal::Walkable(
       island_data.transform.apply(island_data.nav_mesh.vertices[left_vertex]),
       island_data.transform.apply(island_data.nav_mesh.vertices[right_vertex]),
     )
@@ -78,12 +98,26 @@ impl OffMeshLinkSegment {
   fn get_portal_endpoints<CS: CoordinateSystem>(
     &self,
     nav_data: &NavigationData<CS>,
-  ) -> (Vec3, Vec3) {
-    nav_data
+  ) -> Portal {
+    let off_mesh_link = nav_data
       .off_mesh_links
       .get(self.off_mesh_link)
-      .expect("only called if path is still valid")
-      .portal
+      .expect("only called if path is still valid");
+    let portal = off_mesh_link.portal;
+    match &off_mesh_link.kinded {
+      KindedOffMeshLink::BoundaryLink { .. } => {
+        Portal::Walkable(portal.0, portal.1)
+      }
+      KindedOffMeshLink::AnimationLink {
+        destination_portal,
+        animation_link,
+        ..
+      } => Portal::AnimationLink {
+        start_portal: portal,
+        end_portal: *destination_portal,
+        link_id: *animation_link,
+      },
+    }
   }
 }
 
@@ -134,6 +168,24 @@ impl PathIndex {
   }
 }
 
+/// A step in a straight-line path.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum StraightPathStep {
+  /// Walk directly to this point.
+  Waypoint(Vec3),
+  /// Use this animation link (which includes walking to its start point).
+  AnimationLink {
+    /// The point to walk to in order to use the animation link.
+    start_point: Vec3,
+    /// The point that using the animation link *should* lead to. There is no
+    /// actual guarantee that the animation link will take you here, but it is
+    /// a good approximation for straight-line paths.
+    end_point: Vec3,
+    /// The ID of the animation link to use.
+    link_id: AnimationLinkId,
+  },
+}
+
 impl Path {
   /// Determines the endpoints of the portal at `segment_index` at
   /// `portal_index` in `nav_data`.
@@ -141,7 +193,7 @@ impl Path {
     &self,
     path_index: PathIndex,
     nav_data: &NavigationData<CS>,
-  ) -> (Vec3, Vec3) {
+  ) -> Portal {
     if path_index.portal_index
       == self.island_segments[path_index.segment_index].portal_edge_index.len()
     {
@@ -165,16 +217,38 @@ impl Path {
     nav_data: &NavigationData<CS>,
     start_index: PathIndex,
     start_point: Vec3,
-    end_index: PathIndex,
+    mut end_index: PathIndex,
     end_point: Vec3,
-  ) -> (PathIndex, Vec3) {
+  ) -> (PathIndex, StraightPathStep) {
     let apex = start_point;
     let (mut left_index, mut right_index) = (start_index, start_index);
+
+    enum EndOfPath {
+      Point(Vec3),
+      AnimationLink {
+        start_point: Vec3,
+        end_point: Vec3,
+        link_id: AnimationLinkId,
+      },
+    }
+    let mut end_of_path = EndOfPath::Point(end_point);
 
     let (mut current_left, mut current_right) = if start_index == end_index {
       (end_point, end_point)
     } else {
-      self.get_portal_endpoints(start_index, nav_data)
+      match self.get_portal_endpoints(start_index, nav_data) {
+        Portal::Walkable(left, right) => (left, right),
+        Portal::AnimationLink { start_portal, end_portal, link_id } => {
+          let (start_point, fraction) =
+            project_point_to_line_segment(apex, start_portal);
+          let end_point = end_portal.0.lerp(end_portal.1, fraction);
+          return (
+            // Skip to the next index after you take the animation link.
+            start_index.next(self),
+            StraightPathStep::AnimationLink { start_point, end_point, link_id },
+          );
+        }
+      }
     };
 
     fn triangle_area_2(point_0: Vec3, point_1: Vec3, point_2: Vec3) -> f32 {
@@ -186,7 +260,28 @@ impl Path {
       let (portal_left, portal_right) = if portal_index == end_index {
         (end_point, end_point)
       } else {
-        self.get_portal_endpoints(portal_index, nav_data)
+        match self.get_portal_endpoints(portal_index, nav_data) {
+          Portal::Walkable(left, right) => (left, right),
+          Portal::AnimationLink { start_portal, end_portal, link_id } => {
+            let (start_point, fraction) =
+              project_point_to_line_segment(apex, start_portal);
+            let end_point = end_portal.0.lerp(end_portal.1, fraction);
+
+            // Change the end of the path (for this step) to be the animation
+            // link.
+            end_of_path =
+              EndOfPath::AnimationLink { start_point, end_point, link_id };
+            // At the end of this iteration, we will increment the portal index
+            // which will be less than this, ending the loop. Note, we don't
+            // want to just break here, since we need to see if the portal is
+            // visible from the current funnel, or not (in which case we should
+            // return a point instead).
+            end_index = portal_index;
+            // Don't treat the animation link as a portal, since we won't be
+            // adding any more portals. Treat it as an endpoint.
+            (start_point, start_point)
+          }
+        }
       };
 
       if triangle_area_2(apex, current_right, portal_right) >= 0.0 {
@@ -194,7 +289,7 @@ impl Path {
           right_index = portal_index;
           current_right = portal_right;
         } else {
-          return (left_index, current_left);
+          return (left_index, StraightPathStep::Waypoint(current_left));
         }
       }
 
@@ -203,14 +298,28 @@ impl Path {
           left_index = portal_index;
           current_left = portal_left;
         } else {
-          return (right_index, current_right);
+          return (right_index, StraightPathStep::Waypoint(current_right));
         }
       }
 
       portal_index = portal_index.next(self);
     }
 
-    (end_index, end_point)
+    match end_of_path {
+      EndOfPath::Point(end_point) => {
+        (end_index, StraightPathStep::Waypoint(end_point))
+      }
+      EndOfPath::AnimationLink { start_point, end_point, link_id } => (
+        // We want to skip over this animation link, so use `portal_index`
+        // (which had `next` called on it) instead of `end_index`.
+        portal_index,
+        StraightPathStep::AnimationLink {
+          start_point,
+          end_point,
+          link_id: link_id,
+        },
+      ),
+    }
   }
 
   pub(crate) fn last_index(&self) -> PathIndex {
