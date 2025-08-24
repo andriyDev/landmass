@@ -7,6 +7,7 @@ mod character;
 mod coords;
 mod geometry;
 mod island;
+mod link;
 mod nav_data;
 mod nav_mesh;
 mod path;
@@ -33,6 +34,7 @@ pub use coords::{
   PointSampleDistance3d, XY, XYZ,
 };
 pub use island::{Island, IslandId};
+pub use link::{AnimationLink, AnimationLinkId};
 pub use nav_data::{IslandMut, SetTypeIndexCostError};
 pub use nav_mesh::{
   HeightNavigationMesh, HeightPolygon, NavigationMesh, ValidNavigationMesh,
@@ -172,6 +174,30 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
 
   pub fn get_island_ids(&self) -> impl ExactSizeIterator<Item = IslandId> + '_ {
     self.nav_data.get_island_ids()
+  }
+
+  pub fn add_animation_link(
+    &mut self,
+    link: AnimationLink<CS>,
+  ) -> AnimationLinkId {
+    self.nav_data.add_animation_link(link)
+  }
+
+  pub fn remove_animation_link(&mut self, link_id: AnimationLinkId) {
+    self.nav_data.remove_animation_link(link_id)
+  }
+
+  pub fn get_animation_link(
+    &self,
+    link_id: AnimationLinkId,
+  ) -> Option<&AnimationLink<CS>> {
+    self.nav_data.get_animation_link(link_id)
+  }
+
+  pub fn get_animation_link_ids(
+    &self,
+  ) -> impl ExactSizeIterator<Item = AnimationLinkId> {
+    self.nav_data.get_animation_link_ids()
   }
 
   /// Sets the cost of `type_index` to `cost`. The cost is a multiplier on the

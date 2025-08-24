@@ -17,6 +17,7 @@ use crate::{
   coords::CorePointSampleDistance,
   geometry::edge_intersection,
   island::{Island, IslandId},
+  link::{AnimationLink, AnimationLinkId, AnimationLinkState},
   nav_mesh::MeshEdgeRef,
   util::{BoundingBox, BoundingBoxHierarchy},
 };
@@ -26,6 +27,8 @@ use crate::{
 pub(crate) struct NavigationData<CS: CoordinateSystem> {
   /// The islands in the [`crate::Archipelago`].
   islands: HopSlotMap<IslandId, Island<CS>>,
+  /// The animation links in the [`crate::AnimationLink`].
+  animation_links: HopSlotMap<AnimationLinkId, AnimationLinkState<CS>>,
   /// The "default" cost of each type index. Missing type indices default to a
   /// cost of 1.0.
   type_index_to_cost: HashMap<usize, f32>,
@@ -48,6 +51,8 @@ pub(crate) struct NavigationData<CS: CoordinateSystem> {
   pub(crate) modified_nodes: HashMap<NodeRef, ModifiedNode>,
   /// The islands that have been deleted since the last update.
   pub(crate) deleted_islands: HashSet<IslandId>,
+  /// The set of animation links created since the last update.
+  new_animation_links: HashSet<AnimationLinkId>,
 }
 
 /// A reference to a node in the navigation data.
@@ -100,6 +105,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   pub(crate) fn new() -> Self {
     Self {
       islands: HopSlotMap::with_key(),
+      animation_links: HopSlotMap::with_key(),
       type_index_to_cost: HashMap::new(),
       // The navigation data is empty, so there's nothing to update (so not
       // dirty).
@@ -110,6 +116,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       node_to_boundary_link_ids: HashMap::new(),
       modified_nodes: HashMap::new(),
       deleted_islands: HashSet::new(),
+      new_animation_links: HashSet::new(),
     }
   }
 
@@ -182,6 +189,34 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       .remove(island_id)
       .expect("Island should be present in the Archipelago");
     self.deleted_islands.insert(island_id);
+  }
+
+  pub(crate) fn add_animation_link(
+    &mut self,
+    link: AnimationLink<CS>,
+  ) -> AnimationLinkId {
+    let link_id =
+      self.animation_links.insert(AnimationLinkState { main_link: link });
+    self.new_animation_links.insert(link_id);
+    link_id
+  }
+
+  pub(crate) fn remove_animation_link(&mut self, link_id: AnimationLinkId) {
+    self.new_animation_links.remove(&link_id);
+    self.animation_links.remove(link_id);
+  }
+
+  pub(crate) fn get_animation_link(
+    &self,
+    link_id: AnimationLinkId,
+  ) -> Option<&AnimationLink<CS>> {
+    self.animation_links.get(link_id).map(|state| &state.main_link)
+  }
+
+  pub fn get_animation_link_ids(
+    &self,
+  ) -> impl ExactSizeIterator<Item = AnimationLinkId> {
+    self.animation_links.keys()
   }
 
   /// Finds the node nearest to (and within `distance_to_node` of) `point`.
