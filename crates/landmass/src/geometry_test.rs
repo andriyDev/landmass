@@ -1,6 +1,8 @@
 use glam::{Vec2, Vec3};
 use googletest::{expect_eq, expect_that, matchers::*};
 
+use crate::geometry::project_point_to_line_segment;
+
 use super::{clip_edge_to_triangle, edge_intersection};
 
 #[test]
@@ -539,5 +541,49 @@ fn clips_edge_height_correctly_when_extending_line() {
       1.0
     ),
     Some((0.20000005, 1.0))
+  );
+}
+
+#[googletest::test]
+fn projects_point_to_middle_of_line_segment() {
+  expect_eq!(
+    project_point_to_line_segment(
+      Vec3::new(0.0, 0.0, 0.0),
+      (Vec3::new(1.0, 0.0, 0.0), Vec3::new(0.0, 1.0, 0.0))
+    ),
+    (Vec3::new(0.5, 0.5, 0.0), 0.5)
+  );
+}
+
+#[googletest::test]
+fn projects_point_to_start_of_line_segment() {
+  expect_eq!(
+    project_point_to_line_segment(
+      Vec3::new(2.0, -2.0, 0.0),
+      (Vec3::new(1.0, 0.0, 0.0), Vec3::new(0.0, 1.0, 0.0))
+    ),
+    (Vec3::new(1.0, 0.0, 0.0), 0.0)
+  );
+}
+
+#[googletest::test]
+fn projects_point_to_end_of_line_segment() {
+  expect_eq!(
+    project_point_to_line_segment(
+      Vec3::new(-2.0, 2.0, 0.0),
+      (Vec3::new(1.0, 0.0, 0.0), Vec3::new(0.0, 1.0, 0.0))
+    ),
+    (Vec3::new(0.0, 1.0, 0.0), 1.0)
+  );
+}
+
+#[googletest::test]
+fn projects_point_to_degenerate_line_segment() {
+  expect_eq!(
+    project_point_to_line_segment(
+      Vec3::new(-2.0, 2.0, 0.0),
+      (Vec3::new(10.0, 3.0, 0.0), Vec3::new(10.0, 3.0, 0.0))
+    ),
+    (Vec3::new(10.0, 3.0, 0.0), 0.0)
   );
 }
