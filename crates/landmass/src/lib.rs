@@ -260,7 +260,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     self.pathing_results.clear();
 
     // TODO: make the edge_link_distance configurable.
-    let (invalidated_boundary_links, invalidated_islands) =
+    let (invalidated_off_mesh_links, invalidated_islands) =
       self.nav_data.update(/* edge_link_distance= */ 0.01);
 
     let mut agent_id_to_agent_node = HashMap::new();
@@ -322,7 +322,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     for (agent_id, agent) in self.agents.iter_mut() {
       if agent.paused {
         if let Some(path) = agent.current_path.as_ref()
-          && !path.is_valid(&invalidated_boundary_links, &invalidated_islands)
+          && !path.is_valid(&invalidated_off_mesh_links, &invalidated_islands)
         {
           // If the path has been invalidated, clear the path to keep the agent
           // consistent.
@@ -336,7 +336,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
         agent,
         agent_point_and_node.map(|(_, node)| *node),
         target_point_and_node.map(|(_, node)| *node),
-        &invalidated_boundary_links,
+        &invalidated_off_mesh_links,
         &invalidated_islands,
       ) {
         RepathResult::DoNothing => {}

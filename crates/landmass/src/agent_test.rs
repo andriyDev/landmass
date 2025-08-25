@@ -88,7 +88,7 @@ fn has_reached_target_at_end_node() {
       corridor: vec![0],
       portal_edge_index: vec![],
     }],
-    boundary_link_segments: vec![],
+    off_mesh_link_segments: vec![],
     start_point: Vec3::ZERO,
     end_point: Vec3::ZERO,
   };
@@ -167,7 +167,7 @@ fn long_detour_reaches_target_in_different_ways() {
       corridor: vec![0, 1, 2],
       portal_edge_index: vec![1, 2],
     }],
-    boundary_link_segments: vec![],
+    off_mesh_link_segments: vec![],
     start_point: Vec3::ZERO,
     end_point: Vec3::ZERO,
   };
@@ -351,7 +351,7 @@ fn nothing_or_clear_path_for_no_target() {
 
   agent.current_path = Some(Path {
     island_segments: vec![],
-    boundary_link_segments: vec![],
+    off_mesh_link_segments: vec![],
     start_point: Vec3::ZERO,
     end_point: Vec3::ZERO,
   });
@@ -440,7 +440,7 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
       corridor: vec![2, 3, 4, 1, 0],
       portal_edge_index: vec![],
     }],
-    boundary_link_segments: vec![],
+    off_mesh_link_segments: vec![],
     start_point: Vec3::ZERO,
     end_point: Vec3::ZERO,
   });

@@ -4,19 +4,19 @@ use glam::{Vec3, Vec3Swizzles};
 
 use crate::{
   CoordinateSystem, IslandId, NavigationData,
-  nav_data::{BoundaryLinkId, NodeRef},
+  nav_data::{NodeRef, OffMeshLinkId},
 };
 
 /// A path computed on the navigation data.
 #[derive(PartialEq, Clone, Debug)]
 pub struct Path {
   /// The segments of this path on islands. These are joined together with
-  /// [`Path::boundary_link_segments`]. Note even if an island is only used to
-  /// take another boundary link, it must be included with the relevant node.
+  /// [`Path::off_mesh_link_segments`]. Note even if an island is only used to
+  /// take another off mesh link, it must be included with the relevant node.
   pub(crate) island_segments: Vec<IslandSegment>,
-  /// The boundary links that connect the island segments. Must have exactly
+  /// The off mesh links that connect the island segments. Must have exactly
   /// one less element than [`Path::island_segments`].
-  pub(crate) boundary_link_segments: Vec<BoundaryLinkSegment>,
+  pub(crate) off_mesh_link_segments: Vec<OffMeshLinkSegment>,
   /// The point where this path was started from.
   ///
   /// This is not used, but is good for debugging.
@@ -41,13 +41,13 @@ pub(crate) struct IslandSegment {
   pub(crate) portal_edge_index: Vec<usize>,
 }
 
-/// Part of a path taking a BoundaryLink.
+/// Part of a path taking an off mesh link.
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub(crate) struct BoundaryLinkSegment {
-  /// The node that the boundary link starts from.
+pub(crate) struct OffMeshLinkSegment {
+  /// The node that the off mesh link starts from.
   pub(crate) starting_node: NodeRef,
   /// The link to be used.
-  pub(crate) boundary_link: BoundaryLinkId,
+  pub(crate) off_mesh_link: OffMeshLinkId,
 }
 
 impl IslandSegment {
@@ -73,15 +73,15 @@ impl IslandSegment {
   }
 }
 
-impl BoundaryLinkSegment {
-  /// Gets the endpoints of the portal for this boundary link in `nav_data`.
+impl OffMeshLinkSegment {
+  /// Gets the endpoints of the portal for this off mesh link in `nav_data`.
   fn get_portal_endpoints<CS: CoordinateSystem>(
     &self,
     nav_data: &NavigationData<CS>,
   ) -> (Vec3, Vec3) {
     nav_data
-      .boundary_links
-      .get(self.boundary_link)
+      .off_mesh_links
+      .get(self.off_mesh_link)
       .expect("only called if path is still valid")
       .portal
   }
@@ -93,7 +93,7 @@ pub(crate) struct PathIndex {
   /// The index of the segment this belongs to.
   segment_index: usize,
   /// The index of the portal in the corridor. The last index in a corrider
-  /// either corresponds to the boundary link to the next segment or the target
+  /// either corresponds to the off mesh link to the next segment or the target
   /// node.
   portal_index: usize,
 }
@@ -145,7 +145,7 @@ impl Path {
     if path_index.portal_index
       == self.island_segments[path_index.segment_index].portal_edge_index.len()
     {
-      self.boundary_link_segments[path_index.segment_index]
+      self.off_mesh_link_segments[path_index.segment_index]
         .get_portal_endpoints(nav_data)
     } else {
       self.island_segments[path_index.segment_index]
@@ -222,11 +222,11 @@ impl Path {
   }
 
   /// Determines if a path is valid. A path may be invalid if an island it
-  /// travelled across was invalidared, or a boundary link it used was
+  /// travelled across was invalidared, or a off mesh link it used was
   /// invalidated.
   pub(crate) fn is_valid(
     &self,
-    invalidated_boundary_links: &HashSet<BoundaryLinkId>,
+    invalidated_off_mesh_links: &HashSet<OffMeshLinkId>,
     invalidated_islands: &HashSet<IslandId>,
   ) -> bool {
     for island_segment in self.island_segments.iter() {
@@ -234,9 +234,9 @@ impl Path {
         return false;
       }
     }
-    for boundary_link_segment in self.boundary_link_segments.iter() {
-      if invalidated_boundary_links
-        .contains(&boundary_link_segment.boundary_link)
+    for off_mesh_link_segment in self.off_mesh_link_segments.iter() {
+      if invalidated_off_mesh_links
+        .contains(&off_mesh_link_segment.off_mesh_link)
       {
         return false;
       }

@@ -7,9 +7,9 @@ use crate::{
   AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
   IslandId, Transform,
   coords::{XY, XYZ},
-  nav_data::{BoundaryLinkId, NavigationData, NodeRef},
+  nav_data::{NavigationData, NodeRef, OffMeshLinkId},
   nav_mesh::NavigationMesh,
-  path::{BoundaryLinkSegment, IslandSegment},
+  path::{IslandSegment, OffMeshLinkSegment},
 };
 
 use super::{Path, PathIndex};
@@ -81,7 +81,7 @@ fn finds_next_point_for_organic_map() {
       corridor: vec![0, 1, 2],
       portal_edge_index: vec![4, 2],
     }],
-    boundary_link_segments: vec![],
+    off_mesh_link_segments: vec![],
     start_point: transform.apply(Vec3::new(3.0, 1.5, 0.0)),
     end_point: transform.apply(Vec3::new(2.5, 4.5, 0.5)),
   };
@@ -182,7 +182,7 @@ fn finds_next_point_in_zig_zag() {
       corridor: vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
       portal_edge_index: vec![2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
     }],
-    boundary_link_segments: vec![],
+    off_mesh_link_segments: vec![],
     start_point: transform.apply(Vec3::new(0.5, 0.5, 0.0)),
     end_point: transform.apply(Vec3::new(-3.5, 14.0, 0.0)),
   };
@@ -253,7 +253,7 @@ fn starts_at_end_index_goes_to_end_point() {
       corridor: vec![0, 1],
       portal_edge_index: vec![2],
     }],
-    boundary_link_segments: vec![],
+    off_mesh_link_segments: vec![],
     start_point: Vec3::ZERO,
     end_point: Vec3::ZERO,
   };
@@ -271,13 +271,13 @@ fn starts_at_end_index_goes_to_end_point() {
 }
 
 #[test]
-fn path_not_valid_for_invalidated_islands_or_boundary_links() {
-  // Create unused slotmaps just to get `IslandId`s and `BoundaryLinkId`s.
+fn path_not_valid_for_invalidated_islands_or_off_mesh_links() {
+  // Create unused slotmaps just to get `IslandId`s and `OffMeshLinkId`s.
   let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
   let island_id_1 = slotmap.insert(0);
   let island_id_2 = slotmap.insert(0);
   let island_id_3 = slotmap.insert(0);
-  let mut slotmap = HopSlotMap::<BoundaryLinkId, _>::with_key();
+  let mut slotmap = HopSlotMap::<OffMeshLinkId, _>::with_key();
   let boundary_link_id_1 = slotmap.insert(0);
   let boundary_link_id_2 = slotmap.insert(0);
 
@@ -299,14 +299,14 @@ fn path_not_valid_for_invalidated_islands_or_boundary_links() {
         portal_edge_index: vec![],
       },
     ],
-    boundary_link_segments: vec![
-      BoundaryLinkSegment {
+    off_mesh_link_segments: vec![
+      OffMeshLinkSegment {
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
-        boundary_link: boundary_link_id_1,
+        off_mesh_link: boundary_link_id_1,
       },
-      BoundaryLinkSegment {
+      OffMeshLinkSegment {
         starting_node: NodeRef { island_id: island_id_2, polygon_index: 1 },
-        boundary_link: boundary_link_id_2,
+        off_mesh_link: boundary_link_id_2,
       },
     ],
     start_point: Vec3::ZERO,
@@ -353,7 +353,7 @@ fn indices_in_path_are_found() {
   let island_id_2 = slotmap.insert(0);
   let island_id_3 = slotmap.insert(0);
   let island_id_4 = slotmap.insert(0);
-  let mut slotmap = HopSlotMap::<BoundaryLinkId, _>::with_key();
+  let mut slotmap = HopSlotMap::<OffMeshLinkId, _>::with_key();
   let boundary_link_id_1 = slotmap.insert(0);
   let boundary_link_id_2 = slotmap.insert(0);
 
@@ -375,14 +375,14 @@ fn indices_in_path_are_found() {
         portal_edge_index: vec![],
       },
     ],
-    boundary_link_segments: vec![
-      BoundaryLinkSegment {
+    off_mesh_link_segments: vec![
+      OffMeshLinkSegment {
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
-        boundary_link: boundary_link_id_1,
+        off_mesh_link: boundary_link_id_1,
       },
-      BoundaryLinkSegment {
+      OffMeshLinkSegment {
         starting_node: NodeRef { island_id: island_id_2, polygon_index: 1 },
-        boundary_link: boundary_link_id_2,
+        off_mesh_link: boundary_link_id_2,
       },
     ],
     start_point: Vec3::ZERO,
@@ -431,7 +431,7 @@ fn indices_in_path_are_found_rev() {
   let island_id_2 = slotmap.insert(0);
   let island_id_3 = slotmap.insert(0);
   let island_id_4 = slotmap.insert(0);
-  let mut slotmap = HopSlotMap::<BoundaryLinkId, _>::with_key();
+  let mut slotmap = HopSlotMap::<OffMeshLinkId, _>::with_key();
   let boundary_link_id_1 = slotmap.insert(0);
   let boundary_link_id_2 = slotmap.insert(0);
 
@@ -453,14 +453,14 @@ fn indices_in_path_are_found_rev() {
         portal_edge_index: vec![],
       },
     ],
-    boundary_link_segments: vec![
-      BoundaryLinkSegment {
+    off_mesh_link_segments: vec![
+      OffMeshLinkSegment {
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
-        boundary_link: boundary_link_id_1,
+        off_mesh_link: boundary_link_id_1,
       },
-      BoundaryLinkSegment {
+      OffMeshLinkSegment {
         starting_node: NodeRef { island_id: island_id_2, polygon_index: 1 },
-        boundary_link: boundary_link_id_2,
+        off_mesh_link: boundary_link_id_2,
       },
     ],
     start_point: Vec3::ZERO,
