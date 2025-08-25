@@ -42,11 +42,11 @@ pub(crate) struct NavigationData<CS: CoordinateSystem> {
   /// Connectedness of regions based on their "region number" in
   /// [`Self::region_id_to_number`].
   pub(crate) region_connections: Mutex<DisjointSet>,
-  /// The links to other islands by [`crate::NodeRef`]
-  pub(crate) boundary_links: SlotMap<BoundaryLinkId, BoundaryLink>,
+  /// The links that go off the mesh, connecting two node refs.
+  pub(crate) off_mesh_links: SlotMap<OffMeshLinkId, OffMeshLink>,
   /// The links that can be taken from a particular node ref.
-  pub(crate) node_to_boundary_link_ids:
-    HashMap<NodeRef, HashSet<BoundaryLinkId>>,
+  pub(crate) node_to_off_mesh_link_ids:
+    HashMap<NodeRef, HashSet<OffMeshLinkId>>,
   /// The nodes that have been modified.
   pub(crate) modified_nodes: HashMap<NodeRef, ModifiedNode>,
   /// The islands that have been deleted since the last update.
@@ -65,24 +65,25 @@ pub(crate) struct NodeRef {
 }
 
 new_key_type! {
-  /// The ID of a boundary link.
-  pub(crate) struct BoundaryLinkId;
+  /// The ID of an off mesh link.
+  pub(crate) struct OffMeshLinkId;
 }
 
-/// A single link between two nodes on the boundary of an island.
+/// A single link between two nodes that does not exist in the nav meshes.
 #[derive(PartialEq, Debug, Clone)]
-pub(crate) struct BoundaryLink {
+pub(crate) struct OffMeshLink {
   /// The node that taking this link leads to.
   pub(crate) destination_node: NodeRef,
   /// The type index of the destination node. This is stored for convenience
-  /// since it is stable once the boundary link is created.
+  /// since it is stable once the link is created.
   pub(crate) destination_type_index: usize,
-  /// The portal that this link occupies on the boundary of the source node.
-  /// This is essentially the intersection of the linked islands' linkable
-  /// edges. The portal is in world-space.
+  /// The portal that this link can be taken from. The portal is in
+  /// world-space. For boundary links, the points must be in left-to-right
+  /// order relative to the center of the node.
   pub(crate) portal: (Vec3, Vec3),
   /// The ID of the boundary link that goes back to the original node.
-  pub(crate) reverse_link: BoundaryLinkId,
+  // TODO: Make this specific to boundary links.
+  pub(crate) reverse_link: OffMeshLinkId,
 }
 
 /// A node that has been modified (e.g., by being connected with a boundary link
@@ -112,8 +113,8 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       dirty: false,
       region_id_to_number: HashMap::new(),
       region_connections: Mutex::new(DisjointSet::new()),
-      boundary_links: SlotMap::with_key(),
-      node_to_boundary_link_ids: HashMap::new(),
+      off_mesh_links: SlotMap::with_key(),
+      node_to_off_mesh_link_ids: HashMap::new(),
       modified_nodes: HashMap::new(),
       deleted_islands: HashSet::new(),
       new_animation_links: HashSet::new(),
@@ -282,7 +283,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   fn update_islands(
     &mut self,
     edge_link_distance: f32,
-  ) -> (HashSet<BoundaryLinkId>, HashSet<IslandId>, HashSet<NodeRef>) {
+  ) -> (HashSet<OffMeshLinkId>, HashSet<IslandId>, HashSet<NodeRef>) {
     let mut dirty_islands = HashSet::new();
     for (island_id, island) in self.islands.iter_mut() {
       if island.dirty {
@@ -300,10 +301,10 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     let mut dropped_links = HashSet::new();
     let mut modified_node_refs_to_update = HashSet::new();
     if !self.deleted_islands.is_empty() || !dirty_islands.is_empty() {
-      self.node_to_boundary_link_ids.retain(|node_ref, links| {
+      self.node_to_off_mesh_link_ids.retain(|node_ref, links| {
         if changed_islands.contains(&node_ref.island_id) {
           for &link in links.iter() {
-            self.boundary_links.remove(link);
+            self.off_mesh_links.remove(link);
           }
           modified_node_refs_to_update.insert(*node_ref);
           dropped_links.extend(links.iter().copied());
@@ -313,11 +314,11 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         let links_before = links.len();
 
         links.retain(|&link_id| {
-          let link = self.boundary_links.get(link_id).unwrap();
+          let link = self.off_mesh_links.get(link_id).unwrap();
           let retain =
             !changed_islands.contains(&link.destination_node.island_id);
           if !retain {
-            self.boundary_links.remove(link_id);
+            self.off_mesh_links.remove(link_id);
             dropped_links.insert(link_id);
           }
           retain
@@ -326,6 +327,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         if links_before != links.len() {
           // If a node has a different set of boundary links, we need to
           // recompute that node.
+          // TODO: We only care about boundary links, not all off-mesh links.
           modified_node_refs_to_update.insert(*node_ref);
         }
 
@@ -386,8 +388,8 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
           (candidate_island_id, candidate_island),
           &dirty_island_edge_bbh,
           edge_link_distance,
-          &mut self.boundary_links,
-          &mut self.node_to_boundary_link_ids,
+          &mut self.off_mesh_links,
+          &mut self.node_to_off_mesh_link_ids,
           &mut modified_node_refs_to_update,
         );
       }
@@ -407,12 +409,15 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       self.modified_nodes.remove(&node_ref);
       return;
     };
-    // Any nodes without boundary links don't need to be modified.
-    let Some(boundary_links) = self.node_to_boundary_link_ids.get(&node_ref)
+    // Any nodes without off mesh links don't need to be modified.
+    let Some(off_mesh_links) = self.node_to_off_mesh_link_ids.get(&node_ref)
     else {
       self.modified_nodes.remove(&node_ref);
       return;
     };
+
+    // TODO: If none of these off mesh links are boundary links, the node also
+    // doesn't need to be modified.
 
     let polygon = &island.nav_mesh.polygons[node_ref.polygon_index];
 
@@ -466,7 +471,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     let boundary_edges = geo::MultiLineString(multi_line_string);
 
     fn boundary_link_to_clip_polygon(
-      link: &BoundaryLink,
+      link: &OffMeshLink,
       edge_link_distance: f32,
     ) -> MultiPolygon<f32> {
       let flat_portal = (link.portal.0.xy(), link.portal.1.xy());
@@ -483,9 +488,9 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       )])
     }
 
-    let mut clip_polygons = boundary_links
+    let mut clip_polygons = off_mesh_links
       .iter()
-      .map(|link_id| self.boundary_links.get(*link_id).unwrap())
+      .map(|link_id| self.off_mesh_links.get(*link_id).unwrap())
       .map(|link| boundary_link_to_clip_polygon(link, edge_link_distance));
 
     let mut link_clip = clip_polygons.next().unwrap();
@@ -618,10 +623,10 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     region_connections.clear();
 
     for (node_ref, link) in
-      self.node_to_boundary_link_ids.iter().flat_map(|(&node_ref, links)| {
+      self.node_to_off_mesh_link_ids.iter().flat_map(|(&node_ref, links)| {
         links
           .iter()
-          .map(|link_id| self.boundary_links.get(*link_id).unwrap())
+          .map(|link_id| self.off_mesh_links.get(*link_id).unwrap())
           .map(move |link| (node_ref, link))
       })
     {
@@ -645,7 +650,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   pub(crate) fn update(
     &mut self,
     edge_link_distance: f32,
-  ) -> (HashSet<BoundaryLinkId>, HashSet<IslandId>) {
+  ) -> (HashSet<OffMeshLinkId>, HashSet<IslandId>) {
     if !self.dirty {
       return (HashSet::new(), HashSet::new());
     }
@@ -739,8 +744,8 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
   (island_id_2, island_2): (IslandId, &Island<CS>),
   island_1_edge_bbh: &BoundingBoxHierarchy<MeshEdgeRef>,
   edge_link_distance: f32,
-  boundary_links: &mut SlotMap<BoundaryLinkId, BoundaryLink>,
-  node_to_boundary_link_ids: &mut HashMap<NodeRef, HashSet<BoundaryLinkId>>,
+  off_mesh_links: &mut SlotMap<OffMeshLinkId, OffMeshLink>,
+  node_to_off_mesh_link_ids: &mut HashMap<NodeRef, HashSet<OffMeshLinkId>>,
   modified_node_refs_to_update: &mut HashSet<NodeRef>,
 ) {
   let edge_link_distance_squared = edge_link_distance * edge_link_distance;
@@ -777,24 +782,24 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
         let polygon_2 =
           &island_2.nav_mesh.polygons[island_2_edge_ref.polygon_index];
 
-        let id_1 = boundary_links.insert(BoundaryLink {
+        let id_1 = off_mesh_links.insert(OffMeshLink {
           destination_node: node_2,
           destination_type_index: polygon_2.type_index,
           portal,
           // Set the reverse link to the default and we'll replace it with the
           // correct ID later.
-          reverse_link: BoundaryLinkId::default(),
+          reverse_link: OffMeshLinkId::default(),
         });
-        let id_2 = boundary_links.insert(BoundaryLink {
+        let id_2 = off_mesh_links.insert(OffMeshLink {
           destination_node: node_1,
           destination_type_index: polygon_1.type_index,
           portal: (portal.1, portal.0),
           reverse_link: id_1,
         });
-        boundary_links.get_mut(id_1).unwrap().reverse_link = id_2;
+        off_mesh_links.get_mut(id_1).unwrap().reverse_link = id_2;
 
-        node_to_boundary_link_ids.entry(node_1).or_default().insert(id_1);
-        node_to_boundary_link_ids.entry(node_2).or_default().insert(id_2);
+        node_to_off_mesh_link_ids.entry(node_1).or_default().insert(id_1);
+        node_to_off_mesh_link_ids.entry(node_2).or_default().insert(id_2);
 
         modified_node_refs_to_update.insert(node_1);
         modified_node_refs_to_update.insert(node_2);

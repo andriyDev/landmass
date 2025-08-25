@@ -248,7 +248,7 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
     let island = nav_data.get_island(node.island_id).unwrap();
 
     let polygon = &island.nav_mesh.polygons[node.polygon_index];
-    let boundary_links = nav_data.node_to_boundary_link_ids.get(&node);
+    let off_mesh_links = nav_data.node_to_off_mesh_link_ids.get(&node);
     let modified_node = nav_data.modified_nodes.get(&node);
 
     let mut remaining_edges: HashSet<usize> =
@@ -277,10 +277,11 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
           },
         )
       })
-      .chain(boundary_links.iter().flat_map(|boundary_links| {
-        boundary_links
+      .chain(off_mesh_links.iter().flat_map(|off_mesh_links| {
+        off_mesh_links
           .iter()
-          .map(|link_id| nav_data.boundary_links.get(*link_id).unwrap())
+          .map(|link_id| nav_data.off_mesh_links.get(*link_id).unwrap())
+          // TODO: Filter down to boundary links.
           .map(|link| {
             (
               // dodgy represents the inside of an obstacle as

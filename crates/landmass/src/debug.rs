@@ -172,12 +172,12 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
 
       let node_ref = NodeRef { island_id, polygon_index };
       if let Some(boundary_link_ids) =
-        archipelago.nav_data.node_to_boundary_link_ids.get(&node_ref)
+        archipelago.nav_data.node_to_off_mesh_link_ids.get(&node_ref)
       {
         for &boundary_link_id in boundary_link_ids.iter() {
           let boundary_link = archipelago
             .nav_data
-            .boundary_links
+            .off_mesh_links
             .get(boundary_link_id)
             .expect("Boundary links are present.");
           // Ignore links where the connected node has a greater node_ref.
@@ -263,15 +263,15 @@ fn draw_path<CS: CoordinateSystem>(
       last_point = next_point;
     }
 
-    if segment_index >= path.boundary_link_segments.len() {
+    if segment_index >= path.off_mesh_link_segments.len() {
       debug_drawer.add_line(
         LineType::AgentCorridor(agent_id),
         [last_point.clone(), CS::from_landmass(&path.end_point)],
       );
     } else {
-      let link_segment = &path.boundary_link_segments[segment_index];
+      let link_segment = &path.off_mesh_link_segments[segment_index];
       let (left, right) =
-        archipelago.nav_data.boundary_links[link_segment.boundary_link].portal;
+        archipelago.nav_data.off_mesh_links[link_segment.off_mesh_link].portal;
 
       let next_point = CS::from_landmass(&left.midpoint(right));
       debug_drawer.add_line(

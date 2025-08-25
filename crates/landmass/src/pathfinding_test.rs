@@ -8,7 +8,7 @@ use crate::{
   coords::{XY, XYZ},
   nav_data::{NavigationData, NodeRef},
   nav_mesh::NavigationMesh,
-  path::{BoundaryLinkSegment, IslandSegment, Path},
+  path::{IslandSegment, OffMeshLinkSegment, Path},
   pathfinding::PathResult,
 };
 
@@ -98,7 +98,7 @@ fn finds_path_in_archipelago() {
         corridor: vec![0, 1, 2],
         portal_edge_index: vec![4, 2],
       }],
-      boundary_link_segments: vec![],
+      off_mesh_link_segments: vec![],
       start_point,
       end_point,
     })
@@ -119,7 +119,7 @@ fn finds_path_in_archipelago() {
         corridor: vec![2, 1, 0],
         portal_edge_index: vec![0, 0],
       }],
-      boundary_link_segments: vec![],
+      off_mesh_link_segments: vec![],
       start_point,
       end_point,
     })
@@ -140,7 +140,7 @@ fn finds_path_in_archipelago() {
         corridor: vec![3, 1, 0],
         portal_edge_index: vec![0, 0],
       }],
-      boundary_link_segments: vec![],
+      off_mesh_link_segments: vec![],
       start_point,
       end_point,
     })
@@ -209,7 +209,7 @@ fn finds_paths_on_two_islands() {
         corridor: vec![0, 1, 2],
         portal_edge_index: vec![4, 2],
       }],
-      boundary_link_segments: vec![],
+      off_mesh_link_segments: vec![],
       start_point,
       end_point,
     })
@@ -230,7 +230,7 @@ fn finds_paths_on_two_islands() {
         corridor: vec![0, 1, 2],
         portal_edge_index: vec![4, 2],
       }],
-      boundary_link_segments: vec![],
+      off_mesh_link_segments: vec![],
       start_point,
       end_point,
     })
@@ -354,13 +354,13 @@ fn find_path_across_connected_islands() {
 
   archipelago.update(1.0);
 
-  let boundary_links = archipelago
+  let off_mesh_links = archipelago
     .nav_data
-    .node_to_boundary_link_ids
+    .node_to_off_mesh_link_ids
     .iter()
     .flat_map(|(node_ref, link_ids)| {
       link_ids.iter().map(|link_id| {
-        let link = archipelago.nav_data.boundary_links.get(*link_id).unwrap();
+        let link = archipelago.nav_data.off_mesh_links.get(*link_id).unwrap();
         ((node_ref.island_id, link.destination_node.island_id), *link_id)
       })
     })
@@ -398,18 +398,18 @@ fn find_path_across_connected_islands() {
           portal_edge_index: vec![],
         },
       ],
-      boundary_link_segments: vec![
-        BoundaryLinkSegment {
+      off_mesh_link_segments: vec![
+        OffMeshLinkSegment {
           starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
-          boundary_link: boundary_links[&(island_id_1, island_id_2)],
+          off_mesh_link: off_mesh_links[&(island_id_1, island_id_2)],
         },
-        BoundaryLinkSegment {
+        OffMeshLinkSegment {
           starting_node: NodeRef { island_id: island_id_2, polygon_index: 0 },
-          boundary_link: boundary_links[&(island_id_2, island_id_4)],
+          off_mesh_link: off_mesh_links[&(island_id_2, island_id_4)],
         },
-        BoundaryLinkSegment {
+        OffMeshLinkSegment {
           starting_node: NodeRef { island_id: island_id_4, polygon_index: 0 },
-          boundary_link: boundary_links[&(island_id_4, island_id_5)],
+          off_mesh_link: off_mesh_links[&(island_id_4, island_id_5)],
         },
       ],
       start_point,
@@ -467,13 +467,13 @@ fn finds_path_across_different_islands() {
 
   archipelago.update(1.0);
 
-  let boundary_links = archipelago
+  let off_mesh_links = archipelago
     .nav_data
-    .node_to_boundary_link_ids
+    .node_to_off_mesh_link_ids
     .iter()
     .flat_map(|(node_ref, link_ids)| {
       link_ids.iter().map(|link_id| {
-        let link = archipelago.nav_data.boundary_links.get(*link_id).unwrap();
+        let link = archipelago.nav_data.off_mesh_links.get(*link_id).unwrap();
         ((node_ref.island_id, link.destination_node.island_id), *link_id)
       })
     })
@@ -501,9 +501,9 @@ fn finds_path_across_different_islands() {
           portal_edge_index: vec![1],
         },
       ],
-      boundary_link_segments: vec![BoundaryLinkSegment {
+      off_mesh_link_segments: vec![OffMeshLinkSegment {
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
-        boundary_link: boundary_links[&(island_id_1, island_id_2)],
+        off_mesh_link: off_mesh_links[&(island_id_1, island_id_2)],
       }],
       start_point,
       end_point,
@@ -650,7 +650,7 @@ fn detour_for_high_cost_path() {
         corridor: vec![0, 1, 2, 3, 4, 5, 6],
         portal_edge_index: vec![1, 2, 3, 2, 3, 2],
       }],
-      boundary_link_segments: vec![],
+      off_mesh_link_segments: vec![],
       start_point,
       end_point,
     })
@@ -749,8 +749,8 @@ fn detour_for_high_cost_path_across_boundary_links() {
           portal_edge_index: vec![0, 0, 0],
         }
       ],
-      boundary_link_segments: vec![BoundaryLinkSegment {
-        boundary_link: archipelago.nav_data.node_to_boundary_link_ids
+      off_mesh_link_segments: vec![OffMeshLinkSegment {
+        off_mesh_link: archipelago.nav_data.node_to_off_mesh_link_ids
           [&NodeRef { island_id: island_id_1, polygon_index: 2 }]
           .iter()
           .next()
@@ -838,7 +838,7 @@ fn fast_path_not_ignored_by_heuristic() {
         corridor: vec![2, 1, 0, 7, 6, 5, 4],
         portal_edge_index: vec![0, 0, 2, 2, 0, 0],
       }],
-      boundary_link_segments: vec![],
+      off_mesh_link_segments: vec![],
       start_point,
       end_point,
     })
@@ -970,7 +970,7 @@ fn detour_for_overridden_high_cost_path() {
         corridor: vec![0, 1, 2, 3, 4, 5, 6],
         portal_edge_index: vec![1, 2, 3, 2, 3, 2],
       }],
-      boundary_link_segments: vec![],
+      off_mesh_link_segments: vec![],
       start_point,
       end_point,
     })
@@ -1056,7 +1056,7 @@ fn big_node_does_not_skew_pathing() {
         corridor: vec![0, 7, 3],
         portal_edge_index: vec![2, 2],
       }],
-      boundary_link_segments: vec![],
+      off_mesh_link_segments: vec![],
       start_point,
       end_point,
     })
@@ -1148,7 +1148,7 @@ fn start_and_end_point_influences_path() {
         corridor: vec![1, 0, 4, 2, 3],
         portal_edge_index: vec![7, 2, 2, 1],
       }],
-      boundary_link_segments: vec![],
+      off_mesh_link_segments: vec![],
       start_point,
       end_point,
     })

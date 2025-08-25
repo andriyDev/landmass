@@ -16,12 +16,12 @@ use crate::{
   SetTypeIndexCostError, Transform,
   coords::{CorePointSampleDistance, XY, XYZ},
   island::Island,
-  nav_data::{BoundaryLink, NodeRef},
+  nav_data::{NodeRef, OffMeshLink},
   nav_mesh::NavigationMesh,
 };
 
 use super::{
-  BoundaryLinkId, ModifiedNode, NavigationData, island_edges_bbh,
+  ModifiedNode, NavigationData, OffMeshLinkId, island_edges_bbh,
   link_edges_between_islands,
 };
 
@@ -131,11 +131,11 @@ fn node_ref_to_num(node_ref: &NodeRef, island_order: &[IslandId]) -> u32 {
 }
 
 fn clone_sort_round_links(
-  boundary_links: &SlotMap<BoundaryLinkId, BoundaryLink>,
-  node_to_boundary_link_ids: &HashMap<NodeRef, HashSet<BoundaryLinkId>>,
+  boundary_links: &SlotMap<OffMeshLinkId, OffMeshLink>,
+  node_to_boundary_link_ids: &HashMap<NodeRef, HashSet<OffMeshLinkId>>,
   island_order: &[IslandId],
   round_amount: f32,
-) -> Vec<(NodeRef, Vec<BoundaryLink>)> {
+) -> Vec<(NodeRef, Vec<OffMeshLink>)> {
   let mut links = node_to_boundary_link_ids
     .iter()
     .map(|(key, value)| {
@@ -143,7 +143,7 @@ fn clone_sort_round_links(
         let mut v = value
           .iter()
           .map(|link_id| boundary_links.get(*link_id).unwrap())
-          .map(|link| BoundaryLink {
+          .map(|link| OffMeshLink {
             destination_node: link.destination_node,
             destination_type_index: link.destination_type_index,
             portal: (
@@ -152,7 +152,7 @@ fn clone_sort_round_links(
             ),
             // We can't store the right link IDs anyway, so just make it
             // default.
-            reverse_link: BoundaryLinkId::default(),
+            reverse_link: OffMeshLinkId::default(),
           })
           .collect::<Vec<_>>();
         v.sort_by_key(|link| {
@@ -272,7 +272,7 @@ fn link_edges_between_islands_links_touching_islands() {
   let expected_links = [
     (
       NodeRef { island_id: island_1_id, polygon_index: 0 },
-      vec![BoundaryLink {
+      vec![OffMeshLink {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 2 },
         destination_type_index: 0,
         portal: transform_and_round_portal(
@@ -285,7 +285,7 @@ fn link_edges_between_islands_links_touching_islands() {
     ),
     (
       NodeRef { island_id: island_1_id, polygon_index: 1 },
-      vec![BoundaryLink {
+      vec![OffMeshLink {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 3 },
         destination_type_index: 0,
         portal: transform_and_round_portal(
@@ -298,7 +298,7 @@ fn link_edges_between_islands_links_touching_islands() {
     ),
     (
       NodeRef { island_id: island_1_id, polygon_index: 2 },
-      vec![BoundaryLink {
+      vec![OffMeshLink {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 0 },
         destination_type_index: 0,
         portal: transform_and_round_portal(
@@ -311,7 +311,7 @@ fn link_edges_between_islands_links_touching_islands() {
     ),
     (
       NodeRef { island_id: island_1_id, polygon_index: 3 },
-      vec![BoundaryLink {
+      vec![OffMeshLink {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 0 },
         destination_type_index: 0,
         portal: transform_and_round_portal(
@@ -324,7 +324,7 @@ fn link_edges_between_islands_links_touching_islands() {
     ),
     (
       NodeRef { island_id: island_1_id, polygon_index: 4 },
-      vec![BoundaryLink {
+      vec![OffMeshLink {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 4 },
         destination_type_index: 2,
         portal: transform_and_round_portal(
@@ -337,7 +337,7 @@ fn link_edges_between_islands_links_touching_islands() {
     ),
     (
       NodeRef { island_id: island_1_id, polygon_index: 5 },
-      vec![BoundaryLink {
+      vec![OffMeshLink {
         destination_node: NodeRef { island_id: island_2_id, polygon_index: 2 },
         destination_type_index: 0,
         portal: transform_and_round_portal(
@@ -352,7 +352,7 @@ fn link_edges_between_islands_links_touching_islands() {
     (
       NodeRef { island_id: island_2_id, polygon_index: 0 },
       vec![
-        BoundaryLink {
+        OffMeshLink {
           destination_node: NodeRef {
             island_id: island_1_id,
             polygon_index: 2,
@@ -365,7 +365,7 @@ fn link_edges_between_islands_links_touching_islands() {
           ),
           reverse_link: Default::default(),
         },
-        BoundaryLink {
+        OffMeshLink {
           destination_node: NodeRef {
             island_id: island_1_id,
             polygon_index: 3,
@@ -383,7 +383,7 @@ fn link_edges_between_islands_links_touching_islands() {
     (
       NodeRef { island_id: island_2_id, polygon_index: 2 },
       vec![
-        BoundaryLink {
+        OffMeshLink {
           destination_node: NodeRef {
             island_id: island_1_id,
             polygon_index: 0,
@@ -396,7 +396,7 @@ fn link_edges_between_islands_links_touching_islands() {
           ),
           reverse_link: Default::default(),
         },
-        BoundaryLink {
+        OffMeshLink {
           destination_node: NodeRef {
             island_id: island_1_id,
             polygon_index: 5,
@@ -413,7 +413,7 @@ fn link_edges_between_islands_links_touching_islands() {
     ),
     (
       NodeRef { island_id: island_2_id, polygon_index: 3 },
-      vec![BoundaryLink {
+      vec![OffMeshLink {
         destination_node: NodeRef { island_id: island_1_id, polygon_index: 1 },
         destination_type_index: 1,
         portal: transform_and_round_portal(
@@ -426,7 +426,7 @@ fn link_edges_between_islands_links_touching_islands() {
     ),
     (
       NodeRef { island_id: island_2_id, polygon_index: 4 },
-      vec![BoundaryLink {
+      vec![OffMeshLink {
         destination_node: NodeRef { island_id: island_1_id, polygon_index: 4 },
         destination_type_index: 0,
         portal: transform_and_round_portal(
@@ -539,8 +539,8 @@ fn update_links_islands_and_unlinks_on_delete() {
 
   assert_eq!(
     clone_sort_round_links(
-      &nav_data.boundary_links,
-      &nav_data.node_to_boundary_link_ids,
+      &nav_data.off_mesh_links,
+      &nav_data.node_to_off_mesh_link_ids,
       &[island_1_id, island_2_id, island_3_id, island_4_id, island_5_id],
       1e-6
     ),
@@ -548,7 +548,7 @@ fn update_links_islands_and_unlinks_on_delete() {
       (
         NodeRef { island_id: island_1_id, polygon_index: 0 },
         vec![
-          BoundaryLink {
+          OffMeshLink {
             destination_node: NodeRef {
               island_id: island_4_id,
               polygon_index: 0,
@@ -557,7 +557,7 @@ fn update_links_islands_and_unlinks_on_delete() {
             portal: (Vec3::new(2.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)),
             reverse_link: Default::default(),
           },
-          BoundaryLink {
+          OffMeshLink {
             destination_node: NodeRef {
               island_id: island_5_id,
               polygon_index: 0,
@@ -570,7 +570,7 @@ fn update_links_islands_and_unlinks_on_delete() {
       ),
       (
         NodeRef { island_id: island_1_id, polygon_index: 1 },
-        vec![BoundaryLink {
+        vec![OffMeshLink {
           destination_node: NodeRef {
             island_id: island_2_id,
             polygon_index: 0,
@@ -582,7 +582,7 @@ fn update_links_islands_and_unlinks_on_delete() {
       ),
       (
         NodeRef { island_id: island_2_id, polygon_index: 0 },
-        vec![BoundaryLink {
+        vec![OffMeshLink {
           destination_node: NodeRef {
             island_id: island_1_id,
             polygon_index: 1,
@@ -594,7 +594,7 @@ fn update_links_islands_and_unlinks_on_delete() {
       ),
       (
         NodeRef { island_id: island_2_id, polygon_index: 1 },
-        vec![BoundaryLink {
+        vec![OffMeshLink {
           destination_node: NodeRef {
             island_id: island_3_id,
             polygon_index: 0,
@@ -606,7 +606,7 @@ fn update_links_islands_and_unlinks_on_delete() {
       ),
       (
         NodeRef { island_id: island_3_id, polygon_index: 0 },
-        vec![BoundaryLink {
+        vec![OffMeshLink {
           destination_node: NodeRef {
             island_id: island_2_id,
             polygon_index: 1,
@@ -618,7 +618,7 @@ fn update_links_islands_and_unlinks_on_delete() {
       ),
       (
         NodeRef { island_id: island_4_id, polygon_index: 0 },
-        vec![BoundaryLink {
+        vec![OffMeshLink {
           destination_node: NodeRef {
             island_id: island_1_id,
             polygon_index: 0,
@@ -630,7 +630,7 @@ fn update_links_islands_and_unlinks_on_delete() {
       ),
       (
         NodeRef { island_id: island_5_id, polygon_index: 0 },
-        vec![BoundaryLink {
+        vec![OffMeshLink {
           destination_node: NodeRef {
             island_id: island_1_id,
             polygon_index: 0,
@@ -657,15 +657,15 @@ fn update_links_islands_and_unlinks_on_delete() {
 
   assert_eq!(
     clone_sort_round_links(
-      &nav_data.boundary_links,
-      &nav_data.node_to_boundary_link_ids,
+      &nav_data.off_mesh_links,
+      &nav_data.node_to_off_mesh_link_ids,
       &[island_1_id, island_2_id, island_3_id, island_4_id, island_5_id],
       1e-6
     ),
     [
       (
         NodeRef { island_id: island_1_id, polygon_index: 1 },
-        vec![BoundaryLink {
+        vec![OffMeshLink {
           destination_node: NodeRef {
             island_id: island_5_id,
             polygon_index: 0,
@@ -677,7 +677,7 @@ fn update_links_islands_and_unlinks_on_delete() {
       ),
       (
         NodeRef { island_id: island_3_id, polygon_index: 0 },
-        vec![BoundaryLink {
+        vec![OffMeshLink {
           destination_node: NodeRef {
             island_id: island_5_id,
             polygon_index: 1,
@@ -689,7 +689,7 @@ fn update_links_islands_and_unlinks_on_delete() {
       ),
       (
         NodeRef { island_id: island_5_id, polygon_index: 0 },
-        vec![BoundaryLink {
+        vec![OffMeshLink {
           destination_node: NodeRef {
             island_id: island_1_id,
             polygon_index: 1,
@@ -701,7 +701,7 @@ fn update_links_islands_and_unlinks_on_delete() {
       ),
       (
         NodeRef { island_id: island_5_id, polygon_index: 1 },
-        vec![BoundaryLink {
+        vec![OffMeshLink {
           destination_node: NodeRef {
             island_id: island_3_id,
             polygon_index: 0,

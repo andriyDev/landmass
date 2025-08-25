@@ -8,9 +8,9 @@ use glam::Vec3;
 use crate::{
   CoordinateSystem, NavigationData,
   astar::{self, AStarProblem, PathStats},
-  nav_data::{BoundaryLinkId, NodeRef},
+  nav_data::{NodeRef, OffMeshLinkId},
   nav_mesh::MeshEdgeRef,
-  path::{BoundaryLinkSegment, IslandSegment, Path},
+  path::{IslandSegment, OffMeshLinkSegment, Path},
   util::FloatOrd,
 };
 
@@ -42,8 +42,8 @@ enum PathStep {
   GoToEnd,
   /// Take the node connection at the specified edge index in the current node.
   NodeConnection(usize),
-  /// Take the boundary link with the specified ID in the current node.
-  BoundaryLink(BoundaryLinkId),
+  /// Take the off mesh link with the specified ID in the current node.
+  OffMeshLink(OffMeshLinkId),
 }
 
 /// A node in the path. This generally corresponds to an edge in the navigation
@@ -61,8 +61,8 @@ enum PathNode {
     /// The edge that we start at inside this node.
     start_edge: usize,
   },
-  /// A boundary link.
-  BoundaryLink(BoundaryLinkId),
+  /// An off mesh link.
+  OffMeshLink(OffMeshLinkId),
 }
 
 impl<CS: CoordinateSystem> ArchipelagoPathProblem<'_, CS> {
@@ -110,8 +110,8 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
           Some(PathStep::NodeConnection(*edge)),
         )
       }
-      PathNode::BoundaryLink(link) => {
-        let link = self.nav_data.boundary_links.get(*link).unwrap();
+      PathNode::OffMeshLink(link) => {
+        let link = self.nav_data.off_mesh_links.get(*link).unwrap();
         let island =
           self.nav_data.get_island(link.destination_node.island_id).unwrap();
         let polygon =
@@ -122,16 +122,16 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
           island,
           polygon,
           link.portal.0.midpoint(link.portal.1),
-          Some(PathStep::BoundaryLink(link.reverse_link)),
+          Some(PathStep::OffMeshLink(link.reverse_link)),
         )
       }
       PathNode::End => {
         unreachable!("we never need the successors of the goal node")
       }
     };
-    let boundary_links = self
+    let off_mesh_links = self
       .nav_data
-      .node_to_boundary_link_ids
+      .node_to_off_mesh_link_ids
       .get(&node_ref)
       .map_or(Cow::Owned(HashSet::new()), Cow::Borrowed);
 
@@ -181,14 +181,14 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
           },
         ))
       })
-      .chain(boundary_links.iter().filter_map(|link_id| {
-        if let Some(PathStep::BoundaryLink(ignore_link)) = ignore_step
+      .chain(off_mesh_links.iter().filter_map(|link_id| {
+        if let Some(PathStep::OffMeshLink(ignore_link)) = ignore_step
           && *link_id == ignore_link
         {
           return None;
         }
 
-        let link = self.nav_data.boundary_links.get(*link_id).unwrap();
+        let link = self.nav_data.off_mesh_links.get(*link_id).unwrap();
         let destination_node_cost =
           self.type_index_to_cost(link.destination_type_index);
         if !destination_node_cost.is_finite() {
@@ -199,8 +199,8 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
           * current_node_cost;
         Some((
           cost,
-          PathStep::BoundaryLink(*link_id),
-          PathNode::BoundaryLink(*link_id),
+          PathStep::OffMeshLink(*link_id),
+          PathNode::OffMeshLink(*link_id),
         ))
       }))
       .collect()
@@ -218,9 +218,9 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
         });
         island.transform.apply(edge.0.midpoint(edge.1))
       }
-      PathNode::BoundaryLink(link) => {
-        let boundary_link = self.nav_data.boundary_links.get(*link).unwrap();
-        boundary_link.portal.0.midpoint(boundary_link.portal.1)
+      PathNode::OffMeshLink(link) => {
+        let off_mesh_link = self.nav_data.off_mesh_links.get(*link).unwrap();
+        off_mesh_link.portal.0.midpoint(off_mesh_link.portal.1)
       }
     };
     world_point.distance(self.end_point) * self.cheapest_type_index_cost
@@ -287,7 +287,7 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
 
   let mut output_path = Path {
     island_segments: vec![],
-    boundary_link_segments: vec![],
+    off_mesh_link_segments: vec![],
     start_point,
     end_point,
   };
@@ -319,21 +319,21 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
         last_segment.corridor.push(connectivity.polygon_index);
         last_segment.portal_edge_index.push(edge_index);
       }
-      PathStep::BoundaryLink(boundary_link) => {
+      PathStep::OffMeshLink(off_mesh_link) => {
         let previous_node = NodeRef {
           island_id: last_segment.island_id,
           polygon_index: previous_node,
         };
 
-        output_path.boundary_link_segments.push(BoundaryLinkSegment {
+        output_path.off_mesh_link_segments.push(OffMeshLinkSegment {
           starting_node: previous_node,
-          boundary_link,
+          off_mesh_link,
         });
 
-        let boundary_link = nav_data.boundary_links.get(boundary_link).unwrap();
+        let off_mesh_link = nav_data.off_mesh_links.get(off_mesh_link).unwrap();
         output_path.island_segments.push(IslandSegment {
-          island_id: boundary_link.destination_node.island_id,
-          corridor: vec![boundary_link.destination_node.polygon_index],
+          island_id: off_mesh_link.destination_node.island_id,
+          corridor: vec![off_mesh_link.destination_node.polygon_index],
           portal_edge_index: vec![],
         });
       }

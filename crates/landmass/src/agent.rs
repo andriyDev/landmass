@@ -5,7 +5,7 @@ use slotmap::new_key_type;
 
 use crate::{
   CoordinateSystem, IslandId, NavigationData,
-  nav_data::{BoundaryLinkId, NodeRef},
+  nav_data::{NodeRef, OffMeshLinkId},
   path::{Path, PathIndex},
 };
 
@@ -274,7 +274,7 @@ pub(crate) fn does_agent_need_repath<CS: CoordinateSystem>(
   agent: &Agent<CS>,
   agent_node: Option<NodeRef>,
   target_node: Option<NodeRef>,
-  invalidated_boundary_links: &HashSet<BoundaryLinkId>,
+  invalidated_off_mesh_links: &HashSet<OffMeshLinkId>,
   invalidated_islands: &HashSet<IslandId>,
 ) -> RepathResult {
   if agent.current_target.is_none() {
@@ -299,7 +299,7 @@ pub(crate) fn does_agent_need_repath<CS: CoordinateSystem>(
     Some(current_path) => current_path,
   };
 
-  if !current_path.is_valid(invalidated_boundary_links, invalidated_islands) {
+  if !current_path.is_valid(invalidated_off_mesh_links, invalidated_islands) {
     return RepathResult::NeedsRepath;
   }
 
