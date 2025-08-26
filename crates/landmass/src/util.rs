@@ -216,6 +216,51 @@ impl BoundingBox {
     }
   }
 
+  pub(crate) fn intersects_ray_segment(&self, ray: &RaySegment) -> bool {
+    let (min, max) = match self {
+      Self::Empty => return false,
+      Self::Box { min, max } => (*min, *max),
+    };
+    // Taken from https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection.html
+    let sign =
+      [ray.sign[0] as usize, ray.sign[1] as usize, ray.sign[2] as usize];
+    let bounds_x = [min.x, max.x];
+    let bounds_y = [min.y, max.y];
+    let bounds_z = [min.z, max.z];
+
+    let mut tmin: f32 = (bounds_x[sign[0]] - ray.origin.x) * ray.inv_dir.x;
+    let mut tmax: f32 = (bounds_x[1 - sign[0]] - ray.origin.x) * ray.inv_dir.x;
+
+    if tmin >= 1.0 || tmax <= 0.0 {
+      return false;
+    }
+
+    let tymin = (bounds_y[sign[1]] - ray.origin.y) * ray.inv_dir.y;
+    let tymax = (bounds_y[1 - sign[1]] - ray.origin.y) * ray.inv_dir.y;
+
+    if (tmin > tymax) || (tymin > tmax) {
+      return false;
+    }
+    tmin = tmin.max(tymin);
+    tmax = tmax.min(tymax);
+
+    if tmin >= 1.0 || tmax <= 0.0 {
+      return false;
+    }
+
+    let tzmin = (bounds_z[sign[2]] - ray.origin.z) * ray.inv_dir.z;
+    let tzmax = (bounds_z[1 - sign[2]] - ray.origin.z) * ray.inv_dir.z;
+
+    if (tmin > tzmax) || (tzmin > tmax) {
+      return false;
+    }
+
+    tmin = tmin.max(tzmin);
+    tmax = tmax.min(tzmax);
+
+    tmin < 1.0 && tmax > 0.0
+  }
+
   /// Creates a conservative bounding box around `self` after transforming it by
   /// `transform`.
   pub(crate) fn transform<CS: CoordinateSystem>(
@@ -406,6 +451,52 @@ impl<ValueType> BoundingBoxHierarchy<ValueType> {
           children.1.query_box_recursive(query, result);
         }
       }
+    }
+  }
+
+  pub(crate) fn query_ray_segment(&self, query: RaySegment) -> Vec<&ValueType> {
+    let mut result = Vec::new();
+    self.query_ray_segment_recursive(&query, &mut result);
+    result
+  }
+
+  fn query_ray_segment_recursive<'a, 'b>(
+    &'a self,
+    query: &'b RaySegment,
+    result: &'b mut Vec<&'a ValueType>,
+  ) {
+    match self {
+      Self::Leaf { bounds, value } => {
+        if bounds.intersects_ray_segment(query) {
+          result.push(value);
+        }
+      }
+      Self::Branch { bounds, children } => {
+        if bounds.intersects_ray_segment(query) {
+          children.0.query_ray_segment_recursive(query, result);
+          children.1.query_ray_segment_recursive(query, result);
+        }
+      }
+    }
+  }
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct RaySegment {
+  origin: Vec3,
+  inv_dir: Vec3,
+  sign: [u8; 3],
+}
+
+impl RaySegment {
+  pub(crate) fn new(line_0: Vec3, line_1: Vec3) -> Self {
+    let dir = line_1 - line_0;
+    assert_ne!(dir, Vec3::ZERO);
+    let inv_dir = 1.0 / dir;
+    Self {
+      origin: line_0,
+      inv_dir,
+      sign: [(dir.x < 0.0) as _, (dir.y < 0.0) as _, (dir.z < 0.0) as _],
     }
   }
 }

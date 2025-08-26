@@ -2,7 +2,10 @@ use std::f32::consts::PI;
 
 use glam::Vec3;
 
-use crate::{Transform, XYZ, util::BoundingBox};
+use crate::{
+  Transform, XYZ,
+  util::{BoundingBox, RaySegment},
+};
 
 use super::BoundingBoxHierarchy;
 
@@ -177,6 +180,63 @@ fn bounding_box_detects_intersection() {
 }
 
 #[test]
+fn bounding_box_detects_ray_segment_intersection() {
+  let bbox =
+    BoundingBox::new_box(Vec3::new(-1.0, -2.0, -3.0), Vec3::new(5.0, 4.0, 3.0));
+
+  fn test(
+    bbox: &BoundingBox,
+    v0: (f32, f32, f32),
+    v1: (f32, f32, f32),
+    expected_result: bool,
+  ) -> bool {
+    let v0 = Vec3::new(v0.0, v0.1, v0.2);
+    let v1 = Vec3::new(v1.0, v1.1, v1.2);
+    if bbox.intersects_ray_segment(&RaySegment::new(v0, v1)) != expected_result
+    {
+      return false;
+    }
+    if bbox.intersects_ray_segment(&RaySegment::new(v1, v0)) != expected_result
+    {
+      return false;
+    }
+    true
+  }
+
+  // Axis aligned.
+  // X axis
+  assert!(test(&bbox, (2.0, 2.0, 2.0), (4.0, 2.0, 2.0), true));
+  assert!(test(&bbox, (-3.0, 2.0, 2.0), (6.0, 2.0, 2.0), true));
+  assert!(test(&bbox, (-10.0, 2.0, 2.0), (2.0, 2.0, 2.0), true));
+  assert!(test(&bbox, (2.0, 2.0, 2.0), (10.0, 2.0, 2.0), true));
+  assert!(test(&bbox, (-10.0, 2.0, 2.0), (-3.0, 2.0, 2.0), false));
+  assert!(test(&bbox, (6.0, 2.0, 2.0), (10.0, 2.0, 2.0), false));
+  // Y axis
+  assert!(test(&bbox, (2.0, 2.0, 2.0), (2.0, 4.0, 2.0), true));
+  assert!(test(&bbox, (2.0, -3.0, 2.0), (2.0, 6.0, 2.0), true));
+  assert!(test(&bbox, (2.0, -10.0, 2.0), (2.0, 2.0, 2.0), true));
+  assert!(test(&bbox, (2.0, 2.0, 2.0), (2.0, 10.0, 2.0), true));
+  assert!(test(&bbox, (2.0, -10.0, 2.0), (2.0, -3.0, 2.0), false));
+  assert!(test(&bbox, (2.0, 6.0, 2.0), (2.0, 10.0, 2.0), false));
+  // Z axis
+  assert!(test(&bbox, (2.0, 2.0, 2.0), (2.0, 2.0, 4.0), true));
+  assert!(test(&bbox, (2.0, 2.0, -3.0), (2.0, 2.0, 6.0), true));
+  assert!(test(&bbox, (2.0, 2.0, -10.0), (2.0, 2.0, 2.0), true));
+  assert!(test(&bbox, (2.0, 2.0, 2.0), (2.0, 2.0, 10.0), true));
+  assert!(test(&bbox, (2.0, 2.0, -10.0), (2.0, 2.0, -3.0), false));
+  assert!(test(&bbox, (2.0, 2.0, 6.0), (2.0, 2.0, 10.0), false));
+
+  // Diagonals through box.
+  assert!(test(&bbox, (-2.0, -3.0, -4.0), (6.0, 5.0, 4.0), true));
+  assert!(test(&bbox, (6.0, -3.0, -4.0), (-2.0, 5.0, 4.0), true));
+  assert!(test(&bbox, (-2.0, 5.0, -4.0), (6.0, -3.0, 4.0), true));
+  assert!(test(&bbox, (-2.0, -3.0, 4.0), (6.0, 5.0, -4.0), true));
+  // Arbitrary diagonals outside box.
+  assert!(test(&bbox, (8.0, -13.0, -4.0), (-12.0, 7.0, -4.0), false));
+  assert!(test(&bbox, (16.0, -5.0, 4.0), (-4.0, 15.0, 4.0), false));
+}
+
+#[test]
 fn transform_empty_does_nothing() {
   assert_eq!(
     BoundingBox::Empty.transform(&Transform::<XYZ> {
@@ -271,6 +331,27 @@ fn octant_bounding_box_hierarchy() {
       Vec3::new(7.0, 7.0, 7.0),
     )),
     [&0, &1, &2, &3, &4, &5, &6, &7]
+  );
+  assert_eq!(
+    bbh.query_ray_segment(RaySegment::new(
+      Vec3::new(1.0, 5.0, 1.0),
+      Vec3::new(4.0, 8.0, 4.0),
+    )),
+    [&2]
+  );
+  assert_eq!(
+    bbh.query_ray_segment(RaySegment::new(
+      Vec3::new(1.0, 5.0, 1.0),
+      Vec3::new(6.0, 8.0, 4.0),
+    )),
+    [&2, &3]
+  );
+  assert_eq!(
+    bbh.query_ray_segment(RaySegment::new(
+      Vec3::new(2.0, 2.0, 2.0),
+      Vec3::new(7.0, 7.0, 7.0),
+    )),
+    [&0, &7]
   );
 }
 
