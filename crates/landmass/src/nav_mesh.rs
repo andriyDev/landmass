@@ -689,9 +689,9 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
           point.xy().distance(projected_point.xy());
         let distance_to_triangle_vertical = projected_point.z - point.z;
         if distance_to_triangle_horizontal
-          < point_sample_distance.horizontal_distance
+          <= point_sample_distance.horizontal_distance
           && (-point_sample_distance.distance_below
-            ..point_sample_distance.distance_above)
+            ..=point_sample_distance.distance_above)
             .contains(&distance_to_triangle_vertical)
         {
           let distance_to_triangle = distance_to_triangle_horizontal

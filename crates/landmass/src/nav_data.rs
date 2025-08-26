@@ -17,9 +17,9 @@ use crate::{
   coords::CorePointSampleDistance,
   geometry::edge_intersection,
   island::{Island, IslandId},
-  link::{AnimationLink, AnimationLinkId, AnimationLinkState},
-  nav_mesh::MeshEdgeRef,
-  util::{BoundingBox, BoundingBoxHierarchy},
+  link::{AnimationLink, AnimationLinkId, AnimationLinkState, NodePortal},
+  nav_mesh::{MeshEdgeRef, nav_mesh_node_bbh},
+  util::{BoundingBox, BoundingBoxHierarchy, RaySegment},
 };
 
 /// The navigation data of a whole [`crate::Archipelago`]. This only includes
@@ -310,6 +310,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   fn update_islands(
     &mut self,
     edge_link_distance: f32,
+    animation_link_distance: f32,
   ) -> (HashSet<OffMeshLinkId>, HashSet<IslandId>, HashSet<NodeRef>) {
     let mut dirty_islands = HashSet::new();
     for (island_id, island) in self.islands.iter_mut() {
@@ -414,6 +415,10 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       return (dropped_links, changed_islands, modified_node_refs_to_update);
     }
 
+    // Consume any new animation links so no matter what happens now, the links
+    // won't be considered new anymore.
+    let new_animation_links = std::mem::take(&mut self.new_animation_links);
+
     let mut island_bounds = self
       .islands
       .iter()
@@ -434,7 +439,12 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       &mut modified_node_refs_to_update,
     );
 
-    let _new_animation_links = std::mem::take(&mut self.new_animation_links);
+    self.create_off_mesh_links_for_animation_links(
+      new_animation_links,
+      &changed_islands,
+      &island_bbh,
+      animation_link_distance,
+    );
 
     (dropped_links, changed_islands, modified_node_refs_to_update)
   }
@@ -483,6 +493,279 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
           &mut self.node_to_off_mesh_link_ids,
           modified_node_refs_to_update,
         );
+      }
+    }
+  }
+
+  fn create_off_mesh_links_for_animation_links(
+    &mut self,
+    new_animation_links: HashSet<AnimationLinkId>,
+    changed_islands: &HashSet<IslandId>,
+    island_bbh: &BoundingBoxHierarchy<IslandId>,
+    max_vertical_distance: f32,
+  ) {
+    fn portal_segment(
+      portal: (Vec3, Vec3),
+      interval: (f32, f32),
+    ) -> (Vec3, Vec3) {
+      (portal.0.lerp(portal.1, interval.0), portal.0.lerp(portal.1, interval.1))
+    }
+
+    #[expect(clippy::too_many_arguments)]
+    fn create_link<CS: CoordinateSystem>(
+      start_portal: &NodePortal,
+      end_portal: &NodePortal,
+      start_edge: (Vec3, Vec3),
+      end_edge: (Vec3, Vec3),
+      animation_link_id: AnimationLinkId,
+      link: &AnimationLink<CS>,
+      islands: &HopSlotMap<IslandId, Island<CS>>,
+      off_mesh_links: &mut SlotMap<OffMeshLinkId, OffMeshLink>,
+      node_to_off_mesh_link_ids: &mut HashMap<NodeRef, HashSet<OffMeshLinkId>>,
+    ) {
+      let intersection = (
+        start_portal.interval.0.max(end_portal.interval.0),
+        start_portal.interval.1.min(end_portal.interval.1),
+      );
+      if intersection.1 <= intersection.0 {
+        return;
+      }
+
+      let link = off_mesh_links.insert(OffMeshLink {
+        portal: portal_segment(start_edge, intersection),
+        destination_node: end_portal.node,
+        destination_type_index: islands
+          .get(end_portal.node.island_id)
+          .unwrap()
+          .nav_mesh
+          .polygons[end_portal.node.polygon_index]
+          .type_index,
+        kinded: KindedOffMeshLink::AnimationLink {
+          destination_portal: portal_segment(end_edge, intersection),
+          cost: link.cost,
+          animation_link: animation_link_id,
+        },
+      });
+      node_to_off_mesh_link_ids
+        .entry(start_portal.node)
+        .or_default()
+        .insert(link);
+    }
+
+    let mut island_to_node_bbh = Default::default();
+    for &animation_link_id in &new_animation_links {
+      let state = self.animation_links.get_mut(animation_link_id).unwrap();
+      let link = &state.main_link;
+
+      let start_edge = (
+        CS::to_landmass(&link.start_edge.0),
+        CS::to_landmass(&link.start_edge.1),
+      );
+      let mut end_edge =
+        (CS::to_landmass(&link.end_edge.0), CS::to_landmass(&link.end_edge.1));
+      if start_edge.0 == start_edge.1 {
+        // In case the user has a point start edge but a full end edge, turn the
+        // end edge into a single point at the midpoint. This is kinda an error,
+        // but there's a fairly reasonable fallback, so we just do that.
+        let end_midpoint = end_edge.0.midpoint(end_edge.1);
+        end_edge = (end_midpoint, end_midpoint);
+      }
+      let start_portals = world_portal_to_node_portals(
+        start_edge,
+        island_bbh,
+        &self.islands,
+        &mut island_to_node_bbh,
+        max_vertical_distance,
+      );
+
+      if start_portals.is_empty() {
+        continue;
+      }
+
+      let end_portals = world_portal_to_node_portals(
+        end_edge,
+        island_bbh,
+        &self.islands,
+        &mut island_to_node_bbh,
+        max_vertical_distance,
+      );
+
+      if end_portals.is_empty() {
+        continue;
+      }
+
+      state.start_portals = start_portals;
+      state.end_portals = end_portals;
+
+      // Connect the start portals to the end portals.
+      for start_portal in state.start_portals.iter() {
+        for end_portal in state.end_portals.iter() {
+          create_link(
+            start_portal,
+            end_portal,
+            start_edge,
+            end_edge,
+            animation_link_id,
+            link,
+            &self.islands,
+            &mut self.off_mesh_links,
+            &mut self.node_to_off_mesh_link_ids,
+          );
+        }
+      }
+    }
+
+    for &island_id in changed_islands {
+      let Some(island) = self.islands.get(island_id) else {
+        // The island was deleted, resulting in being "changed".
+        continue;
+      };
+      if island.nav_mesh.polygons.is_empty() {
+        // Ignore empty islands.
+        continue;
+      }
+
+      let mut node_bbh = None;
+      for (animation_link_id, state) in self.animation_links.iter_mut() {
+        if new_animation_links.contains(&animation_link_id) {
+          // We already handled the new animation links above. Doing this here
+          // would result in duplicate links.
+          continue;
+        }
+        let link = &state.main_link;
+
+        let start_edge = (
+          CS::to_landmass(&link.start_edge.0),
+          CS::to_landmass(&link.start_edge.1),
+        );
+        let mut end_edge = (
+          CS::to_landmass(&link.end_edge.0),
+          CS::to_landmass(&link.end_edge.1),
+        );
+        if start_edge.0 == start_edge.1 {
+          // In case the user has a point start edge but a full end edge, turn
+          // the end edge into a single point at the midpoint. This is kinda an
+          // error, but there's a fairly reasonable fallback, so we just do
+          // that.
+          let midpoint = end_edge.0.midpoint(end_edge.1);
+          end_edge = (midpoint, midpoint);
+        }
+
+        fn intersects(portal: (Vec3, Vec3), bounds: &BoundingBox) -> bool {
+          if portal.0 == portal.1 {
+            bounds.contains_point(portal.0)
+          } else {
+            bounds.intersects_ray_segment(&RaySegment::new(portal.0, portal.1))
+          }
+        }
+
+        if node_bbh.is_none() {
+          if !intersects(start_edge, &island.transformed_bounds)
+            && !intersects(end_edge, &island.transformed_bounds)
+          {
+            // Neither the start or end edges intersects the island bounds, so
+            // bail out early.
+            continue;
+          }
+          node_bbh = Some(nav_mesh_node_bbh(
+            island.nav_mesh.as_ref(),
+            Vec3::new(0.0, 0.0, max_vertical_distance),
+          ));
+        }
+
+        let node_bbh = node_bbh.as_ref().unwrap();
+        fn sample_portal_edge<CS: CoordinateSystem>(
+          edge: (Vec3, Vec3),
+          island_id: IslandId,
+          island: &Island<CS>,
+          node_bbh: &BoundingBoxHierarchy<usize>,
+          max_vertical_distance: f32,
+        ) -> Vec<NodePortal> {
+          if edge.0 == edge.1 {
+            let point = island.transform.apply_inverse(edge.0);
+            island
+              .nav_mesh
+              .sample_point(
+                point,
+                &CorePointSampleDistance {
+                  distance_above: max_vertical_distance,
+                  distance_below: max_vertical_distance,
+                  horizontal_distance: 0.0,
+                  vertical_preference_ratio: 1.0,
+                },
+              )
+              .map(|(_, node)| NodePortal {
+                interval: (0.0, 1.0),
+                node: NodeRef { island_id, polygon_index: node },
+              })
+              .into_iter()
+              .collect()
+          } else {
+            let edge = (
+              island.transform.apply_inverse(edge.0),
+              island.transform.apply_inverse(edge.1),
+            );
+            island
+              .nav_mesh
+              .sample_edge(edge, node_bbh, max_vertical_distance)
+              .into_iter()
+              .map(|edge| NodePortal {
+                interval: edge.interval,
+                node: NodeRef { island_id, polygon_index: edge.node },
+              })
+              .collect()
+          }
+        }
+        let new_start_portals = sample_portal_edge(
+          start_edge,
+          island_id,
+          island,
+          node_bbh,
+          max_vertical_distance,
+        );
+        let new_end_portals = sample_portal_edge(
+          end_edge,
+          island_id,
+          island,
+          node_bbh,
+          max_vertical_distance,
+        );
+
+        for start_portal in new_start_portals.iter() {
+          for end_portal in
+            state.end_portals.iter().chain(new_end_portals.iter())
+          {
+            create_link(
+              start_portal,
+              end_portal,
+              start_edge,
+              end_edge,
+              animation_link_id,
+              link,
+              &self.islands,
+              &mut self.off_mesh_links,
+              &mut self.node_to_off_mesh_link_ids,
+            );
+          }
+        }
+
+        for end_portal in new_end_portals.iter() {
+          for start_portal in state.start_portals.iter() {
+            create_link(
+              start_portal,
+              end_portal,
+              start_edge,
+              end_edge,
+              animation_link_id,
+              link,
+              &self.islands,
+              &mut self.off_mesh_links,
+              &mut self.node_to_off_mesh_link_ids,
+            );
+          }
+        }
+        state.start_portals.extend(new_start_portals.into_iter());
+        state.end_portals.extend(new_end_portals.into_iter());
       }
     }
   }
@@ -739,6 +1022,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   pub(crate) fn update(
     &mut self,
     edge_link_distance: f32,
+    animation_link_distance: f32,
   ) -> (HashSet<OffMeshLinkId>, HashSet<IslandId>) {
     if !self.dirty {
       return (HashSet::new(), HashSet::new());
@@ -746,7 +1030,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     self.dirty = false;
 
     let (dropped_links, changed_islands, modified_node_refs_to_update) =
-      self.update_islands(edge_link_distance);
+      self.update_islands(edge_link_distance, animation_link_distance);
     for node_ref in modified_node_refs_to_update {
       self.update_modified_node(node_ref, edge_link_distance);
     }
@@ -902,6 +1186,104 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
       }
     }
   }
+}
+
+/// For a single portal in world-space, finds the corresponding portals on nodes
+/// in nav meshes.
+///
+/// The order of portal points is not defined.
+fn world_portal_to_node_portals<CS: CoordinateSystem>(
+  portal: (Vec3, Vec3),
+  island_bbh: &BoundingBoxHierarchy<IslandId>,
+  islands: &HopSlotMap<IslandId, Island<CS>>,
+  island_to_node_bbh: &mut HashMap<IslandId, BoundingBoxHierarchy<usize>>,
+  max_vertical_distance: f32,
+) -> Vec<NodePortal> {
+  if portal.0 == portal.1 {
+    return sample_animation_link_point(
+      portal.0,
+      island_bbh,
+      islands,
+      max_vertical_distance,
+    )
+    .into_iter()
+    .map(|node| NodePortal { node, interval: (0.0, 1.0) })
+    .collect();
+  }
+
+  let mut node_portals = vec![];
+  let query_box = BoundingBox::Empty
+    .expand_to_point(portal.0)
+    .expand_to_point(portal.1)
+    .expand_by_size(Vec3::new(0.0, 0.0, max_vertical_distance));
+  for &island_id in island_bbh.query_box(query_box) {
+    let island = islands.get(island_id).unwrap();
+    if island.nav_mesh.polygons.is_empty() {
+      // Ignore empty islands to prevent panics below.
+      continue;
+    }
+
+    let node_bbh = island_to_node_bbh.entry(island_id).or_insert_with(|| {
+      nav_mesh_node_bbh(
+        island.nav_mesh.as_ref(),
+        Vec3::new(0.0, 0.0, max_vertical_distance),
+      )
+    });
+    let local_portal = (
+      island.transform.apply_inverse(portal.0),
+      island.transform.apply_inverse(portal.1),
+    );
+
+    node_portals.extend(
+      island
+        .nav_mesh
+        .sample_edge(local_portal, node_bbh, max_vertical_distance)
+        .into_iter()
+        .map(|edge| NodePortal {
+          node: NodeRef { island_id, polygon_index: edge.node },
+          interval: edge.interval,
+        }),
+    );
+  }
+  node_portals
+}
+
+fn sample_animation_link_point<CS: CoordinateSystem>(
+  point: Vec3,
+  island_bbh: &BoundingBoxHierarchy<IslandId>,
+  islands: &HopSlotMap<IslandId, Island<CS>>,
+  max_vertical_distance: f32,
+) -> Option<NodeRef> {
+  let query_box = BoundingBox::new_box(
+    point - Vec3::new(0.0, 0.0, max_vertical_distance),
+    point + Vec3::new(0.0, 0.0, max_vertical_distance),
+  );
+
+  let mut best_point = None;
+  for &island_id in island_bbh.query_box(query_box) {
+    let island = islands.get(island_id).unwrap();
+    let relative_point = island.transform.apply_inverse(point);
+    let Some((sampled_point, sampled_node)) = island.nav_mesh.sample_point(
+      relative_point,
+      &CorePointSampleDistance {
+        horizontal_distance: 0.0,
+        distance_above: max_vertical_distance,
+        distance_below: max_vertical_distance,
+        vertical_preference_ratio: 1.0,
+      },
+    ) else {
+      continue;
+    };
+    let distance = relative_point.distance_squared(sampled_point);
+    match best_point {
+      Some((best_distance, _)) if distance >= best_distance => continue,
+      _ => {}
+    }
+
+    best_point =
+      Some((distance, NodeRef { island_id, polygon_index: sampled_node }));
+  }
+  best_point.map(|(_, node)| node)
 }
 
 #[cfg(test)]
