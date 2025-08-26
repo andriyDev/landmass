@@ -53,6 +53,8 @@ pub(crate) struct NavigationData<CS: CoordinateSystem> {
   pub(crate) deleted_islands: HashSet<IslandId>,
   /// The set of animation links created since the last update.
   new_animation_links: HashSet<AnimationLinkId>,
+  /// The set of animation links deleted since the last update.
+  deleted_animation_links: HashSet<AnimationLinkId>,
 }
 
 /// A reference to a node in the navigation data.
@@ -140,6 +142,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       modified_nodes: HashMap::new(),
       deleted_islands: HashSet::new(),
       new_animation_links: HashSet::new(),
+      deleted_animation_links: HashSet::new(),
     }
   }
 
@@ -218,14 +221,16 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     &mut self,
     link: AnimationLink<CS>,
   ) -> AnimationLinkId {
-    let link_id =
-      self.animation_links.insert(AnimationLinkState { main_link: link });
+    self.dirty = true;
+    let link_id = self.animation_links.insert(AnimationLinkState::new(link));
     self.new_animation_links.insert(link_id);
     link_id
   }
 
   pub(crate) fn remove_animation_link(&mut self, link_id: AnimationLinkId) {
+    self.dirty = true;
     self.new_animation_links.remove(&link_id);
+    self.deleted_animation_links.insert(link_id);
     self.animation_links.remove(link_id);
   }
 
@@ -321,17 +326,24 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       .collect::<HashSet<_>>();
 
     let mut dropped_links = HashSet::new();
+    let mut changed_animation_links = HashSet::new();
     let mut modified_node_refs_to_update = HashSet::new();
-    if !self.deleted_islands.is_empty() || !dirty_islands.is_empty() {
+    if !self.deleted_islands.is_empty()
+      || !dirty_islands.is_empty()
+      || !self.deleted_animation_links.is_empty()
+    {
       self.node_to_off_mesh_link_ids.retain(|node_ref, links| {
         let mut has_dropped_boundary_link = false;
 
         if changed_islands.contains(&node_ref.island_id) {
           for &link in links.iter() {
-            if let KindedOffMeshLink::BoundaryLink { .. } =
-              self.off_mesh_links.remove(link).unwrap().kinded
-            {
-              has_dropped_boundary_link = true;
+            match self.off_mesh_links.remove(link).unwrap().kinded {
+              KindedOffMeshLink::BoundaryLink { .. } => {
+                has_dropped_boundary_link = true;
+              }
+              KindedOffMeshLink::AnimationLink { animation_link, .. } => {
+                changed_animation_links.insert(animation_link);
+              }
             }
           }
           if has_dropped_boundary_link {
@@ -343,13 +355,23 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
         links.retain(|&link_id| {
           let link = self.off_mesh_links.get(link_id).unwrap();
-          let retain =
+          let mut retain =
             !changed_islands.contains(&link.destination_node.island_id);
+          match &link.kinded {
+            KindedOffMeshLink::AnimationLink { animation_link, .. } => {
+              retain = retain
+                && !self.deleted_animation_links.contains(animation_link);
+            }
+            KindedOffMeshLink::BoundaryLink { .. } => {}
+          };
           if !retain {
-            if let KindedOffMeshLink::BoundaryLink { .. } =
-              self.off_mesh_links.remove(link_id).unwrap().kinded
-            {
-              has_dropped_boundary_link = true;
+            match self.off_mesh_links.remove(link_id).unwrap().kinded {
+              KindedOffMeshLink::BoundaryLink { .. } => {
+                has_dropped_boundary_link = true;
+              }
+              KindedOffMeshLink::AnimationLink { animation_link, .. } => {
+                changed_animation_links.insert(animation_link);
+              }
             }
 
             dropped_links.insert(link_id);
@@ -365,12 +387,30 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
         !links.is_empty()
       });
+
+      for &animation_link_id in changed_animation_links.iter() {
+        let Some(animation_link) =
+          self.animation_links.get_mut(animation_link_id)
+        else {
+          // The animation link has been deleted, so we don't care about any
+          // changes.
+          continue;
+        };
+        animation_link.start_portals.retain(|node_portal| {
+          !changed_islands.contains(&node_portal.node.island_id)
+        });
+        animation_link.end_portals.retain(|node_portal| {
+          !changed_islands.contains(&node_portal.node.island_id)
+        });
+      }
     }
 
     self.deleted_islands.clear();
+    self.deleted_animation_links.clear();
 
-    if dirty_islands.is_empty() {
-      // No new or changed islands, so no need to check for new links.
+    if dirty_islands.is_empty() && self.new_animation_links.is_empty() {
+      // No changed islands or animation links, so no need to check for new
+      // links.
       return (dropped_links, changed_islands, modified_node_refs_to_update);
     }
 
@@ -393,6 +433,8 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       edge_link_distance,
       &mut modified_node_refs_to_update,
     );
+
+    let _new_animation_links = std::mem::take(&mut self.new_animation_links);
 
     (dropped_links, changed_islands, modified_node_refs_to_update)
   }
