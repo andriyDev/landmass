@@ -387,6 +387,23 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     }
     let island_bbh = BoundingBoxHierarchy::new(&mut island_bounds);
 
+    self.create_boundary_links(
+      &island_bbh,
+      &dirty_islands,
+      edge_link_distance,
+      &mut modified_node_refs_to_update,
+    );
+
+    (dropped_links, changed_islands, modified_node_refs_to_update)
+  }
+
+  fn create_boundary_links(
+    &mut self,
+    island_bbh: &BoundingBoxHierarchy<IslandId>,
+    dirty_islands: &HashSet<IslandId>,
+    edge_link_distance: f32,
+    modified_node_refs_to_update: &mut HashSet<NodeRef>,
+  ) {
     for &dirty_island_id in dirty_islands.iter() {
       let dirty_island = self.islands.get(dirty_island_id).unwrap();
       if dirty_island.nav_mesh.boundary_edges.is_empty() {
@@ -422,12 +439,10 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
           edge_link_distance,
           &mut self.off_mesh_links,
           &mut self.node_to_off_mesh_link_ids,
-          &mut modified_node_refs_to_update,
+          modified_node_refs_to_update,
         );
       }
     }
-
-    (dropped_links, changed_islands, modified_node_refs_to_update)
   }
 
   fn update_modified_node(
