@@ -261,7 +261,10 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
 
     // TODO: make the edge_link_distance configurable.
     let (invalidated_off_mesh_links, invalidated_islands) =
-      self.nav_data.update(/* edge_link_distance= */ 0.01);
+      self.nav_data.update(
+        /* edge_link_distance= */ 0.01,
+        /* animation_link_distance= */ 0.01,
+      );
 
     let mut agent_id_to_agent_node = HashMap::new();
     let mut agent_id_to_target_node = HashMap::new();

@@ -25,6 +25,8 @@ pub struct AnimationLink<CS: CoordinateSystem> {
   ///
   /// This is an arbitrary number that can be filtered on.
   pub kind: usize,
+  /// The cost of taking this animation link.
+  pub cost: f32,
 }
 
 /// The state of an animation link.
@@ -44,6 +46,31 @@ impl<CS: CoordinateSystem> AnimationLinkState<CS> {
       start_portals: Default::default(),
       end_portals: Default::default(),
     }
+  }
+}
+
+impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
+  for AnimationLink<CS>
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("AnimationLink")
+      .field("start_edge", &self.start_edge)
+      .field("end_edge", &self.end_edge)
+      .field("kind", &self.kind)
+      .field("cost", &self.cost)
+      .finish()
+  }
+}
+
+impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
+  for AnimationLinkState<CS>
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("AnimationLinkState")
+      .field("main_link", &self.main_link)
+      .field("start_portals", &self.start_portals)
+      .field("end_portals", &self.end_portals)
+      .finish()
   }
 }
 

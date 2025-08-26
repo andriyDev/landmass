@@ -354,7 +354,7 @@ fn creates_obstacles_across_boundary_link() {
     nav_mesh,
   ));
 
-  nav_data.update(0.01);
+  nav_data.update(0.01, 0.01);
 
   assert_obstacles_match!(
     nav_mesh_borders_to_dodgy_obstacles(
