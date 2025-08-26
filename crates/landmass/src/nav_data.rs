@@ -324,32 +324,42 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     let mut modified_node_refs_to_update = HashSet::new();
     if !self.deleted_islands.is_empty() || !dirty_islands.is_empty() {
       self.node_to_off_mesh_link_ids.retain(|node_ref, links| {
+        let mut has_dropped_boundary_link = false;
+
         if changed_islands.contains(&node_ref.island_id) {
           for &link in links.iter() {
-            self.off_mesh_links.remove(link);
+            if let KindedOffMeshLink::BoundaryLink { .. } =
+              self.off_mesh_links.remove(link).unwrap().kinded
+            {
+              has_dropped_boundary_link = true;
+            }
           }
-          modified_node_refs_to_update.insert(*node_ref);
+          if has_dropped_boundary_link {
+            modified_node_refs_to_update.insert(*node_ref);
+          }
           dropped_links.extend(links.iter().copied());
           return false;
         }
-
-        let links_before = links.len();
 
         links.retain(|&link_id| {
           let link = self.off_mesh_links.get(link_id).unwrap();
           let retain =
             !changed_islands.contains(&link.destination_node.island_id);
           if !retain {
-            self.off_mesh_links.remove(link_id);
+            if let KindedOffMeshLink::BoundaryLink { .. } =
+              self.off_mesh_links.remove(link_id).unwrap().kinded
+            {
+              has_dropped_boundary_link = true;
+            }
+
             dropped_links.insert(link_id);
           }
           retain
         });
 
-        if links_before != links.len() {
+        if has_dropped_boundary_link {
           // If a node has a different set of boundary links, we need to
           // recompute that node.
-          // TODO: We only care about boundary links, not all off-mesh links.
           modified_node_refs_to_update.insert(*node_ref);
         }
 
