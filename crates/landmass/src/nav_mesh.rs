@@ -2,6 +2,7 @@ use std::{
   cmp::Ordering,
   collections::{HashMap, HashSet},
   marker::PhantomData,
+  ops::Range,
 };
 
 use disjoint::DisjointSet;
@@ -108,6 +109,21 @@ impl<CS: CoordinateSystem> Clone for HeightNavigationMesh<CS> {
       vertices: self.vertices.clone(),
       triangles: self.triangles.clone(),
     }
+  }
+}
+
+impl HeightPolygon {
+  /// Returns the range of triangles that this height polygon is represented by.
+  pub(crate) fn triangle_range(&self) -> Range<usize> {
+    (self.base_triangle_index as usize)
+      ..(self.base_triangle_index as usize + self.triangle_count as usize)
+  }
+
+  /// Converts an index from one of this height polygon's triangles into the
+  /// actual vertex index.
+  #[inline]
+  pub(crate) fn vertex(&self, local: u8) -> usize {
+    self.base_vertex_index as usize + local as usize
   }
 }
 
@@ -424,8 +440,8 @@ impl<CS: CoordinateSystem> HeightNavigationMesh<CS> {
         let triangle = self.triangles[triangle_index as usize];
 
         let check_index = |index| {
+          let real_index = polygon.vertex(index);
           let index = index as usize;
-          let real_index = index + polygon.base_vertex_index as usize;
           if real_index >= vertices.len()
             || index >= polygon.vertex_count as usize
           {
@@ -698,16 +714,13 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
 
       if let Some(height_mesh) = self.height_mesh.as_ref() {
         let height_polygon = &height_mesh.polygons[polygon_index];
-        let vertex_base = height_polygon.base_vertex_index as usize;
-        for i in height_polygon.base_triangle_index
-          ..(height_polygon.base_triangle_index + height_polygon.triangle_count)
-        {
-          let [a, b, c] = &height_mesh.triangles[i as usize];
+        for i in height_polygon.triangle_range() {
+          let [a, b, c] = &height_mesh.triangles[i];
 
           let triangle = (
-            height_mesh.vertices[vertex_base + *a as usize],
-            height_mesh.vertices[vertex_base + *b as usize],
-            height_mesh.vertices[vertex_base + *c as usize],
+            height_mesh.vertices[height_polygon.vertex(*a)],
+            height_mesh.vertices[height_polygon.vertex(*b)],
+            height_mesh.vertices[height_polygon.vertex(*c)],
           );
           test_triangle(triangle);
         }
