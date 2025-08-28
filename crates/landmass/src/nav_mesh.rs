@@ -11,7 +11,8 @@ use thiserror::Error;
 
 use crate::{
   coords::{CoordinateSystem, CorePointSampleDistance},
-  util::BoundingBox,
+  geometry::clip_edge_to_triangle,
+  util::{BoundingBox, BoundingBoxHierarchy, FloatOrd, RaySegment},
 };
 
 /// A navigation mesh.
@@ -742,6 +743,130 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
       (projected_point, polygon_index)
     })
   }
+
+  /// Samples the `edge` on this nav mesh clipping to a max vertical distance.
+  ///
+  /// `node_bbh` must correspond to this navigation mesh's polygons.
+  pub(crate) fn sample_edge(
+    &self,
+    edge: (Vec3, Vec3),
+    node_bbh: &BoundingBoxHierarchy<usize>,
+    max_vertical_distance: f32,
+  ) -> Vec<SampledEdge> {
+    let mut edges = vec![];
+
+    for &node in node_bbh.query_ray_segment(RaySegment::new(edge.0, edge.1)) {
+      if let Some(height_mesh) = self.height_mesh.as_ref() {
+        let height_polygon = &height_mesh.polygons[node];
+        let triangles = height_polygon
+          .triangle_range()
+          .map(|tri| height_mesh.triangles[tri])
+          .map(|[a, b, c]| {
+            [
+              height_polygon.vertex(a),
+              height_polygon.vertex(b),
+              height_polygon.vertex(c),
+            ]
+          })
+          .map(|[a, b, c]| {
+            (
+              height_mesh.vertices[a],
+              height_mesh.vertices[b],
+              height_mesh.vertices[c],
+            )
+          });
+        clip_edge_to_triangles(
+          triangles,
+          node,
+          edge,
+          max_vertical_distance,
+          &mut edges,
+        );
+      } else {
+        let polygon = &self.polygons[node];
+        let triangles = (2..polygon.vertices.len())
+          .map(|i| {
+            (polygon.vertices[0], polygon.vertices[i - 1], polygon.vertices[i])
+          })
+          .map(|(a, b, c)| {
+            (self.vertices[a], self.vertices[b], self.vertices[c])
+          });
+        clip_edge_to_triangles(
+          triangles,
+          node,
+          edge,
+          max_vertical_distance,
+          &mut edges,
+        );
+      };
+    }
+    edges
+  }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct SampledEdge {
+  /// The node that this edge belongs to.
+  pub(crate) node: usize,
+  /// The interval along the original edge that this part of the sampled edge
+  /// takes up. The values are always in ascending order, and both are in the
+  /// range [0-1]. This is a fraction along the original edge.
+  pub(crate) interval: (f32, f32),
+}
+
+/// Clips `edge` to `triangles` given a maximum vertical distance. Edges are
+/// appended to `edges`.
+fn clip_edge_to_triangles(
+  triangles: impl Iterator<Item = (Vec3, Vec3, Vec3)>,
+  node: usize,
+  edge: (Vec3, Vec3),
+  max_vertical_distance: f32,
+  edges: &mut Vec<SampledEdge>,
+) {
+  let mut intervals = vec![];
+  for triangle in triangles {
+    let Some(interval) =
+      clip_edge_to_triangle(triangle, edge, max_vertical_distance)
+    else {
+      continue;
+    };
+    intervals.push(interval);
+  }
+  intervals.sort_by_key(|(s, _)| FloatOrd(*s));
+  let mut intervals = intervals.into_iter();
+  let Some(mut current_interval) = intervals.next() else {
+    return;
+  };
+  for interval in intervals {
+    // As long as the intervals are close enough, merge them. This also allows
+    // overlapping intervals, but this should only really happen due to floating
+    // point error, so just merge anyway. Note the merging amount here is
+    // arbitrary. It doesn't really matter since this is in "time" units, not
+    // distance.
+    if interval.0 - current_interval.1 <= 1e-5 {
+      current_interval = (current_interval.0, interval.1);
+    } else {
+      edges.push(SampledEdge { interval: current_interval, node });
+      current_interval = interval;
+    }
+  }
+  edges.push(SampledEdge { interval: current_interval, node });
+}
+
+/// Computes a [`BoundingBoxHierarchy`] for the nodes in `nav_mesh`.
+pub(crate) fn nav_mesh_node_bbh<CS: CoordinateSystem>(
+  nav_mesh: &ValidNavigationMesh<CS>,
+  expand_by: Vec3,
+) -> BoundingBoxHierarchy<usize> {
+  let mut polygon_bounds = nav_mesh
+    .polygons
+    .iter()
+    .enumerate()
+    .map(|(index, polygon)| {
+      (polygon.bounds.expand_by_size(expand_by), Some(index))
+    })
+    .collect::<Vec<_>>();
+  BoundingBoxHierarchy::new(&mut polygon_bounds)
 }
 
 impl ValidPolygon {
