@@ -14,7 +14,7 @@ use thiserror::Error;
 
 use crate::{
   CoordinateSystem,
-  coords::PointSampleDistance,
+  coords::CorePointSampleDistance,
   geometry::edge_intersection,
   island::{Island, IslandId},
   nav_mesh::MeshEdgeRef,
@@ -190,7 +190,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   pub(crate) fn sample_point(
     &self,
     point: Vec3,
-    point_sample_distance: &CS::SampleDistance,
+    point_sample_distance: &CorePointSampleDistance,
   ) -> Option<(Vec3, NodeRef)> {
     let mut best_point = None;
     for (island_id, island) in self.islands.iter() {
@@ -204,14 +204,14 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
           // perspective, we need to sample up by distance_above, which is the
           // same as expanding the bounding box down by distance_above.
           Vec3::new(
-            -point_sample_distance.horizontal_distance(),
-            -point_sample_distance.horizontal_distance(),
-            -point_sample_distance.distance_above(),
+            -point_sample_distance.horizontal_distance,
+            -point_sample_distance.horizontal_distance,
+            -point_sample_distance.distance_above,
           ),
           Vec3::new(
-            point_sample_distance.horizontal_distance(),
-            point_sample_distance.horizontal_distance(),
-            point_sample_distance.distance_below(),
+            point_sample_distance.horizontal_distance,
+            point_sample_distance.horizontal_distance,
+            point_sample_distance.distance_below,
           ),
         )
         .contains_point(relative_point)

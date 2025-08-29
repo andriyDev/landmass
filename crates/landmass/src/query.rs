@@ -3,8 +3,8 @@ use std::{collections::HashMap, marker::PhantomData};
 use thiserror::Error;
 
 use crate::{
-  Archipelago, CoordinateSystem, IslandId, nav_data::NodeRef, path::PathIndex,
-  pathfinding,
+  Archipelago, CoordinateSystem, IslandId, coords::CorePointSampleDistance,
+  nav_data::NodeRef, path::PathIndex, pathfinding,
 };
 
 /// A point on the navigation meshes.
@@ -65,7 +65,7 @@ pub enum SamplePointError {
 pub(crate) fn sample_point<'archipelago, CS: CoordinateSystem>(
   archipelago: &'archipelago Archipelago<CS>,
   point: CS::Coordinate,
-  point_sample_distance: &'_ CS::SampleDistance,
+  point_sample_distance: &'_ CorePointSampleDistance,
 ) -> Result<SampledPoint<'archipelago, CS>, SamplePointError> {
   if archipelago.nav_data.dirty {
     return Err(SamplePointError::NavDataDirty);

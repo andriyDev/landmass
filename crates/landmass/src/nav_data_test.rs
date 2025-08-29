@@ -14,7 +14,7 @@ use slotmap::{HopSlotMap, SlotMap};
 use crate::{
   AgentOptions, Archipelago, FromAgentRadius, IslandId, PointSampleDistance3d,
   SetTypeIndexCostError, Transform,
-  coords::{XY, XYZ},
+  coords::{CorePointSampleDistance, XY, XYZ},
   island::Island,
   nav_data::{BoundaryLink, NodeRef},
   nav_mesh::NavigationMesh,
@@ -60,12 +60,12 @@ fn samples_points() {
   assert_eq!(
     nav_data.sample_point(
       Vec3::new(1.5, 1.5, 1.09),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance::new(&PointSampleDistance3d {
         horizontal_distance: 0.1,
         distance_below: 0.1,
         distance_above: 0.1,
         vertical_preference_ratio: 1.0,
-      },
+      }),
     ),
     Some((
       Vec3::new(1.5, 1.5, 1.0),
@@ -76,12 +76,12 @@ fn samples_points() {
   assert_eq!(
     nav_data.sample_point(
       Vec3::new(0.95, 0.95, 0.95),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance::new(&PointSampleDistance3d {
         horizontal_distance: 0.1,
         distance_below: 0.1,
         distance_above: 0.1,
         vertical_preference_ratio: 1.0,
-      },
+      }),
     ),
     Some((
       Vec3::new(1.0, 1.0, 1.0),
@@ -92,12 +92,12 @@ fn samples_points() {
   assert_eq!(
     nav_data.sample_point(
       Vec3::new(3.5, 1.5, 1.04),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance::new(&PointSampleDistance3d {
         horizontal_distance: 0.1,
         distance_below: 0.1,
         distance_above: 0.1,
         vertical_preference_ratio: 1.0,
-      },
+      }),
     ),
     Some((
       Vec3::new(3.5, 1.5, 1.0),
@@ -109,12 +109,12 @@ fn samples_points() {
     nav_data
       .sample_point(
         Vec3::new(3.5, 1.5, 1.06),
-        &PointSampleDistance3d {
+        &CorePointSampleDistance::new(&PointSampleDistance3d {
           horizontal_distance: 0.1,
           distance_below: 0.1,
           distance_above: 0.1,
           vertical_preference_ratio: 1.0,
-        },
+        }),
       )
       .map(|(p, n)| ((p * 1e6).round() / 1e6, n)),
     Some((

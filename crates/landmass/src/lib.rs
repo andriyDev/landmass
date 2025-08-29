@@ -41,7 +41,9 @@ pub use nav_mesh::{
 pub use query::{FindPathError, SamplePointError, SampledPoint};
 pub use util::Transform;
 
-use crate::avoidance::apply_avoidance_to_agents;
+use crate::{
+  avoidance::apply_avoidance_to_agents, coords::CorePointSampleDistance,
+};
 
 pub struct Archipelago<CS: CoordinateSystem> {
   pub agent_options: AgentOptions<CS>,
@@ -207,7 +209,11 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     point: CS::Coordinate,
     point_sample_distance: &CS::SampleDistance,
   ) -> Result<SampledPoint<'_, CS>, SamplePointError> {
-    query::sample_point(self, point, point_sample_distance)
+    query::sample_point(
+      self,
+      point,
+      &CorePointSampleDistance::new(point_sample_distance),
+    )
   }
 
   /// Finds a path from `start_point` and `end_point` along the navigation
@@ -242,7 +248,9 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       }
       let agent_node_and_point = match self.nav_data.sample_point(
         CS::to_landmass(&agent.position),
-        &self.agent_options.point_sample_distance,
+        &CorePointSampleDistance::new(
+          &self.agent_options.point_sample_distance,
+        ),
       ) {
         None => continue,
         Some(node_and_point) => node_and_point,
@@ -254,7 +262,9 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       if let Some(target) = &agent.current_target {
         let target_node_and_point = match self.nav_data.sample_point(
           CS::to_landmass(target),
-          &self.agent_options.point_sample_distance,
+          &CorePointSampleDistance::new(
+            &self.agent_options.point_sample_distance,
+          ),
         ) {
           None => continue,
           Some(node_and_point) => node_and_point,
@@ -271,7 +281,9 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     for (character_id, character) in self.characters.iter() {
       let character_point = match self.nav_data.sample_point(
         CS::to_landmass(&character.position),
-        &self.agent_options.point_sample_distance,
+        &CorePointSampleDistance::new(
+          &self.agent_options.point_sample_distance,
+        ),
       ) {
         None => continue,
         Some(point_and_node) => point_and_node.0,
