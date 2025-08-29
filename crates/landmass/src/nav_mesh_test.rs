@@ -4,7 +4,7 @@ use glam::Vec3;
 
 use crate::{
   CoordinateSystem, PointSampleDistance3d,
-  coords::XYZ,
+  coords::{CorePointSampleDistance, XYZ},
   nav_mesh::{
     Connectivity, HeightNavigationMesh, HeightPolygon, MeshEdgeRef,
     ValidPolygon, ValidateHeightMeshError,
@@ -460,7 +460,7 @@ fn sample_point_returns_none_for_far_point() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(-3.0, 0.0, 0.0),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 0.1,
         distance_below: 0.1,
         distance_above: 0.1,
@@ -473,7 +473,7 @@ fn sample_point_returns_none_for_far_point() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(6.0, 0.0, 0.0),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 0.1,
         distance_below: 0.1,
         distance_above: 0.1,
@@ -486,7 +486,7 @@ fn sample_point_returns_none_for_far_point() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(0.0, 0.0, -3.0),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 0.1,
         distance_below: 0.1,
         distance_above: 0.1,
@@ -499,7 +499,7 @@ fn sample_point_returns_none_for_far_point() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(0.0, 0.0, 2.0),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 0.1,
         distance_below: 0.1,
         distance_above: 0.1,
@@ -547,7 +547,7 @@ fn sample_point_in_nodes() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(1.5, 1.5, 0.95),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 1.0,
         distance_below: 1.0,
         distance_above: 1.0,
@@ -560,7 +560,7 @@ fn sample_point_in_nodes() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(1.5, 4.0, -0.95),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 1.0,
         distance_below: 1.0,
         distance_above: 1.0,
@@ -573,7 +573,7 @@ fn sample_point_in_nodes() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(1.5, 4.0, -0.95),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 1.0,
         distance_below: 1.0,
         distance_above: 1.0,
@@ -588,7 +588,7 @@ fn sample_point_in_nodes() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(2.5, 3.5, -0.55),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 5.0,
         distance_below: 5.0,
         distance_above: 5.0,
@@ -601,7 +601,7 @@ fn sample_point_in_nodes() {
     mesh
       .sample_point(
         /* point= */ Vec3::new(2.5, 4.5, 0.1),
-        &PointSampleDistance3d {
+        &CorePointSampleDistance {
           horizontal_distance: 5.0,
           distance_below: 5.0,
           distance_above: 5.0,
@@ -650,7 +650,7 @@ fn sample_point_near_node() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(-0.5, 1.5, 0.25),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 1.0,
         distance_below: 1.0,
         distance_above: 1.0,
@@ -663,7 +663,7 @@ fn sample_point_near_node() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(0.5, 5.5, -0.25),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 1.0,
         distance_below: 1.0,
         distance_above: 1.0,
@@ -676,7 +676,7 @@ fn sample_point_near_node() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(4.5, 1.5, -0.25),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 1.0,
         distance_below: 1.0,
         distance_above: 1.0,
@@ -691,7 +691,7 @@ fn sample_point_near_node() {
   assert_eq!(
     mesh.sample_point(
       /* point= */ Vec3::new(2.5, 5.5, 0.5),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 5.0,
         distance_below: 5.0,
         distance_above: 5.0,
@@ -744,7 +744,7 @@ fn sample_ignores_closer_horizontal() {
   assert_eq!(
     mesh.sample_point(
       Vec3::new(1.5, 0.5, 0.0),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 0.25,
         distance_above: 5.0,
         distance_below: 5.0,
@@ -780,7 +780,7 @@ fn sample_favoring_vertical() {
   assert_eq!(
     mesh.sample_point(
       Vec3::new(2.0, 0.5, 0.0),
-      &PointSampleDistance3d {
+      &CorePointSampleDistance {
         horizontal_distance: 5.0,
         distance_above: 5.0,
         distance_below: 5.0,
@@ -807,7 +807,7 @@ fn sample_filters_vertical_points_differently() {
   .validate()
   .expect("mesh is valid.");
 
-  let point_sample_distance = PointSampleDistance3d {
+  let point_sample_distance = CorePointSampleDistance {
     horizontal_distance: 100.0,
     distance_above: 1.0,
     distance_below: 2.0,
@@ -1143,7 +1143,7 @@ fn sample_point_uses_height_mesh_if_available() {
   .validate()
   .expect("mesh is valid.");
 
-  let point_sample_distance = PointSampleDistance3d {
+  let point_sample_distance = CorePointSampleDistance {
     horizontal_distance: 100.0,
     distance_above: 0.1,
     distance_below: 0.1,

@@ -1,8 +1,9 @@
 use thiserror::Error;
 
 use crate::{
-  Agent, AgentId, Archipelago, CoordinateSystem, Island, nav_data::NodeRef,
-  nav_mesh::MeshEdgeRef, path::Path,
+  Agent, AgentId, Archipelago, CoordinateSystem, Island,
+  coords::CorePointSampleDistance, nav_data::NodeRef, nav_mesh::MeshEdgeRef,
+  path::Path,
 };
 
 #[cfg(feature = "debug-avoidance")]
@@ -285,14 +286,18 @@ fn draw_path<CS: CoordinateSystem>(
     .nav_data
     .sample_point(
       CS::to_landmass(&agent.position),
-      &archipelago.agent_options.point_sample_distance,
+      &CorePointSampleDistance::new(
+        &archipelago.agent_options.point_sample_distance,
+      ),
     )
     .expect("Path exists, so sampling the agent should be fine.");
   let (target_sample_point, target_node_ref) = archipelago
     .nav_data
     .sample_point(
       CS::to_landmass(&target),
-      &archipelago.agent_options.point_sample_distance,
+      &CorePointSampleDistance::new(
+        &archipelago.agent_options.point_sample_distance,
+      ),
     )
     .expect("Path exists, so sampling the agent should be fine.");
 

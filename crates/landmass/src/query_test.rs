@@ -4,7 +4,8 @@ use glam::Vec2;
 
 use crate::{
   AgentOptions, Archipelago, FindPathError, FromAgentRadius, Island,
-  NavigationMesh, SamplePointError, Transform, coords::XY,
+  NavigationMesh, SamplePointError, Transform,
+  coords::{CorePointSampleDistance, XY},
 };
 
 use super::{find_path, sample_point};
@@ -35,7 +36,7 @@ fn error_on_dirty_nav_mesh() {
     sample_point(
       &archipelago,
       /* point= */ Vec2::new(0.5, 0.5),
-      /* distance_to_node= */ &1.0
+      /* distance_to_node= */ &CorePointSampleDistance::new(&1.0)
     )
     .map(|p| p.point()),
     Err(SamplePointError::NavDataDirty)
@@ -70,7 +71,7 @@ fn error_on_out_of_range() {
     sample_point(
       &archipelago,
       /* point= */ Vec2::new(-0.5, 0.5),
-      /* distance_to_node= */ &0.1
+      /* distance_to_node= */ &CorePointSampleDistance::new(&0.1)
     )
     .map(|p| p.point()),
     Err(SamplePointError::OutOfRange)
@@ -109,7 +110,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
     sample_point(
       &archipelago,
       /* point= */ offset + Vec2::new(-0.5, 0.5),
-      /* distance_to_node= */ &0.6
+      /* distance_to_node= */ &CorePointSampleDistance::new(&0.6)
     )
     .map(|p| (p.island(), p.point())),
     Ok((island_id, offset + Vec2::new(0.0, 0.5)))
@@ -118,7 +119,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
     sample_point(
       &archipelago,
       /* point= */ offset + Vec2::new(0.5, 0.5),
-      /* distance_to_node= */ &0.6
+      /* distance_to_node= */ &CorePointSampleDistance::new(&0.6)
     )
     .map(|p| (p.island(), p.point())),
     Ok((island_id, offset + Vec2::new(0.5, 0.5)))
@@ -127,7 +128,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
     sample_point(
       &archipelago,
       /* point= */ offset + Vec2::new(1.2, 1.2),
-      /* distance_to_node= */ &0.6
+      /* distance_to_node= */ &CorePointSampleDistance::new(&0.6)
     )
     .map(|p| (p.island(), p.point())),
     Ok((island_id, offset + Vec2::new(1.0, 1.0)))
@@ -181,7 +182,7 @@ fn samples_type_indices() {
     sample_point(
       &archipelago,
       /* point= */ offset + Vec2::new(0.5, 0.5),
-      /* distance_to_node= */ &0.1
+      /* distance_to_node= */ &CorePointSampleDistance::new(&0.1)
     )
     .map(|p| p.type_index()),
     Ok(0)
@@ -190,7 +191,7 @@ fn samples_type_indices() {
     sample_point(
       &archipelago,
       /* point= */ offset + Vec2::new(1.5, 0.5),
-      /* distance_to_node= */ &0.1
+      /* distance_to_node= */ &CorePointSampleDistance::new(&0.1)
     )
     .map(|p| p.type_index()),
     Ok(1)
@@ -199,7 +200,7 @@ fn samples_type_indices() {
     sample_point(
       &archipelago,
       /* point= */ offset + Vec2::new(2.5, 0.5),
-      /* distance_to_node= */ &0.1
+      /* distance_to_node= */ &CorePointSampleDistance::new(&0.1)
     )
     .map(|p| p.type_index()),
     Ok(2)
@@ -208,7 +209,7 @@ fn samples_type_indices() {
     sample_point(
       &archipelago,
       /* point= */ offset + Vec2::new(3.5, 0.5),
-      /* distance_to_node= */ &0.1
+      /* distance_to_node= */ &CorePointSampleDistance::new(&0.1)
     )
     .map(|p| p.type_index()),
     Ok(3)
@@ -369,13 +370,13 @@ fn finds_path_with_override_type_index_costs() {
   let start_point = sample_point(
     &archipelago,
     Vec2::new(0.5, 0.5),
-    /* distance_to_node= */ &0.1,
+    /* distance_to_node= */ &CorePointSampleDistance::new(&0.1),
   )
   .unwrap();
   let end_point = sample_point(
     &archipelago,
     Vec2::new(0.5, 11.5),
-    /* distance_to_node= */ &0.1,
+    /* distance_to_node= */ &CorePointSampleDistance::new(&0.1),
   )
   .unwrap();
 

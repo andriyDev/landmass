@@ -176,3 +176,25 @@ impl FromAgentRadius for f32 {
     0.2 * radius
   }
 }
+
+/// An evaluated version of the point sample options.
+///
+/// This mirrors [`PointSampleDistance`].
+pub(crate) struct CorePointSampleDistance {
+  pub(crate) horizontal_distance: f32,
+  pub(crate) distance_above: f32,
+  pub(crate) distance_below: f32,
+  pub(crate) vertical_preference_ratio: f32,
+}
+
+impl CorePointSampleDistance {
+  pub(crate) fn new<T: PointSampleDistance>(point_sample_distance: &T) -> Self {
+    Self {
+      horizontal_distance: point_sample_distance.horizontal_distance(),
+      distance_above: point_sample_distance.distance_above(),
+      distance_below: point_sample_distance.distance_below(),
+      vertical_preference_ratio: point_sample_distance
+        .vertical_preference_ratio(),
+    }
+  }
+}
