@@ -204,7 +204,8 @@ impl ConstraintLine {
   }
 }
 
-/// Draws the avoidance data for any agent marked with TODO
+/// Draws the avoidance data for any agent marked with
+/// [`crate::Agent::keep_avoidance_data`].
 #[cfg(feature = "debug-avoidance")]
 pub fn draw_avoidance_data<CS: CoordinateSystem>(
   archipelago: &crate::Archipelago<CS>,
