@@ -794,8 +794,18 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       return;
     };
 
-    // TODO: If none of these off mesh links are boundary links, the node also
+    // If none of the off mesh links for this node are boundary links, the node
     // doesn't need to be modified.
+    'has_boundary_link: {
+      for off_mesh_link in off_mesh_links {
+        let link = self.off_mesh_links.get(*off_mesh_link).unwrap();
+        if let KindedOffMeshLink::BoundaryLink { .. } = &link.kinded {
+          break 'has_boundary_link;
+        }
+      }
+      self.modified_nodes.remove(&node_ref);
+      return;
+    }
 
     let polygon = &island.nav_mesh.polygons[node_ref.polygon_index];
 

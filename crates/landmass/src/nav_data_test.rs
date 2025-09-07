@@ -918,6 +918,69 @@ fn stale_modified_nodes_are_removed() {
   assert_eq!(nav_data.modified_nodes.len(), 0);
 }
 
+#[googletest::test]
+fn modified_node_is_removed_for_no_boundary_links() {
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("is valid."),
+  );
+
+  let mut nav_data = NavigationData::<XY>::new();
+
+  let island_1_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec2::ZERO, rotation: 0.0 },
+    Arc::clone(&nav_mesh),
+  ));
+  let island_2_id = nav_data.add_island(Island::new(
+    Transform { translation: Vec2::new(1.0, 0.0), rotation: 0.0 },
+    Arc::clone(&nav_mesh),
+  ));
+  nav_data.add_island(Island::new(
+    Transform { translation: Vec2::new(-2.0, 0.0), rotation: 0.0 },
+    Arc::clone(&nav_mesh),
+  ));
+
+  nav_data.add_animation_link(AnimationLink {
+    start_edge: (Vec2::new(0.1, 0.1), Vec2::new(0.1, 0.9)),
+    end_edge: (Vec2::new(-1.1, 0.1), Vec2::new(-1.1, 0.9)),
+    cost: 1.0,
+    kind: 0,
+  });
+
+  nav_data.update(1e-5, 1e-5);
+
+  // Island 1 touches island 2, so we should have a modified node.
+  expect_that!(
+    nav_data
+      .modified_nodes
+      .get(&NodeRef { island_id: island_1_id, polygon_index: 0 }),
+    some(anything())
+  );
+
+  // Now we've removed all the boundary links, so we should not have a modified
+  // node.
+  nav_data.remove_island(island_2_id);
+  nav_data.update(1e-5, 1e-5);
+
+  expect_that!(
+    nav_data
+      .modified_nodes
+      .get(&NodeRef { island_id: island_1_id, polygon_index: 0 }),
+    none()
+  );
+}
+
 #[test]
 fn empty_navigation_mesh_is_safe() {
   let full_nav_mesh = Arc::new(
