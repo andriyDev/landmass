@@ -6,7 +6,9 @@ use std::{
 };
 
 use glam::{Vec2, Vec3};
-use googletest::{expect_that, prelude::container_eq};
+use googletest::{
+  expect_false, expect_that, expect_true, prelude::container_eq,
+};
 use slotmap::{HopSlotMap, SlotMap};
 
 use crate::{
@@ -941,4 +943,62 @@ fn error_on_set_zero_or_negative_type_index_cost() {
     archipelago.set_type_index_cost(0, -1.0),
     Err(SetTypeIndexCostError::NonPositiveCost(-1.0))
   );
+}
+
+#[googletest::test]
+fn changed_island_rebuilds_region_connectivity() {
+  let mut nav_data = NavigationData::<XY>::new();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("A square nav mesh is valid."),
+  );
+
+  let island_1 =
+    nav_data.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+  let island_2 = nav_data.add_island(Island::new(
+    Transform { translation: Vec2::new(0.0, 2.0), rotation: 0.0 },
+    nav_mesh,
+  ));
+  nav_data.update(/* edge_link_distance= */ 1e-5);
+
+  expect_false!(nav_data.are_nodes_connected(
+    NodeRef { island_id: island_1, polygon_index: 0 },
+    NodeRef { island_id: island_2, polygon_index: 0 },
+  ));
+
+  // Making the islands touch should result in the regions being connected.
+  nav_data.get_island_mut(island_2).unwrap().set_transform(Transform {
+    translation: Vec2::new(0.0, 1.0),
+    rotation: 0.0,
+  });
+  nav_data.update(/* edge_link_distance= */ 1e-5);
+
+  expect_true!(nav_data.are_nodes_connected(
+    NodeRef { island_id: island_1, polygon_index: 0 },
+    NodeRef { island_id: island_2, polygon_index: 0 },
+  ));
+
+  // Making the islands no longer touch again should remove the connectivity.
+  nav_data.get_island_mut(island_2).unwrap().set_transform(Transform {
+    translation: Vec2::new(0.0, 2.0),
+    rotation: 0.0,
+  });
+  nav_data.update(/* edge_link_distance= */ 1e-5);
+
+  expect_false!(nav_data.are_nodes_connected(
+    NodeRef { island_id: island_1, polygon_index: 0 },
+    NodeRef { island_id: island_2, polygon_index: 0 },
+  ));
 }
