@@ -31,6 +31,8 @@ pub enum AgentState {
   TargetNotOnNavMesh,
   /// The agent has a target but cannot find a path to it.
   NoPath,
+  /// The agent is paused.
+  Paused,
 }
 
 /// An agent in an archipelago.
@@ -54,6 +56,12 @@ pub struct Agent<CS: CoordinateSystem> {
   pub current_target: Option<CS::Coordinate>,
   /// The condition to test for reaching the target.
   pub target_reached_condition: TargetReachedCondition,
+  /// Whether this agent is "paused". Paused agents are not considered for
+  /// avoidance, and will not recompute their paths. However, their paths are
+  /// still kept "consistent" - meaning that once the agent becomes unpaused,
+  /// it can reuse that path if it is still valid and relevant (the agent still
+  /// wants to go to the same place).
+  pub paused: bool,
   #[cfg(feature = "debug-avoidance")]
   /// If true, avoidance debug data will be stored during update iterations.
   /// This can later be used for visualization.
@@ -125,6 +133,7 @@ impl<CS: CoordinateSystem> Agent<CS> {
       max_speed,
       current_target: None,
       target_reached_condition: TargetReachedCondition::Distance(None),
+      paused: false,
       #[cfg(feature = "debug-avoidance")]
       keep_avoidance_data: false,
       override_type_index_to_cost: HashMap::new(),

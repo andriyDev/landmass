@@ -234,7 +234,12 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     let mut agent_id_to_agent_node = HashMap::new();
     let mut agent_id_to_target_node = HashMap::new();
 
-    for (agent_id, agent) in self.agents.iter() {
+    for (agent_id, agent) in self.agents.iter_mut() {
+      if agent.paused {
+        // We don't care to sample the agent location if the agent is paused.
+        agent.state = AgentState::Paused;
+        continue;
+      }
       let agent_node_and_point = match self.nav_data.sample_point(
         CS::to_landmass(&agent.position),
         &self.agent_options.point_sample_distance,
@@ -277,6 +282,16 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     let mut agent_id_to_follow_path_indices = HashMap::new();
 
     for (agent_id, agent) in self.agents.iter_mut() {
+      if agent.paused {
+        if let Some(path) = agent.current_path.as_ref()
+          && !path.is_valid(&invalidated_boundary_links, &invalidated_islands)
+        {
+          // If the path has been invalidated, clear the path to keep the agent
+          // consistent.
+          agent.current_path = None;
+        }
+        continue;
+      }
       let agent_point_and_node = agent_id_to_agent_node.get(&agent_id);
       let target_point_and_node = agent_id_to_target_node.get(&agent_id);
       match does_agent_need_repath(
@@ -351,13 +366,16 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
         Some(path) => path,
       };
 
-      let agent_point = agent_id_to_agent_node
-        .get(&agent_id)
-        .expect("Agent has a path, so should have a valid start node")
-        .0;
+      let Some(agent_point) =
+        agent_id_to_agent_node.get(&agent_id).map(|x| x.0)
+      else {
+        // If the agent is paused, they may not have an agent node, even if the
+        // agent has a path.
+        continue;
+      };
       let target_point = agent_id_to_target_node
         .get(&agent_id)
-        .expect("Agent has a path, so should have a valid target node")
+        .expect("Agent has a path and is not paused, so should have a valid target node")
         .0;
 
       let &(agent_node_index_in_corridor, target_node_index_in_corridor) =

@@ -45,6 +45,18 @@
   - Now, node types are gone, and you can just set the cost of a type index! Note this means that
     all your nav meshes must share the same meaning for each type index (e.g., 1 means road in every
     nav mesh).
+- Paused agents.
+  - Sometimes, agents still exist, but don't need to engage in pathfinding (e.g., they are busy
+    performing an animation). One way to address this is to replace the agent with a character.
+    Unfortunately, this means not only removing the agent (which results in losing all its
+    settings), but also removes cached data like its current path.
+  - Enter paused agents! Pausing an agent makes it completely ignored by other agents, but retains
+    all its data (including the current path). When the agent is unpaused, it can resume its path
+    (if it is still valid).
+  - Pausing agents can also be combined with characters. For example, if your agent is playing an
+    animation, you can pause the agent **and** create a character at the same place. This means the
+    agent can be resumed without recreating it, but also other agents will go around the agent
+    playing the animation.
 - `bevy_landmass`: More configurable debug rendering.
   - While the `bevy_landmass` API allows you to create your own `DebugDrawer`, the default one is
     good enough for a **lot** of cases. To further expand its usefulness, we have replaced
@@ -73,6 +85,7 @@
   other nav meshes.
 - All node type functions (e.g., `add_node_type`, `get_node_type_cost`) have been replaced by
   versions directly relevant to type indices.
+- `AgentState` now includes a `Paused` variant.
 - `bevy_landmass`: The `ThreeD` coordinate system is now flipped! In previous versions, navigation
   meshes in 3D were expected to have clockwise-oriented polygons. Now, they are expected to be
   counter-clockwise oriented. This puts it in sync with every other coordinate system in `landmass`/

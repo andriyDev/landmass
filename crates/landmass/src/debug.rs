@@ -199,6 +199,11 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
   }
 
   for (agent_id, agent) in archipelago.agents.iter() {
+    if agent.paused {
+      // Don't render paused agents.
+      continue;
+    }
+
     debug_drawer
       .add_point(PointType::AgentPosition(agent_id), agent.position.clone());
     if let Some(target) = &agent.current_target {
