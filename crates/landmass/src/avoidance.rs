@@ -8,7 +8,7 @@ use slotmap::HopSlotMap;
 use crate::{
   Agent, AgentId, AgentOptions, AgentState, Character, CharacterId,
   CoordinateSystem, Island, IslandId, NavigationData,
-  nav_data::{ModifiedNode, NodeRef},
+  nav_data::{KindedOffMeshLink, ModifiedNode, NodeRef},
 };
 
 /// Adjusts the velocity of `agents` to apply local avoidance. `delta_time` must
@@ -281,7 +281,10 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
         off_mesh_links
           .iter()
           .map(|link_id| nav_data.off_mesh_links.get(*link_id).unwrap())
-          // TODO: Filter down to boundary links.
+          // Only boundary links should be considered for visibility.
+          .filter(|link| {
+            matches!(&link.kinded, KindedOffMeshLink::BoundaryLink { .. })
+          })
           .map(|link| {
             (
               // dodgy represents the inside of an obstacle as
