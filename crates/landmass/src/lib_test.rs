@@ -1,12 +1,15 @@
 use std::{collections::HashMap, sync::Arc};
 
 use glam::{Vec2, Vec3};
+use googletest::{expect_eq, expect_that, matchers::*, prelude::Matcher};
 
 use crate::{
   Agent, AgentId, AgentOptions, AgentState, Archipelago, Character,
   CharacterId, FromAgentRadius, Island, IslandId, NavigationMesh,
   PointSampleDistance3d, Transform,
   coords::{XY, XYZ},
+  nav_data::NodeRef,
+  path::Path,
 };
 
 #[test]
@@ -736,4 +739,241 @@ fn agent_overrides_node_costs() {
     *archipelago.get_agent(agent_id).unwrap().get_desired_velocity(),
     Vec2::new(1.5, 0.5).normalize(),
   );
+}
+
+fn path_start_and_end(
+  expected_start: NodeRef,
+  expected_end: NodeRef,
+) -> impl for<'a> Matcher<&'a Path> {
+  all!(
+    result_of!(
+      |path: &Path| {
+        let island_segment = &path.island_segments[0];
+        NodeRef {
+          island_id: island_segment.island_id,
+          polygon_index: island_segment.corridor[0],
+        }
+      },
+      eq(expected_start)
+    ),
+    result_of!(
+      |path: &Path| {
+        let island_segment = path.island_segments.last().unwrap();
+        NodeRef {
+          island_id: island_segment.island_id,
+          polygon_index: *island_segment.corridor.last().unwrap(),
+        }
+      },
+      eq(expected_end)
+    )
+  )
+}
+
+#[googletest::test]
+fn paused_agent_does_not_repath() {
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(1.0, 2.0),
+        Vec2::new(0.0, 2.0),
+        Vec2::new(1.0, 3.0),
+        Vec2::new(0.0, 3.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5], vec![5, 4, 6, 7]],
+      polygon_type_indices: vec![0; 3],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let island_id =
+    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  let agent = archipelago.add_agent({
+    let mut agent =
+      Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 1.0);
+    agent.current_target = Some(Vec2::new(0.5, 1.5));
+    agent
+  });
+
+  archipelago.update(1.0);
+
+  let agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  expect_that!(
+    agent_mut.current_path,
+    some(path_start_and_end(
+      NodeRef { island_id, polygon_index: 0 },
+      NodeRef { island_id, polygon_index: 1 }
+    ))
+  );
+
+  // Now pause the agent and move it around. Even move its target around!
+  agent_mut.paused = true;
+  agent_mut.position = Vec2::new(0.5, 1.5);
+  agent_mut.current_target = Some(Vec2::new(0.5, 2.5));
+
+  archipelago.update(1.0);
+
+  // The path has not changed.
+  let agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  expect_that!(
+    agent_mut.current_path,
+    some(path_start_and_end(
+      NodeRef { island_id, polygon_index: 0 },
+      NodeRef { island_id, polygon_index: 1 }
+    ))
+  );
+  expect_eq!(agent_mut.state(), AgentState::Paused);
+
+  // Move the agent and its target completely off the nav mesh.
+  agent_mut.position = Vec2::new(3.5, 1.5);
+  agent_mut.current_target = Some(Vec2::new(3.5, 2.5));
+
+  archipelago.update(1.0);
+
+  // The path has not changed.
+  let agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  expect_that!(
+    agent_mut.current_path,
+    some(path_start_and_end(
+      NodeRef { island_id, polygon_index: 0 },
+      NodeRef { island_id, polygon_index: 1 }
+    ))
+  );
+
+  // Move the agent and target back onto the path and unpause the agent.
+  agent_mut.position = Vec2::new(0.5, 0.5);
+  agent_mut.current_target = Some(Vec2::new(0.5, 1.5));
+  agent_mut.paused = false;
+
+  archipelago.update(1.0);
+
+  // The path has not changed.
+  let agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  expect_that!(
+    agent_mut.current_path,
+    some(path_start_and_end(
+      NodeRef { island_id, polygon_index: 0 },
+      NodeRef { island_id, polygon_index: 1 }
+    ))
+  );
+  expect_eq!(agent_mut.state(), AgentState::Moving);
+
+  // Pause the agent and move it to somewhere off the path.
+  agent_mut.position = Vec2::new(0.5, 1.5);
+  agent_mut.current_target = Some(Vec2::new(0.5, 2.5));
+  agent_mut.paused = true;
+
+  archipelago.update(1.0);
+
+  // The path has not changed.
+  let agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  expect_that!(
+    agent_mut.current_path,
+    some(path_start_and_end(
+      NodeRef { island_id, polygon_index: 0 },
+      NodeRef { island_id, polygon_index: 1 }
+    ))
+  );
+  expect_eq!(agent_mut.state(), AgentState::Paused);
+
+  // Unpause the agent.
+  agent_mut.paused = false;
+
+  archipelago.update(1.0);
+
+  // The path has finally changed!
+  let agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  expect_that!(
+    agent_mut.current_path,
+    some(path_start_and_end(
+      NodeRef { island_id, polygon_index: 1 },
+      NodeRef { island_id, polygon_index: 2 }
+    ))
+  );
+  expect_eq!(agent_mut.state(), AgentState::Moving);
+}
+
+#[googletest::test]
+fn paused_agent_path_is_removed_when_invalid() {
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let island_1 =
+    archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+  let island_2 = archipelago.add_island(Island::new(
+    Transform { translation: Vec2::new(0.0, 1.0), rotation: 0.0 },
+    nav_mesh.clone(),
+  ));
+  archipelago.add_island(Island::new(
+    Transform { translation: Vec2::new(1.0, 0.0), rotation: 0.0 },
+    nav_mesh,
+  ));
+
+  let agent = archipelago.add_agent({
+    let mut agent =
+      Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 1.0);
+    agent.current_target = Some(Vec2::new(0.5, 1.5));
+    agent
+  });
+
+  archipelago.update(1.0);
+
+  let agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  expect_that!(
+    agent_mut.current_path,
+    some(path_start_and_end(
+      NodeRef { island_id: island_1, polygon_index: 0 },
+      NodeRef { island_id: island_2, polygon_index: 0 }
+    ))
+  );
+  expect_eq!(agent_mut.state(), AgentState::Moving);
+
+  // Move the agent to somewhere else to show we don't update the path.
+  agent_mut.paused = true;
+  agent_mut.position = Vec2::new(1.5, 0.5);
+
+  archipelago.update(1.0);
+
+  // The path didn't change.
+  let agent_ref = archipelago.get_agent_mut(agent).unwrap();
+  expect_that!(
+    agent_ref.current_path,
+    some(path_start_and_end(
+      NodeRef { island_id: island_1, polygon_index: 0 },
+      NodeRef { island_id: island_2, polygon_index: 0 }
+    ))
+  );
+  expect_eq!(agent_ref.state(), AgentState::Paused);
+
+  // Despite the agent still being paused, making the path invalid should remove
+  // the path.
+  archipelago.remove_island(island_2);
+  archipelago.update(1.0);
+
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_that!(agent_ref.current_path, none());
+  expect_eq!(agent_ref.state(), AgentState::Paused);
 }
