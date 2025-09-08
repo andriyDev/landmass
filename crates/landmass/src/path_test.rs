@@ -391,6 +391,7 @@ fn straight_path_includes_animation_link() {
     off_mesh_link_segments: vec![OffMeshLinkSegment {
       off_mesh_link,
       starting_node: NodeRef { island_id, polygon_index: 2 },
+      end_node: NodeRef { island_id, polygon_index: 3 },
     }],
     start_point: Vec3::ZERO,
     end_point: Vec3::ZERO,
@@ -411,6 +412,8 @@ fn straight_path_includes_animation_link() {
           start_point: Vec3::new(0.1, 3.0, 0.0),
           end_point: Vec3::new(0.1, 5.0, 0.0),
           link_id: animation_link_id,
+          start_node: NodeRef { island_id, polygon_index: 2 },
+          end_node: NodeRef { island_id, polygon_index: 3 },
         }
       ),
       &(
@@ -528,14 +531,17 @@ fn multiple_animation_links_in_a_row() {
       OffMeshLinkSegment {
         off_mesh_link: off_mesh_link_1,
         starting_node: NodeRef { island_id, polygon_index: 0 },
+        end_node: NodeRef { island_id, polygon_index: 1 },
       },
       OffMeshLinkSegment {
         off_mesh_link: off_mesh_link_2,
         starting_node: NodeRef { island_id, polygon_index: 1 },
+        end_node: NodeRef { island_id, polygon_index: 2 },
       },
       OffMeshLinkSegment {
         off_mesh_link: off_mesh_link_3,
         starting_node: NodeRef { island_id, polygon_index: 2 },
+        end_node: NodeRef { island_id, polygon_index: 3 },
       },
     ],
     start_point: Vec3::ZERO,
@@ -557,6 +563,8 @@ fn multiple_animation_links_in_a_row() {
           start_point: Vec3::new(0.5, 1.0, 0.0),
           end_point: Vec3::new(0.5, 2.0, 0.0),
           link_id: link_id_1,
+          start_node: NodeRef { island_id, polygon_index: 0 },
+          end_node: NodeRef { island_id, polygon_index: 1 },
         }
       ),
       &(
@@ -565,6 +573,8 @@ fn multiple_animation_links_in_a_row() {
           start_point: Vec3::new(0.5, 3.0, 0.0),
           end_point: Vec3::new(0.5, 4.0, 0.0),
           link_id: link_id_2,
+          start_node: NodeRef { island_id, polygon_index: 1 },
+          end_node: NodeRef { island_id, polygon_index: 2 },
         }
       ),
       &(
@@ -573,6 +583,8 @@ fn multiple_animation_links_in_a_row() {
           start_point: Vec3::new(0.5, 5.0, 0.0),
           end_point: Vec3::new(0.5, 6.0, 0.0),
           link_id: link_id_3,
+          start_node: NodeRef { island_id, polygon_index: 2 },
+          end_node: NodeRef { island_id, polygon_index: 3 },
         }
       ),
       &(
@@ -663,6 +675,7 @@ fn obscured_animation_link_is_made_visible_by_straight_path() {
     off_mesh_link_segments: vec![OffMeshLinkSegment {
       off_mesh_link,
       starting_node: NodeRef { island_id, polygon_index: 1 },
+      end_node: NodeRef { island_id, polygon_index: 2 },
     }],
     start_point: Vec3::ZERO,
     end_point: Vec3::ZERO,
@@ -687,6 +700,8 @@ fn obscured_animation_link_is_made_visible_by_straight_path() {
           start_point: Vec3::new(6.0, 3.0, 0.0),
           end_point: Vec3::new(6.0, 5.0, 0.0),
           link_id,
+          start_node: NodeRef { island_id, polygon_index: 1 },
+          end_node: NodeRef { island_id, polygon_index: 2 },
         }
       ),
       &(
@@ -776,10 +791,12 @@ fn end_point_after_animation_link_is_reported() {
       OffMeshLinkSegment {
         off_mesh_link: off_mesh_link_1,
         starting_node: NodeRef { island_id, polygon_index: 0 },
+        end_node: NodeRef { island_id, polygon_index: 1 },
       },
       OffMeshLinkSegment {
         off_mesh_link: off_mesh_link_2,
         starting_node: NodeRef { island_id, polygon_index: 1 },
+        end_node: NodeRef { island_id, polygon_index: 2 },
       },
     ],
     start_point: Vec3::ZERO,
@@ -803,6 +820,8 @@ fn end_point_after_animation_link_is_reported() {
           start_point: Vec3::new(0.5, 1.0, 0.0),
           end_point: Vec3::new(0.5, 2.0, 0.0),
           link_id: animation_link_1,
+          start_node: NodeRef { island_id, polygon_index: 0 },
+          end_node: NodeRef { island_id, polygon_index: 1 },
         }
       ),
       &(
@@ -845,10 +864,12 @@ fn path_not_valid_for_invalidated_islands_or_off_mesh_links() {
     off_mesh_link_segments: vec![
       OffMeshLinkSegment {
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
+        end_node: NodeRef { island_id: island_id_2, polygon_index: 0 },
         off_mesh_link: boundary_link_id_1,
       },
       OffMeshLinkSegment {
         starting_node: NodeRef { island_id: island_id_2, polygon_index: 1 },
+        end_node: NodeRef { island_id: island_id_3, polygon_index: 0 },
         off_mesh_link: boundary_link_id_2,
       },
     ],
@@ -921,10 +942,12 @@ fn indices_in_path_are_found() {
     off_mesh_link_segments: vec![
       OffMeshLinkSegment {
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
+        end_node: NodeRef { island_id: island_id_2, polygon_index: 2 },
         off_mesh_link: boundary_link_id_1,
       },
       OffMeshLinkSegment {
         starting_node: NodeRef { island_id: island_id_2, polygon_index: 1 },
+        end_node: NodeRef { island_id: island_id_3, polygon_index: 0 },
         off_mesh_link: boundary_link_id_2,
       },
     ],
@@ -998,11 +1021,13 @@ fn indices_in_path_are_found_rev() {
     ],
     off_mesh_link_segments: vec![
       OffMeshLinkSegment {
-        starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
+        starting_node: NodeRef { island_id: island_id_1, polygon_index: 3 },
+        end_node: NodeRef { island_id: island_id_2, polygon_index: 2 },
         off_mesh_link: boundary_link_id_1,
       },
       OffMeshLinkSegment {
         starting_node: NodeRef { island_id: island_id_2, polygon_index: 1 },
+        end_node: NodeRef { island_id: island_id_3, polygon_index: 0 },
         off_mesh_link: boundary_link_id_2,
       },
     ],

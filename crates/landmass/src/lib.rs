@@ -27,7 +27,10 @@ pub use glam::Vec3;
 
 pub mod debug;
 
-pub use agent::{Agent, AgentId, AgentState, TargetReachedCondition};
+pub use agent::{
+  Agent, AgentId, AgentState, NotReachedAnimationLinkError,
+  ReachedAnimationLink, TargetReachedCondition,
+};
 pub use character::{Character, CharacterId};
 pub use coords::{
   CoordinateSystem, FromAgentRadius, PointSampleDistance,
@@ -45,7 +48,7 @@ pub use util::Transform;
 
 use crate::{
   avoidance::apply_avoidance_to_agents, coords::CorePointSampleDistance,
-  path::StraightPathStep,
+  nav_data::NodeRef, path::StraightPathStep,
 };
 
 pub struct Archipelago<CS: CoordinateSystem> {
@@ -276,6 +279,12 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
         agent.state = AgentState::Paused;
         continue;
       }
+      if agent.using_animation_link {
+        // We don't care to sample the agent location if the agent is using an
+        // animation link.
+        agent.state = AgentState::UsingAnimationLink;
+        continue;
+      }
       let agent_node_and_point = match self.nav_data.sample_point(
         CS::to_landmass(&agent.position),
         &CorePointSampleDistance::new(
@@ -324,7 +333,11 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     let mut agent_id_to_follow_path_indices = HashMap::new();
 
     for (agent_id, agent) in self.agents.iter_mut() {
-      if agent.paused {
+      // Clear the animation link whether the agent is paused or not. If we
+      // still reached the same animation link, we'll re-set it.
+      agent.current_animation_link = None;
+
+      if agent.paused || agent.using_animation_link {
         if let Some(path) = agent.current_path.as_ref()
           && !path.is_valid(&invalidated_off_mesh_links, &invalidated_islands)
         {
@@ -443,9 +456,48 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
         agent.state = AgentState::ReachedTarget;
       } else {
         let waypoint = match next_waypoint.1 {
-          StraightPathStep::Waypoint(point) => point,
-          // TODO: Tell the user when they should be using the animation link.
-          StraightPathStep::AnimationLink { start_point, .. } => start_point,
+          StraightPathStep::Waypoint(point) => {
+            agent.state = AgentState::Moving;
+            point
+          }
+          StraightPathStep::AnimationLink {
+            start_point,
+            end_point,
+            link_id,
+            start_node,
+            end_node,
+          } => {
+            // TODO: Consider moving this into find_next_point_in_straight_path.
+            fn sample_point<CS: CoordinateSystem>(
+              nav_data: &NavigationData<CS>,
+              point: Vec3,
+              node: NodeRef,
+            ) -> Vec3 {
+              let island = nav_data.get_island(node.island_id).unwrap();
+              let point = island.transform.apply_inverse(point);
+              let point =
+                island.nav_mesh.sample_point_on_node(point, node.polygon_index);
+              island.transform.apply(point)
+            }
+            // Refine the start and end points of the animation link to be
+            // actually on the nav mesh.
+            let start_point =
+              sample_point(&self.nav_data, start_point, start_node);
+            let end_point = sample_point(&self.nav_data, end_point, end_node);
+
+            let distance = agent_point.distance(start_point);
+            if distance <= agent.animation_link_reached_distance() {
+              agent.state = AgentState::ReachedAnimationLink;
+              agent.current_animation_link = Some(ReachedAnimationLink {
+                start_point: CS::from_landmass(&start_point),
+                end_point: CS::from_landmass(&end_point),
+                link_id,
+              });
+            } else {
+              agent.state = AgentState::Moving;
+            }
+            start_point
+          }
         };
 
         let desired_move = (waypoint - CS::to_landmass(&agent.position))
@@ -455,7 +507,6 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
 
         agent.current_desired_move =
           CS::from_landmass(&desired_move.extend(0.0));
-        agent.state = AgentState::Moving;
       }
     }
 

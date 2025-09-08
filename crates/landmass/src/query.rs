@@ -248,7 +248,12 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
       StraightPathStep::Waypoint(point) => {
         (point, PathStep::Waypoint(CS::from_landmass(&point)))
       }
-      StraightPathStep::AnimationLink { start_point, end_point, link_id } => (
+      StraightPathStep::AnimationLink {
+        start_point,
+        end_point,
+        link_id,
+        ..
+      } => (
         // Using this animation link leads to the end point of the link.
         end_point,
         PathStep::AnimationLink {

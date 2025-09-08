@@ -341,18 +341,20 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
         last_segment.corridor.push(connectivity.polygon_index);
         last_segment.portal_edge_index.push(edge_index);
       }
-      PathStep::OffMeshLink(off_mesh_link) => {
+      PathStep::OffMeshLink(off_mesh_link_id) => {
         let previous_node = NodeRef {
           island_id: last_segment.island_id,
           polygon_index: previous_node,
         };
 
+        let off_mesh_link =
+          nav_data.off_mesh_links.get(off_mesh_link_id).unwrap();
         output_path.off_mesh_link_segments.push(OffMeshLinkSegment {
           starting_node: previous_node,
-          off_mesh_link,
+          end_node: off_mesh_link.destination_node,
+          off_mesh_link: off_mesh_link_id,
         });
 
-        let off_mesh_link = nav_data.off_mesh_links.get(off_mesh_link).unwrap();
         output_path.island_segments.push(IslandSegment {
           island_id: off_mesh_link.destination_node.island_id,
           corridor: vec![off_mesh_link.destination_node.polygon_index],

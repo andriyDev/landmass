@@ -48,6 +48,8 @@ pub(crate) struct IslandSegment {
 pub(crate) struct OffMeshLinkSegment {
   /// The node that the off mesh link starts from.
   pub(crate) starting_node: NodeRef,
+  /// The node that the off mesh link ends at.
+  pub(crate) end_node: NodeRef,
   /// The link to be used.
   pub(crate) off_mesh_link: OffMeshLinkId,
 }
@@ -67,6 +69,10 @@ enum Portal {
     end_portal: (Vec3, Vec3),
     /// The ID of the animation link that this portal came from.
     link_id: AnimationLinkId,
+    /// The node that the animation link starts from.
+    start_node: NodeRef,
+    /// The node that the animation link ends at.
+    end_node: NodeRef,
   },
 }
 
@@ -116,6 +122,8 @@ impl OffMeshLinkSegment {
         start_portal: portal,
         end_portal: *destination_portal,
         link_id: *animation_link,
+        start_node: self.starting_node,
+        end_node: self.end_node,
       },
     }
   }
@@ -183,6 +191,10 @@ pub(crate) enum StraightPathStep {
     end_point: Vec3,
     /// The ID of the animation link to use.
     link_id: AnimationLinkId,
+    /// The node that the start point is in.
+    start_node: NodeRef,
+    /// The node that the end point is in.
+    end_node: NodeRef,
   },
 }
 
@@ -229,6 +241,8 @@ impl Path {
         start_point: Vec3,
         end_point: Vec3,
         link_id: AnimationLinkId,
+        start_node: NodeRef,
+        end_node: NodeRef,
       },
     }
     let mut end_of_path = EndOfPath::Point(end_point);
@@ -238,14 +252,26 @@ impl Path {
     } else {
       match self.get_portal_endpoints(start_index, nav_data) {
         Portal::Walkable(left, right) => (left, right),
-        Portal::AnimationLink { start_portal, end_portal, link_id } => {
+        Portal::AnimationLink {
+          start_portal,
+          end_portal,
+          link_id,
+          start_node,
+          end_node,
+        } => {
           let (start_point, fraction) =
             project_point_to_line_segment(apex, start_portal);
           let end_point = end_portal.0.lerp(end_portal.1, fraction);
           return (
             // Skip to the next index after you take the animation link.
             start_index.next(self),
-            StraightPathStep::AnimationLink { start_point, end_point, link_id },
+            StraightPathStep::AnimationLink {
+              start_point,
+              end_point,
+              link_id,
+              start_node,
+              end_node,
+            },
           );
         }
       }
@@ -262,15 +288,26 @@ impl Path {
       } else {
         match self.get_portal_endpoints(portal_index, nav_data) {
           Portal::Walkable(left, right) => (left, right),
-          Portal::AnimationLink { start_portal, end_portal, link_id } => {
+          Portal::AnimationLink {
+            start_portal,
+            end_portal,
+            link_id,
+            start_node,
+            end_node,
+          } => {
             let (start_point, fraction) =
               project_point_to_line_segment(apex, start_portal);
             let end_point = end_portal.0.lerp(end_portal.1, fraction);
 
             // Change the end of the path (for this step) to be the animation
             // link.
-            end_of_path =
-              EndOfPath::AnimationLink { start_point, end_point, link_id };
+            end_of_path = EndOfPath::AnimationLink {
+              start_point,
+              end_point,
+              link_id,
+              start_node,
+              end_node,
+            };
             // At the end of this iteration, we will increment the portal index
             // which will be less than this, ending the loop. Note, we don't
             // want to just break here, since we need to see if the portal is
@@ -309,14 +346,22 @@ impl Path {
       EndOfPath::Point(end_point) => {
         (end_index, StraightPathStep::Waypoint(end_point))
       }
-      EndOfPath::AnimationLink { start_point, end_point, link_id } => (
+      EndOfPath::AnimationLink {
+        start_point,
+        end_point,
+        link_id,
+        start_node,
+        end_node,
+      } => (
         // We want to skip over this animation link, so use `portal_index`
         // (which had `next` called on it) instead of `end_index`.
         portal_index,
         StraightPathStep::AnimationLink {
           start_point,
           end_point,
-          link_id: link_id,
+          link_id,
+          start_node,
+          end_node,
         },
       ),
     }
