@@ -439,6 +439,7 @@ fn using_animation_link_does_not_reach_target() {
     off_mesh_link_segments: vec![OffMeshLinkSegment {
       off_mesh_link,
       starting_node: NodeRef { island_id, polygon_index: 0 },
+      end_node: NodeRef { island_id, polygon_index: 4 },
     }],
     start_point: Vec3::ZERO,
     end_point: Vec3::ZERO,
@@ -455,7 +456,9 @@ fn using_animation_link_does_not_reach_target() {
       StraightPathStep::AnimationLink {
         start_point: Vec3::new(10.5, 11.0, 0.0),
         end_point: Vec3::new(10.5, 12.0, 0.0),
-        link_id: animation_link_id
+        link_id: animation_link_id,
+        start_node: NodeRef { island_id, polygon_index: 0 },
+        end_node: NodeRef { island_id, polygon_index: 4 },
       }
     ),
     (PathIndex::from_corridor_index(1, 0), Vec3::new(10.5, 12.5, 0.0)),
@@ -473,7 +476,9 @@ fn using_animation_link_does_not_reach_target() {
       StraightPathStep::AnimationLink {
         start_point: Vec3::new(10.5, 11.0, 0.0),
         end_point: Vec3::new(10.5, 12.0, 0.0),
-        link_id: animation_link_id
+        link_id: animation_link_id,
+        start_node: NodeRef { island_id, polygon_index: 0 },
+        end_node: NodeRef { island_id, polygon_index: 4 },
       }
     ),
     (PathIndex::from_corridor_index(1, 0), Vec3::new(10.5, 12.5, 0.0)),
@@ -491,7 +496,9 @@ fn using_animation_link_does_not_reach_target() {
       StraightPathStep::AnimationLink {
         start_point: Vec3::new(10.5, 11.0, 0.0),
         end_point: Vec3::new(10.5, 12.0, 0.0),
-        link_id: animation_link_id
+        link_id: animation_link_id,
+        start_node: NodeRef { island_id, polygon_index: 0 },
+        end_node: NodeRef { island_id, polygon_index: 4 },
       }
     ),
     (PathIndex::from_corridor_index(1, 0), Vec3::new(10.5, 12.5, 0.0)),

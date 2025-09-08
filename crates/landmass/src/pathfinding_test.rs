@@ -402,14 +402,17 @@ fn find_path_across_connected_islands() {
       off_mesh_link_segments: vec![
         OffMeshLinkSegment {
           starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
+          end_node: NodeRef { island_id: island_id_2, polygon_index: 0 },
           off_mesh_link: off_mesh_links[&(island_id_1, island_id_2)],
         },
         OffMeshLinkSegment {
           starting_node: NodeRef { island_id: island_id_2, polygon_index: 0 },
+          end_node: NodeRef { island_id: island_id_4, polygon_index: 0 },
           off_mesh_link: off_mesh_links[&(island_id_2, island_id_4)],
         },
         OffMeshLinkSegment {
           starting_node: NodeRef { island_id: island_id_4, polygon_index: 0 },
+          end_node: NodeRef { island_id: island_id_5, polygon_index: 0 },
           off_mesh_link: off_mesh_links[&(island_id_4, island_id_5)],
         },
       ],
@@ -504,6 +507,7 @@ fn finds_path_across_different_islands() {
       ],
       off_mesh_link_segments: vec![OffMeshLinkSegment {
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 0 },
+        end_node: NodeRef { island_id: island_id_2, polygon_index: 0 },
         off_mesh_link: off_mesh_links[&(island_id_1, island_id_2)],
       }],
       start_point,
@@ -758,6 +762,7 @@ fn detour_for_high_cost_path_across_boundary_links() {
           .unwrap()
           .clone(),
         starting_node: NodeRef { island_id: island_id_1, polygon_index: 2 },
+        end_node: NodeRef { island_id: island_id_2, polygon_index: 4 },
       }],
       start_point,
       end_point,
@@ -1260,6 +1265,7 @@ fn animation_link_is_used() {
       ],
       off_mesh_link_segments: vec![OffMeshLinkSegment {
         starting_node: NodeRef { island_id, polygon_index: 0 },
+        end_node: NodeRef { island_id, polygon_index: 4 },
         off_mesh_link,
       }],
       start_point,
@@ -1394,6 +1400,7 @@ fn animation_link_is_used_if_cheaper() {
       ],
       off_mesh_link_segments: vec![OffMeshLinkSegment {
         starting_node: NodeRef { island_id, polygon_index: 0 },
+        end_node: NodeRef { island_id, polygon_index: 4 },
         off_mesh_link,
       }],
       start_point,

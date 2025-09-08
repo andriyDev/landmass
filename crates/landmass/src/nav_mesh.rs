@@ -744,6 +744,83 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
     })
   }
 
+  /// Finds the point on the provided node.
+  ///
+  /// We assume that we know the point projects to the node.
+  pub(crate) fn sample_point_on_node(&self, point: Vec3, node: usize) -> Vec3 {
+    fn project_to_triangle(
+      triangle: (Vec3, Vec3, Vec3),
+      point: Vec3,
+    ) -> Option<Vec3> {
+      let triangle_deltas = (
+        triangle.1 - triangle.0,
+        triangle.2 - triangle.1,
+        triangle.0 - triangle.2,
+      );
+      let triangle_deltas_flat = (
+        triangle_deltas.0.xy(),
+        triangle_deltas.1.xy(),
+        triangle_deltas.2.xy(),
+      );
+
+      // We assume that the point projects to the node already, so any small
+      // discrepancy is likely just floating point error.
+      const EPSILON: f32 = -1e-5;
+      if triangle_deltas_flat.0.perp_dot(point.xy() - triangle.0.xy()) < EPSILON
+      {
+        return None;
+      }
+      if triangle_deltas_flat.1.perp_dot(point.xy() - triangle.1.xy()) < EPSILON
+      {
+        return None;
+      }
+      if triangle_deltas_flat.2.perp_dot(point.xy() - triangle.2.xy()) < EPSILON
+      {
+        return None;
+      }
+
+      let normal = -triangle_deltas.0.cross(triangle_deltas.2).normalize();
+      let height = normal.dot(point - triangle.0) / normal.z;
+      Some(Vec3::new(point.x, point.y, point.z - height))
+    }
+
+    if let Some(height_mesh) = self.height_mesh.as_ref() {
+      let height_polygon = &height_mesh.polygons[node];
+      for i in height_polygon.triangle_range() {
+        let [a, b, c] = &height_mesh.triangles[i];
+
+        let triangle = (
+          height_mesh.vertices[height_polygon.vertex(*a)],
+          height_mesh.vertices[height_polygon.vertex(*b)],
+          height_mesh.vertices[height_polygon.vertex(*c)],
+        );
+
+        if let Some(point) = project_to_triangle(triangle, point) {
+          return point;
+        }
+      }
+    } else {
+      let polygon = &self.polygons[node];
+      for i in 2..polygon.vertices.len() {
+        let triangle =
+          (polygon.vertices[0], polygon.vertices[i - 1], polygon.vertices[i]);
+        let triangle = (
+          self.vertices[triangle.0],
+          self.vertices[triangle.1],
+          self.vertices[triangle.2],
+        );
+
+        if let Some(point) = project_to_triangle(triangle, point) {
+          return point;
+        }
+      }
+    }
+
+    panic!(
+      "It should be impossible to reach here since we assume the node contains the point"
+    )
+  }
+
   /// Samples the `edge` on this nav mesh clipping to a max vertical distance.
   ///
   /// `node_bbh` must correspond to this navigation mesh's polygons.

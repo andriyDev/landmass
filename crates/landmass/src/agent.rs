@@ -2,9 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use glam::Vec3;
 use slotmap::new_key_type;
+use thiserror::Error;
 
 use crate::{
   CoordinateSystem, IslandId, NavigationData,
+  link::AnimationLinkId,
   nav_data::{NodeRef, OffMeshLinkId},
   path::{Path, PathIndex, StraightPathStep},
 };
@@ -23,6 +25,12 @@ pub enum AgentState {
   /// The agent has reached their target. The agent may resume moving if the
   /// target moves or otherwise changes.
   ReachedTarget,
+  /// The agent has reached an animation link along its path to the target.
+  ///
+  /// See [`Agent::reached_animation_link`] for details about the link.
+  ReachedAnimationLink,
+  /// The agent is currently using an animation link.
+  UsingAnimationLink,
   /// The agent has a path and is moving towards their target.
   Moving,
   /// The agent is not on a nav mesh.
@@ -56,6 +64,12 @@ pub struct Agent<CS: CoordinateSystem> {
   pub current_target: Option<CS::Coordinate>,
   /// The condition to test for reaching the target.
   pub target_reached_condition: TargetReachedCondition,
+  /// The distance at which an animation link can be used.
+  ///
+  /// If [`None`], this will use the same distance as
+  /// [`Self::target_reached_condition`] but behaving like
+  /// [`TargetReachedCondition::StraightPathDistance`].
+  pub animation_link_reached_distance: Option<f32>,
   /// Whether this agent is "paused". Paused agents are not considered for
   /// avoidance, and will not recompute their paths. However, their paths are
   /// still kept "consistent" - meaning that once the agent becomes unpaused,
@@ -75,10 +89,25 @@ pub struct Agent<CS: CoordinateSystem> {
   pub(crate) current_desired_move: CS::Coordinate,
   /// The state of the agent.
   pub(crate) state: AgentState,
+  /// The animation link that the agent has reached. This includes the
+  /// animation link, and the off mesh link being used.
+  pub(crate) current_animation_link: Option<ReachedAnimationLink<CS>>,
+  /// Whether this agent is currently using an animation link.
+  pub(crate) using_animation_link: bool,
   #[cfg(feature = "debug-avoidance")]
   /// The avoidance data from the most recent update iteration. Only populated
   /// if [`Self::keep_avoidance_data`] is true.
   pub(crate) avoidance_data: Option<dodgy_2d::debug::DebugData>,
+}
+
+/// An animation link that an agent has reached (in order to use it).
+pub struct ReachedAnimationLink<CS: CoordinateSystem> {
+  /// The ID of the animation link.
+  pub link_id: AnimationLinkId,
+  /// The point that the animation link starts at.
+  pub start_point: CS::Coordinate,
+  /// The expected point that using the animation link will take the agent to.
+  pub end_point: CS::Coordinate,
 }
 
 /// The condition to consider the agent as having reached its target. When this
@@ -133,6 +162,7 @@ impl<CS: CoordinateSystem> Agent<CS> {
       max_speed,
       current_target: None,
       target_reached_condition: TargetReachedCondition::Distance(None),
+      animation_link_reached_distance: None,
       paused: false,
       #[cfg(feature = "debug-avoidance")]
       keep_avoidance_data: false,
@@ -140,6 +170,8 @@ impl<CS: CoordinateSystem> Agent<CS> {
       current_path: None,
       current_desired_move: CS::from_landmass(&Vec3::ZERO),
       state: AgentState::Idle,
+      current_animation_link: None,
+      using_animation_link: false,
       #[cfg(feature = "debug-avoidance")]
       avoidance_data: None,
     }
@@ -188,6 +220,64 @@ impl<CS: CoordinateSystem> Agent<CS> {
   /// called on the associated [`crate::Archipelago`].
   pub fn state(&self) -> AgentState {
     self.state
+  }
+
+  /// Returns the animation link that the agent reached last update.
+  ///
+  /// Returns None if the previous update the agent did not reach the animation
+  /// link. This includes paused agents and agents using the link.
+  pub fn reached_animation_link(&self) -> Option<&ReachedAnimationLink<CS>> {
+    self.current_animation_link.as_ref()
+  }
+
+  /// Starts taking an animation link.
+  ///
+  /// This effectively pauses the agent. Use [`Self::end_animation_link`] to
+  /// undo this. After starting the animation link, the agent's state will be
+  /// [`AgentState::UsingAnimationLink`] and the
+  /// [`Self::reached_animation_link`] will be cleared, after the next update.
+  pub fn start_animation_link(
+    &mut self,
+  ) -> Result<(), NotReachedAnimationLinkError> {
+    if self.current_animation_link.is_none() {
+      return Err(NotReachedAnimationLinkError);
+    }
+    self.using_animation_link = true;
+    Ok(())
+  }
+
+  /// Finishes taking an animation link.
+  ///
+  /// This effectively just unpauses the agent.
+  pub fn end_animation_link(
+    &mut self,
+  ) -> Result<(), NotUsingAnimationLinkError> {
+    if !self.using_animation_link {
+      return Err(NotUsingAnimationLinkError);
+    }
+    self.using_animation_link = false;
+    Ok(())
+  }
+
+  /// Returns whether the agent is currently using an animation link.
+  /// Essentially this reports whether we have called
+  /// [`Self::start_animation_link`] without ending the link yet.
+  pub fn is_using_animation_link(&self) -> bool {
+    self.using_animation_link
+  }
+
+  /// Gets the distance at which to consider to reach animation links.
+  pub(crate) fn animation_link_reached_distance(&self) -> f32 {
+    if let Some(distance) = self.animation_link_reached_distance {
+      return distance;
+    }
+    match self.target_reached_condition {
+      TargetReachedCondition::Distance(distance)
+      | TargetReachedCondition::VisibleAtDistance(distance)
+      | TargetReachedCondition::StraightPathDistance(distance) => {
+        distance.unwrap_or(self.radius)
+      }
+    }
   }
 
   /// Determines if this agent has reached its target. `next_waypoint` and
@@ -339,6 +429,18 @@ pub(crate) fn does_agent_need_repath<CS: CoordinateSystem>(
 
   RepathResult::FollowPath(agent_node_index_in_path, target_node_index_in_path)
 }
+
+#[derive(Error, Debug, Clone, Copy)]
+#[error(
+  "The agent hasn't reached an animation link, so it cannot start an animation link"
+)]
+pub struct NotReachedAnimationLinkError;
+
+#[derive(Error, Debug, Clone, Copy)]
+#[error(
+  "The agent isn't already using an animation link, so it cannot end an animation link"
+)]
+pub struct NotUsingAnimationLinkError;
 
 #[cfg(test)]
 #[path = "agent_test.rs"]

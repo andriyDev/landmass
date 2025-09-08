@@ -205,7 +205,7 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
   }
 
   for (agent_id, agent) in archipelago.agents.iter() {
-    if agent.paused {
+    if agent.paused || agent.using_animation_link {
       // Don't render paused agents.
       continue;
     }
