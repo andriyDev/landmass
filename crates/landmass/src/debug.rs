@@ -43,10 +43,18 @@ pub enum LineType {
   /// Part of an agent's current path. The corridor follows the path along
   /// nodes, not the actual path the agent will travel.
   AgentCorridor(AgentId),
+  /// Part of an agent's current path that uses an animation link. The corridor
+  /// follows the path along nodes, not the actual path the agent will travel.
+  CorridorAnimationLink(AgentId, AnimationLinkId),
   /// Line from an agent to its target.
   Target(AgentId),
   /// Line to the waypoint of an agent.
   Waypoint(AgentId),
+  /// The estimated line of travel along an animation link that the agent will
+  /// take on its path next. While [`LineType::CorridorAnimationLink`] refers to
+  /// the corridor, this is a more accurate line that relates to the current
+  /// position of the agent.
+  PathAnimationLink(AgentId, AnimationLinkId),
 }
 
 /// The type of debug triangles.
@@ -316,15 +324,35 @@ fn draw_path<CS: CoordinateSystem>(
       );
     } else {
       let link_segment = &path.off_mesh_link_segments[segment_index];
-      let (left, right) =
-        archipelago.nav_data.off_mesh_links[link_segment.off_mesh_link].portal;
+      let link =
+        &archipelago.nav_data.off_mesh_links[link_segment.off_mesh_link];
+      let (left, right) = link.portal;
 
       let next_point = CS::from_landmass(&left.midpoint(right));
       debug_drawer.add_line(
         LineType::AgentCorridor(agent_id),
         [last_point.clone(), next_point.clone()],
       );
-      last_point = next_point;
+
+      match &link.kinded {
+        KindedOffMeshLink::BoundaryLink { .. } => {
+          last_point = next_point;
+        }
+        KindedOffMeshLink::AnimationLink {
+          destination_portal,
+          animation_link,
+          ..
+        } => {
+          let destination_point = CS::from_landmass(
+            &destination_portal.0.midpoint(destination_portal.1),
+          );
+          debug_drawer.add_line(
+            LineType::CorridorAnimationLink(agent_id, *animation_link),
+            [next_point.clone(), destination_point.clone()],
+          );
+          last_point = destination_point;
+        }
+      }
     }
   }
 
@@ -366,8 +394,15 @@ fn draw_path<CS: CoordinateSystem>(
   // Convert the path step into the point the agent is walking towards.
   let waypoint = match waypoint {
     StraightPathStep::Waypoint(point) => point,
-    // TODO: Consider also rendering the expected end point.
-    StraightPathStep::AnimationLink { start_point, .. } => start_point,
+    StraightPathStep::AnimationLink {
+      start_point, end_point, link_id, ..
+    } => {
+      debug_drawer.add_line(
+        LineType::PathAnimationLink(agent_id, link_id),
+        [CS::from_landmass(&start_point), CS::from_landmass(&end_point)],
+      );
+      start_point
+    }
   };
   debug_drawer.add_line(
     LineType::Waypoint(agent_id),
