@@ -149,24 +149,34 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
         }
         landmass::debug::LineType::HeightEdge => LineType::HeightEdge,
         landmass::debug::LineType::BoundaryLink => LineType::BoundaryLink,
-        landmass::debug::LineType::AnimationLinkStart(_) => {
-          LineType::AnimationLinkStart(todo!())
+        landmass::debug::LineType::AnimationLinkStart(link_id) => {
+          LineType::AnimationLinkStart(
+            *self.archipelago.reverse_animation_links.get(&link_id).unwrap(),
+          )
         }
-        landmass::debug::LineType::AnimationLinkEnd(_) => {
-          LineType::AnimationLinkEnd(todo!())
+        landmass::debug::LineType::AnimationLinkEnd(link_id) => {
+          LineType::AnimationLinkEnd(
+            *self.archipelago.reverse_animation_links.get(&link_id).unwrap(),
+          )
         }
-        landmass::debug::LineType::AnimationLinkConnection(_) => {
-          LineType::AnimationLinkConnection(todo!())
+        landmass::debug::LineType::AnimationLinkConnection(link_id) => {
+          LineType::AnimationLinkConnection(
+            *self.archipelago.reverse_animation_links.get(&link_id).unwrap(),
+          )
         }
         landmass::debug::LineType::AgentCorridor(agent_id) => {
           LineType::AgentCorridor(
             *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
           )
         }
-        landmass::debug::LineType::CorridorAnimationLink(agent_id, _) => {
+        landmass::debug::LineType::CorridorAnimationLink(agent_id, link_id) => {
           LineType::CorridorAnimationLink {
             agent: *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
-            animation_link: todo!(),
+            animation_link: *self
+              .archipelago
+              .reverse_animation_links
+              .get(&link_id)
+              .unwrap(),
           }
         }
         landmass::debug::LineType::Target(agent_id) => LineType::Target(
@@ -175,10 +185,14 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
         landmass::debug::LineType::Waypoint(agent_id) => LineType::Waypoint(
           *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
         ),
-        landmass::debug::LineType::PathAnimationLink(agent_id, _) => {
+        landmass::debug::LineType::PathAnimationLink(agent_id, link_id) => {
           LineType::PathAnimationLink {
             agent: *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
-            animation_link: todo!(),
+            animation_link: *self
+              .archipelago
+              .reverse_animation_links
+              .get(&link_id)
+              .unwrap(),
           }
         }
       };

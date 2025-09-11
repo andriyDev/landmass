@@ -15,12 +15,13 @@ use bevy_platform::collections::HashMap;
 use bevy_reflect::TypePath;
 use bevy_time::Time;
 use coords::{CoordinateSystem, ThreeD, TwoD};
-use landmass::{AgentId, CharacterId, IslandId};
+use landmass::{AgentId, AnimationLinkId, CharacterId, IslandId};
 
 mod agent;
 mod character;
 mod island;
 mod landmass_structs;
+mod link;
 
 pub use landmass::{
   AgentOptions, FindPathError, FromAgentRadius, HeightNavigationMesh,
@@ -33,6 +34,7 @@ pub use agent::*;
 pub use character::*;
 pub use island::*;
 pub use landmass_structs::*;
+pub use link::*;
 
 pub mod coords;
 pub mod debug;
@@ -50,6 +52,10 @@ pub mod prelude {
   pub use crate::AgentState;
   pub use crate::AgentTarget2d;
   pub use crate::AgentTarget3d;
+  pub use crate::AnimationLink2d;
+  pub use crate::AnimationLink2dBundle;
+  pub use crate::AnimationLink3d;
+  pub use crate::AnimationLink3dBundle;
   pub use crate::Archipelago2d;
   pub use crate::Archipelago3d;
   pub use crate::ArchipelagoRef2d;
@@ -126,6 +132,7 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
         add_agents_to_archipelagos::<CS>,
         sync_islands_to_archipelago::<CS>,
         add_characters_to_archipelago::<CS>,
+        update_animation_links_to_archipelagos::<CS>,
       )
         .in_set(LandmassSystemSet::SyncExistence),
     );
@@ -143,6 +150,9 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
       (sync_agent_state::<CS>, sync_desired_velocity::<CS>)
         .in_set(LandmassSystemSet::Output),
     );
+
+    app.add_observer(on_remove_animation_link::<CS>);
+    app.add_observer(on_replace_archipelago_ref_from_animation_link::<CS>);
   }
 }
 
@@ -175,6 +185,13 @@ pub struct Archipelago<CS: CoordinateSystem> {
   /// A map from the island ID to its associated Bevy entity in
   /// [`Self::archipelago`]. This is just the reverse of [`Self::islands`].
   reverse_islands: HashMap<IslandId, Entity>,
+  /// A map from the Bevy entity to its associated animation link ID in
+  /// [`Self::archipelago`].
+  animation_links: HashMap<Entity, AnimationLinkId>,
+  /// A map from the animation link ID to its associated Bevy entity in
+  /// [`Self::archipelago`]. This is just the reverse of
+  /// [`Self::animation_links`].
+  reverse_animation_links: HashMap<AnimationLinkId, Entity>,
   /// A map from the Bevy entity to its associated agent ID in
   /// [`Self::archipelago`].
   agents: HashMap<Entity, AgentId>,
@@ -196,6 +213,8 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       archipelago: landmass::Archipelago::new(agent_options),
       islands: HashMap::new(),
       reverse_islands: HashMap::new(),
+      animation_links: HashMap::new(),
+      reverse_animation_links: HashMap::new(),
       agents: HashMap::new(),
       reverse_agents: HashMap::new(),
       characters: HashMap::new(),

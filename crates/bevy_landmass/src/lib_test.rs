@@ -1,18 +1,21 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use bevy_app::App;
 use bevy_asset::{AssetPlugin, Assets};
 use bevy_ecs::entity::Entity;
 use bevy_math::{Quat, Vec2, Vec3};
+use bevy_time::Time;
 use bevy_transform::{TransformPlugin, components::Transform};
+use googletest::{expect_that, matchers::*};
 use landmass::PathStep;
 
 use crate::{
   Agent2dBundle, Agent3dBundle, AgentDesiredVelocity2d, AgentDesiredVelocity3d,
   AgentOptions, AgentSettings, AgentState, AgentTarget2d, AgentTarget3d,
-  AgentTypeIndexCostOverrides, Archipelago2d, Archipelago3d, ArchipelagoRef2d,
-  ArchipelagoRef3d, Character3dBundle, CharacterSettings, FromAgentRadius,
-  Island, Island2dBundle, Island3dBundle, Landmass2dPlugin, Landmass3dPlugin,
+  AgentTypeIndexCostOverrides, AnimationLink2d, AnimationLink2dBundle,
+  Archipelago2d, Archipelago3d, ArchipelagoRef2d, ArchipelagoRef3d,
+  Character3dBundle, CharacterSettings, FromAgentRadius, Island,
+  Island2dBundle, Island3dBundle, Landmass2dPlugin, Landmass3dPlugin,
   NavMesh2d, NavMesh3d, NavMeshHandle, NavigationMesh, NavigationMesh3d,
   SamplePointError, Velocity3d,
 };
@@ -490,6 +493,68 @@ fn adds_and_removes_islands() {
     []
   );
   assert_eq!(archipelago.archipelago.get_island_ids().len(), 0);
+}
+
+#[googletest::test]
+fn adds_and_removes_animation_links() {
+  let mut app = App::new();
+
+  app
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
+    .add_plugins(AssetPlugin::default())
+    .add_plugins(Landmass2dPlugin::default())
+    .insert_resource({
+      let mut time = Time::<()>::default();
+      time.advance_by(Duration::from_secs_f32(0.01));
+      time
+    });
+
+  let archipelago_entity = app
+    .world_mut()
+    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
+    .id();
+
+  let link_entity = app
+    .world_mut()
+    .spawn(AnimationLink2dBundle {
+      link: AnimationLink2d {
+        start_edge: (Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)),
+        end_edge: (Vec2::new(0.0, 1.0), Vec2::new(1.0, 1.0)),
+        kind: 0,
+        cost: 1.0,
+      },
+      archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+    })
+    .id();
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  expect_that!(
+    archipelago.animation_links.keys().copied().collect::<Vec<_>>(),
+    unordered_elements_are!(&link_entity)
+  );
+  expect_that!(
+    archipelago.reverse_animation_links.values().copied().collect::<Vec<_>>(),
+    unordered_elements_are!(&link_entity)
+  );
+
+  app.world_mut().despawn(link_entity);
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  expect_that!(
+    archipelago.animation_links.keys().copied().collect::<Vec<_>>(),
+    is_empty()
+  );
+  expect_that!(
+    archipelago.reverse_animation_links.values().copied().collect::<Vec<_>>(),
+    is_empty()
+  );
 }
 
 #[test]
