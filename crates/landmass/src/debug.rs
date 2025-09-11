@@ -3,7 +3,8 @@ use thiserror::Error;
 use crate::{
   Agent, AgentId, Archipelago, CoordinateSystem, Island,
   coords::CorePointSampleDistance,
-  nav_data::NodeRef,
+  link::AnimationLinkId,
+  nav_data::{KindedOffMeshLink, NodeRef},
   nav_mesh::MeshEdgeRef,
   path::{Path, StraightPathStep},
 };
@@ -33,6 +34,12 @@ pub enum LineType {
   HeightEdge,
   /// A link between two islands along their boundary edge.
   BoundaryLink,
+  /// The start edge of an animation link.
+  AnimationLinkStart(AnimationLinkId),
+  /// The end edge of an animation link.
+  AnimationLinkEnd(AnimationLinkId),
+  /// The connection between the start and end edge of the animation link.
+  AnimationLinkConnection(AnimationLinkId),
   /// Part of an agent's current path. The corridor follows the path along
   /// nodes, not the actual path the agent will travel.
   AgentCorridor(AgentId),
@@ -184,21 +191,55 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
             .off_mesh_links
             .get(off_mesh_link_id)
             .expect("Boundary links are present.");
-          // Ignore links where the connected node has a greater node_ref.
-          // This prevents drawing the same link multiple times by
-          // picking one of the links to draw.
-          if node_ref > off_mesh_link.destination_node {
-            continue;
-          }
 
-          // TODO: Handle animation links in some way.
-          debug_drawer.add_line(
-            LineType::BoundaryLink,
-            [
-              CS::from_landmass(&off_mesh_link.portal.0),
-              CS::from_landmass(&off_mesh_link.portal.1),
-            ],
-          );
+          match &off_mesh_link.kinded {
+            KindedOffMeshLink::BoundaryLink { .. } => {
+              // Ignore links where the connected node has a greater node_ref.
+              // This prevents drawing the same link multiple times by
+              // picking one of the links to draw.
+              if node_ref > off_mesh_link.destination_node {
+                continue;
+              }
+              debug_drawer.add_line(
+                LineType::BoundaryLink,
+                [
+                  CS::from_landmass(&off_mesh_link.portal.0),
+                  CS::from_landmass(&off_mesh_link.portal.1),
+                ],
+              );
+            }
+            KindedOffMeshLink::AnimationLink {
+              destination_portal,
+              animation_link,
+              ..
+            } => {
+              debug_drawer.add_line(
+                LineType::AnimationLinkStart(*animation_link),
+                [
+                  CS::from_landmass(&off_mesh_link.portal.0),
+                  CS::from_landmass(&off_mesh_link.portal.1),
+                ],
+              );
+              debug_drawer.add_line(
+                LineType::AnimationLinkEnd(*animation_link),
+                [
+                  CS::from_landmass(&destination_portal.0),
+                  CS::from_landmass(&destination_portal.1),
+                ],
+              );
+              let start_midpoint =
+                off_mesh_link.portal.0.midpoint(off_mesh_link.portal.1);
+              let end_midpoint =
+                destination_portal.0.midpoint(destination_portal.1);
+              debug_drawer.add_line(
+                LineType::AnimationLinkConnection(*animation_link),
+                [
+                  CS::from_landmass(&start_midpoint),
+                  CS::from_landmass(&end_midpoint),
+                ],
+              );
+            }
+          }
         }
       }
     }
