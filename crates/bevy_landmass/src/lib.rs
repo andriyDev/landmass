@@ -23,8 +23,9 @@ mod landmass_structs;
 
 pub use landmass::{
   AgentOptions, FindPathError, FromAgentRadius, HeightNavigationMesh,
-  HeightPolygon, NavigationMesh, PointSampleDistance3d, SamplePointError,
-  SetTypeIndexCostError, ValidNavigationMesh, ValidationError,
+  HeightPolygon, NavigationMesh, PathStep, PointSampleDistance3d,
+  SamplePointError, SetTypeIndexCostError, ValidNavigationMesh,
+  ValidationError,
 };
 
 pub use agent::*;
@@ -261,7 +262,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     start_point: &SampledPoint<'_, CS>,
     end_point: &SampledPoint<'_, CS>,
     override_type_index_costs: &HashMap<usize, f32>,
-  ) -> Result<Vec<CS::Coordinate>, FindPathError> {
+  ) -> Result<Vec<PathStep<CS>>, FindPathError> {
     self.archipelago.find_path(
       &start_point.sampled_point,
       &end_point.sampled_point,

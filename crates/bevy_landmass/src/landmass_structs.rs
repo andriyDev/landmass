@@ -13,6 +13,10 @@ pub enum AgentState {
   /// The agent has reached their target. The agent may resume moving if the
   /// target moves or otherwise changes.
   ReachedTarget,
+  /// The agent has reached an animation link along its path to the target.
+  ReachedAnimationLink,
+  /// The agent is currently using an animation link.
+  UsingAnimationLink,
   /// The agent has a path and is moving towards their target.
   Moving,
   /// The agent is not on a nav mesh.
@@ -21,6 +25,8 @@ pub enum AgentState {
   TargetNotOnNavMesh,
   /// The agent has a target but cannot find a path to it.
   NoPath,
+  /// The agent is paused.
+  Paused,
 }
 
 impl AgentState {
@@ -29,10 +35,13 @@ impl AgentState {
     match state {
       landmass::AgentState::Idle => Self::Idle,
       landmass::AgentState::ReachedTarget => Self::ReachedTarget,
+      landmass::AgentState::ReachedAnimationLink => Self::ReachedAnimationLink,
+      landmass::AgentState::UsingAnimationLink => Self::UsingAnimationLink,
       landmass::AgentState::Moving => Self::Moving,
       landmass::AgentState::AgentNotOnNavMesh => Self::AgentNotOnNavMesh,
       landmass::AgentState::TargetNotOnNavMesh => Self::TargetNotOnNavMesh,
       landmass::AgentState::NoPath => Self::NoPath,
+      landmass::AgentState::Paused => Self::Paused,
     }
   }
 }

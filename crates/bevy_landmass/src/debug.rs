@@ -57,13 +57,27 @@ pub enum LineType {
   HeightEdge,
   /// A link between two islands along their boundary edge.
   BoundaryLink,
+  /// The start edge of an animation link.
+  AnimationLinkStart(Entity),
+  /// The end edge of an animation link.
+  AnimationLinkEnd(Entity),
+  /// The connection between the start and end edge of the animation link.
+  AnimationLinkConnection(Entity),
   /// Part of an agent's current path. The corridor follows the path along
   /// nodes, not the actual path the agent will travel.
   AgentCorridor(Entity),
+  /// Part of an agent's current path that uses an animation link. The corridor
+  /// follows the path along nodes, not the actual path the agent will travel.
+  CorridorAnimationLink { agent: Entity, animation_link: Entity },
   /// Line from an agent to its target.
   Target(Entity),
   /// Line to the waypoint of an agent.
   Waypoint(Entity),
+  /// The estimated line of travel along an animation link that the agent will
+  /// take on its path next. While [`LineType::CorridorAnimationLink`] refers to
+  /// the corridor, this is a more accurate line that relates to the current
+  /// position of the agent.
+  PathAnimationLink { agent: Entity, animation_link: Entity },
 }
 
 /// The type of debug triangles.
@@ -135,10 +149,25 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
         }
         landmass::debug::LineType::HeightEdge => LineType::HeightEdge,
         landmass::debug::LineType::BoundaryLink => LineType::BoundaryLink,
+        landmass::debug::LineType::AnimationLinkStart(_) => {
+          LineType::AnimationLinkStart(todo!())
+        }
+        landmass::debug::LineType::AnimationLinkEnd(_) => {
+          LineType::AnimationLinkEnd(todo!())
+        }
+        landmass::debug::LineType::AnimationLinkConnection(_) => {
+          LineType::AnimationLinkConnection(todo!())
+        }
         landmass::debug::LineType::AgentCorridor(agent_id) => {
           LineType::AgentCorridor(
             *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
           )
+        }
+        landmass::debug::LineType::CorridorAnimationLink(agent_id, _) => {
+          LineType::CorridorAnimationLink {
+            agent: *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
+            animation_link: todo!(),
+          }
         }
         landmass::debug::LineType::Target(agent_id) => LineType::Target(
           *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
@@ -146,6 +175,12 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
         landmass::debug::LineType::Waypoint(agent_id) => LineType::Waypoint(
           *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
         ),
+        landmass::debug::LineType::PathAnimationLink(agent_id, _) => {
+          LineType::PathAnimationLink {
+            agent: *self.archipelago.reverse_agents.get(&agent_id).unwrap(),
+            animation_link: todo!(),
+          }
+        }
       };
       self.drawer.add_line(line_type, line);
     }
@@ -310,32 +345,54 @@ pub struct LandmassGizmos {
   // lines
   /// The color to use when drawing boundary edges on a navmesh.
   ///
-  /// If [`None`], waypoints are not drawn.
+  /// If [`None`], these lines are not drawn.
   pub boundary_edge: Option<Color>,
   /// The color to use when drawing connectivity edges on a navmesh.
   ///
-  /// If [`None`], waypoints are not drawn.
+  /// If [`None`], these lines are not drawn.
   pub connectivity_edge: Option<Color>,
   /// The color to use when drawing height edges on a navmesh.
   ///
-  /// If [`None`], waypoints are not drawn.
+  /// If [`None`], these lines are not drawn.
   pub height_edge: Option<Color>,
   /// The color to use when drawing boundary links on a navmesh.
   ///
-  /// If [`None`], waypoints are not drawn.
+  /// If [`None`], these lines are not drawn.
   pub boundary_link: Option<Color>,
+  /// The color to use when drawing the start of an animation link.
+  ///
+  /// If [`None`], these lines are not drawn.
+  pub animation_link_start: Option<Color>,
+  /// The color to use when drawing the end of an animation link.
+  ///
+  /// If [`None`], these lines are not drawn.
+  pub animation_link_end: Option<Color>,
+  /// The color to use when drawing the connection between the start and end of
+  /// an animation link.
+  ///
+  /// If [`None`], these lines are not drawn.
+  pub animation_link_connection: Option<Color>,
   /// The color to use when drawing agent corridors.
   ///
-  /// If [`None`], waypoints are not drawn.
+  /// If [`None`], these lines are not drawn.
   pub agent_corridor: Option<Color>,
+  /// The color to use when drawing an animation link in an agent corridor.
+  ///
+  /// If [`None`], these lines are not drawn.
+  pub corridor_animation_link: Option<Color>,
   /// The color to use when drawing lines between targets.
   ///
-  /// If [`None`], waypoints are not drawn.
+  /// If [`None`], these lines are not drawn.
   pub target_line: Option<Color>,
   /// The color to use when drawing lines between waypoints.
   ///
-  /// If [`None`], waypoints are not drawn.
+  /// If [`None`], these lines are not drawn.
   pub waypoint_line: Option<Color>,
+  /// The color to use when drawing animation links that the agent is about to
+  /// use.
+  ///
+  /// If [`None`], these lines are not drawn.
+  pub path_animation_link: Option<Color>,
 
   // triangles
   /// The color to use when drawing a node in a navmesh
@@ -354,9 +411,14 @@ impl Default for LandmassGizmos {
       connectivity_edge: Color::srgba_u8(33, 102, 57, 128).into(),
       height_edge: Color::srgba_u8(33, 102, 57, 128).into(),
       boundary_link: Color::srgba(0.0, 1.0, 0.0, 0.6).into(),
+      animation_link_start: Color::srgba_u8(255, 0, 0, 180).into(),
+      animation_link_end: Color::srgba_u8(207, 3, 252, 180).into(),
+      animation_link_connection: Color::srgba_u8(255, 255, 255, 180).into(),
       agent_corridor: Color::srgba(0.6, 0.0, 0.6, 0.6).into(),
+      corridor_animation_link: Color::srgba_u8(196, 112, 196, 152).into(),
       target_line: Color::srgba(1.0, 1.0, 0.0, 0.6).into(),
       waypoint_line: Color::srgba(0.6, 0.6, 0.6, 0.6).into(),
+      path_animation_link: Color::srgba(0.4, 0.4, 0.4, 0.6).into(),
       node: None,
     }
   }
@@ -425,9 +487,18 @@ impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
       LineType::ConnectivityEdge => self.config_ext.connectivity_edge,
       LineType::HeightEdge => self.config_ext.height_edge,
       LineType::BoundaryLink => self.config_ext.boundary_link,
+      LineType::AnimationLinkStart(..) => self.config_ext.animation_link_start,
+      LineType::AnimationLinkEnd(..) => self.config_ext.animation_link_end,
+      LineType::AnimationLinkConnection(..) => {
+        self.config_ext.animation_link_connection
+      }
       LineType::AgentCorridor(..) => self.config_ext.agent_corridor,
+      LineType::CorridorAnimationLink { .. } => {
+        self.config_ext.corridor_animation_link
+      }
       LineType::Target(..) => self.config_ext.target_line,
       LineType::Waypoint(..) => self.config_ext.waypoint_line,
+      LineType::PathAnimationLink { .. } => self.config_ext.path_animation_link,
     }) else {
       return;
     };
