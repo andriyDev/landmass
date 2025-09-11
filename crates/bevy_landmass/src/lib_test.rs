@@ -5,6 +5,7 @@ use bevy_asset::{AssetPlugin, Assets};
 use bevy_ecs::entity::Entity;
 use bevy_math::{Quat, Vec2, Vec3};
 use bevy_transform::{TransformPlugin, components::Transform};
+use landmass::PathStep;
 
 use crate::{
   Agent2dBundle, Agent3dBundle, AgentDesiredVelocity2d, AgentDesiredVelocity3d,
@@ -1201,7 +1202,11 @@ fn finds_path() {
     .expect("point is on nav mesh.");
   assert_eq!(
     archipelago.find_path(&start_point, &end_point, &HashMap::new()),
-    Ok(vec![Vec2::new(0.5, 0.5), Vec2::new(2.0, 1.0), Vec2::new(2.5, 1.25)])
+    Ok(vec![
+      PathStep::Waypoint(Vec2::new(0.5, 0.5)),
+      PathStep::Waypoint(Vec2::new(2.0, 1.0)),
+      PathStep::Waypoint(Vec2::new(2.5, 1.25))
+    ])
   );
 }
 
