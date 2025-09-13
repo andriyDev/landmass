@@ -4,7 +4,7 @@ use bevy::{
 };
 use bevy_app::App;
 use bevy_asset::{AssetApp, AssetEvent, AssetPlugin, Assets};
-use bevy_ecs::event::Events;
+use bevy_ecs::message::Messages;
 use bevy_landmass::{
   Agent, Agent3dBundle, AgentSettings, AgentState, AgentTarget3d,
   Archipelago3d, ArchipelagoOptions, ArchipelagoRef, FromAgentRadius, Island,
@@ -147,7 +147,8 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
   app
     .world_mut()
     .resource_mut::<Assets<bevy_rerecast::Navmesh>>()
-    .insert(&rerecast_handle, rerecast_mesh);
+    .insert(&rerecast_handle, rerecast_mesh)
+    .unwrap();
 
   app.update();
   app.update();
@@ -234,7 +235,8 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
   app
     .world_mut()
     .resource_mut::<Assets<bevy_rerecast::Navmesh>>()
-    .insert(&rerecast_handle, rerecast_mesh);
+    .insert(&rerecast_handle, rerecast_mesh)
+    .unwrap();
 
   app.update();
   app.update();
@@ -293,7 +295,7 @@ fn existing_rerecast_mesh_is_converted() {
   // case of handling an existing asset.
   app
     .world_mut()
-    .resource_mut::<Events<AssetEvent<bevy_rerecast::Navmesh>>>()
+    .resource_mut::<Messages<AssetEvent<bevy_rerecast::Navmesh>>>()
     .clear();
 
   let entity =
@@ -409,7 +411,7 @@ fn added_then_removed_mesh_does_not_convert() {
   // case of handling an existing asset.
   app
     .world_mut()
-    .resource_mut::<Events<AssetEvent<bevy_rerecast::Navmesh>>>()
+    .resource_mut::<Messages<AssetEvent<bevy_rerecast::Navmesh>>>()
     .clear();
 
   let entity = app.world_mut().spawn(NavMeshHandle3d(rerecast_handle)).id();
@@ -437,7 +439,7 @@ fn added_then_removed_mesh_does_not_convert() {
   expect_that!(
     app
       .world_mut()
-      .resource_mut::<Events<AssetEvent<bevy_landmass::NavMesh3d>>>()
+      .resource_mut::<Messages<AssetEvent<bevy_landmass::NavMesh3d>>>()
       .drain()
       .collect::<Vec<_>>(),
     is_empty()
