@@ -2,7 +2,7 @@
 
 use std::{marker::PhantomData, sync::Arc};
 
-use bevy_app::{Plugin, RunFixedMainLoop, RunFixedMainLoopSystem};
+use bevy_app::{Plugin, RunFixedMainLoop, RunFixedMainLoopSystems};
 use bevy_asset::{Asset, AssetApp, Handle};
 use bevy_ecs::{
   component::Component,
@@ -126,7 +126,7 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
       )
         .chain()
         // Configure our systems to run before physics engines.
-        .in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
+        .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
     );
     app.add_systems(
       self.schedule,

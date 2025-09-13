@@ -2,17 +2,18 @@
 
 use std::sync::Arc;
 
-use bevy_app::{Plugin, RunFixedMainLoop, RunFixedMainLoopSystem};
+use bevy_app::{Plugin, RunFixedMainLoop, RunFixedMainLoopSystems};
 use bevy_asset::{AssetEvent, AssetHandleProvider, AssetId, Assets, Handle};
 use bevy_ecs::{
   bundle::Bundle,
-  component::{Component, HookContext},
-  event::{Event, EventReader},
+  component::Component,
   intern::Interned,
+  lifecycle::HookContext,
+  message::{Message, MessageReader},
   resource::Resource,
   schedule::{
-    Condition, IntoScheduleConfigs, ScheduleLabel, SystemSet,
-    common_conditions::on_event,
+    IntoScheduleConfigs, ScheduleLabel, SystemCondition, SystemSet,
+    common_conditions::on_message,
   },
   system::ResMut,
   world::DeferredWorld,
@@ -47,20 +48,20 @@ impl Plugin for LandmassRerecastPlugin {
   fn build(&self, app: &mut bevy_app::App) {
     app
       .init_resource::<RerecastToLandmassIds>()
-      .add_event::<NewRerecastConversion>()
+      .add_message::<NewRerecastConversion>()
       .configure_sets(
         self.schedule,
         LandmassRerecastSystems
           .before(LandmassSystems::SyncExistence)
-          .in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
+          .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
       )
       .add_systems(
         self.schedule,
         convert_changed_rerecast_meshes_to_landmass
           .in_set(LandmassRerecastSystems)
           .run_if(
-            on_event::<AssetEvent<bevy_rerecast::Navmesh>>
-              .or(on_event::<NewRerecastConversion>),
+            on_message::<AssetEvent<bevy_rerecast::Navmesh>>
+              .or(on_message::<NewRerecastConversion>),
           ),
       );
   }
@@ -109,9 +110,9 @@ fn on_insert_rerecast_navmesh(
     .resource_mut::<RerecastToLandmassIds>()
     .get_or_alloc(rerecast_id, landmass_handles);
   if allocated {
-    // Send an event to do the conversion in case the rerecast asset is already
+    // Send a message to do the conversion in case the rerecast asset is already
     // loaded.
-    world.send_event(NewRerecastConversion(rerecast_id));
+    world.write_message(NewRerecastConversion(rerecast_id));
   }
 
   // Insert a landmass handle so that landmass can see this entity.
@@ -179,18 +180,18 @@ impl RerecastToLandmassIds {
   }
 }
 
-/// An event to indicate that a new conversion between rerecast and landmass has
-/// been established.
+/// A message to indicate that a new conversion between rerecast and landmass
+/// has been established.
 ///
 /// This gives us an opportunity to do a conversion if the rerecast mesh is
 /// already loaded.
-#[derive(Event)]
+#[derive(Message)]
 struct NewRerecastConversion(AssetId<bevy_rerecast::Navmesh>);
 
 /// A system to do the actual conversion between rerecast and landmass.
 fn convert_changed_rerecast_meshes_to_landmass(
-  mut rerecast_events: EventReader<AssetEvent<bevy_rerecast::Navmesh>>,
-  mut new_conversion_events: EventReader<NewRerecastConversion>,
+  mut rerecast_events: MessageReader<AssetEvent<bevy_rerecast::Navmesh>>,
+  mut new_conversion_events: MessageReader<NewRerecastConversion>,
   mut mapping: ResMut<RerecastToLandmassIds>,
   mut rerecast_meshes: ResMut<Assets<bevy_rerecast::Navmesh>>,
   mut landmass_meshes: ResMut<Assets<bevy_landmass::NavMesh3d>>,
@@ -233,10 +234,12 @@ fn convert_changed_rerecast_meshes_to_landmass(
         continue;
       }
     };
-    landmass_meshes.insert(
-      landmass_id,
-      bevy_landmass::NavMesh { nav_mesh: Arc::new(landmass_mesh) },
-    );
+    landmass_meshes
+      .insert(
+        landmass_id,
+        bevy_landmass::NavMesh { nav_mesh: Arc::new(landmass_mesh) },
+      )
+      .unwrap();
   }
 }
 

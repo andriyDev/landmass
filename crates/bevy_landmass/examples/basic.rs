@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use bevy::{
   color::palettes::css, input::common_conditions::input_just_pressed,
-  prelude::*, render::mesh::Mesh2d,
+  mesh::Mesh2d, prelude::*,
 };
 use bevy_landmass::{
   AgentTypeIndexCostOverrides, FromAgentRadius, NavMeshHandle,
@@ -49,10 +49,12 @@ fn convert_mesh(
     mark_slow_polygons(&mut nav_mesh, converter.slow_area);
 
     let valid_nav_mesh = nav_mesh.validate().unwrap();
-    nav_meshes.insert(
-      &converter.nav_mesh,
-      NavMesh2d { nav_mesh: Arc::new(valid_nav_mesh) },
-    );
+    nav_meshes
+      .insert(
+        &converter.nav_mesh,
+        NavMesh2d { nav_mesh: Arc::new(valid_nav_mesh) },
+      )
+      .unwrap();
     commands.entity(entity).remove::<ConvertMesh>();
   }
 }
@@ -82,7 +84,7 @@ fn setup(
     Transform::from_xyz(5.0, 0.0, 0.0),
     Camera2d,
     Projection::Orthographic(OrthographicProjection {
-      scaling_mode: bevy::render::camera::ScalingMode::FixedVertical {
+      scaling_mode: bevy::camera::ScalingMode::FixedVertical {
         viewport_height: 16.0,
       },
       ..OrthographicProjection::default_2d()
@@ -92,7 +94,7 @@ fn setup(
   let message = "LMB - Spawn agent\nShift+LMB - Spawn agent (fast on mud)\nRMB - Change target point\nF12 - Toggle debug view";
   commands.spawn((
     Text(message.into()),
-    TextLayout { justify: JustifyText::Right, ..Default::default() },
+    TextLayout { justify: Justify::Right, ..Default::default() },
     Node {
       position_type: PositionType::Absolute,
       right: Val::Px(0.0),
