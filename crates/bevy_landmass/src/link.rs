@@ -2,10 +2,11 @@ use bevy_ecs::{
   bundle::Bundle,
   component::Component,
   entity::Entity,
-  observer::Trigger,
+  event::EntityEvent,
+  lifecycle::{Remove, Replace},
+  observer::On,
   query::{Changed, With},
   system::Query,
-  world::{OnRemove, OnReplace},
 };
 
 use crate::{
@@ -73,11 +74,11 @@ impl<CS: CoordinateSystem> AnimationLink<CS> {
 /// Handles removing an [`AnimationLink`] component by trying to remove it from
 /// the corresponding archipelago.
 pub(crate) fn on_remove_animation_link<CS: CoordinateSystem>(
-  trigger: Trigger<OnRemove, AnimationLink<CS>>,
+  event: On<Remove, AnimationLink<CS>>,
   archipelago_ref: Query<&ArchipelagoRef<CS>, With<AnimationLink<CS>>>,
   archipelago: Query<&mut Archipelago<CS>>,
 ) {
-  try_remove_animation_link(trigger.target(), archipelago_ref, archipelago);
+  try_remove_animation_link(event.event_target(), archipelago_ref, archipelago);
 }
 
 /// Handles replacing an [`ArchipelagoRef`] component by trying to remove an
@@ -85,11 +86,15 @@ pub(crate) fn on_remove_animation_link<CS: CoordinateSystem>(
 pub(crate) fn on_replace_archipelago_ref_from_animation_link<
   CS: CoordinateSystem,
 >(
-  trigger: Trigger<OnReplace, ArchipelagoRef<CS>>,
+  trigger: On<Replace, ArchipelagoRef<CS>>,
   archipelago_ref: Query<&ArchipelagoRef<CS>, With<AnimationLink<CS>>>,
   archipelago: Query<&mut Archipelago<CS>>,
 ) {
-  try_remove_animation_link(trigger.target(), archipelago_ref, archipelago);
+  try_remove_animation_link(
+    trigger.event_target(),
+    archipelago_ref,
+    archipelago,
+  );
 }
 
 /// Tries to remove an animation link from the archipelago referenced on

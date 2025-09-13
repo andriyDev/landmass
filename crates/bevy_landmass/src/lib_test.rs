@@ -79,7 +79,8 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
   app
     .world_mut()
     .resource_mut::<Assets<NavMesh3d>>()
-    .insert(&nav_mesh_handle, NavMesh3d { nav_mesh });
+    .insert(&nav_mesh_handle, NavMesh3d { nav_mesh })
+    .unwrap();
 
   let agent_id = app
     .world_mut()
@@ -785,7 +786,8 @@ fn type_index_costs_are_used() {
   app
     .world_mut()
     .resource_mut::<Assets<NavMesh2d>>()
-    .insert(&nav_mesh_handle, NavMesh2d { nav_mesh });
+    .insert(&nav_mesh_handle, NavMesh2d { nav_mesh })
+    .unwrap();
 
   let agent_id = app
     .world_mut()
@@ -901,7 +903,8 @@ fn overridden_type_index_costs_are_used() {
   app
     .world_mut()
     .resource_mut::<Assets<NavMesh2d>>()
-    .insert(&nav_mesh_handle, NavMesh2d { nav_mesh });
+    .insert(&nav_mesh_handle, NavMesh2d { nav_mesh })
+    .unwrap();
 
   let agent_id = app
     .world_mut()

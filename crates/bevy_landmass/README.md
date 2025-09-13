@@ -108,9 +108,9 @@ fn print_desired_velocity(query: Query<(Entity, &AgentDesiredVelocity2d)>) {
   }
 }
 
-fn quit(mut exit: EventWriter<AppExit>) {
+fn quit(mut exit: MessageWriter<AppExit>) {
   // Quit so doctests pass.
-  exit.send(AppExit::Success);
+  exit.write(AppExit::Success);
 }
 ```
 
