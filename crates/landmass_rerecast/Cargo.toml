@@ -16,17 +16,17 @@ keywords = ["navigation", "system", "pathfinding"]
 [dependencies]
 bevy_landmass = { version = "0.10", path = "../bevy_landmass", default-features = false }
 
-bevy_app = { version = "0.16", default-features = false }
-bevy_asset = { version = "0.16", default-features = false }
-bevy_ecs = { version = "0.16", default-features = false }
-bevy_log = { version = "0.16", default-features = false }
-bevy_math = { version = "0.16", default-features = false }
-bevy_platform = { version = "0.16", default-features = false }
+bevy_app = { version = "0.17", default-features = false }
+bevy_asset = { version = "0.17", default-features = false }
+bevy_ecs = { version = "0.17", default-features = false }
+bevy_log = { version = "0.17", default-features = false }
+bevy_math = { version = "0.17", default-features = false }
+bevy_platform = { version = "0.17", default-features = false }
 
 bevy_rerecast = { version = "0.2", default-features = false }
 
 [dev-dependencies]
-bevy = "0.16"
+bevy = "0.17"
 googletest = "0.14.2"
 bevy_rerecast = { version = "0.2", default-features = false, features = [
     "bevy_mesh",
