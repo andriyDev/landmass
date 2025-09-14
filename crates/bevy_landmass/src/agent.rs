@@ -1,11 +1,13 @@
 use std::{marker::PhantomData, ops::Deref};
 
+use bevy_ecs::system::Commands;
 use bevy_ecs::{
   bundle::Bundle, change_detection::DetectChanges, component::Component,
   entity::Entity, query::With, system::Query, world::Ref,
 };
 use bevy_platform::collections::HashMap;
 use bevy_transform::{components::Transform, helper::TransformHelper};
+use landmass::AnimationLinkId;
 
 use crate::ArchipelagoRef;
 use crate::{
@@ -176,6 +178,32 @@ impl<CS: CoordinateSystem> AgentDesiredVelocity<CS> {
   /// The desired velocity of the agent.
   pub fn velocity(&self) -> CS::Coordinate {
     self.0.clone()
+  }
+}
+
+/// An animation link that an agent has reached (in order to use it).
+#[derive(Component)]
+pub struct ReachedAnimationLink<CS: CoordinateSystem> {
+  /// The ID of the animation link.
+  pub link_entity: Entity,
+  /// The point that the animation link starts at.
+  pub start_point: CS::Coordinate,
+  /// The expected point that using the animation link will take the agent to.
+  pub end_point: CS::Coordinate,
+}
+
+pub type ReachedAnimationLink2d = ReachedAnimationLink<TwoD>;
+pub type ReachedAnimationLink3d = ReachedAnimationLink<ThreeD>;
+
+impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
+  for ReachedAnimationLink<CS>
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ReachedAnimationLink")
+      .field("link_entity", &self.link_entity)
+      .field("start_point", &self.start_point)
+      .field("end_point", &self.end_point)
+      .finish()
   }
 }
 
@@ -385,5 +413,64 @@ pub(crate) fn sync_desired_velocity<CS: CoordinateSystem>(
       .expect("the agent is in the archipelago")
       .get_desired_velocity()
       .clone();
+  }
+}
+
+impl<CS: CoordinateSystem> ReachedAnimationLink<CS> {
+  /// Converts the `landmass` representation of the reached animation link, to
+  /// the `bevy_landmass` version.
+  pub(crate) fn from_landmass(
+    animation_link: &landmass::ReachedAnimationLink<CS>,
+    link_id_to_entity: &HashMap<AnimationLinkId, Entity>,
+  ) -> Self {
+    Self {
+      start_point: animation_link.start_point.clone(),
+      end_point: animation_link.end_point.clone(),
+      link_entity: *link_id_to_entity.get(&animation_link.link_id).unwrap(),
+    }
+  }
+}
+
+/// Updates the [`ReachedAnimationLink`] component (including adding and
+/// removing it) on an agent to match the state in `landmass`.
+pub(crate) fn sync_agent_reached_animation_link<CS: CoordinateSystem>(
+  mut agents: Query<
+    (Entity, &ArchipelagoRef<CS>, Option<&mut ReachedAnimationLink<CS>>),
+    With<Agent<CS>>,
+  >,
+  archipelagos: Query<&Archipelago<CS>>,
+  mut commands: Commands,
+) {
+  for (agent_entity, archipelago_ref, reached_animation_link) in
+    agents.iter_mut()
+  {
+    let Ok(archipelago) = archipelagos.get(archipelago_ref.entity) else {
+      continue;
+    };
+    let Some(agent) = archipelago.get_agent(agent_entity) else {
+      continue;
+    };
+
+    let new_reached_animation_link = match agent.reached_animation_link() {
+      None => {
+        if reached_animation_link.is_some() {
+          commands.entity(agent_entity).remove::<ReachedAnimationLink<CS>>();
+        }
+        continue;
+      }
+      Some(new_reached_animation_link) => new_reached_animation_link,
+    };
+    let new_reached_animation_link = ReachedAnimationLink::from_landmass(
+      new_reached_animation_link,
+      &archipelago.reverse_animation_links,
+    );
+    match reached_animation_link {
+      None => {
+        commands.entity(agent_entity).insert(new_reached_animation_link);
+      }
+      Some(mut reached_animation_link) => {
+        *reached_animation_link = new_reached_animation_link;
+      }
+    }
   }
 }

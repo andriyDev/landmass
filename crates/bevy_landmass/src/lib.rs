@@ -78,6 +78,8 @@ pub mod prelude {
   pub use crate::NavMeshHandle3d;
   pub use crate::NavigationMesh2d;
   pub use crate::NavigationMesh3d;
+  pub use crate::ReachedAnimationLink2d;
+  pub use crate::ReachedAnimationLink3d;
   pub use crate::ValidNavigationMesh2d;
   pub use crate::ValidNavigationMesh3d;
   pub use crate::Velocity2d;
@@ -147,7 +149,11 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
     );
     app.add_systems(
       self.schedule,
-      (sync_agent_state::<CS>, sync_desired_velocity::<CS>)
+      (
+        sync_agent_state::<CS>,
+        sync_desired_velocity::<CS>,
+        sync_agent_reached_animation_link::<CS>,
+      )
         .in_set(LandmassSystemSet::Output),
     );
 
