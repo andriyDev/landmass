@@ -1,10 +1,12 @@
 use std::{marker::PhantomData, ops::Deref};
 
+use bevy_ecs::query::Has;
 use bevy_ecs::system::Commands;
 use bevy_ecs::{
   bundle::Bundle, change_detection::DetectChanges, component::Component,
   entity::Entity, query::With, system::Query, world::Ref,
 };
+use bevy_log::warn_once;
 use bevy_platform::collections::HashMap;
 use bevy_transform::{components::Transform, helper::TransformHelper};
 use landmass::AnimationLinkId;
@@ -215,6 +217,21 @@ impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
   }
 }
 
+/// A marker component to indicate that an agent should be paused.
+///
+/// Paused agents are not considered for avoidance, and will not recompute their
+/// paths. However, their paths are still kept "consistent" - meaning that once
+/// the agent becomes unpaused, it can reuse that path if it is still valid and
+/// relevant (the agent still wants to go to the same place).
+#[derive(Component, Default, Clone, Copy, Debug)]
+pub struct PauseAgent;
+
+/// A marker component to indicate that an agent is currently using an animation
+/// link and should behave as though it is paused (see [`PauseAgent`] for
+/// details).
+#[derive(Component, Default, Clone, Copy, Debug)]
+pub struct UsingAnimationLink;
+
 #[cfg(feature = "debug-avoidance")]
 /// If inserted on an agent, it will record avoidance data that can later be
 /// visualized with [`crate::debug::draw_avoidance_data`].
@@ -272,7 +289,7 @@ pub(crate) fn add_agents_to_archipelagos<CS: CoordinateSystem>(
 }
 
 #[cfg(feature = "debug-avoidance")]
-type HasKeepAvoidanceData = bevy_ecs::query::Has<KeepAvoidanceData>;
+type HasKeepAvoidanceData = Has<KeepAvoidanceData>;
 #[cfg(not(feature = "debug-avoidance"))]
 type HasKeepAvoidanceData = ();
 
@@ -289,6 +306,8 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
       Option<&TargetReachedCondition>,
       Option<&AnimationLinkReachedDistance>,
       Option<Ref<AgentTypeIndexCostOverrides>>,
+      Has<PauseAgent>,
+      Has<UsingAnimationLink>,
       HasKeepAvoidanceData,
     ),
     With<Transform>,
@@ -305,6 +324,8 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
     target_reached_condition,
     animation_link_reached_distance,
     type_index_cost_overrides,
+    has_pause_agent,
+    has_using_animation_link,
     keep_avoidance_data,
   ) in agent_query.iter()
   {
@@ -365,6 +386,20 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
         }
       }
     }
+    landmass_agent.paused = has_pause_agent;
+    match (landmass_agent.is_using_animation_link(), has_using_animation_link) {
+      (true, false) => {
+        landmass_agent.end_animation_link().unwrap();
+      }
+      (false, true) => match landmass_agent.start_animation_link() {
+        Ok(()) => {}
+        Err(err) => {
+          warn_once!("Failed to start animation link: {err}");
+        }
+      },
+      (true, true) | (false, false) => {}
+    }
+
     #[cfg(feature = "debug-avoidance")]
     {
       landmass_agent.keep_avoidance_data = keep_avoidance_data;

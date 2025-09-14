@@ -6,7 +6,9 @@ use bevy_ecs::entity::Entity;
 use bevy_math::{Quat, Vec2, Vec3};
 use bevy_time::Time;
 use bevy_transform::{TransformPlugin, components::Transform};
-use googletest::{expect_that, matchers::*};
+use googletest::{
+  expect_eq, expect_false, expect_that, expect_true, matchers::*,
+};
 use landmass::PathStep;
 
 use crate::{
@@ -17,7 +19,8 @@ use crate::{
   Character3dBundle, CharacterSettings, FromAgentRadius, Island,
   Island2dBundle, Island3dBundle, Landmass2dPlugin, Landmass3dPlugin,
   NavMesh2d, NavMesh3d, NavMeshHandle, NavigationMesh, NavigationMesh3d,
-  SamplePointError, Velocity3d,
+  PauseAgent, ReachedAnimationLink2d, SamplePointError, UsingAnimationLink,
+  Velocity3d,
 };
 
 #[test]
@@ -1409,4 +1412,297 @@ fn island_matches_rotation_2d() {
     .get_transform()
     .rotation;
   assert!((rotation - 2.0).abs() < 1e-6, "left={rotation} right=2.0");
+}
+
+#[googletest::test]
+fn agent_is_paused() {
+  let mut app = App::new();
+
+  app
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
+    .add_plugins(AssetPlugin::default())
+    .add_plugins(Landmass2dPlugin::default())
+    .insert_resource({
+      let mut time = Time::<()>::default();
+      time.advance_by(Duration::from_secs_f32(0.01));
+      time
+    });
+
+  let archipelago_entity = app
+    .world_mut()
+    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
+    .id();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(1.0, 2.0),
+        Vec2::new(0.0, 2.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
+      polygon_type_indices: vec![0; 2],
+      height_mesh: None,
+    }
+    .validate()
+    .unwrap(),
+  );
+
+  let nav_mesh = app
+    .world_mut()
+    .resource_mut::<Assets<NavMesh2d>>()
+    .add(NavMesh2d { nav_mesh: nav_mesh });
+
+  app.world_mut().spawn(Island2dBundle {
+    archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+    island: Island,
+    nav_mesh: NavMeshHandle(nav_mesh),
+  });
+
+  let agent = app
+    .world_mut()
+    .spawn((
+      Agent2dBundle {
+        agent: Default::default(),
+        settings: AgentSettings {
+          radius: 0.5,
+          desired_speed: 1.0,
+          max_speed: 2.0,
+        },
+        archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+      },
+      Transform::from_xyz(0.5, 0.5, 0.0),
+      AgentTarget2d::Point(Vec2::new(0.5, 1.5)),
+    ))
+    .id();
+
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_false!(agent_ref.paused);
+  expect_eq!(
+    app
+      .world()
+      .entity(agent)
+      .get::<AgentDesiredVelocity2d>()
+      .unwrap()
+      .velocity(),
+    Vec2::new(0.0, 1.0)
+  );
+
+  // Pause the agent and move it completely off the nav mesh.
+  app
+    .world_mut()
+    .entity_mut(agent)
+    .insert((PauseAgent, Transform::from_xyz(10.0, 10.0, 10.0)));
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_true!(agent_ref.paused);
+  expect_eq!(
+    app
+      .world()
+      .entity(agent)
+      .get::<AgentDesiredVelocity2d>()
+      .unwrap()
+      .velocity(),
+    Vec2::new(0.0, 1.0)
+  );
+
+  // Unpause the agent and move it back to its position.
+  app
+    .world_mut()
+    .entity_mut(agent)
+    .remove::<PauseAgent>()
+    .insert(Transform::from_xyz(0.5, 0.5, 0.0));
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_false!(agent_ref.paused);
+  expect_eq!(
+    app
+      .world()
+      .entity(agent)
+      .get::<AgentDesiredVelocity2d>()
+      .unwrap()
+      .velocity(),
+    Vec2::new(0.0, 1.0)
+  );
+}
+
+#[googletest::test]
+fn agent_using_animation_link() {
+  let mut app = App::new();
+
+  app
+    .add_plugins((
+      bevy_app::TaskPoolPlugin::default(),
+      bevy_app::ScheduleRunnerPlugin::default(),
+    ))
+    .add_plugins(AssetPlugin::default())
+    .add_plugins(Landmass2dPlugin::default())
+    .insert_resource({
+      let mut time = Time::<()>::default();
+      time.advance_by(Duration::from_secs_f32(0.01));
+      time
+    });
+
+  let archipelago_entity = app
+    .world_mut()
+    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
+    .id();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+      height_mesh: None,
+    }
+    .validate()
+    .unwrap(),
+  );
+
+  let nav_mesh = app
+    .world_mut()
+    .resource_mut::<Assets<NavMesh2d>>()
+    .add(NavMesh2d { nav_mesh: nav_mesh });
+
+  app.world_mut().spawn(Island2dBundle {
+    archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+    island: Island,
+    nav_mesh: NavMeshHandle(nav_mesh.clone()),
+  });
+  app.world_mut().spawn((
+    Island2dBundle {
+      archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+      island: Island,
+      nav_mesh: NavMeshHandle(nav_mesh),
+    },
+    Transform::from_xyz(0.0, 2.0, 0.0),
+  ));
+  let link = app
+    .world_mut()
+    .spawn(AnimationLink2dBundle {
+      link: AnimationLink2d {
+        start_edge: (Vec2::new(0.0, 0.9), Vec2::new(1.0, 0.9)),
+        end_edge: (Vec2::new(0.0, 2.1), Vec2::new(1.0, 2.1)),
+        kind: 0,
+        cost: 1.0,
+      },
+      archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+    })
+    .id();
+
+  let agent = app
+    .world_mut()
+    .spawn((
+      Agent2dBundle {
+        agent: Default::default(),
+        settings: AgentSettings {
+          radius: 0.5,
+          desired_speed: 1.0,
+          max_speed: 2.0,
+        },
+        archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+      },
+      Transform::from_xyz(0.5, 0.5, 0.0),
+      AgentTarget2d::Point(Vec2::new(0.5, 2.9)),
+    ))
+    .id();
+
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_false!(agent_ref.is_using_animation_link());
+  expect_eq!(
+    app
+      .world()
+      .entity(agent)
+      .get::<AgentDesiredVelocity2d>()
+      .unwrap()
+      .velocity(),
+    Vec2::new(0.0, 1.0)
+  );
+
+  // Move the agent to the animation link.
+  app.world_mut().entity_mut(agent).insert(Transform::from_xyz(0.5, 0.9, 0.0));
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_false!(agent_ref.is_using_animation_link());
+
+  expect_that!(
+    app.world().entity(agent).get::<ReachedAnimationLink2d>(),
+    some(matches_pattern!(&ReachedAnimationLink2d {
+      start_point: Vec2::new(0.5, 0.9),
+      end_point: Vec2::new(0.5, 2.1),
+      link_entity: link,
+    }))
+  );
+
+  // Mark the agent as using the animation link and move it completely off the
+  // nav mesh.
+  app
+    .world_mut()
+    .entity_mut(agent)
+    .insert((UsingAnimationLink, Transform::from_xyz(10.0, 10.0, 10.0)));
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_true!(agent_ref.is_using_animation_link());
+  expect_eq!(
+    app
+      .world()
+      .entity(agent)
+      .get::<AgentDesiredVelocity2d>()
+      .unwrap()
+      .velocity(),
+    Vec2::new(0.0, 0.0)
+  );
+
+  // End using the animation link and move the agent to the end point.
+  app
+    .world_mut()
+    .entity_mut(agent)
+    .remove::<UsingAnimationLink>()
+    .insert(Transform::from_xyz(0.5, 2.1, 0.0));
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_false!(agent_ref.is_using_animation_link());
+  expect_eq!(
+    app
+      .world()
+      .entity(agent)
+      .get::<AgentDesiredVelocity2d>()
+      .unwrap()
+      .velocity(),
+    Vec2::new(0.0, 1.0)
+  );
 }
