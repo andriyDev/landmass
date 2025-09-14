@@ -5,7 +5,8 @@ use bevy::{
   prelude::*, scene::SceneInstanceReady,
 };
 use bevy_landmass::{
-  Agent3d, AnimationLink, FromAgentRadius, NavMeshHandle,
+  Agent3d, AnimationLink, AnimationLinkReachedDistance, FromAgentRadius,
+  NavMeshHandle, UsingAnimationLink,
   debug::{EnableLandmassDebug, Landmass3dDebugPlugin},
   nav_mesh::bevy_mesh_to_landmass_nav_mesh,
   prelude::*,
@@ -22,9 +23,16 @@ fn main() {
     .add_systems(Update, rotate_by_keyboard)
     .add_systems(
       Update,
-      (update_agent_velocity, move_agent_by_velocity, snap_agent_to_floor)
+      (
+        start_animation_link_for_agents,
+        update_agent_jump,
+        update_agent_velocity,
+        move_agent_by_velocity,
+        snap_agent_to_floor,
+      )
         .chain(),
     )
+    .add_observer(on_remove_agent_jumping)
     .add_observer(handle_clicks)
     .run();
 }
@@ -271,6 +279,7 @@ impl AgentSpawner {
         archipelago_ref: ArchipelagoRef3d::new(self.archipelago_entity),
       },
       AgentTarget3d::Entity(self.target_entity),
+      AnimationLinkReachedDistance(0.1),
       children![(
         Transform::from_xyz(0.0, 0.5, 0.0),
         Mesh3d(self.mesh.clone()),
@@ -293,7 +302,10 @@ fn update_agent_velocity(
 /// Apply the agent's velocity to its position.
 fn move_agent_by_velocity(
   time: Res<Time>,
-  mut agent_query: Query<(&mut Transform, &GlobalTransform, &Velocity3d)>,
+  mut agent_query: Query<
+    (&mut Transform, &GlobalTransform, &Velocity3d),
+    Without<AgentJumping>,
+  >,
 ) {
   for (mut transform, global_transform, velocity) in agent_query.iter_mut() {
     let local_velocity =
@@ -305,7 +317,7 @@ fn move_agent_by_velocity(
 /// Snap the agent to the floor so that they can go up and down ramps.
 fn snap_agent_to_floor(
   mut ray_cast: MeshRayCast,
-  mut agents: Query<&mut Transform, With<Agent3d>>,
+  mut agents: Query<&mut Transform, (With<Agent3d>, Without<AgentJumping>)>,
   pickable: Query<&Pickable>,
 ) {
   let filter = |entity| {
@@ -327,6 +339,66 @@ fn snap_agent_to_floor(
       continue;
     }
     transform.translation.y = hit.point.y;
+  }
+}
+
+fn start_animation_link_for_agents(
+  agents: Query<(Entity, &ReachedAnimationLink3d), Without<AgentJumping>>,
+  mut commands: Commands,
+) {
+  for (agent, reached_animation_link) in agents.iter() {
+    commands.entity(agent).insert(AgentJumping {
+      start: reached_animation_link.start_point,
+      end: reached_animation_link.end_point,
+      timer: Timer::from_seconds(1.0, TimerMode::Once),
+    });
+  }
+}
+
+#[derive(Component)]
+#[require(UsingAnimationLink)]
+struct AgentJumping {
+  start: Vec3,
+  end: Vec3,
+  timer: Timer,
+}
+
+fn on_remove_agent_jumping(
+  trigger: Trigger<OnRemove, AgentJumping>,
+  mut commands: Commands,
+) {
+  commands.entity(trigger.target()).remove::<UsingAnimationLink>();
+}
+
+fn update_agent_jump(
+  time: Res<Time>,
+  mut agent_jumps: Query<(Entity, &mut AgentJumping, &mut Transform)>,
+  mut commands: Commands,
+) {
+  for (agent, mut jump, mut transform) in agent_jumps.iter_mut() {
+    jump.timer.tick(time.delta());
+
+    let alpha = jump.timer.fraction();
+    let delta = jump.end - jump.start;
+    let delta_flat = Vec3::new(delta.x, 0.0, delta.z);
+
+    // The jump will peak 1 unit above the highest point.
+    let max_height = 1.0 + delta.z.max(0.0);
+    // This is a quadratic which passes through (0,0), (1,delta.y), and where
+    // the vertex reaches max_height.
+    let a = delta.y
+      - 2.0 * max_height
+      - 2.0 * (max_height * max_height - max_height * delta.y).sqrt();
+    let b = delta.y - a;
+    // c = 0 because we pass through (0,0).
+    let delta_height = a * alpha * alpha + b * alpha;
+
+    transform.translation =
+      delta_flat * alpha + Vec3::Y * delta_height + jump.start;
+
+    if jump.timer.finished() {
+      commands.entity(agent).remove::<AgentJumping>();
+    }
   }
 }
 
