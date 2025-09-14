@@ -59,6 +59,14 @@ pub struct AgentSettings {
   pub max_speed: f32,
 }
 
+/// The distance at which an animation link can be used.
+///
+/// If not present on an agent, this will use the same distance as
+/// [`TargetReachedCondition`] but behaving like
+/// [`TargetReachedCondition::StraightPathDistance`].
+#[derive(Component, Debug)]
+pub struct AnimationLinkReachedDistance(pub f32);
+
 #[derive(Component, Default, Debug)]
 pub struct AgentTypeIndexCostOverrides(HashMap<usize, f32>);
 
@@ -279,6 +287,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
       Option<&Velocity<CS>>,
       Option<&AgentTarget<CS>>,
       Option<&TargetReachedCondition>,
+      Option<&AnimationLinkReachedDistance>,
       Option<Ref<AgentTypeIndexCostOverrides>>,
       HasKeepAvoidanceData,
     ),
@@ -294,6 +303,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
     velocity,
     target,
     target_reached_condition,
+    animation_link_reached_distance,
     type_index_cost_overrides,
     keep_avoidance_data,
   ) in agent_query.iter()
@@ -326,6 +336,8 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
       } else {
         landmass::TargetReachedCondition::Distance(None)
       };
+    landmass_agent.animation_link_reached_distance =
+      animation_link_reached_distance.map(|distance| distance.0);
     match type_index_cost_overrides {
       None => {
         for (type_index, _) in
