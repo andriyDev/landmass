@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-use std::{collections::HashMap, marker::PhantomData, sync::Arc};
+use std::{marker::PhantomData, sync::Arc};
 
 use bevy_app::{Plugin, RunFixedMainLoop, RunFixedMainLoopSystem};
 use bevy_asset::{Asset, AssetApp, Handle};
@@ -11,6 +11,7 @@ use bevy_ecs::{
   schedule::{IntoScheduleConfigs, ScheduleLabel, SystemSet},
   system::{Query, Res},
 };
+use bevy_platform::collections::HashMap;
 use bevy_reflect::TypePath;
 use bevy_time::Time;
 use coords::{CoordinateSystem, ThreeD, TwoD};
@@ -261,7 +262,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     &self,
     start_point: &SampledPoint<'_, CS>,
     end_point: &SampledPoint<'_, CS>,
-    override_type_index_costs: &HashMap<usize, f32>,
+    override_type_index_costs: &std::collections::HashMap<usize, f32>,
   ) -> Result<Vec<PathStep<CS>>, FindPathError> {
     self.archipelago.find_path(
       &start_point.sampled_point,
