@@ -46,3 +46,7 @@ debug-avoidance = ["landmass/debug-avoidance"]
 [[example]]
 name = "basic"
 required-features = ["mesh-utils"]
+
+[[example]]
+name = "playground"
+required-features = ["mesh-utils"]
