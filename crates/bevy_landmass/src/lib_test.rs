@@ -528,6 +528,7 @@ fn adds_and_removes_animation_links() {
         end_edge: (Vec2::new(0.0, 1.0), Vec2::new(1.0, 1.0)),
         kind: 0,
         cost: 1.0,
+        bidirectional: false,
       },
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
     })
@@ -1611,6 +1612,7 @@ fn agent_using_animation_link() {
         end_edge: (Vec2::new(0.0, 2.1), Vec2::new(1.0, 2.1)),
         kind: 0,
         cost: 1.0,
+        bidirectional: false,
       },
       archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
     })

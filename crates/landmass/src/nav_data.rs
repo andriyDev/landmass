@@ -547,8 +547,10 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         return;
       }
 
-      let link = off_mesh_links.insert(OffMeshLink {
-        portal: portal_segment(start_edge, intersection),
+      let start_edge = portal_segment(start_edge, intersection);
+      let end_edge = portal_segment(end_edge, intersection);
+      let off_mesh_link_id = off_mesh_links.insert(OffMeshLink {
+        portal: start_edge,
         destination_node: end_portal.node,
         destination_type_index: islands
           .get(end_portal.node.island_id)
@@ -557,7 +559,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
           .polygons[end_portal.node.polygon_index]
           .type_index,
         kinded: KindedOffMeshLink::AnimationLink {
-          destination_portal: portal_segment(end_edge, intersection),
+          destination_portal: end_edge,
           cost: link.cost,
           kind: link.kind,
           animation_link: animation_link_id,
@@ -566,7 +568,30 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       node_to_off_mesh_link_ids
         .entry(start_portal.node)
         .or_default()
-        .insert(link);
+        .insert(off_mesh_link_id);
+
+      if link.bidirectional {
+        let off_mesh_link_id = off_mesh_links.insert(OffMeshLink {
+          portal: end_edge,
+          destination_node: start_portal.node,
+          destination_type_index: islands
+            .get(start_portal.node.island_id)
+            .unwrap()
+            .nav_mesh
+            .polygons[end_portal.node.polygon_index]
+            .type_index,
+          kinded: KindedOffMeshLink::AnimationLink {
+            destination_portal: start_edge,
+            cost: link.cost,
+            kind: link.kind,
+            animation_link: animation_link_id,
+          },
+        });
+        node_to_off_mesh_link_ids
+          .entry(end_portal.node)
+          .or_default()
+          .insert(off_mesh_link_id);
+      }
     }
 
     let mut island_to_node_bbh = Default::default();
@@ -574,7 +599,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       let state = self.animation_links.get_mut(animation_link_id).unwrap();
       let link = &state.main_link;
 
-      let start_edge = (
+      let mut start_edge = (
         CS::to_landmass(&link.start_edge.0),
         CS::to_landmass(&link.start_edge.1),
       );
@@ -586,6 +611,12 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         // but there's a fairly reasonable fallback, so we just do that.
         let end_midpoint = end_edge.0.midpoint(end_edge.1);
         end_edge = (end_midpoint, end_midpoint);
+      } else if link.bidirectional && end_edge.0 == end_edge.1 {
+        // Similarly, if the edge is bidirectional, we need to treat the end
+        // edge as if it were a start edge. So also collapse the start edge if
+        // the end edge is a point.
+        let start_midpoint = start_edge.0.midpoint(start_edge.1);
+        start_edge = (start_midpoint, start_midpoint);
       }
       let start_portals = world_portal_to_node_portals(
         start_edge,

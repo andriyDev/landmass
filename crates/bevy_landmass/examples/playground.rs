@@ -159,6 +159,7 @@ fn setup(
             ),
             cost: 4.0,
             kind: 0,
+            bidirectional: false,
           },
           ArchipelagoRef3d::new(archipelago_entity),
         ));
@@ -175,22 +176,7 @@ fn setup(
             ),
             cost: 2.0,
             kind: 0,
-          },
-          ArchipelagoRef3d::new(archipelago_entity),
-        ));
-
-        commands.entity(link_2_end).insert((
-          AnimationLink::<ThreeD> {
-            start_edge: (
-              link_2_end_point + edge_half,
-              link_2_end_point - edge_half,
-            ),
-            end_edge: (
-              link_2_start_point + edge_half,
-              link_2_start_point - edge_half,
-            ),
-            cost: 2.0,
-            kind: 0,
+            bidirectional: true,
           },
           ArchipelagoRef3d::new(archipelago_entity),
         ));

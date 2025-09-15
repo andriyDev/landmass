@@ -368,6 +368,7 @@ fn straight_path_includes_animation_link() {
     end_edge: (Vec2::new(0.0, 5.0), Vec2::new(1.0, 5.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
 
   archipelago.update(1.0);
@@ -493,18 +494,21 @@ fn multiple_animation_links_in_a_row() {
     end_edge: (Vec2::new(0.0, 2.0), Vec2::new(1.0, 2.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   let link_id_2 = archipelago.add_animation_link(AnimationLink {
     start_edge: (Vec2::new(0.0, 3.0), Vec2::new(1.0, 3.0)),
     end_edge: (Vec2::new(0.0, 4.0), Vec2::new(1.0, 4.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   let link_id_3 = archipelago.add_animation_link(AnimationLink {
     start_edge: (Vec2::new(0.0, 5.0), Vec2::new(1.0, 5.0)),
     end_edge: (Vec2::new(0.0, 6.0), Vec2::new(1.0, 6.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
 
   archipelago.update(1.0);
@@ -653,6 +657,7 @@ fn obscured_animation_link_is_made_visible_by_straight_path() {
     end_edge: (Vec2::new(0.0, 5.0), Vec2::new(8.0, 5.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
 
   archipelago.update(1.0);
@@ -766,12 +771,14 @@ fn end_point_after_animation_link_is_reported() {
     end_edge: (Vec2::new(0.0, 2.0), Vec2::new(1.0, 2.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   let animation_link_2 = archipelago.add_animation_link(AnimationLink {
     start_edge: (Vec2::new(0.0, 3.0), Vec2::new(1.0, 3.0)),
     end_edge: (Vec2::new(0.0, 4.0), Vec2::new(1.0, 4.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
 
   archipelago.update(1.0);

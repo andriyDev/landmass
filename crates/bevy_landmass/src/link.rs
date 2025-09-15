@@ -46,6 +46,11 @@ pub struct AnimationLink<CS: CoordinateSystem> {
   pub kind: usize,
   /// The cost of taking this animation link.
   pub cost: f32,
+  /// Whether the link can be traversed in either direction.
+  ///
+  /// This is a convenience to avoid needing to create two links to go in both
+  /// directions.
+  pub bidirectional: bool,
 }
 
 pub type AnimationLink2d = AnimationLink<TwoD>;
@@ -60,6 +65,7 @@ impl<CS: CoordinateSystem> AnimationLink<CS> {
       end_edge: self.end_edge.clone(),
       kind: self.kind,
       cost: self.cost,
+      bidirectional: self.bidirectional,
     }
   }
 }
