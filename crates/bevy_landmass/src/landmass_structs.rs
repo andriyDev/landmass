@@ -1,3 +1,5 @@
+use std::{collections::HashSet, sync::Arc};
+
 use bevy_ecs::component::Component;
 
 /// The state of an agent.
@@ -84,6 +86,29 @@ impl TargetReachedCondition {
       }
       TargetReachedCondition::VisibleAtDistance(d) => {
         landmass::TargetReachedCondition::VisibleAtDistance(d)
+      }
+    }
+  }
+}
+
+/// Defines the list of animation links that an agent is allowed to use.
+#[derive(Component, Clone, Default, Debug)]
+pub enum PermittedAnimationLinks {
+  /// Every animation link is permitted.
+  #[default]
+  All,
+  /// Only animation links whose kind is in this set are permitted.
+  Kinds(Arc<HashSet<usize>>),
+}
+
+impl PermittedAnimationLinks {
+  /// Convert the `bevy_landmass` version of the permitted animation links to
+  /// the `landmass` version.
+  pub(crate) fn to_landmass(&self) -> landmass::PermittedAnimationLinks {
+    match self {
+      PermittedAnimationLinks::All => landmass::PermittedAnimationLinks::All,
+      PermittedAnimationLinks::Kinds(kinds) => {
+        landmass::PermittedAnimationLinks::Kinds(kinds.clone())
       }
     }
   }
