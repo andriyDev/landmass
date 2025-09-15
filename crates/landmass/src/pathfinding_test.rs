@@ -1,10 +1,15 @@
-use std::{collections::HashMap, f32::consts::PI, sync::Arc};
+use std::{
+  collections::{HashMap, HashSet},
+  f32::consts::PI,
+  sync::Arc,
+};
 
 use glam::{Vec2, Vec3};
 
 use crate::{
   AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
   Transform,
+  agent::PermittedAnimationLinks,
   coords::{XY, XYZ},
   link::{AnimationLink, AnimationLinkId},
   nav_data::{KindedOffMeshLink, NavigationData, NodeRef, OffMeshLinkId},
@@ -39,6 +44,7 @@ fn find_path_between_nodes<CS: CoordinateSystem>(
       end_node,
       end_point,
       override_type_index_to_cost,
+      PermittedAnimationLinks::All,
     ),
   )
 }
@@ -1144,6 +1150,7 @@ fn start_and_end_point_influences_path() {
     NodeRef { island_id, polygon_index: 3 },
     end_point,
     &HashMap::default(),
+    PermittedAnimationLinks::All,
   );
 
   assert_eq!(
@@ -1246,6 +1253,7 @@ fn animation_link_is_used() {
     NodeRef { island_id, polygon_index: 4 },
     end_point,
     &HashMap::default(),
+    PermittedAnimationLinks::All,
   );
 
   assert_eq!(
@@ -1346,6 +1354,7 @@ fn animation_link_is_used_if_cheaper() {
     NodeRef { island_id, polygon_index: 4 },
     end_point,
     &HashMap::default(),
+    PermittedAnimationLinks::All,
   );
 
   assert_eq!(
@@ -1381,6 +1390,7 @@ fn animation_link_is_used_if_cheaper() {
     NodeRef { island_id, polygon_index: 4 },
     end_point,
     &HashMap::default(),
+    PermittedAnimationLinks::All,
   );
 
   assert_eq!(
@@ -1403,6 +1413,93 @@ fn animation_link_is_used_if_cheaper() {
         end_node: NodeRef { island_id, polygon_index: 4 },
         off_mesh_link,
       }],
+      start_point,
+      end_point,
+    })
+  );
+}
+
+#[test]
+fn animation_link_is_not_used_if_not_permitted() {
+  let mut archipelago =
+    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+
+  // The start and end have a gap between them in the nav mesh, but an animation
+  // link exists to connect them.
+  //
+  // +----+-+
+  // |EXXX|X|
+  // +----+-+
+  //  L   |X|
+  // +----+-+
+  // |SXXX|X|
+  // +----+-+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(2.0, 0.0),
+        Vec2::new(3.0, 0.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(2.0, 1.0),
+        Vec2::new(3.0, 1.0),
+        Vec2::new(0.0, 2.0),
+        Vec2::new(2.0, 2.0),
+        Vec2::new(3.0, 2.0),
+        Vec2::new(0.0, 3.0),
+        Vec2::new(2.0, 3.0),
+        Vec2::new(3.0, 3.0),
+      ],
+      polygons: vec![
+        vec![0, 1, 4, 3],
+        vec![1, 2, 5, 4],
+        vec![4, 5, 8, 7],
+        vec![7, 8, 11, 10],
+        vec![6, 7, 10, 9],
+      ],
+      polygon_type_indices: vec![0; 5],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  let island_id = archipelago.add_island(Island::new(
+    Transform { translation: Vec2::new(10.0, 10.0), ..Default::default() },
+    nav_mesh,
+  ));
+
+  archipelago.add_animation_link(AnimationLink {
+    start_edge: (Vec2::new(10.0, 11.0), Vec2::new(11.0, 11.0)),
+    end_edge: (Vec2::new(10.0, 12.0), Vec2::new(11.0, 12.0)),
+    cost: 1.0,
+    kind: 0,
+  });
+  archipelago.update(1.0);
+
+  let start_point = Vec3::new(0.5, 0.5, 0.0) + Vec3::new(10.0, 10.0, 0.0);
+  let end_point = Vec3::new(0.5, 2.5, 0.0) + Vec3::new(10.0, 10.0, 0.0);
+  let path_result = find_path(
+    &archipelago.nav_data,
+    NodeRef { island_id, polygon_index: 0 },
+    start_point,
+    NodeRef { island_id, polygon_index: 4 },
+    end_point,
+    &HashMap::default(),
+    PermittedAnimationLinks::Kinds(Arc::new(HashSet::from([]))),
+  );
+
+  // Despite there being an animation link that could take us all the way to the
+  // end, it's not permitted, so we have to go the long way around.
+  assert_eq!(
+    path_result.path,
+    Some(Path {
+      island_segments: vec![IslandSegment {
+        island_id,
+        corridor: vec![0, 1, 2, 3, 4],
+        portal_edge_index: vec![1, 2, 2, 3],
+      }],
+      off_mesh_link_segments: vec![],
       start_point,
       end_point,
     })

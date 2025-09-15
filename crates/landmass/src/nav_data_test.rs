@@ -14,8 +14,8 @@ use slotmap::{HopSlotMap, SlotMap};
 
 use crate::{
   AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius,
-  HeightNavigationMesh, HeightPolygon, IslandId, PointSampleDistance3d,
-  SetTypeIndexCostError, Transform,
+  HeightNavigationMesh, HeightPolygon, IslandId, PermittedAnimationLinks,
+  PointSampleDistance3d, SetTypeIndexCostError, Transform,
   coords::{CorePointSampleDistance, XY, XYZ},
   island::Island,
   link::{AnimationLink, NodePortal},
@@ -1068,6 +1068,7 @@ fn changed_island_rebuilds_region_connectivity() {
   expect_false!(nav_data.are_nodes_connected(
     NodeRef { island_id: island_1, polygon_index: 0 },
     NodeRef { island_id: island_2, polygon_index: 0 },
+    PermittedAnimationLinks::All,
   ));
 
   // Making the islands touch should result in the regions being connected.
@@ -1082,6 +1083,7 @@ fn changed_island_rebuilds_region_connectivity() {
   expect_true!(nav_data.are_nodes_connected(
     NodeRef { island_id: island_1, polygon_index: 0 },
     NodeRef { island_id: island_2, polygon_index: 0 },
+    PermittedAnimationLinks::All,
   ));
 
   // Making the islands no longer touch again should remove the connectivity.
@@ -1096,6 +1098,7 @@ fn changed_island_rebuilds_region_connectivity() {
   expect_false!(nav_data.are_nodes_connected(
     NodeRef { island_id: island_1, polygon_index: 0 },
     NodeRef { island_id: island_2, polygon_index: 0 },
+    PermittedAnimationLinks::All,
   ));
 }
 
@@ -1132,6 +1135,7 @@ fn changed_animation_link_rebuilds_region_connectivity() {
   expect_false!(nav_data.are_nodes_connected(
     NodeRef { island_id: island_1, polygon_index: 0 },
     NodeRef { island_id: island_2, polygon_index: 0 },
+    PermittedAnimationLinks::All,
   ));
 
   // Creating a new link should result in the regions being connected.
@@ -1148,6 +1152,7 @@ fn changed_animation_link_rebuilds_region_connectivity() {
   expect_true!(nav_data.are_nodes_connected(
     NodeRef { island_id: island_1, polygon_index: 0 },
     NodeRef { island_id: island_2, polygon_index: 0 },
+    PermittedAnimationLinks::All,
   ));
 
   // Removing the link should remove the connectivity.
@@ -1159,6 +1164,75 @@ fn changed_animation_link_rebuilds_region_connectivity() {
   expect_false!(nav_data.are_nodes_connected(
     NodeRef { island_id: island_1, polygon_index: 0 },
     NodeRef { island_id: island_2, polygon_index: 0 },
+    PermittedAnimationLinks::All,
+  ));
+}
+
+#[googletest::test]
+fn permitted_animation_link_blocks_region_connectivity() {
+  let mut nav_data = NavigationData::<XY>::new();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("A square nav mesh is valid."),
+  );
+
+  let island_1 =
+    nav_data.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+  let island_2 = nav_data.add_island(Island::new(
+    Transform { translation: Vec2::new(0.0, 2.0), rotation: 0.0 },
+    nav_mesh,
+  ));
+  // We have 2 animation links with different kinds.
+  nav_data.add_animation_link(AnimationLink {
+    start_edge: (Vec2::new(0.0, 0.9), Vec2::new(1.0, 0.9)),
+    end_edge: (Vec2::new(0.0, 2.1), Vec2::new(1.0, 2.1)),
+    kind: 0,
+    cost: 1.0,
+  });
+  nav_data.add_animation_link(AnimationLink {
+    start_edge: (Vec2::new(0.0, 0.9), Vec2::new(1.0, 0.9)),
+    end_edge: (Vec2::new(0.0, 2.1), Vec2::new(1.0, 2.1)),
+    kind: 1,
+    cost: 1.0,
+  });
+  nav_data.update(
+    /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
+  );
+
+  // Using all animation links results in the regions being connected.
+  expect_true!(nav_data.are_nodes_connected(
+    NodeRef { island_id: island_1, polygon_index: 0 },
+    NodeRef { island_id: island_2, polygon_index: 0 },
+    PermittedAnimationLinks::All,
+  ));
+  // Using either link still causes the nodes to be connected.
+  expect_true!(nav_data.are_nodes_connected(
+    NodeRef { island_id: island_1, polygon_index: 0 },
+    NodeRef { island_id: island_2, polygon_index: 0 },
+    PermittedAnimationLinks::Kinds(Arc::new(HashSet::from([0]))),
+  ));
+  expect_true!(nav_data.are_nodes_connected(
+    NodeRef { island_id: island_1, polygon_index: 0 },
+    NodeRef { island_id: island_2, polygon_index: 0 },
+    PermittedAnimationLinks::Kinds(Arc::new(HashSet::from([1]))),
+  ));
+  // Using neither link cases the nodes to be unconnected.
+  expect_false!(nav_data.are_nodes_connected(
+    NodeRef { island_id: island_1, polygon_index: 0 },
+    NodeRef { island_id: island_2, polygon_index: 0 },
+    PermittedAnimationLinks::Kinds(Arc::new(HashSet::from([2]))),
   ));
 }
 
@@ -1221,13 +1295,13 @@ fn generates_animation_links() {
     start_edge: (Vec3::new(0.9, 0.1, 13.0), Vec3::new(0.9, 0.9, 13.0)),
     end_edge: (Vec3::new(2.1, 0.1, 13.0), Vec3::new(2.1, 0.9, 13.0)),
     cost: 1.0,
-    kind: 0,
+    kind: 1,
   });
   let link_id_3 = nav_data.add_animation_link(AnimationLink {
     start_edge: (Vec3::new(-1.1, 0.1, 13.0), Vec3::new(-1.1, 0.9, 13.0)),
     end_edge: (Vec3::new(0.1, 0.1, 13.0), Vec3::new(0.1, 0.9, 13.0)),
     cost: 1.0,
-    kind: 0,
+    kind: 2,
   });
 
   nav_data.update(
@@ -1298,6 +1372,7 @@ fn generates_animation_links() {
             Vec3::new(0.9, 4.1, 13.0)
           ),
           cost: 1.0,
+          kind: 0,
           animation_link: link_id_1,
         },
       },
@@ -1311,6 +1386,7 @@ fn generates_animation_links() {
             Vec3::new(2.1, 0.9, 13.0)
           ),
           cost: 1.0,
+          kind: 1,
           animation_link: link_id_2,
         },
       },
@@ -1332,6 +1408,7 @@ fn generates_animation_links() {
           Vec3::new(0.1, 0.9, 13.0)
         ),
         cost: 1.0,
+        kind: 2,
         animation_link: link_id_3,
       },
     }))
@@ -1380,7 +1457,7 @@ fn removing_animation_link_removes_off_mesh_links() {
     start_edge: (Vec3::new(2.1, 1.1, 7.0), Vec3::new(2.1, 1.9, 7.0)),
     end_edge: (Vec3::new(0.9, 1.1, 7.0), Vec3::new(0.9, 1.9, 7.0)),
     cost: 1.0,
-    kind: 0,
+    kind: 1,
   });
 
   nav_data.update(
@@ -1435,6 +1512,7 @@ fn removing_animation_link_removes_off_mesh_links() {
           Vec3::new(2.1, 0.9, 7.0)
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id_1,
       },
     }))
@@ -1455,6 +1533,7 @@ fn removing_animation_link_removes_off_mesh_links() {
           Vec3::new(0.9, 1.9, 7.0)
         ),
         cost: 1.0,
+        kind: 1,
         animation_link: link_id_2,
       },
     }))
@@ -1539,7 +1618,7 @@ fn existing_animation_link_is_linked_for_new_island() {
     start_edge: (Vec3::new(2.1, 1.1, 7.0), Vec3::new(2.1, 1.9, 7.0)),
     end_edge: (Vec3::new(0.9, 1.1, 7.0), Vec3::new(0.9, 1.9, 7.0)),
     cost: 1.0,
-    kind: 0,
+    kind: 1,
   });
 
   // Prevent the animation links from being brand new.
@@ -1644,6 +1723,7 @@ fn existing_animation_link_is_linked_for_new_island() {
           Vec3::new(2.1, 0.9, 7.0)
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id_1,
       },
     }))
@@ -1664,6 +1744,7 @@ fn existing_animation_link_is_linked_for_new_island() {
           Vec3::new(0.9, 1.9, 7.0)
         ),
         cost: 1.0,
+        kind: 1,
         animation_link: link_id_2,
       },
     }))
@@ -1707,7 +1788,7 @@ fn added_island_mixes_new_and_old_portals() {
     start_edge: (Vec3::new(0.5, 2.5, 7.0), Vec3::new(2.5, 2.5, 7.0)),
     end_edge: (Vec3::new(0.5, 0.5, 7.0), Vec3::new(2.5, 0.5, 7.0)),
     cost: 1.0,
-    kind: 0,
+    kind: 1,
   });
 
   nav_data.update(
@@ -1834,6 +1915,7 @@ fn added_island_mixes_new_and_old_portals() {
           Vec3::new(1.0, 2.5, 7.0)
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id_1,
       },
     }))
@@ -1853,6 +1935,7 @@ fn added_island_mixes_new_and_old_portals() {
           Vec3::new(2.5, 2.5, 7.0)
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id_1,
       },
     }))
@@ -1872,6 +1955,7 @@ fn added_island_mixes_new_and_old_portals() {
           Vec3::new(1.0, 0.5, 7.0)
         ),
         cost: 1.0,
+        kind: 1,
         animation_link: link_id_2,
       },
     }))
@@ -1891,6 +1975,7 @@ fn added_island_mixes_new_and_old_portals() {
           Vec3::new(2.5, 0.5, 7.0)
         ),
         cost: 1.0,
+        kind: 1,
         animation_link: link_id_2,
       },
     }))
@@ -1963,6 +2048,7 @@ fn same_island_animation_link() {
           Vec3::new(0.9, 1.5, 0.0)
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id,
       },
     }))
@@ -2011,7 +2097,7 @@ fn point_animation_links_are_connected() {
     start_edge: (Vec3::new(0.5, 3.5, 7.0), Vec3::new(0.5, 3.5, 7.0)),
     end_edge: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
     cost: 1.0,
-    kind: 0,
+    kind: 1,
   });
 
   nav_data.update(
@@ -2067,6 +2153,7 @@ fn point_animation_links_are_connected() {
           Vec3::new(0.5, 3.5, 7.0)
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id_1,
       },
     }))
@@ -2086,6 +2173,7 @@ fn point_animation_links_are_connected() {
           Vec3::new(0.5, 0.5, 7.0)
         ),
         cost: 1.0,
+        kind: 1,
         animation_link: link_id_2,
       },
     }))
@@ -2131,7 +2219,7 @@ fn point_animation_links_are_connected_when_not_new() {
     start_edge: (Vec3::new(0.5, 3.5, 7.0), Vec3::new(0.5, 3.5, 7.0)),
     end_edge: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
     cost: 1.0,
-    kind: 0,
+    kind: 1,
   });
 
   // Make the links not new to see that adding islands underneath also maintains
@@ -2196,6 +2284,7 @@ fn point_animation_links_are_connected_when_not_new() {
           Vec3::new(0.5, 3.5, 7.0)
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id_1,
       },
     }))
@@ -2215,6 +2304,7 @@ fn point_animation_links_are_connected_when_not_new() {
           Vec3::new(0.5, 0.5, 7.0)
         ),
         cost: 1.0,
+        kind: 1,
         animation_link: link_id_2,
       },
     }))
@@ -2314,6 +2404,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links() {
           Vec3::new(0.5, 3.5, 7.0),
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id,
       },
     }))
@@ -2333,6 +2424,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links() {
           Vec3::new(4.0, 3.5, 7.0),
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id,
       },
     }))
@@ -2399,6 +2491,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links() {
           Vec3::new(1.0, 3.5, 7.0),
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id,
       },
     }))
@@ -2418,6 +2511,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links() {
           Vec3::new(4.0, 3.5, 7.0),
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id,
       },
     }))
@@ -2461,7 +2555,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
     start_edge: (Vec3::new(0.5, 2.5, 7.0), Vec3::new(1.0, 2.5, 7.0)),
     end_edge: (Vec3::new(0.75, 0.5, 7.0), Vec3::new(0.75, 0.5, 7.0)),
     cost: 1.0,
-    kind: 0,
+    kind: 1,
   });
 
   // Do an initial update so all the links are built.
@@ -2519,6 +2613,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
           Vec3::new(0.25, 2.5, 7.0),
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id_1,
       },
     }))
@@ -2538,6 +2633,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
           Vec3::new(0.75, 0.5, 7.0),
         ),
         cost: 1.0,
+        kind: 1,
         animation_link: link_id_2,
       },
     }))
@@ -2614,6 +2710,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
           Vec3::new(0.25, 2.5, 7.0),
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id_1,
       },
     }))
@@ -2633,6 +2730,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
           Vec3::new(0.75, 0.5, 7.0),
         ),
         cost: 1.0,
+        kind: 1,
         animation_link: link_id_2,
       },
     }))
@@ -2684,7 +2782,7 @@ fn generates_animation_links_at_correct_height() {
     start_edge: (Vec3::new(0.9, 0.1, 3.9), Vec3::new(0.9, 0.9, 3.9)),
     end_edge: (Vec3::new(2.1, 0.1, 11.1), Vec3::new(2.1, 0.9, 11.1)),
     cost: 1.0,
-    kind: 0,
+    kind: 1,
   });
 
   // Use an animation link distance of 1.0.
@@ -2729,6 +2827,7 @@ fn generates_animation_links_at_correct_height() {
           Vec3::new(2.1, 0.9, 10.9),
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id_1,
       },
     }))
@@ -2853,6 +2952,7 @@ fn generates_animation_links_using_height_mesh() {
           Vec3::new(2.1, 0.9, 10.9),
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id_1,
       },
     }))
@@ -2932,6 +3032,7 @@ fn animation_link_along_angled_surface() {
           Vec3::new(2.5, 1.9, 0.5)
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id,
       },
     }))
@@ -3002,6 +3103,7 @@ fn animation_link_along_angled_surface() {
           Vec3::new(2.5, 1.0, 0.5)
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id,
       },
     }))
@@ -3022,6 +3124,7 @@ fn animation_link_along_angled_surface() {
           Vec3::new(2.5, 2.0, 0.5)
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id,
       },
     }))
@@ -3042,6 +3145,7 @@ fn animation_link_along_angled_surface() {
           Vec3::new(2.5, 2.5, 0.5)
         ),
         cost: 1.0,
+        kind: 0,
         animation_link: link_id,
       },
     }))

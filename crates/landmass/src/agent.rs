@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+  collections::{HashMap, HashSet},
+  sync::Arc,
+};
 
 use glam::Vec3;
 use slotmap::new_key_type;
@@ -70,6 +73,11 @@ pub struct Agent<CS: CoordinateSystem> {
   /// [`Self::target_reached_condition`] but behaving like
   /// [`TargetReachedCondition::StraightPathDistance`].
   pub animation_link_reached_distance: Option<f32>,
+  /// The animation links that the agent is allowed to use.
+  ///
+  /// Note, changing this at runtime may result in the agent continuing on a
+  /// path that still contains a previously allowed animation link.
+  pub permitted_animation_links: PermittedAnimationLinks,
   /// Whether this agent is "paused". Paused agents are not considered for
   /// avoidance, and will not recompute their paths. However, their paths are
   /// still kept "consistent" - meaning that once the agent becomes unpaused,
@@ -145,6 +153,27 @@ impl Default for TargetReachedCondition {
   }
 }
 
+/// Defines the list of animation links that an agent is allowed to use.
+#[derive(Clone, Default, Debug)]
+pub enum PermittedAnimationLinks {
+  /// Every animation link is permitted.
+  #[default]
+  All,
+  /// Only animation links whose kind is in this set are permitted.
+  Kinds(Arc<HashSet<usize>>),
+}
+
+impl PermittedAnimationLinks {
+  /// Returns whether the animation link is permitted.
+  #[inline]
+  pub(crate) fn is_permitted(&self, kind: usize) -> bool {
+    match self {
+      Self::All => true,
+      Self::Kinds(kinds) => kinds.contains(&kind),
+    }
+  }
+}
+
 impl<CS: CoordinateSystem> Agent<CS> {
   /// Creates a new agent.
   pub fn create(
@@ -163,6 +192,7 @@ impl<CS: CoordinateSystem> Agent<CS> {
       current_target: None,
       target_reached_condition: TargetReachedCondition::Distance(None),
       animation_link_reached_distance: None,
+      permitted_animation_links: PermittedAnimationLinks::All,
       paused: false,
       #[cfg(feature = "debug-avoidance")]
       keep_avoidance_data: false,

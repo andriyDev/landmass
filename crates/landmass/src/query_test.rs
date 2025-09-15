@@ -6,6 +6,7 @@ use googletest::{expect_that, matchers::*};
 use crate::{
   AgentOptions, Archipelago, FindPathError, FromAgentRadius, Island,
   NavigationMesh, PathStep, SamplePointError, Transform,
+  agent::PermittedAnimationLinks,
   coords::{CorePointSampleDistance, XY},
   link::AnimationLink,
 };
@@ -257,7 +258,13 @@ fn no_path() {
     .sample_point(offset + Vec2::new(2.5, 0.5), &1e-5)
     .expect("point is on nav mesh.");
   assert_eq!(
-    find_path(&archipelago, &start_point, &end_point, &HashMap::new()),
+    find_path(
+      &archipelago,
+      &start_point,
+      &end_point,
+      &HashMap::new(),
+      PermittedAnimationLinks::All
+    ),
     Err(FindPathError::NoPathFound)
   );
 }
@@ -305,7 +312,13 @@ fn finds_path() {
     .sample_point(offset + Vec2::new(2.5, 1.25), &1e-5)
     .expect("point is on nav mesh.");
   assert_eq!(
-    find_path(&archipelago, &start_point, &end_point, &HashMap::new()),
+    find_path(
+      &archipelago,
+      &start_point,
+      &end_point,
+      &HashMap::new(),
+      PermittedAnimationLinks::All
+    ),
     Ok(vec![
       PathStep::Waypoint(offset + Vec2::new(0.5, 0.5)),
       PathStep::Waypoint(offset + Vec2::new(2.0, 1.0)),
@@ -387,6 +400,7 @@ fn finds_path_with_override_type_index_costs() {
     &start_point,
     &end_point,
     &HashMap::from([(1, 10.0)]),
+    PermittedAnimationLinks::All,
   )
   .expect("Path found");
 
@@ -439,6 +453,7 @@ fn find_path_returns_error_on_invalid_node_cost() {
       &start_point,
       &end_point,
       &HashMap::from([(0, 0.0)]),
+      PermittedAnimationLinks::All,
     ),
     Err(FindPathError::NonPositiveTypeIndexCost(0, 0.0))
   );
@@ -448,6 +463,7 @@ fn find_path_returns_error_on_invalid_node_cost() {
       &start_point,
       &end_point,
       &HashMap::from([(0, -0.5)]),
+      PermittedAnimationLinks::All,
     ),
     Err(FindPathError::NonPositiveTypeIndexCost(0, -0.5))
   );
@@ -485,7 +501,12 @@ fn start_and_end_in_same_node() {
     archipelago.sample_point(start_point, &0.1).unwrap();
   let end_sampled_point = archipelago.sample_point(end_point, &0.1).unwrap();
   let path = archipelago
-    .find_path(&start_sampled_point, &end_sampled_point, &HashMap::default())
+    .find_path(
+      &start_sampled_point,
+      &end_sampled_point,
+      &HashMap::default(),
+      PermittedAnimationLinks::All,
+    )
     .unwrap();
 
   assert_eq!(
@@ -545,7 +566,12 @@ fn one_animation_link_path() {
     archipelago.sample_point(start_point, &0.1).unwrap();
   let end_sampled_point = archipelago.sample_point(end_point, &0.1).unwrap();
   let path = archipelago
-    .find_path(&start_sampled_point, &end_sampled_point, &HashMap::default())
+    .find_path(
+      &start_sampled_point,
+      &end_sampled_point,
+      &HashMap::default(),
+      PermittedAnimationLinks::All,
+    )
     .unwrap();
 
   expect_that!(

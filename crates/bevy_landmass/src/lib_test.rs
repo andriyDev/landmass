@@ -19,8 +19,8 @@ use crate::{
   Character3dBundle, CharacterSettings, FromAgentRadius, Island,
   Island2dBundle, Island3dBundle, Landmass2dPlugin, Landmass3dPlugin,
   NavMesh2d, NavMesh3d, NavMeshHandle, NavigationMesh, NavigationMesh3d,
-  PauseAgent, ReachedAnimationLink2d, SamplePointError, UsingAnimationLink,
-  Velocity3d,
+  PauseAgent, PermittedAnimationLinks, ReachedAnimationLink2d,
+  SamplePointError, UsingAnimationLink, Velocity3d,
 };
 
 #[test]
@@ -1269,7 +1269,12 @@ fn finds_path() {
     .sample_point(Vec2::new(2.5, 1.25), &1e-5)
     .expect("point is on nav mesh.");
   assert_eq!(
-    archipelago.find_path(&start_point, &end_point, &HashMap::new()),
+    archipelago.find_path(
+      &start_point,
+      &end_point,
+      &HashMap::new(),
+      PermittedAnimationLinks::All
+    ),
     Ok(vec![
       PathStep::Waypoint(Vec2::new(0.5, 0.5)),
       PathStep::Waypoint(Vec2::new(2.0, 1.0)),

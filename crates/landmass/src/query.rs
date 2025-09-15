@@ -4,6 +4,7 @@ use thiserror::Error;
 
 use crate::{
   Archipelago, CoordinateSystem, IslandId,
+  agent::PermittedAnimationLinks,
   coords::CorePointSampleDistance,
   link::AnimationLinkId,
   nav_data::NodeRef,
@@ -186,6 +187,7 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
   start_point: &SampledPoint<'a, CS>,
   end_point: &SampledPoint<'a, CS>,
   override_type_index_costs: &HashMap<usize, f32>,
+  permitted_animation_links: PermittedAnimationLinks,
 ) -> Result<Vec<PathStep<CS>>, FindPathError> {
   // This assert can actually be triggered. This can happen if a user samples
   // points from one archipelago, but finds a path in a **different**
@@ -211,6 +213,7 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
     end_point.node_ref,
     CS::to_landmass(&end_point.point),
     override_type_index_costs,
+    permitted_animation_links,
   )
   .path
   else {
