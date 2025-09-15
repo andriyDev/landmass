@@ -57,6 +57,15 @@
     animation, you can pause the agent **and** create a character at the same place. This means the
     agent can be resumed without recreating it, but also other agents will go around the agent
     playing the animation.
+- Animation links (aka off-mesh links).
+  - Some situations don't make sense to model as regular navigation. For example, an agent may want
+    to jump down a ledge. Including this in a navigation mesh doesn't really make sense. For one,
+    the cost of performing such an action may be different than other nodes. In addition, the
+    behaviour of the agent may be different (e.g., playing an animation).
+  - Now, we have animation links! Other navigation systems may call these off-mesh links. When an
+    agent paths along an animation link, it will report that to the user. The user may then start
+    the animation link and perform whatever transition is needed to use that link. Now agents can
+    jump, teleport, wall run. Whatever you can think of!
 - `bevy_landmass`: More configurable debug rendering.
   - While the `bevy_landmass` API allows you to create your own `DebugDrawer`, the default one is
     good enough for a **lot** of cases. To further expand its usefulness, we have replaced
@@ -85,7 +94,11 @@
   other nav meshes.
 - All node type functions (e.g., `add_node_type`, `get_node_type_cost`) have been replaced by
   versions directly relevant to type indices.
-- `AgentState` now includes a `Paused` variant.
+- `AgentState` now includes extra variants: `Paused`, `ReachedAnimationLink`, and
+  `UsingAnimationLink`.
+- `AgentOptions` has been renamed `ArchipelagoOptions`.
+- `PointSampleDistance3d` now includes an `animation_link_max_vertical_distance` field.
+- Debug rendering now includes several more lines to account for animation links.
 - `bevy_landmass`: The `ThreeD` coordinate system is now flipped! In previous versions, navigation
   meshes in 3D were expected to have clockwise-oriented polygons. Now, they are expected to be
   counter-clockwise oriented. This puts it in sync with every other coordinate system in `landmass`/
