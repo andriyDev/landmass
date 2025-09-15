@@ -68,6 +68,7 @@ fn samples_points() {
         distance_below: 0.1,
         distance_above: 0.1,
         vertical_preference_ratio: 1.0,
+        animation_link_max_vertical_distance: 1.0,
       }),
     ),
     Some((
@@ -84,6 +85,7 @@ fn samples_points() {
         distance_below: 0.1,
         distance_above: 0.1,
         vertical_preference_ratio: 1.0,
+        animation_link_max_vertical_distance: 1.0,
       }),
     ),
     Some((
@@ -100,6 +102,7 @@ fn samples_points() {
         distance_below: 0.1,
         distance_above: 0.1,
         vertical_preference_ratio: 1.0,
+        animation_link_max_vertical_distance: 1.0,
       }),
     ),
     Some((
@@ -117,6 +120,7 @@ fn samples_points() {
           distance_below: 0.1,
           distance_above: 0.1,
           vertical_preference_ratio: 1.0,
+          animation_link_max_vertical_distance: 1.0,
         }),
       )
       .map(|(p, n)| ((p * 1e6).round() / 1e6, n)),

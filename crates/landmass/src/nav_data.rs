@@ -1399,9 +1399,9 @@ fn sample_animation_link_point<CS: CoordinateSystem>(
     let Some((sampled_point, sampled_node)) = island.nav_mesh.sample_point(
       relative_point,
       &CorePointSampleDistance {
-        horizontal_distance: 0.0,
         distance_above: max_vertical_distance,
         distance_below: max_vertical_distance,
+        horizontal_distance: 0.0,
         vertical_preference_ratio: 1.0,
       },
     ) else {

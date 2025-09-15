@@ -62,6 +62,14 @@ pub trait PointSampleDistance {
   /// away horizontally. This value must be positive. For 2D coordinate systems,
   /// the value is irrelevant (so 1.0 is preferred).
   fn vertical_preference_ratio(&self) -> f32;
+
+  /// The max vertical distance that animation links can be from the nav mesh to
+  /// count as a valid connection.
+  ///
+  /// Animation links farther than this distance from part of the nav mesh will
+  /// not connect. Note setting this too high can result in links being usable
+  /// from the floor above or below.
+  fn animation_link_max_vertical_distance(&self) -> f32;
 }
 
 /// The standard coordinate system, where X points right, Y points forward, and
@@ -107,6 +115,14 @@ pub struct PointSampleDistance3d {
   /// the query point 1.9 units away will be selected over a sample point 1.0
   /// unit away horizontally. This value must be positive.
   pub vertical_preference_ratio: f32,
+
+  /// The max vertical distance that animation links can be from the nav mesh
+  /// to count as a valid connection.
+  ///
+  /// Animation links farther than this distance from part of the nav mesh will
+  /// not connect. Note setting this too high can result in links being usable
+  /// from the floor above or below.
+  pub animation_link_max_vertical_distance: f32,
 }
 
 impl PointSampleDistance for PointSampleDistance3d {
@@ -122,6 +138,9 @@ impl PointSampleDistance for PointSampleDistance3d {
   fn vertical_preference_ratio(&self) -> f32 {
     self.vertical_preference_ratio
   }
+  fn animation_link_max_vertical_distance(&self) -> f32 {
+    self.animation_link_max_vertical_distance
+  }
 }
 
 impl FromAgentRadius for PointSampleDistance3d {
@@ -131,6 +150,7 @@ impl FromAgentRadius for PointSampleDistance3d {
       distance_above: 0.5 * radius,
       distance_below: radius,
       vertical_preference_ratio: 2.0,
+      animation_link_max_vertical_distance: 0.5 * radius,
     }
   }
 }
@@ -167,6 +187,10 @@ impl PointSampleDistance for f32 {
   }
 
   fn vertical_preference_ratio(&self) -> f32 {
+    1.0
+  }
+
+  fn animation_link_max_vertical_distance(&self) -> f32 {
     1.0
   }
 }
