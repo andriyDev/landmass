@@ -11,11 +11,11 @@ use bevy_platform::collections::HashMap;
 use bevy_transform::{components::Transform, helper::TransformHelper};
 use landmass::AnimationLinkId;
 
-use crate::ArchipelagoRef;
 use crate::{
   AgentState, Archipelago, TargetReachedCondition, Velocity,
   coords::{CoordinateSystem, ThreeD, TwoD},
 };
+use crate::{ArchipelagoRef, PermittedAnimationLinks};
 
 /// A bundle to create agents. This omits the GlobalTransform component, since
 /// this is commonly added in other bundles (which is redundant and can override
@@ -305,6 +305,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
       Option<&AgentTarget<CS>>,
       Option<&TargetReachedCondition>,
       Option<&AnimationLinkReachedDistance>,
+      Option<&PermittedAnimationLinks>,
       Option<Ref<AgentTypeIndexCostOverrides>>,
       Has<PauseAgent>,
       Has<UsingAnimationLink>,
@@ -323,6 +324,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
     target,
     target_reached_condition,
     animation_link_reached_distance,
+    permitted_animation_links,
     type_index_cost_overrides,
     has_pause_agent,
     has_using_animation_link,
@@ -359,6 +361,9 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
       };
     landmass_agent.animation_link_reached_distance =
       animation_link_reached_distance.map(|distance| distance.0);
+    landmass_agent.permitted_animation_links = permitted_animation_links
+      .map(PermittedAnimationLinks::to_landmass)
+      .unwrap_or(landmass::PermittedAnimationLinks::All);
     match type_index_cost_overrides {
       None => {
         for (type_index, _) in
