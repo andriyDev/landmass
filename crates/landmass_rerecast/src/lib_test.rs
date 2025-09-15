@@ -6,9 +6,9 @@ use bevy_app::App;
 use bevy_asset::{AssetApp, AssetEvent, AssetPlugin, Assets};
 use bevy_ecs::event::Events;
 use bevy_landmass::{
-  Agent, Agent3dBundle, AgentOptions, AgentSettings, AgentState, AgentTarget3d,
-  Archipelago3d, ArchipelagoRef, FromAgentRadius, Island, Landmass3dPlugin,
-  NavMesh3d,
+  Agent, Agent3dBundle, AgentSettings, AgentState, AgentTarget3d,
+  Archipelago3d, ArchipelagoOptions, ArchipelagoRef, FromAgentRadius, Island,
+  Landmass3dPlugin, NavMesh3d,
 };
 use bevy_math::{U16Vec3, Vec3};
 use bevy_rerecast::{
@@ -90,7 +90,7 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
   // actually correct, so set up a situation that will show us that.
   let archipelago = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(1.0)))
+    .spawn(Archipelago3d::new(ArchipelagoOptions::from_agent_radius(1.0)))
     .id();
   let island = app
     .world_mut()

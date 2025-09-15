@@ -4,7 +4,7 @@ use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
 
 use crate::{
-  Agent, AgentId, AgentOptions, Archipelago, Character, CharacterId,
+  Agent, AgentId, Archipelago, ArchipelagoOptions, Character, CharacterId,
   FromAgentRadius, Island, NavigationData, NavigationMesh, Transform,
   avoidance::apply_avoidance_to_agents,
   coords::{XY, XYZ},
@@ -466,9 +466,9 @@ fn applies_no_avoidance_for_far_agents() {
     /* characters= */ &HopSlotMap::with_key(),
     /* character_id_to_nav_mesh_point= */ &HashMap::new(),
     &nav_data,
-    &AgentOptions {
+    &ArchipelagoOptions {
       neighbourhood: 5.0,
-      ..AgentOptions::from_agent_radius(0.5)
+      ..ArchipelagoOptions::from_agent_radius(0.5)
     },
     /* delta_time= */ 0.01,
   );
@@ -555,10 +555,10 @@ fn applies_avoidance_for_two_agents() {
     /* characters= */ &HopSlotMap::with_key(),
     /* character_id_to_nav_mesh_point= */ &HashMap::new(),
     &nav_data,
-    &AgentOptions {
+    &ArchipelagoOptions {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
-      ..AgentOptions::from_agent_radius(0.5)
+      ..ArchipelagoOptions::from_agent_radius(0.5)
     },
     /* delta_time= */ 0.0,
   );
@@ -641,10 +641,10 @@ fn agent_avoids_character() {
     &characters,
     &character_id_to_nav_mesh_point,
     &nav_data,
-    &AgentOptions {
+    &ArchipelagoOptions {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
-      ..AgentOptions::from_agent_radius(0.5)
+      ..ArchipelagoOptions::from_agent_radius(0.5)
     },
     /* delta_time= */ 0.01,
   );
@@ -714,10 +714,10 @@ fn agent_speeds_up_to_avoid_character() {
     &HopSlotMap::with_key(),
     &HashMap::new(),
     &nav_data,
-    &AgentOptions {
+    &ArchipelagoOptions {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
-      ..AgentOptions::from_agent_radius(0.5)
+      ..ArchipelagoOptions::from_agent_radius(0.5)
     },
     /* delta_time= */ 0.01,
   );
@@ -744,10 +744,10 @@ fn agent_speeds_up_to_avoid_character() {
     &characters,
     &character_id_to_nav_mesh_point,
     &nav_data,
-    &AgentOptions {
+    &ArchipelagoOptions {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
-      ..AgentOptions::from_agent_radius(0.5)
+      ..ArchipelagoOptions::from_agent_radius(0.5)
     },
     /* delta_time= */ 0.01,
   );
@@ -765,7 +765,7 @@ fn agent_speeds_up_to_avoid_character() {
 #[test]
 fn reached_target_agent_has_different_avoidance() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -809,12 +809,13 @@ fn reached_target_agent_has_different_avoidance() {
     agent
   });
 
-  archipelago.agent_options.avoidance_time_horizon = 100.0;
-  archipelago.agent_options.obstacle_avoidance_time_horizon = 0.1;
+  archipelago.archipelago_options.avoidance_time_horizon = 100.0;
+  archipelago.archipelago_options.obstacle_avoidance_time_horizon = 0.1;
   // Use a responsibility of one third, so that agent_2 has 3/4 responsibility
   // and agent_1 has 1/4 responsibility.
-  archipelago.agent_options.reached_destination_avoidance_responsibility =
-    1.0 / 3.0;
+  archipelago
+    .archipelago_options
+    .reached_destination_avoidance_responsibility = 1.0 / 3.0;
 
   // 35 was chosen by just running until the second agent crosses y=0 (roughly).
   // This is probably easy to break, but I couldn't think of another way to get
@@ -857,7 +858,7 @@ fn switching_nav_mesh_to_fewer_vertices_does_not_result_in_panic() {
   // modifying the nav data. However, the avoidance is what triggers the panic,
   // so best to test it here.
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let redundant_mesh = NavigationMesh {
     vertices: vec![

@@ -13,11 +13,11 @@ use landmass::PathStep;
 
 use crate::{
   Agent2dBundle, Agent3dBundle, AgentDesiredVelocity2d, AgentDesiredVelocity3d,
-  AgentOptions, AgentSettings, AgentState, AgentTarget2d, AgentTarget3d,
+  AgentSettings, AgentState, AgentTarget2d, AgentTarget3d,
   AgentTypeIndexCostOverrides, AnimationLink2d, AnimationLink2dBundle,
-  Archipelago2d, Archipelago3d, ArchipelagoRef2d, ArchipelagoRef3d,
-  Character3dBundle, CharacterSettings, FromAgentRadius, Island,
-  Island2dBundle, Island3dBundle, Landmass2dPlugin, Landmass3dPlugin,
+  Archipelago2d, Archipelago3d, ArchipelagoOptions, ArchipelagoRef2d,
+  ArchipelagoRef3d, Character3dBundle, CharacterSettings, FromAgentRadius,
+  Island, Island2dBundle, Island3dBundle, Landmass2dPlugin, Landmass3dPlugin,
   NavMesh2d, NavMesh3d, NavMeshHandle, NavigationMesh, NavigationMesh3d,
   PauseAgent, PermittedAnimationLinks, ReachedAnimationLink2d,
   SamplePointError, UsingAnimationLink, Velocity3d,
@@ -41,7 +41,7 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
 
   let archipelago_id = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
@@ -134,7 +134,7 @@ fn adds_and_removes_agents() {
 
   let archipelago_id = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let agent_id_1 = app
@@ -270,7 +270,7 @@ fn adds_and_removes_characters() {
 
   let archipelago_id = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let character_id_1 = app
@@ -378,7 +378,7 @@ fn adds_and_removes_islands() {
 
   let archipelago_id = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh =
@@ -517,7 +517,7 @@ fn adds_and_removes_animation_links() {
 
   let archipelago_entity = app
     .world_mut()
-    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let link_entity = app
@@ -580,7 +580,7 @@ fn changing_agent_fields_changes_landmass_agent() {
 
   let archipelago = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let agent = app
@@ -677,7 +677,7 @@ fn changing_character_fields_changes_landmass_character() {
 
   let archipelago = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let character = app
@@ -742,7 +742,7 @@ fn type_index_costs_are_used() {
   app.update();
 
   let mut archipelago =
-    Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5));
   archipelago.set_type_index_cost(1, 10.0).unwrap();
 
   let archipelago_id = app.world_mut().spawn(archipelago).id();
@@ -861,7 +861,8 @@ fn overridden_type_index_costs_are_used() {
   // Update early to allow the time to not be 0.0.
   app.update();
 
-  let archipelago = Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
+  let archipelago =
+    Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let archipelago_id = app.world_mut().spawn(archipelago).id();
 
@@ -986,7 +987,7 @@ fn sample_point_error_on_out_of_range() {
 
   let archipelago_entity = app
     .world_mut()
-    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
@@ -1045,7 +1046,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
 
   let archipelago_entity = app
     .world_mut()
-    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
@@ -1132,7 +1133,8 @@ fn samples_type_indices() {
   // Update early to allow the time to not be 0.0.
   app.update();
 
-  let archipelago = Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
+  let archipelago =
+    Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5));
   let archipelago_entity = app.world_mut().spawn(archipelago).id();
 
   let nav_mesh = Arc::new(
@@ -1211,7 +1213,7 @@ fn finds_path() {
 
   let archipelago_entity = app
     .world_mut()
-    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
@@ -1303,7 +1305,7 @@ fn island_matches_rotation_3d() {
 
   let archipelago_entity = app
     .world_mut()
-    .spawn(Archipelago3d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago3d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
@@ -1371,7 +1373,7 @@ fn island_matches_rotation_2d() {
 
   let archipelago_entity = app
     .world_mut()
-    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
@@ -1439,7 +1441,7 @@ fn agent_is_paused() {
 
   let archipelago_entity = app
     .world_mut()
-    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(
@@ -1567,7 +1569,7 @@ fn agent_using_animation_link() {
 
   let archipelago_entity = app
     .world_mut()
-    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh = Arc::new(

@@ -13,7 +13,7 @@ use googletest::{
 use slotmap::{HopSlotMap, SlotMap};
 
 use crate::{
-  AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius,
+  Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius,
   HeightNavigationMesh, HeightPolygon, IslandId, PermittedAnimationLinks,
   PointSampleDistance3d, SetTypeIndexCostError, Transform,
   coords::{CorePointSampleDistance, XY, XYZ},
@@ -1025,7 +1025,7 @@ fn empty_navigation_mesh_is_safe() {
 #[test]
 fn error_on_set_zero_or_negative_type_index_cost() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
   assert_eq!(
     archipelago.set_type_index_cost(0, 0.0),
     Err(SetTypeIndexCostError::NonPositiveCost(0.0))

@@ -52,15 +52,15 @@ use crate::{
 };
 
 pub struct Archipelago<CS: CoordinateSystem> {
-  pub agent_options: AgentOptions<CS>,
+  pub archipelago_options: ArchipelagoOptions<CS>,
   nav_data: NavigationData<CS>,
   agents: HopSlotMap<AgentId, Agent<CS>>,
   characters: HopSlotMap<CharacterId, Character<CS>>,
   pathing_results: Vec<PathingResult>,
 }
 
-/// Options that apply to all agents
-pub struct AgentOptions<CS: CoordinateSystem> {
+/// Options that apply to the entire archipelago.
+pub struct ArchipelagoOptions<CS: CoordinateSystem> {
   /// The options for sampling agent and target points.
   pub point_sample_distance: CS::SampleDistance,
   /// The distance that an agent will consider avoiding another agent.
@@ -79,7 +79,7 @@ pub struct AgentOptions<CS: CoordinateSystem> {
 }
 
 impl<CS: CoordinateSystem<SampleDistance: FromAgentRadius>> FromAgentRadius
-  for AgentOptions<CS>
+  for ArchipelagoOptions<CS>
 {
   fn from_agent_radius(radius: f32) -> Self {
     Self {
@@ -93,9 +93,9 @@ impl<CS: CoordinateSystem<SampleDistance: FromAgentRadius>> FromAgentRadius
 }
 
 impl<CS: CoordinateSystem> Archipelago<CS> {
-  pub fn new(agent_options: AgentOptions<CS>) -> Self {
+  pub fn new(archipelago_options: ArchipelagoOptions<CS>) -> Self {
     Self {
-      agent_options,
+      archipelago_options,
       nav_data: NavigationData::new(),
       agents: HopSlotMap::with_key(),
       characters: HopSlotMap::with_key(),
@@ -295,7 +295,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       let agent_node_and_point = match self.nav_data.sample_point(
         CS::to_landmass(&agent.position),
         &CorePointSampleDistance::new(
-          &self.agent_options.point_sample_distance,
+          &self.archipelago_options.point_sample_distance,
         ),
       ) {
         None => continue,
@@ -309,7 +309,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
         let target_node_and_point = match self.nav_data.sample_point(
           CS::to_landmass(target),
           &CorePointSampleDistance::new(
-            &self.agent_options.point_sample_distance,
+            &self.archipelago_options.point_sample_distance,
           ),
         ) {
           None => continue,
@@ -328,7 +328,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       let character_point = match self.nav_data.sample_point(
         CS::to_landmass(&character.position),
         &CorePointSampleDistance::new(
-          &self.agent_options.point_sample_distance,
+          &self.archipelago_options.point_sample_distance,
         ),
       ) {
         None => continue,
@@ -524,7 +524,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       &self.characters,
       &character_id_to_nav_mesh_point,
       &self.nav_data,
-      &self.agent_options,
+      &self.archipelago_options,
       delta_time,
     );
   }

@@ -5,7 +5,7 @@ use googletest::{expect_that, matchers::*};
 use slotmap::HopSlotMap;
 
 use crate::{
-  AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
+  Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius, Island,
   IslandId, Transform,
   coords::{XY, XYZ},
   link::{AnimationLink, AnimationLinkId},
@@ -91,7 +91,7 @@ fn finds_next_point_for_organic_map() {
   let transform =
     Transform { translation: Vec3::new(5.0, 9.0, 7.0), rotation: PI * -0.35 };
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id =
     archipelago.add_island(Island::new(transform.clone(), Arc::new(nav_mesh)));
 
@@ -192,7 +192,7 @@ fn finds_next_point_in_zig_zag() {
   let transform =
     Transform { translation: Vec2::new(-1.0, -3.0), rotation: PI * -1.8 };
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id =
     archipelago.add_island(Island::new(transform.clone(), Arc::new(nav_mesh)));
 
@@ -277,7 +277,7 @@ fn starts_at_end_index_goes_to_end_point() {
   .expect("Mesh is valid.");
 
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::new(nav_mesh),
@@ -357,7 +357,7 @@ fn straight_path_includes_animation_link() {
   .expect("Mesh is valid.");
 
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec2::ZERO, rotation: 0.0 },
     Arc::new(nav_mesh),
@@ -483,7 +483,7 @@ fn multiple_animation_links_in_a_row() {
   .expect("Mesh is valid.");
 
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec2::ZERO, rotation: 0.0 },
     Arc::new(nav_mesh),
@@ -646,7 +646,7 @@ fn obscured_animation_link_is_made_visible_by_straight_path() {
   .expect("Mesh is valid.");
 
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec2::ZERO, rotation: 0.0 },
     Arc::new(nav_mesh),
@@ -760,7 +760,7 @@ fn end_point_after_animation_link_is_reported() {
   .expect("Mesh is valid.");
 
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec2::ZERO, rotation: 0.0 },
     Arc::new(nav_mesh),

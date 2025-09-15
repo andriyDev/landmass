@@ -115,7 +115,7 @@ fn setup(
   ));
 
   let mut archipelago =
-    Archipelago2d::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5));
   archipelago.set_type_index_cost(SLOW_TYPE_INDEX, 1000.0).unwrap();
   let archipelago_entity = commands.spawn(archipelago).id();
 

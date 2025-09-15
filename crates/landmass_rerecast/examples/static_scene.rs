@@ -53,13 +53,13 @@ fn setup(
   commands.spawn(Text("LMB - Spawn agent\nRMB - Set agent target".into()));
 
   let archipelago = commands
-    .spawn(Archipelago3d::new(AgentOptions {
+    .spawn(Archipelago3d::new(ArchipelagoOptions {
       point_sample_distance: PointSampleDistance3d {
         distance_above: 0.75,
         distance_below: 0.75,
         ..PointSampleDistance3d::from_agent_radius(0.5)
       },
-      ..AgentOptions::from_agent_radius(0.5)
+      ..ArchipelagoOptions::from_agent_radius(0.5)
     }))
     .id();
 

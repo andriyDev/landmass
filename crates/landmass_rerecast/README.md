@@ -68,13 +68,13 @@ fn setup(
   ));
 
   let archipelago = commands
-    .spawn(Archipelago3d::new(AgentOptions {
+    .spawn(Archipelago3d::new(ArchipelagoOptions {
       point_sample_distance: PointSampleDistance3d {
         distance_above: 0.5,
         distance_below: 0.5,
         ..PointSampleDistance3d::from_agent_radius(0.5)
       },
-      ..AgentOptions::from_agent_radius(0.5)
+      ..ArchipelagoOptions::from_agent_radius(0.5)
     }))
     .id();
 

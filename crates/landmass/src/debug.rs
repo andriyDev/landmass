@@ -361,7 +361,7 @@ fn draw_path<CS: CoordinateSystem>(
     .sample_point(
       CS::to_landmass(&agent.position),
       &CorePointSampleDistance::new(
-        &archipelago.agent_options.point_sample_distance,
+        &archipelago.archipelago_options.point_sample_distance,
       ),
     )
     .expect("Path exists, so sampling the agent should be fine.");
@@ -370,7 +370,7 @@ fn draw_path<CS: CoordinateSystem>(
     .sample_point(
       CS::to_landmass(&target),
       &CorePointSampleDistance::new(
-        &archipelago.agent_options.point_sample_distance,
+        &archipelago.archipelago_options.point_sample_distance,
       ),
     )
     .expect("Path exists, so sampling the agent should be fine.");

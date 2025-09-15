@@ -47,7 +47,7 @@ fn set_up_scene(
   mut nav_meshes: ResMut<Assets<NavMesh2d>>,
 ) {
   let archipelago_id = commands
-    .spawn(Archipelago2d::new(AgentOptions::from_agent_radius(0.5)))
+    .spawn(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)))
     .id();
 
   let nav_mesh_handle = nav_meshes.reserve_handle();
