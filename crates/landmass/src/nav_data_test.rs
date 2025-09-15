@@ -956,6 +956,7 @@ fn modified_node_is_removed_for_no_boundary_links() {
     end_edge: (Vec2::new(-1.1, 0.1), Vec2::new(-1.1, 0.9)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
 
   nav_data.update(1e-5, 1e-5);
@@ -1144,6 +1145,7 @@ fn changed_animation_link_rebuilds_region_connectivity() {
     end_edge: (Vec2::new(0.1, 2.1), Vec2::new(0.9, 2.1)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   nav_data.update(
     /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
@@ -1200,12 +1202,14 @@ fn permitted_animation_link_blocks_region_connectivity() {
     end_edge: (Vec2::new(0.0, 2.1), Vec2::new(1.0, 2.1)),
     kind: 0,
     cost: 1.0,
+    bidirectional: false,
   });
   nav_data.add_animation_link(AnimationLink {
     start_edge: (Vec2::new(0.0, 0.9), Vec2::new(1.0, 0.9)),
     end_edge: (Vec2::new(0.0, 2.1), Vec2::new(1.0, 2.1)),
     kind: 1,
     cost: 1.0,
+    bidirectional: false,
   });
   nav_data.update(
     /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
@@ -1290,18 +1294,21 @@ fn generates_animation_links() {
     end_edge: (Vec3::new(0.1, 4.1, 13.0), Vec3::new(0.9, 4.1, 13.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   let link_id_2 = nav_data.add_animation_link(AnimationLink {
     start_edge: (Vec3::new(0.9, 0.1, 13.0), Vec3::new(0.9, 0.9, 13.0)),
     end_edge: (Vec3::new(2.1, 0.1, 13.0), Vec3::new(2.1, 0.9, 13.0)),
     cost: 1.0,
     kind: 1,
+    bidirectional: false,
   });
   let link_id_3 = nav_data.add_animation_link(AnimationLink {
     start_edge: (Vec3::new(-1.1, 0.1, 13.0), Vec3::new(-1.1, 0.9, 13.0)),
     end_edge: (Vec3::new(0.1, 0.1, 13.0), Vec3::new(0.1, 0.9, 13.0)),
     cost: 1.0,
     kind: 2,
+    bidirectional: false,
   });
 
   nav_data.update(
@@ -1452,12 +1459,14 @@ fn removing_animation_link_removes_off_mesh_links() {
     end_edge: (Vec3::new(2.1, 0.1, 7.0), Vec3::new(2.1, 0.9, 7.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   let link_id_2 = nav_data.add_animation_link(AnimationLink {
     start_edge: (Vec3::new(2.1, 1.1, 7.0), Vec3::new(2.1, 1.9, 7.0)),
     end_edge: (Vec3::new(0.9, 1.1, 7.0), Vec3::new(0.9, 1.9, 7.0)),
     cost: 1.0,
     kind: 1,
+    bidirectional: false,
   });
 
   nav_data.update(
@@ -1566,6 +1575,7 @@ fn removing_animation_link_removes_off_mesh_links() {
     end_edge: (Vec3::new(2.1, 0.1, 7.0), Vec3::new(2.1, 0.9, 7.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   nav_data.update(
     /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
@@ -1613,12 +1623,14 @@ fn existing_animation_link_is_linked_for_new_island() {
     end_edge: (Vec3::new(2.1, 0.1, 7.0), Vec3::new(2.1, 0.9, 7.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   let link_id_2 = nav_data.add_animation_link(AnimationLink {
     start_edge: (Vec3::new(2.1, 1.1, 7.0), Vec3::new(2.1, 1.9, 7.0)),
     end_edge: (Vec3::new(0.9, 1.1, 7.0), Vec3::new(0.9, 1.9, 7.0)),
     cost: 1.0,
     kind: 1,
+    bidirectional: false,
   });
 
   // Prevent the animation links from being brand new.
@@ -1783,12 +1795,14 @@ fn added_island_mixes_new_and_old_portals() {
     end_edge: (Vec3::new(0.5, 2.5, 7.0), Vec3::new(2.5, 2.5, 7.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   let link_id_2 = nav_data.add_animation_link(AnimationLink {
     start_edge: (Vec3::new(0.5, 2.5, 7.0), Vec3::new(2.5, 2.5, 7.0)),
     end_edge: (Vec3::new(0.5, 0.5, 7.0), Vec3::new(2.5, 0.5, 7.0)),
     cost: 1.0,
     kind: 1,
+    bidirectional: false,
   });
 
   nav_data.update(
@@ -2010,6 +2024,7 @@ fn same_island_animation_link() {
     end_edge: (Vec2::new(0.1, 1.5), Vec2::new(0.9, 1.5)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
 
   nav_data.update(
@@ -2090,6 +2105,7 @@ fn point_animation_links_are_connected() {
     end_edge: (Vec3::new(0.5, 3.5, 7.0), Vec3::new(0.5, 3.5, 7.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   // This link has a whole end edge, but the start edge is actually a point. As
   // a result, the end edge should actually be treated as a point.
@@ -2098,6 +2114,7 @@ fn point_animation_links_are_connected() {
     end_edge: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
     cost: 1.0,
     kind: 1,
+    bidirectional: false,
   });
 
   nav_data.update(
@@ -2212,6 +2229,7 @@ fn point_animation_links_are_connected_when_not_new() {
     end_edge: (Vec3::new(0.5, 3.5, 7.0), Vec3::new(0.5, 3.5, 7.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   // This link has a whole end edge, but the start edge is actually a point. As
   // a result, the end edge should actually be treated as a point.
@@ -2220,6 +2238,7 @@ fn point_animation_links_are_connected_when_not_new() {
     end_edge: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
     cost: 1.0,
     kind: 1,
+    bidirectional: false,
   });
 
   // Make the links not new to see that adding islands underneath also maintains
@@ -2351,6 +2370,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links() {
     end_edge: (Vec3::new(0.0, 3.5, 7.0), Vec3::new(4.0, 3.5, 7.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
 
   // Do an initial update so all the links are built.
@@ -2550,12 +2570,14 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
     end_edge: (Vec3::new(0.0, 2.5, 7.0), Vec3::new(0.5, 2.5, 7.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   let link_id_2 = nav_data.add_animation_link(AnimationLink {
     start_edge: (Vec3::new(0.5, 2.5, 7.0), Vec3::new(1.0, 2.5, 7.0)),
     end_edge: (Vec3::new(0.75, 0.5, 7.0), Vec3::new(0.75, 0.5, 7.0)),
     cost: 1.0,
     kind: 1,
+    bidirectional: false,
   });
 
   // Do an initial update so all the links are built.
@@ -2775,6 +2797,7 @@ fn generates_animation_links_at_correct_height() {
     end_edge: (Vec3::new(2.1, 0.1, 10.9), Vec3::new(2.1, 0.9, 10.9)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   // This link has both edges just outside the vertical limit of the
   // animation links.
@@ -2783,6 +2806,7 @@ fn generates_animation_links_at_correct_height() {
     end_edge: (Vec3::new(2.1, 0.1, 11.1), Vec3::new(2.1, 0.9, 11.1)),
     cost: 1.0,
     kind: 1,
+    bidirectional: false,
   });
 
   // Use an animation link distance of 1.0.
@@ -2900,6 +2924,7 @@ fn generates_animation_links_using_height_mesh() {
     end_edge: (Vec3::new(2.1, 0.1, 10.9), Vec3::new(2.1, 0.9, 10.9)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   // This link has both edges just outside the vertical limit of the
   // animation links.
@@ -2908,6 +2933,7 @@ fn generates_animation_links_using_height_mesh() {
     end_edge: (Vec3::new(2.1, 0.1, 11.1), Vec3::new(2.1, 0.9, 11.1)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
 
   // Use an animation link distance of 1.0.
@@ -2995,6 +3021,7 @@ fn animation_link_along_angled_surface() {
     end_edge: (Vec3::new(2.5, 0.5, 0.5), Vec3::new(2.5, 2.5, 0.5)),
     kind: 0,
     cost: 1.0,
+    bidirectional: false,
   });
 
   nav_data.update(0.01, 0.4);
@@ -3046,6 +3073,7 @@ fn animation_link_along_angled_surface() {
     end_edge: (Vec3::new(2.5, 0.5, 0.5), Vec3::new(2.5, 2.5, 0.5)),
     kind: 0,
     cost: 1.0,
+    bidirectional: false,
   });
 
   nav_data.update(0.01, 0.6);
@@ -3149,5 +3177,388 @@ fn animation_link_along_angled_surface() {
         animation_link: link_id,
       },
     }))
+  );
+}
+
+#[googletest::test]
+fn generates_bidirectional_animation_links() {
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec3::new(0.0, 0.0, 13.0),
+        Vec3::new(1.0, 0.0, 13.0),
+        Vec3::new(1.0, 1.0, 13.0),
+        Vec3::new(0.0, 1.0, 13.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("A square nav mesh is valid."),
+  );
+
+  let mut nav_data = NavigationData::<XYZ>::new();
+
+  let island_1 =
+    nav_data.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+  let island_2 = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
+    nav_mesh.clone(),
+  ));
+  let island_3 = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::new(-2.0, 0.0, 0.0), rotation: 0.0 },
+    nav_mesh.clone(),
+  ));
+  let island_4 = nav_data.add_island(Island::new(
+    Transform { translation: Vec3::new(0.0, 4.0, 0.0), rotation: 0.0 },
+    nav_mesh.clone(),
+  ));
+
+  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+    start_edge: (Vec3::new(0.1, 0.9, 13.0), Vec3::new(0.9, 0.9, 13.0)),
+    end_edge: (Vec3::new(0.1, 4.1, 13.0), Vec3::new(0.9, 4.1, 13.0)),
+    cost: 1.0,
+    kind: 0,
+    bidirectional: true,
+  });
+  let link_id_2 = nav_data.add_animation_link(AnimationLink {
+    start_edge: (Vec3::new(0.9, 0.1, 13.0), Vec3::new(0.9, 0.9, 13.0)),
+    end_edge: (Vec3::new(2.1, 0.1, 13.0), Vec3::new(2.1, 0.9, 13.0)),
+    cost: 1.0,
+    kind: 1,
+    bidirectional: true,
+  });
+  let link_id_3 = nav_data.add_animation_link(AnimationLink {
+    start_edge: (Vec3::new(-1.1, 0.1, 13.0), Vec3::new(-1.1, 0.9, 13.0)),
+    end_edge: (Vec3::new(0.1, 0.1, 13.0), Vec3::new(0.1, 0.9, 13.0)),
+    cost: 1.0,
+    kind: 2,
+    bidirectional: true,
+  });
+
+  nav_data.update(
+    /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
+  );
+
+  let link_1 = &nav_data.animation_links[link_id_1];
+  expect_that!(
+    link_1.start_portals,
+    unordered_elements_are!(&NodePortal {
+      node: NodeRef { island_id: island_1, polygon_index: 0 },
+      interval: (0.0, 1.0),
+    })
+  );
+  expect_that!(
+    link_1.end_portals,
+    unordered_elements_are!(&NodePortal {
+      node: NodeRef { island_id: island_4, polygon_index: 0 },
+      interval: (0.0, 1.0),
+    })
+  );
+  let link_2 = &nav_data.animation_links[link_id_2];
+  expect_that!(
+    link_2.start_portals,
+    unordered_elements_are!(&NodePortal {
+      node: NodeRef { island_id: island_1, polygon_index: 0 },
+      interval: (0.0, 1.0),
+    })
+  );
+  expect_that!(
+    link_2.end_portals,
+    unordered_elements_are!(&NodePortal {
+      node: NodeRef { island_id: island_2, polygon_index: 0 },
+      interval: (0.0, 1.0),
+    })
+  );
+  let link_3 = &nav_data.animation_links[link_id_3];
+  expect_that!(
+    link_3.start_portals,
+    unordered_elements_are!(&NodePortal {
+      node: NodeRef { island_id: island_3, polygon_index: 0 },
+      interval: (0.0, 1.0),
+    })
+  );
+  expect_that!(
+    link_3.end_portals,
+    unordered_elements_are!(&NodePortal {
+      node: NodeRef { island_id: island_1, polygon_index: 0 },
+      interval: (0.0, 1.0),
+    })
+  );
+
+  expect_eq!(nav_data.node_to_off_mesh_link_ids.len(), 4);
+  let island_1_off_mesh_links = get_off_mesh_links_for_node(
+    &nav_data,
+    NodeRef { island_id: island_1, polygon_index: 0 },
+  );
+  expect_that!(
+    island_1_off_mesh_links,
+    some(unordered_elements_are!(
+      &&OffMeshLink {
+        destination_node: NodeRef { island_id: island_4, polygon_index: 0 },
+        destination_type_index: 0,
+        portal: (Vec3::new(0.1, 0.9, 13.0), Vec3::new(0.9, 0.9, 13.0)),
+        kinded: KindedOffMeshLink::AnimationLink {
+          destination_portal: (
+            Vec3::new(0.1, 4.1, 13.0),
+            Vec3::new(0.9, 4.1, 13.0)
+          ),
+          cost: 1.0,
+          kind: 0,
+          animation_link: link_id_1,
+        },
+      },
+      &&OffMeshLink {
+        destination_node: NodeRef { island_id: island_2, polygon_index: 0 },
+        destination_type_index: 0,
+        portal: (Vec3::new(0.9, 0.1, 13.0), Vec3::new(0.9, 0.9, 13.0)),
+        kinded: KindedOffMeshLink::AnimationLink {
+          destination_portal: (
+            Vec3::new(2.1, 0.1, 13.0),
+            Vec3::new(2.1, 0.9, 13.0)
+          ),
+          cost: 1.0,
+          kind: 1,
+          animation_link: link_id_2,
+        },
+      },
+      &&OffMeshLink {
+        destination_node: NodeRef { island_id: island_3, polygon_index: 0 },
+        destination_type_index: 0,
+        portal: (Vec3::new(0.1, 0.1, 13.0), Vec3::new(0.1, 0.9, 13.0)),
+        kinded: KindedOffMeshLink::AnimationLink {
+          destination_portal: (
+            Vec3::new(-1.1, 0.1, 13.0),
+            Vec3::new(-1.1, 0.9, 13.0)
+          ),
+          cost: 1.0,
+          kind: 2,
+          animation_link: link_id_3,
+        },
+      },
+    ))
+  );
+  let island_2_off_mesh_links = get_off_mesh_links_for_node(
+    &nav_data,
+    NodeRef { island_id: island_2, polygon_index: 0 },
+  );
+  expect_that!(
+    island_2_off_mesh_links,
+    some(unordered_elements_are!(&&OffMeshLink {
+      destination_node: NodeRef { island_id: island_1, polygon_index: 0 },
+      destination_type_index: 0,
+      portal: (Vec3::new(2.1, 0.1, 13.0), Vec3::new(2.1, 0.9, 13.0)),
+      kinded: KindedOffMeshLink::AnimationLink {
+        destination_portal: (
+          Vec3::new(0.9, 0.1, 13.0),
+          Vec3::new(0.9, 0.9, 13.0)
+        ),
+        cost: 1.0,
+        kind: 1,
+        animation_link: link_id_2,
+      },
+    }))
+  );
+  let island_3_off_mesh_links = get_off_mesh_links_for_node(
+    &nav_data,
+    NodeRef { island_id: island_3, polygon_index: 0 },
+  );
+  expect_that!(
+    island_3_off_mesh_links,
+    some(unordered_elements_are!(&&OffMeshLink {
+      destination_node: NodeRef { island_id: island_1, polygon_index: 0 },
+      destination_type_index: 0,
+      portal: (Vec3::new(-1.1, 0.1, 13.0), Vec3::new(-1.1, 0.9, 13.0)),
+      kinded: KindedOffMeshLink::AnimationLink {
+        destination_portal: (
+          Vec3::new(0.1, 0.1, 13.0),
+          Vec3::new(0.1, 0.9, 13.0)
+        ),
+        cost: 1.0,
+        kind: 2,
+        animation_link: link_id_3,
+      },
+    }))
+  );
+  let island_4_off_mesh_links = get_off_mesh_links_for_node(
+    &nav_data,
+    NodeRef { island_id: island_4, polygon_index: 0 },
+  );
+  expect_that!(
+    island_4_off_mesh_links,
+    some(unordered_elements_are!(&&OffMeshLink {
+      destination_node: NodeRef { island_id: island_1, polygon_index: 0 },
+      destination_type_index: 0,
+      portal: (Vec3::new(0.1, 4.1, 13.0), Vec3::new(0.9, 4.1, 13.0)),
+      kinded: KindedOffMeshLink::AnimationLink {
+        destination_portal: (
+          Vec3::new(0.1, 0.9, 13.0),
+          Vec3::new(0.9, 0.9, 13.0)
+        ),
+        cost: 1.0,
+        kind: 0,
+        animation_link: link_id_1,
+      },
+    }))
+  );
+}
+
+#[googletest::test]
+fn bidirectional_links_collapse_either_end() {
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec3::new(0.0, 0.0, 7.0),
+        Vec3::new(1.0, 0.0, 7.0),
+        Vec3::new(1.0, 1.0, 7.0),
+        Vec3::new(0.0, 1.0, 7.0),
+        //
+        Vec3::new(0.0, 3.0, 7.0),
+        Vec3::new(1.0, 3.0, 7.0),
+        Vec3::new(1.0, 4.0, 7.0),
+        Vec3::new(0.0, 4.0, 7.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
+      polygon_type_indices: vec![0; 2],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("A square nav mesh is valid."),
+  );
+
+  let mut nav_data = NavigationData::<XYZ>::new();
+
+  let island =
+    nav_data.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+
+  // This link has a whole start edge, but the end edge is actually a point.
+  // This should collapse the start edge to a point.
+  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+    start_edge: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(0.5, 0.5, 7.0)),
+    end_edge: (Vec3::new(0.25, 3.5, 7.0), Vec3::new(0.25, 3.5, 7.0)),
+    cost: 1.0,
+    kind: 0,
+    bidirectional: true,
+  });
+  // This link has a whole end edge, but the start edge is actually a point.
+  // This should collapse the end edge to a point.
+  let link_id_2 = nav_data.add_animation_link(AnimationLink {
+    start_edge: (Vec3::new(0.75, 3.5, 7.0), Vec3::new(0.75, 3.5, 7.0)),
+    end_edge: (Vec3::new(0.5, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
+    cost: 1.0,
+    kind: 1,
+    bidirectional: true,
+  });
+
+  nav_data.update(
+    /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
+  );
+
+  let link_1 = &nav_data.animation_links[link_id_1];
+  expect_that!(
+    link_1.start_portals,
+    unordered_elements_are!(&NodePortal {
+      node: NodeRef { island_id: island, polygon_index: 0 },
+      interval: (0.0, 1.0),
+    })
+  );
+  expect_that!(
+    link_1.end_portals,
+    unordered_elements_are!(&NodePortal {
+      node: NodeRef { island_id: island, polygon_index: 1 },
+      interval: (0.0, 1.0),
+    })
+  );
+  let link_2 = &nav_data.animation_links[link_id_2];
+  expect_that!(
+    link_2.start_portals,
+    unordered_elements_are!(&NodePortal {
+      node: NodeRef { island_id: island, polygon_index: 1 },
+      interval: (0.0, 1.0),
+    })
+  );
+  expect_that!(
+    link_2.end_portals,
+    unordered_elements_are!(&NodePortal {
+      node: NodeRef { island_id: island, polygon_index: 0 },
+      interval: (0.0, 1.0),
+    })
+  );
+
+  expect_eq!(nav_data.node_to_off_mesh_link_ids.len(), 2);
+  expect_eq!(nav_data.off_mesh_links.len(), 4);
+
+  expect_that!(
+    get_off_mesh_links_for_node(
+      &nav_data,
+      NodeRef { island_id: island, polygon_index: 0 },
+    ),
+    some(unordered_elements_are!(
+      &&OffMeshLink {
+        destination_node: NodeRef { island_id: island, polygon_index: 1 },
+        destination_type_index: 0,
+        portal: (Vec3::new(0.25, 0.5, 7.0), Vec3::new(0.25, 0.5, 7.0)),
+        kinded: KindedOffMeshLink::AnimationLink {
+          destination_portal: (
+            Vec3::new(0.25, 3.5, 7.0),
+            Vec3::new(0.25, 3.5, 7.0)
+          ),
+          cost: 1.0,
+          kind: 0,
+          animation_link: link_id_1,
+        },
+      },
+      &&OffMeshLink {
+        destination_node: NodeRef { island_id: island, polygon_index: 1 },
+        destination_type_index: 0,
+        portal: (Vec3::new(0.75, 0.5, 7.0), Vec3::new(0.75, 0.5, 7.0)),
+        kinded: KindedOffMeshLink::AnimationLink {
+          destination_portal: (
+            Vec3::new(0.75, 3.5, 7.0),
+            Vec3::new(0.75, 3.5, 7.0)
+          ),
+          cost: 1.0,
+          kind: 1,
+          animation_link: link_id_2,
+        },
+      }
+    ))
+  );
+  expect_that!(
+    get_off_mesh_links_for_node(
+      &nav_data,
+      NodeRef { island_id: island, polygon_index: 1 },
+    ),
+    some(unordered_elements_are!(
+      &&OffMeshLink {
+        destination_node: NodeRef { island_id: island, polygon_index: 0 },
+        destination_type_index: 0,
+        portal: (Vec3::new(0.25, 3.5, 7.0), Vec3::new(0.25, 3.5, 7.0)),
+        kinded: KindedOffMeshLink::AnimationLink {
+          destination_portal: (
+            Vec3::new(0.25, 0.5, 7.0),
+            Vec3::new(0.25, 0.5, 7.0)
+          ),
+          cost: 1.0,
+          kind: 0,
+          animation_link: link_id_1,
+        },
+      },
+      &&OffMeshLink {
+        destination_node: NodeRef { island_id: island, polygon_index: 0 },
+        destination_type_index: 0,
+        portal: (Vec3::new(0.75, 3.5, 7.0), Vec3::new(0.75, 3.5, 7.0)),
+        kinded: KindedOffMeshLink::AnimationLink {
+          destination_portal: (
+            Vec3::new(0.75, 0.5, 7.0),
+            Vec3::new(0.75, 0.5, 7.0)
+          ),
+          cost: 1.0,
+          kind: 1,
+          animation_link: link_id_2,
+        },
+      }
+    ))
   );
 }

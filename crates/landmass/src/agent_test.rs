@@ -412,6 +412,7 @@ fn using_animation_link_does_not_reach_target() {
     end_edge: (Vec2::new(10.0, 12.0), Vec2::new(11.0, 12.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
 
   archipelago.update(1.0);

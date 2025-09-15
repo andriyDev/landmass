@@ -555,6 +555,7 @@ fn one_animation_link_path() {
     end_edge: (Vec2::new(0.0, 2.0), Vec2::new(1.0, 2.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
 
   archipelago.update(1.0);

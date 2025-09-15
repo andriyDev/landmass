@@ -1239,6 +1239,7 @@ fn animation_link_is_used() {
     end_edge: (Vec2::new(10.0, 12.0), Vec2::new(11.0, 12.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   archipelago.update(1.0);
 
@@ -1342,6 +1343,7 @@ fn animation_link_is_used_if_cheaper() {
     kind: 0,
     // This link is more expensive than taking the nav mesh.
     cost: 1.5,
+    bidirectional: false,
   });
   archipelago.update(1.0);
 
@@ -1378,6 +1380,7 @@ fn animation_link_is_used_if_cheaper() {
     kind: 0,
     // Now the link is cheaper than taking the nav mesh.
     cost: 0.75,
+    bidirectional: false,
   });
   archipelago.update(1.0);
 
@@ -1474,6 +1477,7 @@ fn animation_link_is_not_used_if_not_permitted() {
     end_edge: (Vec2::new(10.0, 12.0), Vec2::new(11.0, 12.0)),
     cost: 1.0,
     kind: 0,
+    bidirectional: false,
   });
   archipelago.update(1.0);
 
