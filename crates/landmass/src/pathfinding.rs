@@ -7,6 +7,7 @@ use glam::Vec3;
 
 use crate::{
   CoordinateSystem, NavigationData,
+  agent::PermittedAnimationLinks,
   astar::{self, AStarProblem, PathStats},
   nav_data::{KindedOffMeshLink, NodeRef, OffMeshLinkId},
   nav_mesh::MeshEdgeRef,
@@ -32,6 +33,8 @@ struct ArchipelagoPathProblem<'a, CS: CoordinateSystem> {
   cheapest_type_index_cost: f32,
   /// Replacement costs for the `nav_data.type_index_to_cost`.
   override_type_index_to_cost: &'a HashMap<usize, f32>,
+  /// The set of permitted animation links for the agent.
+  permitted_animation_links: PermittedAnimationLinks,
 }
 
 /// An action taken in the path.
@@ -207,7 +210,12 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
         let link_cost = match link.kinded {
           // Boundary links have no additional cost, so 0.0 is correct.
           KindedOffMeshLink::BoundaryLink { .. } => 0.0,
-          KindedOffMeshLink::AnimationLink { cost, .. } => cost,
+          KindedOffMeshLink::AnimationLink { cost, kind, .. } => {
+            if !self.permitted_animation_links.is_permitted(kind) {
+              return None;
+            }
+            cost
+          }
         };
 
         let cost = point.distance(link.portal.0.midpoint(link.portal.1))
@@ -273,8 +281,13 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
   end_node: NodeRef,
   end_point: Vec3,
   override_type_index_to_cost: &HashMap<usize, f32>,
+  permitted_animation_links: PermittedAnimationLinks,
 ) -> PathResult {
-  if !nav_data.are_nodes_connected(start_node, end_node) {
+  if !nav_data.are_nodes_connected(
+    start_node,
+    end_node,
+    permitted_animation_links.clone(),
+  ) {
     return PathResult { stats: PathStats { explored_nodes: 0 }, path: None };
   }
 
@@ -300,6 +313,7 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
       .min()
       .unwrap(),
     override_type_index_to_cost,
+    permitted_animation_links,
   };
 
   let path_result = astar::find_path(&path_problem);

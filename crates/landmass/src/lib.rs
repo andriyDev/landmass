@@ -29,7 +29,7 @@ pub mod debug;
 
 pub use agent::{
   Agent, AgentId, AgentState, NotReachedAnimationLinkError,
-  ReachedAnimationLink, TargetReachedCondition,
+  PermittedAnimationLinks, ReachedAnimationLink, TargetReachedCondition,
 };
 pub use character::{Character, CharacterId};
 pub use coords::{
@@ -256,8 +256,15 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     start_point: &SampledPoint<'_, CS>,
     end_point: &SampledPoint<'_, CS>,
     override_type_index_costs: &HashMap<usize, f32>,
+    permitted_animation_links: PermittedAnimationLinks,
   ) -> Result<Vec<PathStep<CS>>, FindPathError> {
-    query::find_path(self, start_point, end_point, override_type_index_costs)
+    query::find_path(
+      self,
+      start_point,
+      end_point,
+      override_type_index_costs,
+      permitted_animation_links,
+    )
   }
 
   pub fn update(&mut self, delta_time: f32) {
@@ -390,6 +397,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
             *target_node,
             *target_point,
             &agent.override_type_index_to_cost,
+            agent.permitted_animation_links.clone(),
           );
 
           self.pathing_results.push(PathingResult {

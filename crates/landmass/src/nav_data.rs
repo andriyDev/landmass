@@ -13,7 +13,7 @@ use slotmap::{HopSlotMap, SlotMap, new_key_type};
 use thiserror::Error;
 
 use crate::{
-  CoordinateSystem,
+  CoordinateSystem, PermittedAnimationLinks,
   coords::CorePointSampleDistance,
   geometry::edge_intersection,
   island::{Island, IslandId},
@@ -38,15 +38,14 @@ pub(crate) struct NavigationData<CS: CoordinateSystem> {
   /// Maps a "region id" (consisting of the IslandId and the region in that
   /// island's nav mesh) to its "region number" (the number used in
   /// [`Self::region_connections`]).
-  pub(crate) region_id_to_number: HashMap<(IslandId, usize), usize>,
+  region_id_to_number: HashMap<(IslandId, usize), usize>,
   /// Connectedness of regions based on their "region number" in
   /// [`Self::region_id_to_number`].
-  pub(crate) region_connections: Mutex<DisjointSet>,
+  region_connections: Mutex<DisjointSet>,
   /// Maps a region number (the key of [`Self::region_connections`]) to the set
   /// of links that **could** connect the regions if agents are allowed to use
   /// them.
-  pub(crate) region_number_to_possible_links:
-    HashMap<usize, Vec<(AnimationLinkId, usize)>>,
+  region_number_to_possible_links: HashMap<usize, Vec<PossibleRegionLink>>,
   /// The links that go off the mesh, connecting two node refs.
   pub(crate) off_mesh_links: SlotMap<OffMeshLinkId, OffMeshLink>,
   /// The links that can be taken from a particular node ref.
@@ -55,7 +54,7 @@ pub(crate) struct NavigationData<CS: CoordinateSystem> {
   /// The nodes that have been modified.
   pub(crate) modified_nodes: HashMap<NodeRef, ModifiedNode>,
   /// The islands that have been deleted since the last update.
-  pub(crate) deleted_islands: HashSet<IslandId>,
+  deleted_islands: HashSet<IslandId>,
   /// The set of animation links created since the last update.
   new_animation_links: HashSet<AnimationLinkId>,
   /// The set of animation links deleted since the last update.
@@ -110,6 +109,8 @@ pub(crate) enum KindedOffMeshLink {
     destination_portal: (Vec3, Vec3),
     /// The cost to take this link.
     cost: f32,
+    /// The kind of the animation link.
+    kind: usize,
     /// The animation link that produced this off-mesh link.
     animation_link: AnimationLinkId,
   },
@@ -128,6 +129,15 @@ pub(crate) struct ModifiedNode {
   /// node. These are not vertices in the original nav mesh and should only
   /// be used by a single boundary edge.
   pub(crate) new_vertices: Vec<Vec2>,
+}
+
+/// A possible connection between two regions.
+#[derive(Debug)]
+struct PossibleRegionLink {
+  /// The kind of the animation link connecting the regions.
+  link_kind: usize,
+  /// The region that will be connected by using this link.
+  destination_region: usize,
 }
 
 impl<CS: CoordinateSystem> NavigationData<CS> {
@@ -549,6 +559,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         kinded: KindedOffMeshLink::AnimationLink {
           destination_portal: portal_segment(end_edge, intersection),
           cost: link.cost,
+          kind: link.kind,
           animation_link: animation_link_id,
         },
       });
@@ -975,6 +986,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     &self,
     node_1: NodeRef,
     node_2: NodeRef,
+    permitted_animation_links: PermittedAnimationLinks,
   ) -> bool {
     let region_id_1 = self.node_to_region_id(node_1);
     let region_id_2 = self.node_to_region_id(node_2);
@@ -1021,12 +1033,16 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         continue;
       };
 
-      for (_possible_link, destination_region) in possible_links {
-        if !seen_regions.insert(*destination_region) {
+      for &PossibleRegionLink { link_kind, destination_region } in
+        possible_links
+      {
+        if !permitted_animation_links.is_permitted(link_kind) {
           continue;
         }
-        // TODO: Check if we are allowed to use this link.
-        region_queue.push_back(*destination_region);
+        if !seen_regions.insert(destination_region) {
+          continue;
+        }
+        region_queue.push_back(destination_region);
       }
     }
 
@@ -1071,11 +1087,9 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     // Then, any links that could potentially link two regions (but not always)
     // are stored in `self.region_number_to_animation_links`.
     for (node_ref, link) in links {
-      let animation_link_id = match &link.kinded {
+      let link_kind = match &link.kinded {
         KindedOffMeshLink::BoundaryLink { .. } => continue,
-        KindedOffMeshLink::AnimationLink { animation_link, .. } => {
-          *animation_link
-        }
+        KindedOffMeshLink::AnimationLink { kind, .. } => *kind,
       };
 
       let start_region = self.node_to_region_id(node_ref);
@@ -1100,7 +1114,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         .region_number_to_possible_links
         .entry(start_region)
         .or_default()
-        .push((animation_link_id, end_region));
+        .push(PossibleRegionLink { link_kind, destination_region: end_region });
     }
   }
 

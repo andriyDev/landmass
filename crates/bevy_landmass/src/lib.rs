@@ -25,9 +25,9 @@ mod link;
 
 pub use landmass::{
   AgentOptions, FindPathError, FromAgentRadius, HeightNavigationMesh,
-  HeightPolygon, NavigationMesh, PathStep, PointSampleDistance3d,
-  SamplePointError, SetTypeIndexCostError, ValidNavigationMesh,
-  ValidationError,
+  HeightPolygon, NavigationMesh, PathStep, PermittedAnimationLinks,
+  PointSampleDistance3d, SamplePointError, SetTypeIndexCostError,
+  ValidNavigationMesh, ValidationError,
 };
 
 pub use agent::*;
@@ -288,11 +288,13 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     start_point: &SampledPoint<'_, CS>,
     end_point: &SampledPoint<'_, CS>,
     override_type_index_costs: &std::collections::HashMap<usize, f32>,
+    permitted_animation_links: PermittedAnimationLinks,
   ) -> Result<Vec<PathStep<CS>>, FindPathError> {
     self.archipelago.find_path(
       &start_point.sampled_point,
       &end_point.sampled_point,
       override_type_index_costs,
+      permitted_animation_links,
     )
   }
 

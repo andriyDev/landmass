@@ -7,6 +7,7 @@ use crate::{
   Agent, AgentId, AgentOptions, AgentState, Archipelago, Character,
   CharacterId, FromAgentRadius, Island, IslandId, NavigationMesh, PathStep,
   PointSampleDistance3d, Transform,
+  agent::PermittedAnimationLinks,
   coords::{XY, XYZ},
   nav_data::NodeRef,
   path::Path,
@@ -654,7 +655,12 @@ fn finds_path() {
     .sample_point(offset + Vec2::new(2.5, 1.25), &1e-5)
     .expect("point is on nav mesh.");
   assert_eq!(
-    archipelago.find_path(&start_point, &end_point, &HashMap::new()),
+    archipelago.find_path(
+      &start_point,
+      &end_point,
+      &HashMap::new(),
+      PermittedAnimationLinks::All,
+    ),
     Ok(vec![
       PathStep::Waypoint(offset + Vec2::new(0.5, 0.5)),
       PathStep::Waypoint(offset + Vec2::new(2.0, 1.0)),
