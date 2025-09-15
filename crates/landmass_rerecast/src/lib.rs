@@ -56,10 +56,12 @@ impl Plugin for LandmassRerecastPlugin {
       )
       .add_systems(
         self.schedule,
-        convert_changed_rerecast_meshes_to_landmass.run_if(
-          on_event::<AssetEvent<bevy_rerecast::Navmesh>>
-            .or(on_event::<NewRerecastConversion>),
-        ),
+        convert_changed_rerecast_meshes_to_landmass
+          .in_set(LandmassRerecastSystems)
+          .run_if(
+            on_event::<AssetEvent<bevy_rerecast::Navmesh>>
+              .or(on_event::<NewRerecastConversion>),
+          ),
       );
   }
 }
