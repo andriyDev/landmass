@@ -98,7 +98,8 @@ fn setup(
     },
   ));
 
-  let archipelago = Archipelago3d::new(AgentOptions::from_agent_radius(0.5));
+  let archipelago =
+    Archipelago3d::new(ArchipelagoOptions::from_agent_radius(0.5));
   let archipelago_entity = commands.spawn(archipelago).id();
 
   commands

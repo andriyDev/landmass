@@ -4,8 +4,8 @@ use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
 
 use crate::{
-  Agent, AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
-  IslandId, NavigationMesh, TargetReachedCondition, Transform,
+  Agent, Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius,
+  Island, IslandId, NavigationMesh, TargetReachedCondition, Transform,
   agent::{RepathResult, does_agent_need_repath},
   coords::{XY, XYZ},
   link::{AnimationLink, AnimationLinkId},
@@ -74,7 +74,7 @@ fn has_reached_target_at_end_node() {
   let transform =
     Transform { translation: Vec3::new(2.0, 3.0, 4.0), rotation: PI * 0.85 };
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id =
     archipelago.add_island(Island::new(transform.clone(), Arc::new(nav_mesh)));
   let mut agent = Agent::create(
@@ -164,7 +164,7 @@ fn long_detour_reaches_target_in_different_ways() {
   let transform =
     Transform { translation: Vec3::new(2.0, 4.0, 3.0), rotation: PI * -0.85 };
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id =
     archipelago.add_island(Island::new(transform.clone(), Arc::new(nav_mesh)));
 
@@ -362,7 +362,7 @@ fn off_mesh_link_for_animation_link<CS: CoordinateSystem>(
 #[test]
 fn using_animation_link_does_not_reach_target() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   // +----+-+
   // |XXXX|X|

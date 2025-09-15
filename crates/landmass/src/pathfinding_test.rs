@@ -7,7 +7,7 @@ use std::{
 use glam::{Vec2, Vec3};
 
 use crate::{
-  AgentOptions, Archipelago, CoordinateSystem, FromAgentRadius, Island,
+  Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius, Island,
   Transform,
   agent::PermittedAnimationLinks,
   coords::{XY, XYZ},
@@ -82,7 +82,7 @@ fn finds_path_in_archipelago() {
   .expect("Mesh is valid.");
 
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::new(nav_mesh),
@@ -188,7 +188,7 @@ fn finds_paths_on_two_islands() {
   let nav_mesh = Arc::new(nav_mesh);
 
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::clone(&nav_mesh),
@@ -278,7 +278,7 @@ fn no_path_between_disconnected_islands() {
   let nav_mesh = Arc::new(nav_mesh);
 
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     Arc::clone(&nav_mesh),
@@ -335,7 +335,7 @@ fn find_path_across_connected_islands() {
   );
 
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { rotation: 0.0, translation: Vec3::ZERO },
@@ -464,7 +464,7 @@ fn finds_path_across_different_islands() {
   );
 
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { rotation: 0.0, translation: Vec3::ZERO },
@@ -541,7 +541,7 @@ fn aborts_early_for_unconnected_regions() {
   );
 
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let island_id_1 = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
@@ -592,7 +592,7 @@ fn aborts_early_for_unconnected_regions() {
 #[test]
 fn detour_for_high_cost_path() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -671,7 +671,7 @@ fn detour_for_high_cost_path() {
 #[test]
 fn detour_for_high_cost_path_across_boundary_links() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh_1 = Arc::new(
     NavigationMesh {
@@ -779,7 +779,7 @@ fn detour_for_high_cost_path_across_boundary_links() {
 #[test]
 fn fast_path_not_ignored_by_heuristic() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -860,7 +860,7 @@ fn fast_path_not_ignored_by_heuristic() {
 #[test]
 fn infinite_or_nan_cost_cannot_find_path_between_nodes() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -913,7 +913,7 @@ fn infinite_or_nan_cost_cannot_find_path_between_nodes() {
 #[test]
 fn detour_for_overridden_high_cost_path() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -992,7 +992,7 @@ fn detour_for_overridden_high_cost_path() {
 #[test]
 fn big_node_does_not_skew_pathing() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   // The middle-left node is too long, so its center is really far off compared
   // to the edges that the agent actually travels through. We should go
@@ -1078,7 +1078,7 @@ fn big_node_does_not_skew_pathing() {
 #[test]
 fn start_and_end_point_influences_path() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   // We want to ensure that the start and end points of the path are taken into
   // consideration when planning. Previously, we would always assume that the
@@ -1187,7 +1187,7 @@ fn off_mesh_link_for_animation_link<CS: CoordinateSystem>(
 #[test]
 fn animation_link_is_used() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   // The start and end have a gap between them in the nav mesh, but an animation
   // link exists to connect them.
@@ -1286,7 +1286,7 @@ fn animation_link_is_used() {
 #[test]
 fn animation_link_is_used_if_cheaper() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   // There are two routes from start-to-end. One takes the nav mesh. The other
   // takes the animation link. The animation link should only be taken if it
@@ -1425,7 +1425,7 @@ fn animation_link_is_used_if_cheaper() {
 #[test]
 fn animation_link_is_not_used_if_not_permitted() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   // The start and end have a gap between them in the nav mesh, but an animation
   // link exists to connect them.

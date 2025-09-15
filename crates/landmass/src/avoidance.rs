@@ -6,7 +6,7 @@ use kdtree::{KdTree, distance::squared_euclidean};
 use slotmap::HopSlotMap;
 
 use crate::{
-  Agent, AgentId, AgentOptions, AgentState, Character, CharacterId,
+  Agent, AgentId, AgentState, ArchipelagoOptions, Character, CharacterId,
   CoordinateSystem, Island, IslandId, NavigationData,
   nav_data::{KindedOffMeshLink, ModifiedNode, NodeRef},
 };
@@ -19,7 +19,7 @@ pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
   characters: &HopSlotMap<CharacterId, Character<CS>>,
   character_id_to_nav_mesh_point: &HashMap<CharacterId, Vec3>,
   nav_data: &NavigationData<CS>,
-  agent_options: &AgentOptions<CS>,
+  agent_options: &ArchipelagoOptions<CS>,
   mut delta_time: f32,
 ) {
   if delta_time == 0.0 {

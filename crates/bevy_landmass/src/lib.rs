@@ -24,7 +24,7 @@ mod landmass_structs;
 mod link;
 
 pub use landmass::{
-  AgentOptions, FindPathError, FromAgentRadius, HeightNavigationMesh,
+  ArchipelagoOptions, FindPathError, FromAgentRadius, HeightNavigationMesh,
   HeightPolygon, NavigationMesh, PathStep, PointSampleDistance3d,
   SamplePointError, SetTypeIndexCostError, ValidNavigationMesh,
   ValidationError,
@@ -47,7 +47,6 @@ pub mod prelude {
   pub use crate::Agent3dBundle;
   pub use crate::AgentDesiredVelocity2d;
   pub use crate::AgentDesiredVelocity3d;
-  pub use crate::AgentOptions;
   pub use crate::AgentSettings;
   pub use crate::AgentState;
   pub use crate::AgentTarget2d;
@@ -58,6 +57,7 @@ pub mod prelude {
   pub use crate::AnimationLink3dBundle;
   pub use crate::Archipelago2d;
   pub use crate::Archipelago3d;
+  pub use crate::ArchipelagoOptions;
   pub use crate::ArchipelagoRef2d;
   pub use crate::ArchipelagoRef3d;
   pub use crate::Character2dBundle;
@@ -214,7 +214,7 @@ pub type Archipelago3d = Archipelago<ThreeD>;
 
 impl<CS: CoordinateSystem> Archipelago<CS> {
   /// Creates an empty archipelago.
-  pub fn new(agent_options: AgentOptions<CS>) -> Self {
+  pub fn new(agent_options: ArchipelagoOptions<CS>) -> Self {
     Self {
       archipelago: landmass::Archipelago::new(agent_options),
       islands: HashMap::new(),
@@ -228,13 +228,13 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   }
 
   /// Gets the agent options.
-  pub fn get_agent_options(&self) -> &AgentOptions<CS> {
-    &self.archipelago.agent_options
+  pub fn get_agent_options(&self) -> &ArchipelagoOptions<CS> {
+    &self.archipelago.archipelago_options
   }
 
   /// Gets a mutable borrow to the agent options.
-  pub fn get_agent_options_mut(&mut self) -> &mut AgentOptions<CS> {
-    &mut self.archipelago.agent_options
+  pub fn get_agent_options_mut(&mut self) -> &mut ArchipelagoOptions<CS> {
+    &mut self.archipelago.archipelago_options
   }
 
   /// Sets the cost of `type_index` to `cost`. The cost is a multiplier on the

@@ -4,8 +4,8 @@ use glam::Vec3;
 use googletest::{expect_that, matchers::unordered_elements_are};
 
 use crate::{
-  Agent, AgentOptions, Archipelago, FromAgentRadius, Island, NavigationMesh,
-  Transform,
+  Agent, Archipelago, ArchipelagoOptions, FromAgentRadius, Island,
+  NavigationMesh, Transform,
   coords::XYZ,
   debug::{DebugDrawError, DebugDrawer, LineType, PointType, TriangleType},
 };
@@ -98,7 +98,7 @@ fn draws_island_meshes_and_agents() {
   .expect("Mesh is valid.");
 
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   const TRANSLATION: Vec3 = Vec3::ONE;
   archipelago.add_island(Island::new(
     Transform { translation: TRANSLATION, rotation: 0.0 },
@@ -435,7 +435,7 @@ fn draws_boundary_links() {
   );
 
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
   archipelago.add_island(Island::new(
     Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
@@ -482,7 +482,7 @@ fn fails_to_draw_dirty_archipelago() {
 
   // A brand new archipelago is considered clean.
   let mut archipelago =
-    Archipelago::<XYZ>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   assert_eq!(draw_archipelago_debug(&archipelago, &mut fake_drawer), Ok(()));
 
   // Creating an island marks the nav data as dirty.
@@ -535,11 +535,11 @@ fn draws_avoidance_data_when_requested() {
     .expect("The mesh is valid."),
   );
 
-  let mut archipelago = Archipelago::<XYZ>::new(AgentOptions {
+  let mut archipelago = Archipelago::<XYZ>::new(ArchipelagoOptions {
     neighbourhood: 100.0,
     avoidance_time_horizon: 100.0,
     obstacle_avoidance_time_horizon: 100.0,
-    ..AgentOptions::from_agent_radius(0.5)
+    ..ArchipelagoOptions::from_agent_radius(0.5)
   });
   archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
 

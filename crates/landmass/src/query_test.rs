@@ -4,7 +4,7 @@ use glam::Vec2;
 use googletest::{expect_that, matchers::*};
 
 use crate::{
-  AgentOptions, Archipelago, FindPathError, FromAgentRadius, Island,
+  Archipelago, ArchipelagoOptions, FindPathError, FromAgentRadius, Island,
   NavigationMesh, PathStep, SamplePointError, Transform,
   agent::PermittedAnimationLinks,
   coords::{CorePointSampleDistance, XY},
@@ -16,7 +16,7 @@ use super::{find_path, sample_point};
 #[test]
 fn error_on_dirty_nav_mesh() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -49,7 +49,7 @@ fn error_on_dirty_nav_mesh() {
 #[test]
 fn error_on_out_of_range() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -84,7 +84,7 @@ fn error_on_out_of_range() {
 #[test]
 fn samples_point_on_nav_mesh_or_near_nav_mesh() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -141,7 +141,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
 #[test]
 fn samples_type_indices() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   archipelago.set_type_index_cost(1, 1.0).unwrap();
   archipelago.set_type_index_cost(2, 2.0).unwrap();
@@ -222,7 +222,7 @@ fn samples_type_indices() {
 #[test]
 fn no_path() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -272,7 +272,7 @@ fn no_path() {
 #[test]
 fn finds_path() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -330,7 +330,7 @@ fn finds_path() {
 #[test]
 fn finds_path_with_override_type_index_costs() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -418,7 +418,7 @@ fn finds_path_with_override_type_index_costs() {
 #[test]
 fn find_path_returns_error_on_invalid_node_cost() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -472,7 +472,7 @@ fn find_path_returns_error_on_invalid_node_cost() {
 #[test]
 fn start_and_end_in_same_node() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -518,7 +518,7 @@ fn start_and_end_in_same_node() {
 #[googletest::test]
 fn one_animation_link_path() {
   let mut archipelago =
-    Archipelago::<XY>::new(AgentOptions::from_agent_radius(0.5));
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
   // +-+
   // |E|
