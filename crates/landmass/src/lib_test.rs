@@ -154,6 +154,7 @@ fn computes_and_follows_path() {
       distance_above: 0.1,
       distance_below: 0.1,
       vertical_preference_ratio: 1.0,
+      animation_link_max_vertical_distance: 1.0,
     },
     ..ArchipelagoOptions::from_agent_radius(0.5)
   });
