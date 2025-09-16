@@ -85,8 +85,8 @@ impl<CS: CoordinateSystem<SampleDistance: FromAgentRadius>> FromAgentRadius
     Self {
       point_sample_distance: CS::SampleDistance::from_agent_radius(radius),
       neighbourhood: 10.0 * radius,
-      avoidance_time_horizon: 1.0,
-      obstacle_avoidance_time_horizon: 0.5,
+      avoidance_time_horizon: 0.5,
+      obstacle_avoidance_time_horizon: 0.25,
       reached_destination_avoidance_responsibility: 0.1,
     }
   }
