@@ -1,11 +1,11 @@
-use std::{cmp::Ordering, sync::Arc};
+use std::sync::Arc;
 
 use glam::Vec3;
-use googletest::{expect_that, matchers::unordered_elements_are};
+use googletest::{expect_that, matchers::*};
 
 use crate::{
-  Agent, Archipelago, ArchipelagoOptions, FromAgentRadius, Island,
-  NavigationMesh, Transform,
+  Agent, AnimationLink, Archipelago, ArchipelagoOptions, FromAgentRadius,
+  HeightNavigationMesh, HeightPolygon, Island, NavigationMesh, Transform,
   coords::XYZ,
   debug::{DebugDrawError, DebugDrawer, LineType, PointType, TriangleType},
 };
@@ -38,30 +38,6 @@ impl DebugDrawer<XYZ> for FakeDrawer {
 impl FakeDrawer {
   fn new() -> Self {
     Self { points: vec![], lines: vec![], triangles: vec![] }
-  }
-
-  fn sort(&mut self) {
-    fn lex_order_points(a: Vec3, b: Vec3) -> Ordering {
-      a.x
-        .partial_cmp(&b.x)
-        .unwrap()
-        .then(a.y.partial_cmp(&b.y).unwrap())
-        .then(a.z.partial_cmp(&b.z).unwrap())
-    }
-    self.points.sort_by(|a, b| a.0.cmp(&b.0).then(lex_order_points(a.1, b.1)));
-    self.lines.sort_by(|a, b| {
-      a.0
-        .cmp(&b.0)
-        .then(lex_order_points(a.1[0], b.1[0]))
-        .then(lex_order_points(a.1[1], b.1[1]))
-    });
-    self.triangles.sort_by(|a, b| {
-      a.0
-        .cmp(&b.0)
-        .then(lex_order_points(a.1[0], b.1[0]))
-        .then(lex_order_points(a.1[1], b.1[1]))
-        .then(lex_order_points(a.1[2], b.1[2]))
-    });
   }
 }
 
@@ -416,7 +392,7 @@ fn draws_island_meshes_and_agents() {
   );
 }
 
-#[test]
+#[googletest::test]
 fn draws_boundary_links() {
   let nav_mesh = Arc::new(
     NavigationMesh {
@@ -442,22 +418,290 @@ fn draws_boundary_links() {
     nav_mesh.clone(),
   ));
 
+  let agent_id = archipelago.add_agent({
+    let mut agent = Agent::create(
+      /* position= */ Vec3::new(1.5, 1.25, 1.0),
+      /* velocity= */ Vec3::ZERO,
+      /* radius= */ 0.5,
+      /* desired_speed= */ 1.0,
+      /* max_speed= */ 2.0,
+    );
+    agent.current_target = Some(Vec3::new(2.5, 1.25, 1.0));
+    agent
+  });
+
   // Update so everything is in sync.
   archipelago.update(1.0);
 
   let mut fake_drawer = FakeDrawer::new();
   draw_archipelago_debug(&archipelago, &mut fake_drawer)
     .expect("the archipelago can be debug-drawed");
-  fake_drawer.sort();
 
-  let lines = fake_drawer
-    .lines
-    .iter()
-    .filter(|(line_type, _)| *line_type == LineType::BoundaryLink)
-    .map(|(_, edge)| *edge)
-    .collect::<Vec<_>>();
+  expect_that!(
+    fake_drawer.lines,
+    contains_each!(
+      eq(&(
+        LineType::BoundaryLink,
+        [Vec3::new(2.0, 2.0, 1.0), Vec3::new(2.0, 1.0, 1.0)]
+      )),
+      // The agent's waypoint goes directly to the end.
+      eq(&(
+        LineType::Waypoint(agent_id),
+        [Vec3::new(1.5, 1.25, 1.0), Vec3::new(2.5, 1.25, 1.0)]
+      )),
+      eq(&(
+        LineType::Target(agent_id),
+        [Vec3::new(1.5, 1.25, 1.0), Vec3::new(2.5, 1.25, 1.0)]
+      )),
+      // The agent corridor includes the point on the boundary link.
+      eq(&(
+        LineType::AgentCorridor(agent_id),
+        [Vec3::new(1.5, 1.25, 1.0), Vec3::new(2.0, 1.5, 1.0)]
+      )),
+      eq(&(
+        LineType::AgentCorridor(agent_id),
+        [Vec3::new(2.0, 1.5, 1.0), Vec3::new(2.5, 1.25, 1.0)]
+      )),
+    )
+  );
+}
 
-  assert_eq!(lines, [[Vec3::new(2.0, 2.0, 1.0), Vec3::new(2.0, 1.0, 1.0)]]);
+#[googletest::test]
+fn draws_animation_links() {
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 1.0, 0.0),
+        Vec3::new(0.0, 1.0, 0.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("The mesh is valid."),
+  );
+
+  let mut archipelago =
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+  archipelago.add_island(Island::new(
+    Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
+    nav_mesh.clone(),
+  ));
+  let link_id = archipelago.add_animation_link(AnimationLink {
+    start_edge: (Vec3::new(0.9, 0.0, 0.0), Vec3::new(0.9, 1.0, 0.0)),
+    end_edge: (Vec3::new(2.1, 0.0, 0.0), Vec3::new(2.1, 1.0, 0.0)),
+    kind: 0,
+    cost: 1.0,
+    bidirectional: false,
+  });
+  let agent_id = archipelago.add_agent({
+    let mut agent =
+      Agent::create(Vec3::new(0.5, 0.25, 0.0), Vec3::ZERO, 0.5, 1.0, 2.0);
+    agent.current_target = Some(Vec3::new(2.5, 0.25, 0.0));
+    agent
+  });
+
+  // Update so everything is in sync.
+  archipelago.update(1.0);
+
+  let mut fake_drawer = FakeDrawer::new();
+  draw_archipelago_debug(&archipelago, &mut fake_drawer)
+    .expect("the archipelago can be debug-drawed");
+
+  expect_that!(
+    fake_drawer.lines,
+    contains_each!(
+      eq(&(
+        LineType::AnimationLinkStart(link_id),
+        [Vec3::new(0.9, 0.0, 0.0), Vec3::new(0.9, 1.0, 0.0)]
+      )),
+      eq(&(
+        LineType::AnimationLinkEnd(link_id),
+        [Vec3::new(2.1, 0.0, 0.0), Vec3::new(2.1, 1.0, 0.0)]
+      )),
+      eq(&(
+        LineType::AnimationLinkConnection(link_id),
+        [Vec3::new(0.9, 0.5, 0.0), Vec3::new(2.1, 0.5, 0.0)]
+      )),
+      // The corridor includes the animation link.
+      eq(&(
+        LineType::CorridorAnimationLink(agent_id, link_id),
+        [Vec3::new(0.9, 0.5, 0.0), Vec3::new(2.1, 0.5, 0.0)]
+      )),
+      // The waypoint goes to the animation link start point.
+      eq(&(
+        LineType::Waypoint(agent_id),
+        [Vec3::new(0.5, 0.25, 0.0), Vec3::new(0.9, 0.25, 0.0)],
+      )),
+      // Include the estimated path to travel.
+      eq(&(
+        LineType::PathAnimationLink(agent_id, link_id),
+        [Vec3::new(0.9, 0.25, 0.0), Vec3::new(2.1, 0.25, 0.0)],
+      )),
+    )
+  );
+}
+
+#[googletest::test]
+fn draws_height_mesh() {
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.0, 1.0, 0.0),
+        Vec3::new(0.0, 1.0, 0.0),
+        Vec3::new(1.0, 2.0, 0.0),
+        Vec3::new(0.0, 2.0, 0.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
+      polygon_type_indices: vec![0; 2],
+      height_mesh: Some(HeightNavigationMesh {
+        vertices: vec![
+          Vec3::new(0.0, 0.0, -2.0),
+          Vec3::new(1.0, 0.0, -2.0),
+          Vec3::new(1.0, 1.0, -2.0),
+          Vec3::new(0.0, 1.0, -2.0),
+          Vec3::new(0.0, 0.5, -2.0),
+          Vec3::new(0.0, 1.0, 3.0),
+          Vec3::new(1.0, 1.0, 3.0),
+          Vec3::new(1.0, 2.0, 3.0),
+          Vec3::new(0.0, 2.0, 3.0),
+        ],
+        triangles: vec![[0, 1, 2], [2, 3, 4], [2, 4, 0], [0, 1, 2], [2, 3, 0]],
+        polygons: vec![
+          HeightPolygon {
+            base_vertex_index: 0,
+            vertex_count: 5,
+            base_triangle_index: 0,
+            triangle_count: 3,
+          },
+          HeightPolygon {
+            base_vertex_index: 5,
+            vertex_count: 4,
+            base_triangle_index: 3,
+            triangle_count: 2,
+          },
+        ],
+      }),
+    }
+    .validate()
+    .expect("The mesh is valid."),
+  );
+
+  let mut archipelago =
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+
+  // Update so everything is in sync.
+  archipelago.update(1.0);
+
+  let mut fake_drawer = FakeDrawer::new();
+  draw_archipelago_debug(&archipelago, &mut fake_drawer)
+    .expect("the archipelago can be debug-drawed");
+
+  expect_that!(
+    fake_drawer.lines,
+    contains_each!(
+      // The nav mesh should still be rendered as normal.
+      eq(&(
+        LineType::BoundaryEdge,
+        [Vec3::new(0.0, 0.0, 0.0), Vec3::new(1.0, 0.0, 0.0)]
+      )),
+      eq(&(
+        LineType::BoundaryEdge,
+        [Vec3::new(1.0, 0.0, 0.0), Vec3::new(1.0, 1.0, 0.0)]
+      )),
+      eq(&(
+        LineType::BoundaryEdge,
+        [Vec3::new(1.0, 1.0, 0.0), Vec3::new(1.0, 2.0, 0.0)]
+      )),
+      eq(&(
+        LineType::BoundaryEdge,
+        [Vec3::new(1.0, 2.0, 0.0), Vec3::new(0.0, 2.0, 0.0)]
+      )),
+      eq(&(
+        LineType::BoundaryEdge,
+        [Vec3::new(0.0, 2.0, 0.0), Vec3::new(0.0, 1.0, 0.0)]
+      )),
+      eq(&(
+        LineType::BoundaryEdge,
+        [Vec3::new(0.0, 1.0, 0.0), Vec3::new(0.0, 0.0, 0.0)]
+      )),
+      eq(&(
+        LineType::ConnectivityEdge,
+        [Vec3::new(1.0, 1.0, 0.0), Vec3::new(0.0, 1.0, 0.0)]
+      )),
+      // The height mesh edges are also drawn.
+
+      // The edges for the first node.
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(0.0, 0.0, -2.0), Vec3::new(1.0, 0.0, -2.0)]
+      )),
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(1.0, 0.0, -2.0), Vec3::new(1.0, 1.0, -2.0)]
+      )),
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(1.0, 1.0, -2.0), Vec3::new(0.0, 0.0, -2.0)]
+      )),
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(1.0, 1.0, -2.0), Vec3::new(0.0, 1.0, -2.0)]
+      )),
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(0.0, 1.0, -2.0), Vec3::new(0.0, 0.5, -2.0)]
+      )),
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(0.0, 0.5, -2.0), Vec3::new(1.0, 1.0, -2.0)]
+      )),
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(1.0, 1.0, -2.0), Vec3::new(0.0, 0.5, -2.0)]
+      )),
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(0.0, 0.5, -2.0), Vec3::new(0.0, 0.0, -2.0)]
+      )),
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(0.0, 0.0, -2.0), Vec3::new(1.0, 1.0, -2.0)]
+      )),
+      // The edges for the second node.
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(0.0, 1.0, 3.0), Vec3::new(1.0, 1.0, 3.0)]
+      )),
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(1.0, 1.0, 3.0), Vec3::new(1.0, 2.0, 3.0)]
+      )),
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(1.0, 2.0, 3.0), Vec3::new(0.0, 1.0, 3.0)]
+      )),
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(1.0, 2.0, 3.0), Vec3::new(0.0, 2.0, 3.0)]
+      )),
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(0.0, 2.0, 3.0), Vec3::new(0.0, 1.0, 3.0)]
+      )),
+      eq(&(
+        LineType::HeightEdge,
+        [Vec3::new(0.0, 1.0, 3.0), Vec3::new(1.0, 2.0, 3.0)]
+      )),
+    )
+  );
 }
 
 #[test]
