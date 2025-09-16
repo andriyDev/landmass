@@ -118,6 +118,18 @@ pub struct ReachedAnimationLink<CS: CoordinateSystem> {
   pub end_point: CS::Coordinate,
 }
 
+impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
+  for ReachedAnimationLink<CS>
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ReachedAnimationLink")
+      .field("link_id", &self.link_id)
+      .field("start_point", &self.start_point)
+      .field("end_point", &self.end_point)
+      .finish()
+  }
+}
+
 /// The condition to consider the agent as having reached its target. When this
 /// condition is satisfied, the agent will stop moving.
 #[derive(Clone, Copy, Debug)]
