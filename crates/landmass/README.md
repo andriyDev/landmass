@@ -107,7 +107,7 @@ let agent_2 = archipelago.add_agent({
   agent
 });
 
-for i in 0..200 {
+for i in 0..300 {
   let delta_time = 1.0 / 10.0;
   archipelago.update(delta_time);
 
