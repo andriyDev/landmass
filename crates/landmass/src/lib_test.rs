@@ -1,12 +1,18 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, f32::consts::PI, fmt::Debug, sync::Arc};
 
 use glam::{Vec2, Vec3};
-use googletest::{expect_eq, expect_that, matchers::*, prelude::Matcher};
+use googletest::{
+  expect_eq, expect_false, expect_that, expect_true,
+  matcher::MatcherResult,
+  matchers::*,
+  prelude::{Matcher, MatcherBase},
+};
 
 use crate::{
-  Agent, AgentId, AgentState, Archipelago, ArchipelagoOptions, Character,
-  CharacterId, FromAgentRadius, Island, IslandId, NavigationMesh, PathStep,
-  PointSampleDistance3d, Transform,
+  Agent, AgentId, AgentState, AnimationLink, Archipelago, ArchipelagoOptions,
+  Character, CharacterId, CoordinateSystem, FromAgentRadius, Island, IslandId,
+  NavigationMesh, PathStep, PointSampleDistance3d, ReachedAnimationLink,
+  Transform,
   agent::PermittedAnimationLinks,
   coords::{XY, XYZ},
   nav_data::NodeRef,
@@ -983,4 +989,159 @@ fn paused_agent_path_is_removed_when_invalid() {
   let agent_ref = archipelago.get_agent(agent).unwrap();
   expect_that!(agent_ref.current_path, none());
   expect_eq!(agent_ref.state(), AgentState::Paused);
+}
+
+#[derive(MatcherBase)]
+struct ReachedAnimationLinkMatcher<CS: CoordinateSystem> {
+  expected: ReachedAnimationLink<CS>,
+}
+
+impl<CS: CoordinateSystem<Coordinate: PartialEq + Debug>>
+  Matcher<&ReachedAnimationLink<CS>> for ReachedAnimationLinkMatcher<CS>
+{
+  fn matches(&self, actual: &ReachedAnimationLink<CS>) -> MatcherResult {
+    let ReachedAnimationLink { start_point, end_point, link_id } = actual;
+    if self.expected.start_point != *start_point {
+      return MatcherResult::NoMatch;
+    }
+    if self.expected.end_point != *end_point {
+      return MatcherResult::NoMatch;
+    }
+    if self.expected.link_id != *link_id {
+      return MatcherResult::NoMatch;
+    }
+    MatcherResult::Match
+  }
+
+  fn describe(
+    &self,
+    matcher_result: MatcherResult,
+  ) -> googletest::description::Description {
+    match matcher_result {
+      MatcherResult::Match => format!("is equal to {:?}", self.expected).into(),
+      MatcherResult::NoMatch => {
+        format!("isn't equal to {:?}", self.expected).into()
+      }
+    }
+  }
+}
+
+fn eq_reached_animation_link<
+  CS: CoordinateSystem<Coordinate: PartialEq + Debug>,
+>(
+  expected: ReachedAnimationLink<CS>,
+) -> impl for<'a> Matcher<&'a ReachedAnimationLink<CS>> {
+  ReachedAnimationLinkMatcher { expected }
+}
+
+#[googletest::test]
+fn agent_can_use_animation_link() {
+  let mut archipelago =
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(2.0, 1.0),
+        Vec2::new(2.0, 2.0),
+        Vec2::new(1.0, 2.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3], vec![2, 1, 4], vec![2, 4, 5, 6]],
+      polygon_type_indices: vec![0; 3],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  );
+
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+  archipelago.add_island(Island::new(
+    Transform { translation: Vec2::new(3.0, 5.0), rotation: PI },
+    nav_mesh.clone(),
+  ));
+  let link_id = archipelago.add_animation_link(AnimationLink {
+    start_edge: (Vec2::new(1.0, 1.9), Vec2::new(2.0, 1.9)),
+    end_edge: (Vec2::new(1.0, 3.1), Vec2::new(2.0, 3.1)),
+    cost: 1.0,
+    kind: 0,
+    bidirectional: false,
+  });
+
+  let agent_id = archipelago.add_agent({
+    let mut agent = Agent::create(
+      /* position= */ Vec2::new(0.25, 0.75),
+      /* velocity= */ Vec2::ZERO,
+      /* radius= */ 0.5,
+      /* desired_speed= */ 1.0,
+      /* max_speed= */ 2.0,
+    );
+    agent.current_target = Some(Vec2::new(2.75, 4.25));
+    agent
+  });
+
+  archipelago.update(1.0);
+
+  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  expect_eq!(agent.state(), AgentState::Moving);
+  expect_eq!(
+    *agent.get_desired_velocity(),
+    (Vec2::new(1.0, 1.0) - Vec2::new(0.25, 0.75)).normalize()
+  );
+  expect_false!(agent.is_using_animation_link());
+  expect_that!(agent.reached_animation_link(), none());
+
+  // Move the agent forward.
+  agent.position = Vec2::new(1.25, 0.75);
+  archipelago.update(1.0);
+
+  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  expect_eq!(agent.state(), AgentState::Moving);
+  expect_eq!(*agent.get_desired_velocity(), Vec2::new(0.0, 1.0));
+  expect_false!(agent.is_using_animation_link());
+  expect_that!(agent.reached_animation_link(), none());
+
+  // Move the agent to be touching the animation link.
+  agent.position = Vec2::new(1.25, 1.5);
+  archipelago.update(1.0);
+
+  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  expect_eq!(agent.state(), AgentState::ReachedAnimationLink);
+  expect_eq!(*agent.get_desired_velocity(), Vec2::new(0.0, 1.0));
+  expect_false!(agent.is_using_animation_link());
+  expect_that!(
+    agent.reached_animation_link(),
+    some(eq_reached_animation_link(ReachedAnimationLink {
+      start_point: Vec2::new(1.25, 1.9),
+      end_point: Vec2::new(1.25, 3.1),
+      link_id,
+    }))
+  );
+
+  expect_that!(agent.start_animation_link(), ok(()));
+
+  // Pretend the agent does some random stuff. Nothing should get out of sync.
+  agent.position = Vec2::new(100.0, 200.0);
+  archipelago.update(1.0);
+
+  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  expect_eq!(agent.state(), AgentState::UsingAnimationLink);
+  expect_true!(agent.is_using_animation_link());
+  expect_that!(agent.reached_animation_link(), none());
+
+  expect_that!(agent.end_animation_link(), ok(()));
+  // We ended at a different point than expected, but that's ok.
+  agent.position = Vec2::new(1.75, 3.1);
+  archipelago.update(1.0);
+
+  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  expect_eq!(agent.state(), AgentState::Moving);
+  expect_eq!(
+    *agent.get_desired_velocity(),
+    (Vec2::new(2.0, 4.0) - Vec2::new(1.75, 3.1)).normalize()
+  );
+  expect_false!(agent.is_using_animation_link());
+  expect_that!(agent.reached_animation_link(), none());
 }

@@ -1,12 +1,14 @@
 use std::{collections::HashSet, f32::consts::PI, sync::Arc};
 
 use glam::{Vec2, Vec3};
+use googletest::{expect_that, matchers::*};
 use slotmap::HopSlotMap;
 
 use crate::{
   Agent, Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius,
-  Island, IslandId, NavigationMesh, TargetReachedCondition, Transform,
-  agent::{RepathResult, does_agent_need_repath},
+  Island, IslandId, NavigationMesh, NotReachedAnimationLinkError,
+  ReachedAnimationLink, TargetReachedCondition, Transform,
+  agent::{NotUsingAnimationLinkError, RepathResult, does_agent_need_repath},
   coords::{XY, XYZ},
   link::{AnimationLink, AnimationLinkId},
   nav_data::{KindedOffMeshLink, NodeRef, OffMeshLinkId},
@@ -700,4 +702,30 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
       PathIndex::from_corridor_index(0, 3)
     ),
   );
+}
+
+#[googletest::test]
+fn cannot_start_or_end_using_animation_link_without_reached_animation_link() {
+  let mut agent = Agent::<XY>::create(Vec2::ZERO, Vec2::ZERO, 0.5, 1.0, 2.0);
+  expect_that!(
+    agent.start_animation_link(),
+    err(matches_pattern!(NotReachedAnimationLinkError))
+  );
+  expect_that!(
+    agent.end_animation_link(),
+    err(matches_pattern!(NotUsingAnimationLinkError))
+  );
+
+  agent.current_animation_link = Some(ReachedAnimationLink {
+    start_point: Vec2::new(0.0, 0.0),
+    end_point: Vec2::new(1.0, 0.0),
+    link_id: AnimationLinkId::default(),
+  });
+
+  expect_that!(
+    agent.end_animation_link(),
+    err(matches_pattern!(NotUsingAnimationLinkError))
+  );
+  expect_that!(agent.start_animation_link(), ok(()));
+  expect_that!(agent.end_animation_link(), ok(()));
 }
