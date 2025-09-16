@@ -99,7 +99,7 @@ fn setup(
   ));
 
   let archipelago =
-    Archipelago3d::new(ArchipelagoOptions::from_agent_radius(0.5));
+    Archipelago3d::new(ArchipelagoOptions::from_agent_radius(0.35));
   let archipelago_entity = commands.spawn(archipelago).id();
 
   commands
@@ -259,7 +259,7 @@ impl AgentSpawner {
       Agent3dBundle {
         agent: Default::default(),
         settings: AgentSettings {
-          radius: 0.5,
+          radius: 0.35,
           desired_speed: 2.0,
           max_speed: 3.0,
         },
