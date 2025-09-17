@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc};
 
 use bevy_app::App;
 use bevy_asset::{AssetPlugin, Assets};
@@ -30,14 +30,12 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      TransformPlugin,
+      AssetPlugin::default(),
     ))
-    .add_plugins(TransformPlugin)
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass3dPlugin::default());
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago_id = app
     .world_mut()
@@ -123,14 +121,11 @@ fn adds_and_removes_agents() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      AssetPlugin::default(),
     ))
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass3dPlugin::default());
-
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago_id = app
     .world_mut()
@@ -259,14 +254,11 @@ fn adds_and_removes_characters() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      AssetPlugin::default(),
     ))
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass3dPlugin::default());
-
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago_id = app
     .world_mut()
@@ -367,14 +359,11 @@ fn adds_and_removes_islands() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      AssetPlugin::default(),
     ))
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass3dPlugin::default());
-
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago_id = app
     .world_mut()
@@ -506,14 +495,10 @@ fn adds_and_removes_animation_links() {
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
       bevy_app::ScheduleRunnerPlugin::default(),
+      AssetPlugin::default(),
     ))
-    .add_plugins(AssetPlugin::default())
-    .add_plugins(Landmass2dPlugin::default())
-    .insert_resource({
-      let mut time = Time::<()>::default();
-      time.advance_by(Duration::from_secs_f32(0.01));
-      time
-    });
+    .insert_resource(Time::<()>::default())
+    .add_plugins(Landmass2dPlugin::default());
 
   let archipelago_entity = app
     .world_mut()
@@ -568,15 +553,12 @@ fn changing_agent_fields_changes_landmass_agent() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      TransformPlugin,
+      AssetPlugin::default(),
     ))
-    .add_plugins(TransformPlugin)
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass3dPlugin::default());
-
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago = app
     .world_mut()
@@ -665,15 +647,12 @@ fn changing_character_fields_changes_landmass_character() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      TransformPlugin,
+      AssetPlugin::default(),
     ))
-    .add_plugins(TransformPlugin)
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass3dPlugin::default());
-
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago = app
     .world_mut()
@@ -731,15 +710,12 @@ fn type_index_costs_are_used() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      TransformPlugin,
+      AssetPlugin::default(),
     ))
-    .add_plugins(TransformPlugin)
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass2dPlugin::default());
-
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let mut archipelago =
     Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5));
@@ -851,15 +827,12 @@ fn overridden_type_index_costs_are_used() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      TransformPlugin,
+      AssetPlugin::default(),
     ))
-    .add_plugins(TransformPlugin)
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass2dPlugin::default());
-
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago =
     Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5));
@@ -975,15 +948,12 @@ fn sample_point_error_on_out_of_range() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      TransformPlugin,
+      AssetPlugin::default(),
     ))
-    .add_plugins(TransformPlugin)
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass2dPlugin::default());
-
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago_entity = app
     .world_mut()
@@ -1034,15 +1004,12 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      TransformPlugin,
+      AssetPlugin::default(),
     ))
-    .add_plugins(TransformPlugin)
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass2dPlugin::default());
-
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago_entity = app
     .world_mut()
@@ -1123,15 +1090,12 @@ fn samples_type_indices() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      TransformPlugin,
+      AssetPlugin::default(),
     ))
-    .add_plugins(TransformPlugin)
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass2dPlugin::default());
-
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago =
     Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5));
@@ -1201,15 +1165,12 @@ fn finds_path() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      TransformPlugin,
+      AssetPlugin::default(),
     ))
-    .add_plugins(TransformPlugin)
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass2dPlugin::default());
-
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago_entity = app
     .world_mut()
@@ -1293,15 +1254,12 @@ fn island_matches_rotation_3d() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      TransformPlugin,
+      AssetPlugin::default(),
     ))
-    .add_plugins(TransformPlugin)
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass3dPlugin::default());
-
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago_entity = app
     .world_mut()
@@ -1361,15 +1319,12 @@ fn island_matches_rotation_2d() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      TransformPlugin,
+      AssetPlugin::default(),
     ))
-    .add_plugins(TransformPlugin)
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass2dPlugin::default());
-
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago_entity = app
     .world_mut()
@@ -1430,14 +1385,10 @@ fn agent_is_paused() {
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
       bevy_app::ScheduleRunnerPlugin::default(),
+      AssetPlugin::default(),
     ))
-    .add_plugins(AssetPlugin::default())
-    .add_plugins(Landmass2dPlugin::default())
-    .insert_resource({
-      let mut time = Time::<()>::default();
-      time.advance_by(Duration::from_secs_f32(0.01));
-      time
-    });
+    .insert_resource(Time::<()>::default())
+    .add_plugins(Landmass2dPlugin::default());
 
   let archipelago_entity = app
     .world_mut()
@@ -1558,14 +1509,10 @@ fn agent_using_animation_link() {
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
       bevy_app::ScheduleRunnerPlugin::default(),
+      AssetPlugin::default(),
     ))
-    .add_plugins(AssetPlugin::default())
-    .add_plugins(Landmass2dPlugin::default())
-    .insert_resource({
-      let mut time = Time::<()>::default();
-      time.advance_by(Duration::from_secs_f32(0.01));
-      time
-    });
+    .insert_resource(Time::<()>::default())
+    .add_plugins(Landmass2dPlugin::default());
 
   let archipelago_entity = app
     .world_mut()

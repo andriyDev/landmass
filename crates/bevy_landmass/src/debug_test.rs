@@ -3,6 +3,7 @@ use std::{cmp::Ordering, sync::Arc};
 use bevy_app::App;
 use bevy_asset::{AssetPlugin, Assets};
 use bevy_math::Vec3;
+use bevy_time::Time;
 use bevy_transform::{TransformPlugin, components::Transform};
 
 use crate::{
@@ -75,14 +76,12 @@ fn draws_archipelago_debug() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      TransformPlugin,
+      AssetPlugin::default(),
     ))
-    .add_plugins(TransformPlugin)
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass3dPlugin::default());
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago_id = app
     .world_mut()
@@ -234,14 +233,12 @@ fn draws_avoidance_data_when_requested() {
   app
     .add_plugins((
       bevy_app::TaskPoolPlugin::default(),
-      bevy_time::TimePlugin,
       bevy_app::ScheduleRunnerPlugin::default(),
+      TransformPlugin,
+      AssetPlugin::default(),
     ))
-    .add_plugins(TransformPlugin)
-    .add_plugins(AssetPlugin::default())
+    .insert_resource(Time::<()>::default())
     .add_plugins(Landmass3dPlugin::default());
-  // Update early to allow the time to not be 0.0.
-  app.update();
 
   let archipelago_id = app
     .world_mut()
