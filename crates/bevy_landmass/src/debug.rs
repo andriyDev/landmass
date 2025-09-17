@@ -19,7 +19,6 @@ use bevy_gizmos::{
 };
 use bevy_math::{Isometry3d, Quat};
 use bevy_reflect::Reflect;
-use bevy_time::Time;
 use bevy_transform::components::Transform;
 
 use crate::{
@@ -544,13 +543,9 @@ impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
 
 /// A system for drawing debug data.
 fn draw_archipelagos_default<CS: CoordinateSystem>(
-  time: Res<Time>,
   archipelagos: Query<&Archipelago<CS>>,
   mut gizmos: Gizmos<'_, '_, LandmassGizmos>,
 ) {
-  if time.delta_secs() == 0.0 {
-    return;
-  }
   let mut drawer = GizmoDrawer(&mut gizmos, PhantomData::<CS>);
   for archipelago in archipelagos.iter() {
     draw_archipelago_debug(archipelago, &mut drawer)
