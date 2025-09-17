@@ -12,7 +12,7 @@ use crate::{
   Agent, AgentId, AgentState, AnimationLink, Archipelago, ArchipelagoOptions,
   Character, CharacterId, CoordinateSystem, FromAgentRadius, Island, IslandId,
   NavigationMesh, PathStep, PointSampleDistance3d, ReachedAnimationLink,
-  Transform,
+  Transform, ValidNavigationMesh,
   agent::PermittedAnimationLinks,
   coords::{XY, XYZ},
   nav_data::NodeRef,
@@ -562,12 +562,8 @@ fn changed_island_is_not_dirty_after_update() {
   assert!(!archipelago.get_island(island_id).unwrap().dirty);
 }
 
-#[test]
-fn samples_point() {
-  let mut archipelago =
-    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
-
-  let nav_mesh = Arc::new(
+fn simple_one_node_nav_mesh() -> Arc<ValidNavigationMesh<XY>> {
+  Arc::new(
     NavigationMesh {
       vertices: vec![
         Vec2::new(0.0, 0.0),
@@ -581,7 +577,15 @@ fn samples_point() {
     }
     .validate()
     .expect("nav mesh is valid"),
-  );
+  )
+}
+
+#[test]
+fn samples_point() {
+  let mut archipelago =
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
+
+  let nav_mesh = simple_one_node_nav_mesh();
 
   let offset = Vec2::new(10.0, 10.0);
   archipelago.add_island(Island::new(
@@ -624,21 +628,7 @@ fn finds_path() {
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("nav mesh is valid"),
-  );
+  let nav_mesh = simple_one_node_nav_mesh();
 
   let offset = Vec2::new(10.0, 10.0);
   archipelago.add_island(Island::new(
@@ -918,21 +908,7 @@ fn paused_agent_does_not_repath() {
 fn paused_agent_path_is_removed_when_invalid() {
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("nav mesh is valid"),
-  );
+  let nav_mesh = simple_one_node_nav_mesh();
 
   let island_1 =
     archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
@@ -1144,4 +1120,110 @@ fn agent_can_use_animation_link() {
   );
   expect_false!(agent.is_using_animation_link());
   expect_that!(agent.reached_animation_link(), none());
+}
+
+fn simple_two_node_nav_mesh() -> Arc<ValidNavigationMesh<XY>> {
+  Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(1.0, 2.0),
+        Vec2::new(0.0, 2.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
+      polygon_type_indices: vec![0; 2],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("nav mesh is valid"),
+  )
+}
+
+#[googletest::test]
+fn agent_path_cleared_when_clearing_target() {
+  let mut archipelago =
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
+  let nav_mesh = simple_two_node_nav_mesh();
+
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  let agent_id = archipelago.add_agent({
+    let mut agent =
+      Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 2.0);
+    agent.current_target = Some(Vec2::new(0.5, 1.5));
+    agent
+  });
+
+  archipelago.update(1.0);
+
+  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  expect_true!(agent.current_path.is_some());
+  expect_eq!(agent.state(), AgentState::Moving);
+
+  agent.current_target = None;
+
+  archipelago.update(1.0);
+
+  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  expect_true!(agent.current_path.is_none());
+  expect_eq!(agent.state(), AgentState::Idle);
+}
+
+#[googletest::test]
+fn agent_path_cleared_on_bad_target() {
+  let mut archipelago =
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
+  let nav_mesh = simple_two_node_nav_mesh();
+
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  let agent_id = archipelago.add_agent({
+    let mut agent =
+      Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 2.0);
+    agent.current_target = Some(Vec2::new(0.5, 1.5));
+    agent
+  });
+
+  archipelago.update(1.0);
+
+  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  expect_true!(agent.current_path.is_some());
+  expect_eq!(agent.state(), AgentState::Moving);
+
+  // This target is off the nav mesh, so the path should be cleared and the
+  // appropriate state set.
+  agent.current_target = Some(Vec2::new(1.5, 1.5));
+
+  archipelago.update(1.0);
+
+  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  expect_true!(agent.current_path.is_none());
+  expect_eq!(agent.state(), AgentState::TargetNotOnNavMesh);
+}
+
+#[googletest::test]
+fn agent_could_not_find_path() {
+  let mut archipelago =
+    Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
+  let nav_mesh = simple_one_node_nav_mesh();
+
+  archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+  archipelago.add_island(Island::new(
+    Transform { translation: Vec2::new(2.0, 0.0), rotation: 0.0 },
+    nav_mesh,
+  ));
+  let agent_id = archipelago.add_agent({
+    let mut agent =
+      Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 2.0);
+    // This target isn't connected to the agent, so we shouldn't find a path!
+    agent.current_target = Some(Vec2::new(2.5, 0.5));
+    agent
+  });
+
+  archipelago.update(1.0);
+
+  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  expect_true!(agent.current_path.is_none());
+  expect_eq!(agent.state(), AgentState::NoPath);
 }
