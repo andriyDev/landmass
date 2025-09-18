@@ -57,10 +57,12 @@ fn convert_mesh(
 
     let nav_mesh = bevy_mesh_to_landmass_nav_mesh(mesh).unwrap();
     let valid_nav_mesh = nav_mesh.validate().unwrap();
-    nav_meshes.insert(
-      &converter.nav_mesh,
-      NavMesh3d { nav_mesh: Arc::new(valid_nav_mesh) },
-    );
+    nav_meshes
+      .insert(
+        &converter.nav_mesh,
+        NavMesh3d { nav_mesh: Arc::new(valid_nav_mesh) },
+      )
+      .unwrap();
     commands.entity(entity).remove::<ConvertMesh>();
   }
 }
@@ -89,7 +91,7 @@ fn setup(
   let message = "LMB - Spawn agent\nRMB - Change target point\nA/D - Look left/right\nF12 - Toggle debug view";
   commands.spawn((
     Text(message.into()),
-    TextLayout { justify: JustifyText::Right, ..Default::default() },
+    TextLayout { justify: Justify::Right, ..Default::default() },
     Node {
       position_type: PositionType::Absolute,
       right: Val::Px(0.0),
@@ -105,7 +107,7 @@ fn setup(
   commands
     .spawn(SceneRoot(asset_server.load("playground.glb#Scene1")))
     .observe(
-      move |trigger: Trigger<SceneInstanceReady>,
+      move |event: On<SceneInstanceReady>,
             children: Query<&Children>,
             name: Query<&Name>,
             transforms: TransformHelper,
@@ -115,7 +117,7 @@ fn setup(
         let mut link_1_end = None;
         let mut link_2_start = None;
         let mut link_2_end = None;
-        for child in children.iter_descendants(trigger.target()) {
+        for child in children.iter_descendants(event.event_target()) {
           let Ok(name) = name.get(child) else {
             continue;
           };
@@ -351,10 +353,10 @@ struct AgentJumping {
 }
 
 fn on_remove_agent_jumping(
-  trigger: Trigger<OnRemove, AgentJumping>,
+  event: On<Remove, AgentJumping>,
   mut commands: Commands,
 ) {
-  commands.entity(trigger.target()).remove::<UsingAnimationLink>();
+  commands.entity(event.event_target()).remove::<UsingAnimationLink>();
 }
 
 fn update_agent_jump(
@@ -383,7 +385,7 @@ fn update_agent_jump(
     transform.translation =
       delta_flat * alpha + Vec3::Y * delta_height + jump.start;
 
-    if jump.timer.finished() {
+    if jump.timer.is_finished() {
       commands.entity(agent).remove::<AgentJumping>();
     }
   }
@@ -395,16 +397,16 @@ struct Target;
 
 /// Handles clicks by spawning agents with LMB and moving the target with RMB.
 fn handle_clicks(
-  mut trigger: Trigger<Pointer<Pressed>>,
+  mut event: On<Pointer<Press>>,
   agent_spawner: Res<AgentSpawner>,
   mut target: Single<&mut Transform, With<Target>>,
   mut commands: Commands,
 ) {
-  let Some(world_position) = trigger.hit.position else {
+  let Some(world_position) = event.hit.position else {
     return;
   };
-  trigger.propagate(false);
-  match trigger.button {
+  event.propagate(false);
+  match event.button {
     PointerButton::Primary => {
       agent_spawner.spawn(world_position, &mut commands);
     }

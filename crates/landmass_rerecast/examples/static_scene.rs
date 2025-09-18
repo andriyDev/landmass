@@ -1,6 +1,8 @@
-use bevy::color::palettes::tailwind;
-use bevy::picking::events::Pressed;
-use bevy::{color::palettes::css, prelude::*, scene::SceneInstanceReady};
+use bevy::{
+  color::palettes::{css, tailwind},
+  prelude::*,
+  scene::SceneInstanceReady,
+};
 use bevy_landmass::{Agent3d, PointSampleDistance3d};
 use bevy_landmass::{debug::Landmass3dDebugPlugin, prelude::*};
 use bevy_rerecast::{NavmeshSettings, prelude::NavmeshGenerator};
@@ -77,7 +79,7 @@ fn setup(
     .spawn(SceneRoot(asset_server.load("dungeon.glb#Scene0")))
     // Generate the navmesh once the scene loads.
     .observe(
-      move |_: Trigger<SceneInstanceReady>, mut generator: NavmeshGenerator| {
+      move |_: On<SceneInstanceReady>, mut generator: NavmeshGenerator| {
         generator.regenerate(
           &handle,
           NavmeshSettings { agent_radius: 0.5, ..Default::default() },
@@ -187,7 +189,7 @@ fn snap_to_ground(
 struct Target;
 
 fn on_click(
-  mut trigger: Trigger<Pointer<Pressed>>,
+  mut trigger: On<Pointer<Press>>,
   mut commands: Commands,
   spawner: Res<AgentSpawner>,
   target: Single<Entity, With<Target>>,
