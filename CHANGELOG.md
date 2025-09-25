@@ -108,3 +108,4 @@
   configuring the `LandmassGizmoConfigGroup`, replace it with `LandmassGizmos::default()` (since it
   is no longer a ZST).
 - `bevy_landmass`: `NavMesh` no longer contains a `type_index_to_node_type` field. Just remove it!
+- `bevy_landmass`: `LandmassSystemSet` is now renamed to `LandmassSystems` to match Bevy style.
