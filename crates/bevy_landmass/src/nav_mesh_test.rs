@@ -35,7 +35,7 @@ fn converts_u16_indices() {
       [3.0, 3.0, 1.0],
     ],
   );
-  mesh.insert_indices(bevy::render::mesh::Indices::U16(vec![
+  mesh.insert_indices(bevy::mesh::Indices::U16(vec![
     0, 1, 2, 2, 3, 0, 3, 2, 4, 3, 4, 5, 4, 2, 6, 4, 6, 7,
   ]));
   let nav_mesh =
@@ -85,7 +85,7 @@ fn converts_u32_indices() {
       [3.0, 1.0, 3.0],
     ],
   );
-  mesh.insert_indices(bevy::render::mesh::Indices::U32(vec![
+  mesh.insert_indices(bevy::mesh::Indices::U32(vec![
     0, 1, 2, 2, 3, 0, 3, 2, 4, 3, 4, 5, 4, 2, 6, 4, 6, 7,
   ]));
   let nav_mesh = bevy_mesh_to_landmass_nav_mesh::<ThreeD>(&mesh)
