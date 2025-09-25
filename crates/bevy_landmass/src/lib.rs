@@ -71,7 +71,7 @@ pub mod prelude {
   pub use crate::Island3dBundle;
   pub use crate::Landmass2dPlugin;
   pub use crate::Landmass3dPlugin;
-  pub use crate::LandmassSystemSet;
+  pub use crate::LandmassSystems;
   pub use crate::NavMesh2d;
   pub use crate::NavMesh3d;
   pub use crate::NavMeshHandle2d;
@@ -119,10 +119,10 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
     app.configure_sets(
       self.schedule,
       (
-        LandmassSystemSet::SyncExistence,
-        LandmassSystemSet::SyncValues,
-        LandmassSystemSet::Update,
-        LandmassSystemSet::Output,
+        LandmassSystems::SyncExistence,
+        LandmassSystems::SyncValues,
+        LandmassSystems::Update,
+        LandmassSystems::Output,
       )
         .chain()
         // Configure our systems to run before physics engines.
@@ -136,16 +136,16 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
         add_characters_to_archipelago::<CS>,
         update_animation_links_to_archipelagos::<CS>,
       )
-        .in_set(LandmassSystemSet::SyncExistence),
+        .in_set(LandmassSystems::SyncExistence),
     );
     app.add_systems(
       self.schedule,
       (sync_agent_input_state::<CS>, sync_character_state::<CS>)
-        .in_set(LandmassSystemSet::SyncValues),
+        .in_set(LandmassSystems::SyncValues),
     );
     app.add_systems(
       self.schedule,
-      update_archipelagos::<CS>.in_set(LandmassSystemSet::Update),
+      update_archipelagos::<CS>.in_set(LandmassSystems::Update),
     );
     app.add_systems(
       self.schedule,
@@ -154,7 +154,7 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
         sync_desired_velocity::<CS>,
         sync_agent_reached_animation_link::<CS>,
       )
-        .in_set(LandmassSystemSet::Output),
+        .in_set(LandmassSystems::Output),
     );
 
     app.add_observer(on_remove_animation_link::<CS>);
@@ -164,7 +164,7 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
 
 /// System set for `landmass` systems.
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
-pub enum LandmassSystemSet {
+pub enum LandmassSystems {
   /// Systems for syncing the existence of components with the internal
   /// `landmass` state. Ensure your `landmass` entities are setup before this
   /// point (and not removed until [`LandmassSystemSet::Output`]).

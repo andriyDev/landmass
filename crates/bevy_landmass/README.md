@@ -37,7 +37,7 @@ fn main() {
     .add_plugins(TransformPlugin)
     .add_plugins(Landmass2dPlugin::default())
     .add_systems(Startup, set_up_scene)
-    .add_systems(Update, print_desired_velocity.after(LandmassSystemSet::Output))
+    .add_systems(Update, print_desired_velocity)
     .add_systems(Update, quit.after(print_desired_velocity))
     .run();
 }

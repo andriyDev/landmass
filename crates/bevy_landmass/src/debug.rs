@@ -22,7 +22,7 @@ use bevy_reflect::Reflect;
 use bevy_transform::components::Transform;
 
 use crate::{
-  Archipelago, LandmassSystemSet,
+  Archipelago, LandmassSystems,
   coords::{CoordinateSystem, ThreeD, TwoD},
 };
 
@@ -311,7 +311,7 @@ impl<CS: CoordinateSystem> Plugin for LandmassDebugPlugin<CS> {
       .add_systems(
         Update,
         draw_archipelagos_default::<CS>
-          .in_set(LandmassSystemSet::Output)
+          .in_set(LandmassSystems::Output)
           .run_if(|enable: Res<EnableLandmassDebug>| enable.0),
       )
       .insert_gizmo_config(

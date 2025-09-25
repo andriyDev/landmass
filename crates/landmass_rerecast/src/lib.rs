@@ -17,7 +17,7 @@ use bevy_ecs::{
   system::ResMut,
   world::DeferredWorld,
 };
-use bevy_landmass::{ArchipelagoRef3d, Island, LandmassSystemSet};
+use bevy_landmass::{ArchipelagoRef3d, Island, LandmassSystems};
 use bevy_platform::collections::{HashMap, HashSet, hash_map::Entry};
 
 mod raw_conversion;
@@ -51,7 +51,7 @@ impl Plugin for LandmassRerecastPlugin {
       .configure_sets(
         self.schedule,
         LandmassRerecastSystems
-          .before(LandmassSystemSet::SyncExistence)
+          .before(LandmassSystems::SyncExistence)
           .in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
       )
       .add_systems(
