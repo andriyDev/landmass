@@ -1,7 +1,7 @@
 use std::{collections::HashSet, f32::consts::PI, sync::Arc};
 
 use glam::{Vec2, Vec3};
-use googletest::{expect_that, matchers::*};
+use googletest::{expect_that, expect_true, matchers::*};
 use slotmap::HopSlotMap;
 
 use crate::{
@@ -63,6 +63,10 @@ fn negative_or_zero_type_index_cost_returns_false() {
   assert!(!agent.override_type_index_cost(0, -0.5));
 }
 
+fn agent_position<CS: CoordinateSystem>(agent: &Agent<CS>) -> Vec3 {
+  CS::to_landmass(&agent.position)
+}
+
 #[test]
 fn has_reached_target_at_end_node() {
   let nav_mesh = NavigationMesh {
@@ -109,6 +113,7 @@ fn has_reached_target_at_end_node() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
+      agent_position(&agent),
       (
         first_path_index,
         StraightPathStep::Waypoint(transform.apply(Vec3::new(2.5, 0.0, 1.0)))
@@ -118,6 +123,7 @@ fn has_reached_target_at_end_node() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
+      agent_position(&agent),
       (
         first_path_index,
         StraightPathStep::Waypoint(transform.apply(Vec3::new(3.5, 0.0, 1.0)))
@@ -127,6 +133,7 @@ fn has_reached_target_at_end_node() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
+      agent_position(&agent),
       (
         first_path_index,
         StraightPathStep::Waypoint(transform.apply(Vec3::new(2.0, 0.0, 2.0)))
@@ -136,6 +143,7 @@ fn has_reached_target_at_end_node() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
+      agent_position(&agent),
       (
         first_path_index,
         StraightPathStep::Waypoint(transform.apply(Vec3::new(2.5, 0.0, 2.5)))
@@ -199,6 +207,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
+      agent_position(&agent),
       (
         PathIndex::from_corridor_index(0, 1),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
@@ -215,6 +224,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
+      agent_position(&agent),
       (
         PathIndex::from_corridor_index(0, 1),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
@@ -235,6 +245,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
+      agent_position(&agent),
       (
         PathIndex::from_corridor_index(0, 1),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
@@ -251,6 +262,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
+      agent_position(&agent),
       (
         PathIndex::from_corridor_index(0, 1),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
@@ -267,6 +279,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
+      agent_position(&agent),
       (
         PathIndex::from_corridor_index(0, 2),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(2.0, 1.0, 0.0)))
@@ -282,6 +295,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
+      agent_position(&agent),
       (
         PathIndex::from_corridor_index(0, 2),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(2.0, 1.0, 0.0)))
@@ -302,6 +316,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
+      agent_position(&agent),
       (
         PathIndex::from_corridor_index(0, 1),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
@@ -318,6 +333,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
+      agent_position(&agent),
       (
         PathIndex::from_corridor_index(0, 1),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
@@ -333,6 +349,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
+      agent_position(&agent),
       (
         PathIndex::from_corridor_index(0, 2),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(2.0, 1.0, 0.0)))
@@ -454,6 +471,7 @@ fn using_animation_link_does_not_reach_target() {
   assert!(agent.has_reached_target(
     &path,
     &archipelago.nav_data,
+    agent_position(&agent),
     (
       PathIndex::from_corridor_index(0, 1),
       StraightPathStep::AnimationLink {
@@ -474,6 +492,7 @@ fn using_animation_link_does_not_reach_target() {
   assert!(!agent.has_reached_target(
     &path,
     &archipelago.nav_data,
+    agent_position(&agent),
     (
       PathIndex::from_corridor_index(0, 1),
       StraightPathStep::AnimationLink {
@@ -494,6 +513,7 @@ fn using_animation_link_does_not_reach_target() {
   assert!(!agent.has_reached_target(
     &path,
     &archipelago.nav_data,
+    agent_position(&agent),
     (
       PathIndex::from_corridor_index(0, 1),
       StraightPathStep::AnimationLink {
@@ -514,12 +534,60 @@ fn using_animation_link_does_not_reach_target() {
   assert!(!agent.has_reached_target(
     &path,
     &archipelago.nav_data,
+    agent_position(&agent),
     (
       PathIndex::from_corridor_index(0, 0),
       StraightPathStep::Waypoint(Vec3::new(12.5, 10.5, 0.0)),
     ),
     (PathIndex::from_corridor_index(1, 0), Vec3::new(10.5, 12.5, 0.0)),
   ));
+}
+
+#[googletest::test]
+fn uses_sampled_point_for_reaching_target() {
+  let nav_mesh = NavigationMesh {
+    vertices: vec![],
+    polygons: vec![],
+    polygon_type_indices: vec![],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("nav mesh is valid");
+  let mut archipelago =
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
+  let island_id = archipelago
+    .add_island(Island::new(Transform::default(), Arc::new(nav_mesh)));
+  let mut agent = Agent::create(
+    /* position= */ Vec3::new(1.0, 1.0, 1.0),
+    /* velocity= */ Vec3::ZERO,
+    /* radius= */ 0.0,
+    /* desired_speed= */ 0.0,
+    /* max_speed= */ 0.0,
+  );
+
+  let path = Path {
+    island_segments: vec![IslandSegment {
+      island_id,
+      corridor: vec![0],
+      portal_edge_index: vec![],
+    }],
+    off_mesh_link_segments: vec![],
+    start_point: Vec3::ZERO,
+    end_point: Vec3::ZERO,
+  };
+
+  agent.target_reached_condition = TargetReachedCondition::Distance(Some(0.5));
+
+  expect_true!(agent.has_reached_target(
+    &path,
+    &archipelago.nav_data,
+    Vec3::new(1.0, 1.0, 0.25),
+    (
+      PathIndex::from_corridor_index(0, 0),
+      StraightPathStep::Waypoint(Vec3::new(1.0, 1.0, 0.0))
+    ),
+    (PathIndex::from_corridor_index(0, 0), Vec3::new(1.0, 1.0, 0.0)),
+  ))
 }
 
 #[test]

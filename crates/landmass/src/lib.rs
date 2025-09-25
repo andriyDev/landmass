@@ -460,6 +460,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       if agent.has_reached_target(
         path,
         &self.nav_data,
+        agent_point,
         next_waypoint,
         (target_node_index_in_corridor, target_point),
       ) {

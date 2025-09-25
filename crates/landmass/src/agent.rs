@@ -331,14 +331,14 @@ impl<CS: CoordinateSystem> Agent<CS> {
     &self,
     path: &Path,
     nav_data: &NavigationData<CS>,
+    sampled_point: Vec3,
     next_waypoint: (PathIndex, StraightPathStep),
     target_waypoint: (PathIndex, Vec3),
   ) -> bool {
-    let position = CS::to_landmass(&self.position);
     match self.target_reached_condition {
       TargetReachedCondition::Distance(distance) => {
         let distance = distance.unwrap_or(self.radius);
-        position.distance_squared(target_waypoint.1) < distance * distance
+        sampled_point.distance_squared(target_waypoint.1) < distance * distance
       }
       TargetReachedCondition::VisibleAtDistance(distance) => 'result: {
         let distance = distance.unwrap_or(self.radius);
@@ -348,13 +348,15 @@ impl<CS: CoordinateSystem> Agent<CS> {
           break 'result false;
         };
         next_waypoint.0 == target_waypoint.0
-          && position.distance_squared(next_point) < distance * distance
+          && sampled_point.distance_squared(next_point) < distance * distance
       }
       TargetReachedCondition::StraightPathDistance(distance) => 'result: {
         let distance = distance.unwrap_or(self.radius);
         // Check Euclidean distance first so we don't do the expensive path
         // following if the agent is not even close.
-        if position.distance_squared(target_waypoint.1) > distance * distance {
+        if sampled_point.distance_squared(target_waypoint.1)
+          > distance * distance
+        {
           break 'result false;
         }
 
@@ -371,7 +373,7 @@ impl<CS: CoordinateSystem> Agent<CS> {
           break 'result false;
         };
 
-        let mut straight_line_distance = position.distance(next_point);
+        let mut straight_line_distance = sampled_point.distance(next_point);
         let mut current_waypoint = (next_waypoint.0, next_point);
 
         while current_waypoint.0 != target_waypoint.0
