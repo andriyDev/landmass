@@ -101,13 +101,15 @@ pub struct PointSampleDistance3d {
   /// The vertical distance above the query point that a node may be sampled.
   ///
   /// If a sample point is further above than this distance, it will be
-  /// ignored. This value must be greater than [`Self::distance_below`].
+  /// ignored. This value must be greater than negated
+  /// [`Self::distance_below`].
   pub distance_above: f32,
 
   /// The vertical distance below the query point that a node may be sampled.
   ///
   /// If a sample point is further below than this distance, it will be
-  /// ignored. This value must be greater than [`Self::distance_above`].
+  /// ignored. This value must be greater than negated
+  /// [`Self::distance_above`].
   pub distance_below: f32,
 
   /// The ratio between the vertical and the horizontal distances to prefer.
