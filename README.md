@@ -8,9 +8,9 @@ around levels.
 A navigation system is essentially the collection of tools needed for robust
 agent movement in video games. This generally involves 4 things:
 
-- Path finding (e.g. A-star)
-- Path simplification (e.g. SSFA)
-- Steering (e.g. boids)
+- Path finding (e.g., A-star)
+- Path simplification (e.g., SSFA)
+- Steering (e.g., boids)
 - Local collision avoidance
 
 In addition, managing agents and the navigation meshes they walk on can be
@@ -26,13 +26,19 @@ languages so it can be used anywhere.
   build off of.
 - [`bevy_landmass`](crates/bevy_landmass/README.md): A plugin for Bevy to
   provide a convenient API to `landmass`.
+- [`landmass_rerecast`](crates/landmass_rerecast/README.md): A plugin to
+  integrate `bevy_landmass` with `bevy_rerecast`.
+
+## Frequently Asked Questions
+
+See the [FAQ](FAQ.md).
 
 ## License
 
 License under either of
 
-* Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
-* MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 
