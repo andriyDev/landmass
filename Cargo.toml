@@ -1,3 +1,8 @@
 [workspace]
-members = ["crates/landmass", "crates/bevy_landmass", "crates/landmass_rerecast"]
+members = [
+    "crates/landmass",
+    "crates/bevy_landmass",
+    # Disable temporarily until bevy_rerecast is released for 0.17.
+    # "crates/landmass_rerecast"
+]
 resolver = "2"
