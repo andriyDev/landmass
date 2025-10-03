@@ -4,6 +4,12 @@
 
 ### Features
 
+### Migration Guide
+
+## `landmass` 0.9.0 / `bevy_landmass` 0.10.0 - 2025-10-01
+
+### Features
+
 - Better paths!
   - Previously, the pathfinding algorithm would compute paths assuming that agents walk through the
     centers of polygons. However, after applying path simplification, agents would travel directly
