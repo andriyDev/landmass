@@ -1,8 +1,9 @@
 use thiserror::Error;
 
 use crate::{
-  Agent, AgentId, Archipelago, CoordinateSystem, Island,
+  Agent, AgentId, Archipelago, CoordinateSystem,
   coords::CorePointSampleDistance,
+  island::CoreIsland,
   link::AnimationLinkId,
   nav_data::{KindedOffMeshLink, NodeRef},
   nav_mesh::MeshEdgeRef,
@@ -96,13 +97,13 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
 
   fn index_to_vertex<CS: CoordinateSystem>(
     index: usize,
-    island: &Island<CS>,
+    island: &CoreIsland,
   ) -> CS::Coordinate {
     CS::from_landmass(&island.transform.apply(island.nav_mesh.vertices[index]))
   }
 
   for island_id in archipelago.get_island_ids() {
-    let island = archipelago.get_island(island_id).unwrap();
+    let island = archipelago.get_island(island_id).unwrap().island;
     assert!(
       !island.dirty,
       "Drawing an archipelago while things are dirty is unsafe! Update the archipelago first."
@@ -119,8 +120,8 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
         debug_drawer.add_triangle(
           TriangleType::Node,
           [
-            index_to_vertex(i, island),
-            index_to_vertex(j, island),
+            index_to_vertex::<CS>(i, island),
+            index_to_vertex::<CS>(j, island),
             CS::from_landmass(&center_point),
           ],
         );
@@ -185,7 +186,7 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
 
         debug_drawer.add_line(
           line_type,
-          [index_to_vertex(i, island), index_to_vertex(j, island)],
+          [index_to_vertex::<CS>(i, island), index_to_vertex::<CS>(j, island)],
         );
       }
 
@@ -298,7 +299,8 @@ fn draw_path<CS: CoordinateSystem>(
     let island = archipelago
       .nav_data
       .get_island(island_segment.island_id)
-      .expect("Island in corridor should be valid");
+      .expect("Island in corridor should be valid")
+      .island;
     for (&polygon_index, &edge_index) in island_segment
       .corridor
       .iter()

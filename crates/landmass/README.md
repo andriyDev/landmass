@@ -75,10 +75,10 @@ let nav_mesh = NavigationMesh {
 let valid_nav_mesh = nav_mesh.validate().expect("Validation succeeds");
 
 let island_id = archipelago
-  .add_island(Island::new(
+  .add_island(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     valid_nav_mesh,
-  ));
+  );
 
 let agent_1 = archipelago.add_agent({
   let mut agent = Agent::create(

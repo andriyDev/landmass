@@ -7,7 +7,7 @@ use std::{
 use glam::{Vec2, Vec3};
 
 use crate::{
-  Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius, Island,
+  Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius,
   Transform,
   agent::PermittedAnimationLinks,
   coords::{XY, XYZ},
@@ -28,10 +28,10 @@ fn find_path_between_nodes<CS: CoordinateSystem>(
   end_node: NodeRef,
   override_type_index_to_cost: &HashMap<usize, f32>,
 ) -> (Vec3, Vec3, PathResult) {
-  let start_island = nav_data.get_island(start_node.island_id).unwrap();
+  let start_island = nav_data.get_island(start_node.island_id).unwrap().island;
   let start_point =
     start_island.nav_mesh.polygons[start_node.polygon_index].center;
-  let end_island = nav_data.get_island(end_node.island_id).unwrap();
+  let end_island = nav_data.get_island(end_node.island_id).unwrap().island;
   let end_point = end_island.nav_mesh.polygons[end_node.polygon_index].center;
 
   (
@@ -83,10 +83,8 @@ fn finds_path_in_archipelago() {
 
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id = archipelago.add_island(Island::new(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    nav_mesh,
-  ));
+  let island_id = archipelago
+    .add_island(Transform { translation: Vec3::ZERO, rotation: 0.0 }, nav_mesh);
 
   let nav_data = &archipelago.nav_data;
 
@@ -188,15 +186,15 @@ fn finds_paths_on_two_islands() {
 
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id_1 = archipelago.add_island(Island::new(
+  let island_id_1 = archipelago.add_island(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     nav_mesh.clone(),
-  ));
+  );
 
-  let island_id_2 = archipelago.add_island(Island::new(
+  let island_id_2 = archipelago.add_island(
     Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * -0.5 },
     nav_mesh.clone(),
-  ));
+  );
 
   let nav_data = &archipelago.nav_data;
 
@@ -277,15 +275,15 @@ fn no_path_between_disconnected_islands() {
 
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id_1 = archipelago.add_island(Island::new(
+  let island_id_1 = archipelago.add_island(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     nav_mesh.clone(),
-  ));
+  );
 
-  let island_id_2 = archipelago.add_island(Island::new(
+  let island_id_2 = archipelago.add_island(
     Transform { translation: Vec3::new(6.0, 0.0, 0.0), rotation: PI * -0.5 },
     nav_mesh.clone(),
-  ));
+  );
 
   let nav_data = &archipelago.nav_data;
 
@@ -333,27 +331,27 @@ fn find_path_across_connected_islands() {
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let island_id_1 = archipelago.add_island(Island::new(
+  let island_id_1 = archipelago.add_island(
     Transform { rotation: 0.0, translation: Vec3::ZERO },
     nav_mesh.clone(),
-  ));
-  let island_id_2 = archipelago.add_island(Island::new(
+  );
+  let island_id_2 = archipelago.add_island(
     Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 0.0) },
     nav_mesh.clone(),
-  ));
+  );
   // island_id_3 is unused.
-  archipelago.add_island(Island::new(
+  archipelago.add_island(
     Transform { rotation: 0.0, translation: Vec3::new(1.0, -1.0, 0.0) },
     nav_mesh.clone(),
-  ));
-  let island_id_4 = archipelago.add_island(Island::new(
+  );
+  let island_id_4 = archipelago.add_island(
     Transform { rotation: 0.0, translation: Vec3::new(1.0, 1.0, 0.0) },
     nav_mesh.clone(),
-  ));
-  let island_id_5 = archipelago.add_island(Island::new(
+  );
+  let island_id_5 = archipelago.add_island(
     Transform { rotation: 0.0, translation: Vec3::new(1.0, 2.0, 0.0) },
     nav_mesh.clone(),
-  ));
+  );
 
   archipelago.update(1.0);
 
@@ -458,14 +456,14 @@ fn finds_path_across_different_islands() {
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let island_id_1 = archipelago.add_island(Island::new(
+  let island_id_1 = archipelago.add_island(
     Transform { rotation: 0.0, translation: Vec3::ZERO },
     nav_mesh_1,
-  ));
-  let island_id_2 = archipelago.add_island(Island::new(
+  );
+  let island_id_2 = archipelago.add_island(
     Transform { rotation: 0.0, translation: Vec3::new(1.0, 0.0, 0.0) },
     nav_mesh_2,
-  ));
+  );
 
   archipelago.update(1.0);
 
@@ -533,18 +531,18 @@ fn aborts_early_for_unconnected_regions() {
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let island_id_1 = archipelago.add_island(Island::new(
+  let island_id_1 = archipelago.add_island(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
     nav_mesh.clone(),
-  ));
-  let island_id_2 = archipelago.add_island(Island::new(
+  );
+  let island_id_2 = archipelago.add_island(
     Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
-  ));
-  let island_id_3 = archipelago.add_island(Island::new(
+  );
+  let island_id_3 = archipelago.add_island(
     Transform { translation: Vec3::new(1.5, 2.0, 0.0), rotation: PI * 0.5 },
     nav_mesh.clone(),
-  ));
+  );
 
   archipelago.update(1.0);
 
@@ -631,8 +629,7 @@ fn detour_for_high_cost_path() {
 
   archipelago.set_type_index_cost(1, 10.0).unwrap();
 
-  let island_id =
-    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  let island_id = archipelago.add_island(Transform::default(), nav_mesh);
 
   let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
@@ -715,10 +712,8 @@ fn detour_for_high_cost_path_across_boundary_links() {
 
   archipelago.set_type_index_cost(1, 5.1).unwrap();
 
-  let island_id_1 =
-    archipelago.add_island(Island::new(Transform::default(), nav_mesh_1));
-  let island_id_2 =
-    archipelago.add_island(Island::new(Transform::default(), nav_mesh_2));
+  let island_id_1 = archipelago.add_island(Transform::default(), nav_mesh_1);
+  let island_id_2 = archipelago.add_island(Transform::default(), nav_mesh_2);
 
   archipelago.update(1.0);
 
@@ -813,8 +808,7 @@ fn fast_path_not_ignored_by_heuristic() {
   // This type index is faster than default.
   archipelago.set_type_index_cost(1, 0.5).unwrap();
 
-  let island_id =
-    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  let island_id = archipelago.add_island(Transform::default(), nav_mesh);
 
   let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
@@ -864,8 +858,7 @@ fn infinite_or_nan_cost_cannot_find_path_between_nodes() {
 
   archipelago.set_type_index_cost(1, f32::INFINITY).unwrap();
 
-  let island_id =
-    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  let island_id = archipelago.add_island(Transform::default(), nav_mesh);
 
   let (_, _, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
@@ -942,8 +935,7 @@ fn detour_for_overridden_high_cost_path() {
 
   archipelago.set_type_index_cost(1, 1.0).unwrap();
 
-  let island_id =
-    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  let island_id = archipelago.add_island(Transform::default(), nav_mesh);
 
   let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
@@ -1026,8 +1018,7 @@ fn big_node_does_not_skew_pathing() {
   .validate()
   .expect("nav mesh is valid");
 
-  let island_id =
-    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  let island_id = archipelago.add_island(Transform::default(), nav_mesh);
 
   let (start_point, end_point, path_result) = find_path_between_nodes(
     &archipelago.nav_data,
@@ -1114,8 +1105,7 @@ fn start_and_end_point_influences_path() {
   let start_point = Vec3::new(1.5, 0.5, 0.0);
   let end_point = Vec3::new(1.5, 2.5, 0.0);
 
-  let island_id =
-    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  let island_id = archipelago.add_island(Transform::default(), nav_mesh);
 
   let path_result = find_path(
     &archipelago.nav_data,
@@ -1201,10 +1191,10 @@ fn animation_link_is_used() {
   .validate()
   .expect("nav mesh is valid");
 
-  let island_id = archipelago.add_island(Island::new(
+  let island_id = archipelago.add_island(
     Transform { translation: Vec2::new(10.0, 10.0), ..Default::default() },
     nav_mesh,
-  ));
+  );
 
   let link_id = archipelago.add_animation_link(AnimationLink {
     start_edge: (Vec2::new(10.0, 11.0), Vec2::new(11.0, 11.0)),
@@ -1299,10 +1289,10 @@ fn animation_link_is_used_if_cheaper() {
   .validate()
   .expect("nav mesh is valid");
 
-  let island_id = archipelago.add_island(Island::new(
+  let island_id = archipelago.add_island(
     Transform { translation: Vec2::new(10.0, 10.0), ..Default::default() },
     nav_mesh,
-  ));
+  );
 
   // Portals are in world space.
   let start_edge = (Vec2::new(10.0, 11.0), Vec2::new(11.0, 11.0));
@@ -1435,10 +1425,10 @@ fn animation_link_is_not_used_if_not_permitted() {
   .validate()
   .expect("nav mesh is valid");
 
-  let island_id = archipelago.add_island(Island::new(
+  let island_id = archipelago.add_island(
     Transform { translation: Vec2::new(10.0, 10.0), ..Default::default() },
     nav_mesh,
-  ));
+  );
 
   archipelago.add_animation_link(AnimationLink {
     start_edge: (Vec2::new(10.0, 11.0), Vec2::new(11.0, 11.0)),

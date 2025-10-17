@@ -89,12 +89,19 @@ impl IslandSegment {
     let island_data = nav_data
       .get_island(self.island_id)
       .expect("only called if path is still valid");
-    let (left_vertex, right_vertex) =
-      island_data.nav_mesh.polygons[polygon_index].get_edge_indices(edge);
+    let (left_vertex, right_vertex) = island_data.island.nav_mesh.polygons
+      [polygon_index]
+      .get_edge_indices(edge);
 
     Portal::Walkable(
-      island_data.transform.apply(island_data.nav_mesh.vertices[left_vertex]),
-      island_data.transform.apply(island_data.nav_mesh.vertices[right_vertex]),
+      island_data
+        .island
+        .transform
+        .apply(island_data.island.nav_mesh.vertices[left_vertex]),
+      island_data
+        .island
+        .transform
+        .apply(island_data.island.nav_mesh.vertices[right_vertex]),
     )
   }
 }

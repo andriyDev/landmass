@@ -83,7 +83,8 @@ pub(crate) fn sample_point<'archipelago, CS: CoordinateSystem>(
   };
 
   let island = archipelago.nav_data.get_island(node_ref.island_id).unwrap();
-  let type_index = island.nav_mesh.polygons[node_ref.polygon_index].type_index;
+  let type_index =
+    island.island.nav_mesh.polygons[node_ref.polygon_index].type_index;
 
   Ok(SampledPoint {
     point: CS::from_landmass(&point),

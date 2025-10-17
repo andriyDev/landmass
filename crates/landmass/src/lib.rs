@@ -36,9 +36,11 @@ pub use coords::{
   CoordinateSystem, FromAgentRadius, PointSampleDistance,
   PointSampleDistance3d, XY, XYZ,
 };
-pub use island::{Island, IslandId};
+pub use island::IslandId;
 pub use link::{AnimationLink, AnimationLinkId};
-pub use nav_data::{IslandMut, SetTypeIndexCostError};
+pub use nav_data::{
+  CoreIslandMut, IslandMut, IslandRef, SetTypeIndexCostError,
+};
 pub use nav_mesh::{
   HeightNavigationMesh, HeightPolygon, NavigationMesh, ValidNavigationMesh,
   ValidationError,
@@ -157,15 +159,19 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     self.characters.keys()
   }
 
-  pub fn add_island(&mut self, island: Island<CS>) -> IslandId {
-    self.nav_data.add_island(island)
+  pub fn add_island(
+    &mut self,
+    transform: Transform<CS>,
+    nav_mesh: ValidNavigationMesh<CS>,
+  ) -> IslandId {
+    self.nav_data.add_island(transform, nav_mesh)
   }
 
   pub fn remove_island(&mut self, island_id: IslandId) {
     self.nav_data.remove_island(island_id)
   }
 
-  pub fn get_island(&self, island_id: IslandId) -> Option<&Island<CS>> {
+  pub fn get_island(&self, island_id: IslandId) -> Option<IslandRef<'_, CS>> {
     self.nav_data.get_island(island_id)
   }
 
@@ -486,10 +492,12 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
               node: NodeRef,
             ) -> Vec3 {
               let island = nav_data.get_island(node.island_id).unwrap();
-              let point = island.transform.apply_inverse(point);
-              let point =
-                island.nav_mesh.sample_point_on_node(point, node.polygon_index);
-              island.transform.apply(point)
+              let point = island.island.transform.apply_inverse(point);
+              let point = island
+                .island
+                .nav_mesh
+                .sample_point_on_node(point, node.polygon_index);
+              island.island.transform.apply(point)
             }
             // Refine the start and end points of the animation link to be
             // actually on the nav mesh.

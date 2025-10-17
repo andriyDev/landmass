@@ -93,12 +93,12 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
     let (node_ref, island, polygon, point, ignore_step) = match state {
       PathNode::Start => {
         let island =
-          self.nav_data.get_island(self.start_node.island_id).unwrap();
+          self.nav_data.get_island(self.start_node.island_id).unwrap().island;
         let polygon = &island.nav_mesh.polygons[self.start_node.polygon_index];
         (self.start_node, island, polygon, self.start_point, None)
       }
       PathNode::NodeEdge { node, start_edge: edge } => {
-        let island = self.nav_data.get_island(node.island_id).unwrap();
+        let island = self.nav_data.get_island(node.island_id).unwrap().island;
         let polygon = &island.nav_mesh.polygons[node.polygon_index];
 
         let (i, j) = polygon.get_edge_indices(*edge);
@@ -115,8 +115,11 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
       }
       PathNode::OffMeshLink(link) => {
         let link = self.nav_data.off_mesh_links.get(*link).unwrap();
-        let island =
-          self.nav_data.get_island(link.destination_node.island_id).unwrap();
+        let island = self
+          .nav_data
+          .get_island(link.destination_node.island_id)
+          .unwrap()
+          .island;
         let polygon =
           &island.nav_mesh.polygons[link.destination_node.polygon_index];
 
@@ -235,12 +238,11 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
       PathNode::Start => self.start_point,
       PathNode::End => return 0.0,
       PathNode::NodeEdge { node, start_edge: edge } => {
-        let island = self.nav_data.get_island(node.island_id).unwrap();
-        let edge =
-          island.get_nav_mesh().to_core().get_edge_points(MeshEdgeRef {
-            polygon_index: node.polygon_index,
-            edge_index: *edge,
-          });
+        let island = self.nav_data.get_island(node.island_id).unwrap().island;
+        let edge = island.nav_mesh.get_edge_points(MeshEdgeRef {
+          polygon_index: node.polygon_index,
+          edge_index: *edge,
+        });
         island.transform.apply(edge.0.midpoint(edge.1))
       }
       PathNode::OffMeshLink(link) => {
@@ -348,7 +350,7 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
       }
       PathStep::NodeConnection(edge_index) => {
         let nav_mesh =
-          &nav_data.get_island(last_segment.island_id).unwrap().nav_mesh;
+          &nav_data.get_island(last_segment.island_id).unwrap().island.nav_mesh;
         let connectivity = nav_mesh.polygons[previous_node].connectivity
           [edge_index]
           .as_ref()

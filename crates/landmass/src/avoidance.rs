@@ -7,7 +7,8 @@ use slotmap::HopSlotMap;
 
 use crate::{
   Agent, AgentId, AgentState, ArchipelagoOptions, Character, CharacterId,
-  CoordinateSystem, Island, IslandId, NavigationData,
+  CoordinateSystem, IslandId, NavigationData,
+  island::CoreIsland,
   nav_data::{KindedOffMeshLink, ModifiedNode, NodeRef},
 };
 
@@ -227,8 +228,8 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
 
   let agent_point = agent_node.0.xy();
 
-  fn vertex_index_to_dodgy_vec<CS: CoordinateSystem>(
-    island: &Island<CS>,
+  fn vertex_index_to_dodgy_vec(
+    island: &CoreIsland,
     index: usize,
     relative_point: glam::Vec2,
   ) -> dodgy_2d::Vec2 {
@@ -245,7 +246,7 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
       continue;
     }
 
-    let island = nav_data.get_island(node.island_id).unwrap();
+    let island = nav_data.get_island(node.island_id).unwrap().island;
 
     let polygon = &island.nav_mesh.polygons[node.polygon_index];
     let off_mesh_links = nav_data.node_to_off_mesh_link_ids.get(&node);
@@ -314,12 +315,12 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
 
     if let Some(modified_node) = modified_node {
       for &(left, right) in modified_node.new_boundary.iter() {
-        fn index_to_vertex_and_index<CS: CoordinateSystem>(
+        fn index_to_vertex_and_index(
           index: usize,
           island_id: IslandId,
           agent_point: glam::Vec2,
           modified_node: &ModifiedNode,
-          island: &Island<CS>,
+          island: &CoreIsland,
           new_vertices: &mut Vec<dodgy_2d::Vec2>,
         ) -> (dodgy_2d::Vec2, (Option<IslandId>, usize)) {
           if index >= island.nav_mesh.vertices.len() {
@@ -442,7 +443,7 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
     |(island_id, index)| match island_id {
       None => new_vertices[index],
       Some(island_id) => {
-        let island_data = nav_data.get_island(island_id).unwrap();
+        let island_data = nav_data.get_island(island_id).unwrap().island;
         vertex_index_to_dodgy_vec(island_data, index, glam::Vec2::ZERO)
       }
     };

@@ -4,7 +4,7 @@ use glam::Vec2;
 use googletest::{expect_that, matchers::*};
 
 use crate::{
-  Archipelago, ArchipelagoOptions, FindPathError, FromAgentRadius, Island,
+  Archipelago, ArchipelagoOptions, FindPathError, FromAgentRadius,
   NavigationMesh, PathStep, SamplePointError, Transform,
   agent::PermittedAnimationLinks,
   coords::{CorePointSampleDistance, XY},
@@ -32,7 +32,7 @@ fn error_on_dirty_nav_mesh() {
   .validate()
   .expect("nav mesh is valid");
 
-  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  archipelago.add_island(Transform::default(), nav_mesh);
   assert_eq!(
     sample_point(
       &archipelago,
@@ -63,7 +63,7 @@ fn error_on_out_of_range() {
   .validate()
   .expect("nav mesh is valid");
 
-  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  archipelago.add_island(Transform::default(), nav_mesh);
   archipelago.update(1.0);
 
   assert_eq!(
@@ -97,10 +97,8 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
   .expect("nav mesh is valid");
 
   let offset = Vec2::new(10.0, 10.0);
-  let island_id = archipelago.add_island(Island::new(
-    Transform { translation: offset, rotation: 0.0 },
-    nav_mesh,
-  ));
+  let island_id = archipelago
+    .add_island(Transform { translation: offset, rotation: 0.0 }, nav_mesh);
   archipelago.update(1.0);
 
   assert_eq!(
@@ -167,10 +165,8 @@ fn samples_type_indices() {
   .expect("nav mesh is valid");
 
   let offset = Vec2::new(10.0, 10.0);
-  archipelago.add_island(Island::new(
-    Transform { translation: offset, rotation: 0.0 },
-    nav_mesh,
-  ));
+  archipelago
+    .add_island(Transform { translation: offset, rotation: 0.0 }, nav_mesh);
   archipelago.update(1.0);
 
   assert_eq!(
@@ -231,14 +227,14 @@ fn no_path() {
   .expect("nav mesh is valid");
 
   let offset = Vec2::new(10.0, 10.0);
-  archipelago.add_island(Island::new(
+  archipelago.add_island(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh.clone(),
-  ));
-  archipelago.add_island(Island::new(
+  );
+  archipelago.add_island(
     Transform { translation: offset + Vec2::new(2.0, 0.0), rotation: 0.0 },
     nav_mesh,
-  ));
+  );
   archipelago.update(1.0);
 
   let start_point = archipelago
@@ -279,18 +275,18 @@ fn finds_path() {
   .expect("nav mesh is valid");
 
   let offset = Vec2::new(10.0, 10.0);
-  archipelago.add_island(Island::new(
+  archipelago.add_island(
     Transform { translation: offset, rotation: 0.0 },
     nav_mesh.clone(),
-  ));
-  archipelago.add_island(Island::new(
+  );
+  archipelago.add_island(
     Transform { translation: offset + Vec2::new(1.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
-  ));
-  archipelago.add_island(Island::new(
+  );
+  archipelago.add_island(
     Transform { translation: offset + Vec2::new(2.0, 0.5), rotation: 0.0 },
     nav_mesh,
-  ));
+  );
   archipelago.update(1.0);
 
   let start_point = archipelago
@@ -364,7 +360,7 @@ fn finds_path_with_override_type_index_costs() {
   .validate()
   .expect("nav mesh is valid");
 
-  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  archipelago.add_island(Transform::default(), nav_mesh);
 
   archipelago.update(1.0);
 
@@ -420,7 +416,7 @@ fn find_path_returns_error_on_invalid_node_cost() {
   .validate()
   .expect("nav mesh is valid");
 
-  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  archipelago.add_island(Transform::default(), nav_mesh);
 
   archipelago.update(1.0);
 
@@ -472,7 +468,7 @@ fn start_and_end_in_same_node() {
   .validate()
   .expect("nav mesh is valid");
 
-  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  archipelago.add_island(Transform::default(), nav_mesh);
 
   archipelago.update(1.0);
 
@@ -529,7 +525,7 @@ fn one_animation_link_path() {
   .validate()
   .expect("nav mesh is valid");
 
-  archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  archipelago.add_island(Transform::default(), nav_mesh);
   let link_id = archipelago.add_animation_link(AnimationLink {
     start_edge: (Vec2::new(0.0, 1.0), Vec2::new(1.0, 1.0)),
     end_edge: (Vec2::new(0.0, 2.0), Vec2::new(1.0, 2.0)),

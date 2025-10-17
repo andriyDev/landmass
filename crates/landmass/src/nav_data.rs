@@ -1,8 +1,8 @@
 use std::{
   collections::{HashMap, HashSet, VecDeque},
+  marker::PhantomData,
   mem::swap,
-  ops::{Deref, DerefMut},
-  sync::Mutex,
+  sync::{Arc, Mutex},
 };
 
 use disjoint::DisjointSet;
@@ -13,20 +13,20 @@ use slotmap::{HopSlotMap, SlotMap, new_key_type};
 use thiserror::Error;
 
 use crate::{
-  CoordinateSystem, PermittedAnimationLinks,
+  CoordinateSystem, PermittedAnimationLinks, Transform, ValidNavigationMesh,
   coords::CorePointSampleDistance,
   geometry::edge_intersection,
-  island::{Island, IslandId},
+  island::{CoreIsland, IslandId},
   link::{AnimationLink, AnimationLinkId, AnimationLinkState, NodePortal},
-  nav_mesh::{MeshEdgeRef, nav_mesh_node_bbh},
-  util::{BoundingBox, BoundingBoxHierarchy, RaySegment},
+  nav_mesh::{CoreValidNavigationMesh, MeshEdgeRef, nav_mesh_node_bbh},
+  util::{BoundingBox, BoundingBoxHierarchy, CoreTransform, RaySegment},
 };
 
 /// The navigation data of a whole [`crate::Archipelago`]. This only includes
 /// "static" features.
 pub(crate) struct NavigationData<CS: CoordinateSystem> {
   /// The islands in the [`crate::Archipelago`].
-  islands: HopSlotMap<IslandId, Island<CS>>,
+  islands: HopSlotMap<IslandId, CoreIsland>,
   /// The animation links in the [`crate::AnimationLink`].
   animation_links: HopSlotMap<AnimationLinkId, AnimationLinkState<CS>>,
   /// The "default" cost of each type index. Missing type indices default to a
@@ -193,15 +193,21 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   }
 
   /// Adds a new island to the navigation data.
-  pub(crate) fn add_island(&mut self, island: Island<CS>) -> IslandId {
+  pub(crate) fn add_island(
+    &mut self,
+    transform: Transform<CS>,
+    nav_mesh: ValidNavigationMesh<CS>,
+  ) -> IslandId {
     // A new island means a new nav mesh - so mark it dirty.
     self.dirty = true;
-    self.islands.insert(island)
+    self
+      .islands
+      .insert(CoreIsland::new(transform.to_core(), nav_mesh.to_core()))
   }
 
   /// Gets a borrow to the island with `id`.
-  pub(crate) fn get_island(&self, id: IslandId) -> Option<&Island<CS>> {
-    self.islands.get(id)
+  pub(crate) fn get_island(&self, id: IslandId) -> Option<IslandRef<'_, CS>> {
+    self.islands.get(id).map(|island| IslandRef { island, marker: PhantomData })
   }
 
   /// Gets a mutable borrow to the island with `id`.
@@ -210,9 +216,8 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     id: IslandId,
   ) -> Option<IslandMut<'_, CS>> {
     self.islands.get_mut(id).map(|island| IslandMut {
-      id,
-      island,
-      dirty_flag: &mut self.dirty,
+      island: CoreIslandMut { island, dirty_flag: &mut self.dirty },
+      marker: PhantomData,
     })
   }
 
@@ -535,7 +540,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       end_edge: (Vec3, Vec3),
       animation_link_id: AnimationLinkId,
       link: &AnimationLink<CS>,
-      islands: &HopSlotMap<IslandId, Island<CS>>,
+      islands: &HopSlotMap<IslandId, CoreIsland>,
       off_mesh_links: &mut SlotMap<OffMeshLinkId, OffMeshLink>,
       node_to_off_mesh_link_ids: &mut HashMap<NodeRef, HashSet<OffMeshLinkId>>,
     ) {
@@ -728,10 +733,10 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         }
 
         let node_bbh = node_bbh.as_ref().unwrap();
-        fn sample_portal_edge<CS: CoordinateSystem>(
+        fn sample_portal_edge(
           edge: (Vec3, Vec3),
           island_id: IslandId,
-          island: &Island<CS>,
+          island: &CoreIsland,
           node_bbh: &BoundingBoxHierarchy<usize>,
           max_vertical_distance: f32,
         ) -> Vec<NodePortal> {
@@ -865,9 +870,9 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       Vec2::new(c.x, c.y)
     }
 
-    fn push_vertex<CS: CoordinateSystem>(
+    fn push_vertex(
       vertex: usize,
-      island: &Island<CS>,
+      island: &CoreIsland,
       line_string: &mut Vec<Coord<f32>>,
     ) {
       let vertex = island.transform.apply(island.nav_mesh.vertices[vertex]);
@@ -1189,42 +1194,92 @@ pub enum SetTypeIndexCostError {
   NonPositiveCost(f32),
 }
 
-/// A mutable borrow to an island.
-pub struct IslandMut<'nav_data, CS: CoordinateSystem> {
-  /// The ID of the island.
-  id: IslandId,
-  /// The borrow.
-  island: &'nav_data mut Island<CS>,
+pub struct CoreIslandMut<'nav_data> {
+  /// The borrow to the core representation.
+  island: &'nav_data mut CoreIsland,
   /// A borrow to the navigation data's dirty flag. Mutating the island should
   /// set this flag.
   dirty_flag: &'nav_data mut bool,
 }
 
-impl<CS: CoordinateSystem> Deref for IslandMut<'_, CS> {
-  type Target = Island<CS>;
+impl CoreIslandMut<'_> {
+  /// Gets the current transform of the island.
+  pub fn get_transform(&self) -> &CoreTransform {
+    self.island.get_transform()
+  }
 
-  fn deref(&self) -> &Self::Target {
-    self.island
+  /// Sets the current transform of the island.
+  pub fn set_transform(&mut self, transform: CoreTransform) {
+    *self.dirty_flag = true;
+    self.island.set_transform(transform);
+  }
+
+  /// Gets the current navigation mesh used by the island.
+  pub fn get_nav_mesh(&self) -> Arc<CoreValidNavigationMesh> {
+    self.island.get_nav_mesh()
+  }
+
+  /// Sets the navigation mesh of the island.
+  pub(crate) fn set_nav_mesh(
+    &mut self,
+    nav_mesh: Arc<CoreValidNavigationMesh>,
+  ) {
+    *self.dirty_flag = true;
+    self.island.set_nav_mesh(nav_mesh);
   }
 }
 
-impl<CS: CoordinateSystem> DerefMut for IslandMut<'_, CS> {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    *self.dirty_flag = true;
-    self.island
+/// An immutable borrow to an island.
+pub struct IslandRef<'nav_data, CS: CoordinateSystem> {
+  /// The borrow to the core representation.
+  pub(crate) island: &'nav_data CoreIsland,
+  marker: PhantomData<CS>,
+}
+
+impl<CS: CoordinateSystem> IslandRef<'_, CS> {
+  /// Gets the current transform of the island.
+  pub fn get_transform(&self) -> Transform<CS> {
+    Transform::from_core(self.island.get_transform())
   }
+
+  /// Gets the current navigation mesh used by the island.
+  pub fn get_nav_mesh(&self) -> ValidNavigationMesh<CS> {
+    ValidNavigationMesh::new(self.island.get_nav_mesh())
+  }
+}
+
+/// A mutable borrow to an island.
+pub struct IslandMut<'nav_data, CS: CoordinateSystem> {
+  /// The mutable borrow to the core representation.
+  island: CoreIslandMut<'nav_data>,
+  marker: PhantomData<CS>,
 }
 
 impl<CS: CoordinateSystem> IslandMut<'_, CS> {
-  /// Returns the ID of the borrowed island.
-  pub fn id(&self) -> IslandId {
-    self.id
+  /// Gets the current transform of the island.
+  pub fn get_transform(&self) -> Transform<CS> {
+    Transform::from_core(self.island.get_transform())
+  }
+
+  /// Sets the current transform of the island.
+  pub fn set_transform(&mut self, transform: Transform<CS>) {
+    self.island.set_transform(transform.to_core());
+  }
+
+  /// Gets the current navigation mesh used by the island.
+  pub fn get_nav_mesh(&self) -> ValidNavigationMesh<CS> {
+    ValidNavigationMesh::new(self.island.get_nav_mesh())
+  }
+
+  /// Sets the navigation mesh of the island.
+  pub fn set_nav_mesh(&mut self, nav_mesh: ValidNavigationMesh<CS>) {
+    self.island.set_nav_mesh(nav_mesh.to_core());
   }
 }
 
-fn edge_ref_to_world_edge<CS: CoordinateSystem>(
+fn edge_ref_to_world_edge(
   edge: MeshEdgeRef,
-  island: &Island<CS>,
+  island: &CoreIsland,
 ) -> (Vec3, Vec3) {
   let (a, b) = island.nav_mesh.get_edge_points(edge);
   (island.transform.apply(a), island.transform.apply(b))
@@ -1234,9 +1289,7 @@ fn edge_to_bbox(edge: (Vec3, Vec3)) -> BoundingBox {
   BoundingBox::new_box(edge.0, edge.0).expand_to_point(edge.1)
 }
 
-fn island_edges_bbh<CS: CoordinateSystem>(
-  island: &Island<CS>,
-) -> BoundingBoxHierarchy<MeshEdgeRef> {
+fn island_edges_bbh(island: &CoreIsland) -> BoundingBoxHierarchy<MeshEdgeRef> {
   let mut edge_bounds = island
     .nav_mesh
     .boundary_edges
@@ -1251,9 +1304,9 @@ fn island_edges_bbh<CS: CoordinateSystem>(
   BoundingBoxHierarchy::new(&mut edge_bounds)
 }
 
-fn link_edges_between_islands<CS: CoordinateSystem>(
-  (island_id_1, island_1): (IslandId, &Island<CS>),
-  (island_id_2, island_2): (IslandId, &Island<CS>),
+fn link_edges_between_islands(
+  (island_id_1, island_1): (IslandId, &CoreIsland),
+  (island_id_2, island_2): (IslandId, &CoreIsland),
   island_1_edge_bbh: &BoundingBoxHierarchy<MeshEdgeRef>,
   edge_link_distance: f32,
   off_mesh_links: &mut SlotMap<OffMeshLinkId, OffMeshLink>,
@@ -1331,10 +1384,10 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
 /// in nav meshes.
 ///
 /// The order of portal points is not defined.
-fn world_portal_to_node_portals<CS: CoordinateSystem>(
+fn world_portal_to_node_portals(
   portal: (Vec3, Vec3),
   island_bbh: &BoundingBoxHierarchy<IslandId>,
-  islands: &HopSlotMap<IslandId, Island<CS>>,
+  islands: &HopSlotMap<IslandId, CoreIsland>,
   island_to_node_bbh: &mut HashMap<IslandId, BoundingBoxHierarchy<usize>>,
   max_vertical_distance: f32,
 ) -> Vec<NodePortal> {
@@ -1387,10 +1440,10 @@ fn world_portal_to_node_portals<CS: CoordinateSystem>(
   node_portals
 }
 
-fn sample_animation_link_point<CS: CoordinateSystem>(
+fn sample_animation_link_point(
   point: Vec3,
   island_bbh: &BoundingBoxHierarchy<IslandId>,
-  islands: &HopSlotMap<IslandId, Island<CS>>,
+  islands: &HopSlotMap<IslandId, CoreIsland>,
   max_vertical_distance: f32,
 ) -> Option<NodeRef> {
   let query_box = BoundingBox::new_box(

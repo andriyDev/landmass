@@ -5,8 +5,8 @@ use googletest::{expect_that, matchers::*};
 use slotmap::HopSlotMap;
 
 use crate::{
-  Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius, Island,
-  IslandId, Transform,
+  Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius, IslandId,
+  Transform,
   coords::{XY, XYZ},
   link::{AnimationLink, AnimationLinkId},
   nav_data::{KindedOffMeshLink, NavigationData, NodeRef, OffMeshLinkId},
@@ -92,8 +92,7 @@ fn finds_next_point_for_organic_map() {
     Transform { translation: Vec3::new(5.0, 9.0, 7.0), rotation: PI * -0.35 };
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id =
-    archipelago.add_island(Island::new(transform.clone(), nav_mesh));
+  let island_id = archipelago.add_island(transform.clone(), nav_mesh);
   let transform = transform.to_core();
 
   let path = Path {
@@ -194,8 +193,7 @@ fn finds_next_point_in_zig_zag() {
     Transform { translation: Vec2::new(-1.0, -3.0), rotation: PI * -1.8 };
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id =
-    archipelago.add_island(Island::new(transform.clone(), nav_mesh));
+  let island_id = archipelago.add_island(transform.clone(), nav_mesh);
   let transform = transform.to_core();
 
   let path = Path {
@@ -280,10 +278,8 @@ fn starts_at_end_index_goes_to_end_point() {
 
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id = archipelago.add_island(Island::new(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    nav_mesh,
-  ));
+  let island_id = archipelago
+    .add_island(Transform { translation: Vec3::ZERO, rotation: 0.0 }, nav_mesh);
 
   let path = Path {
     island_segments: vec![IslandSegment {
@@ -360,10 +356,8 @@ fn straight_path_includes_animation_link() {
 
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id = archipelago.add_island(Island::new(
-    Transform { translation: Vec2::ZERO, rotation: 0.0 },
-    nav_mesh,
-  ));
+  let island_id = archipelago
+    .add_island(Transform { translation: Vec2::ZERO, rotation: 0.0 }, nav_mesh);
 
   let animation_link_id = archipelago.add_animation_link(AnimationLink {
     start_edge: (Vec2::new(0.0, 3.0), Vec2::new(1.0, 3.0)),
@@ -486,10 +480,8 @@ fn multiple_animation_links_in_a_row() {
 
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id = archipelago.add_island(Island::new(
-    Transform { translation: Vec2::ZERO, rotation: 0.0 },
-    nav_mesh,
-  ));
+  let island_id = archipelago
+    .add_island(Transform { translation: Vec2::ZERO, rotation: 0.0 }, nav_mesh);
 
   let link_id_1 = archipelago.add_animation_link(AnimationLink {
     start_edge: (Vec2::new(0.0, 1.0), Vec2::new(1.0, 1.0)),
@@ -649,10 +641,8 @@ fn obscured_animation_link_is_made_visible_by_straight_path() {
 
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id = archipelago.add_island(Island::new(
-    Transform { translation: Vec2::ZERO, rotation: 0.0 },
-    nav_mesh,
-  ));
+  let island_id = archipelago
+    .add_island(Transform { translation: Vec2::ZERO, rotation: 0.0 }, nav_mesh);
 
   let link_id = archipelago.add_animation_link(AnimationLink {
     start_edge: (Vec2::new(0.0, 3.0), Vec2::new(8.0, 3.0)),
@@ -763,10 +753,8 @@ fn end_point_after_animation_link_is_reported() {
 
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id = archipelago.add_island(Island::new(
-    Transform { translation: Vec2::ZERO, rotation: 0.0 },
-    nav_mesh,
-  ));
+  let island_id = archipelago
+    .add_island(Transform { translation: Vec2::ZERO, rotation: 0.0 }, nav_mesh);
 
   let animation_link_1 = archipelago.add_animation_link(AnimationLink {
     start_edge: (Vec2::new(0.0, 1.0), Vec2::new(1.0, 1.0)),

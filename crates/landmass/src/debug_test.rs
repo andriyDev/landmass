@@ -3,7 +3,7 @@ use googletest::{expect_that, matchers::*};
 
 use crate::{
   Agent, AnimationLink, Archipelago, ArchipelagoOptions, FromAgentRadius,
-  HeightNavigationMesh, HeightPolygon, Island, NavigationMesh, Transform,
+  HeightNavigationMesh, HeightPolygon, NavigationMesh, Transform,
   coords::XYZ,
   debug::{DebugDrawError, DebugDrawer, LineType, PointType, TriangleType},
 };
@@ -74,10 +74,10 @@ fn draws_island_meshes_and_agents() {
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   const TRANSLATION: Vec3 = Vec3::ONE;
-  archipelago.add_island(Island::new(
+  archipelago.add_island(
     Transform { translation: TRANSLATION, rotation: 0.0 },
     nav_mesh,
-  ));
+  );
 
   let agent_id = archipelago.add_agent(Agent::create(
     /* position= */ Vec3::new(3.9, 1.5, 0.0) + TRANSLATION,
@@ -408,11 +408,11 @@ fn draws_boundary_links() {
 
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
-  archipelago.add_island(Island::new(
+  archipelago.add_island(Transform::default(), nav_mesh.clone());
+  archipelago.add_island(
     Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
-  ));
+  );
 
   let agent_id = archipelago.add_agent({
     let mut agent = Agent::create(
@@ -480,11 +480,11 @@ fn draws_animation_links() {
 
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
-  archipelago.add_island(Island::new(
+  archipelago.add_island(Transform::default(), nav_mesh.clone());
+  archipelago.add_island(
     Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
-  ));
+  );
   let link_id = archipelago.add_animation_link(AnimationLink {
     start_edge: (Vec3::new(0.9, 0.0, 0.0), Vec3::new(0.9, 1.0, 0.0)),
     end_edge: (Vec3::new(2.1, 0.0, 0.0), Vec3::new(2.1, 1.0, 0.0)),
@@ -587,7 +587,7 @@ fn draws_height_mesh() {
 
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+  archipelago.add_island(Transform::default(), nav_mesh.clone());
 
   // Update so everything is in sync.
   archipelago.update(1.0);
@@ -721,7 +721,7 @@ fn fails_to_draw_dirty_archipelago() {
 
   // Creating an island marks the nav data as dirty.
   let island_id =
-    archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+    archipelago.add_island(Transform::default(), nav_mesh.clone());
   assert_eq!(
     draw_archipelago_debug(&archipelago, &mut fake_drawer),
     Err(DebugDrawError::NavDataDirty)
@@ -773,7 +773,7 @@ fn draws_avoidance_data_when_requested() {
     obstacle_avoidance_time_horizon: 100.0,
     ..ArchipelagoOptions::from_agent_radius(0.5)
   });
-  archipelago.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+  archipelago.add_island(Transform::default(), nav_mesh.clone());
 
   let agent_1 = archipelago.add_agent({
     let mut agent = Agent::create(

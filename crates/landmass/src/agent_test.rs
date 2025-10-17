@@ -6,8 +6,8 @@ use slotmap::HopSlotMap;
 
 use crate::{
   Agent, Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius,
-  Island, IslandId, NavigationMesh, NotReachedAnimationLinkError,
-  ReachedAnimationLink, TargetReachedCondition, Transform,
+  IslandId, NavigationMesh, NotReachedAnimationLinkError, ReachedAnimationLink,
+  TargetReachedCondition, Transform,
   agent::{NotUsingAnimationLinkError, RepathResult, does_agent_need_repath},
   coords::{XY, XYZ},
   link::{AnimationLink, AnimationLinkId},
@@ -81,8 +81,7 @@ fn has_reached_target_at_end_node() {
     Transform { translation: Vec3::new(2.0, 3.0, 4.0), rotation: PI * 0.85 };
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id =
-    archipelago.add_island(Island::new(transform.clone(), nav_mesh));
+  let island_id = archipelago.add_island(transform.clone(), nav_mesh);
   let transform = transform.to_core();
   let mut agent = Agent::create(
     /* position= */ transform.apply(Vec3::new(1.0, 0.0, 1.0)),
@@ -176,8 +175,7 @@ fn long_detour_reaches_target_in_different_ways() {
     Transform { translation: Vec3::new(2.0, 4.0, 3.0), rotation: PI * -0.85 };
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id =
-    archipelago.add_island(Island::new(transform.clone(), nav_mesh));
+  let island_id = archipelago.add_island(transform.clone(), nav_mesh);
   let transform = transform.to_core();
 
   let mut agent = Agent::create(
@@ -420,10 +418,10 @@ fn using_animation_link_does_not_reach_target() {
   .validate()
   .expect("nav mesh is valid");
 
-  let island_id = archipelago.add_island(Island::new(
+  let island_id = archipelago.add_island(
     Transform { translation: Vec2::new(10.0, 10.0), ..Default::default() },
     nav_mesh,
-  ));
+  );
 
   let animation_link_id = archipelago.add_animation_link(AnimationLink {
     // Portals are in world space.
@@ -555,8 +553,7 @@ fn uses_sampled_point_for_reaching_target() {
   .expect("nav mesh is valid");
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id =
-    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
+  let island_id = archipelago.add_island(Transform::default(), nav_mesh);
   let mut agent = Agent::create(
     /* position= */ Vec3::new(1.0, 1.0, 1.0),
     /* velocity= */ Vec3::ZERO,
