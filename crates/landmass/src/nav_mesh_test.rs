@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use glam::{Vec2, Vec3};
 use googletest::{expect_that, matchers::*};
 
@@ -105,7 +103,6 @@ fn polygons_derived_and_vertices_copied() {
     source_mesh.clone().validate().expect("Validation succeeds.");
   assert_eq!(valid_mesh.vertices, source_mesh.vertices);
   assert_eq!(valid_mesh.polygons, expected_polygons);
-  assert_eq!(valid_mesh.used_type_indices, HashSet::from([1337, 123]));
 }
 
 #[test]

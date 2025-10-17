@@ -401,7 +401,6 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
       polygons,
       vertices,
       boundary_edges,
-      used_type_indices,
       height_mesh,
       marker: Default::default(),
     })
@@ -494,11 +493,6 @@ pub struct ValidNavigationMesh<CS: CoordinateSystem> {
   /// (e.0, e.1) from e.0 to e.1 will move counter-clockwise along the
   /// boundary. The order of edges is undefined.
   pub(crate) boundary_edges: Vec<MeshEdgeRef>,
-  /// The type indices used by this navigation mesh. This is a convenience for
-  /// just iterating through every polygon and checking its type index. Note
-  /// these don't correspond to [`crate::NodeType`]s yet. This occurs once
-  /// assigned to an island.
-  pub(crate) used_type_indices: HashSet<usize>,
   /// The height mesh used to "refine" point positions. See
   /// [`HeightNavigationMesh`] for more details.
   pub(crate) height_mesh: Option<ValidHeightNavigationMesh>,
@@ -534,7 +528,6 @@ impl<CS: CoordinateSystem> Clone for ValidNavigationMesh<CS> {
       vertices: self.vertices.clone(),
       polygons: self.polygons.clone(),
       boundary_edges: self.boundary_edges.clone(),
-      used_type_indices: self.used_type_indices.clone(),
       height_mesh: self.height_mesh.clone(),
       marker: self.marker,
     }
@@ -549,7 +542,6 @@ impl<CS: CoordinateSystem> std::fmt::Debug for ValidNavigationMesh<CS> {
       .field("vertices", &self.vertices)
       .field("polygons", &self.polygons)
       .field("boundary_edges", &self.boundary_edges)
-      .field("used_type_indices", &self.used_type_indices)
       .field("height_mesh", &self.height_mesh)
       .field("marker", &self.marker)
       .finish()
