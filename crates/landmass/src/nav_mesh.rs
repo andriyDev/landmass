@@ -3,10 +3,11 @@ use std::{
   collections::{HashMap, HashSet},
   marker::PhantomData,
   ops::Range,
+  sync::Arc,
 };
 
 use disjoint::DisjointSet;
-use glam::{Vec3, swizzles::Vec3Swizzles};
+use glam::{swizzles::Vec3Swizzles, Vec3};
 use thiserror::Error;
 
 use crate::{
@@ -148,14 +149,10 @@ pub enum ValidationError {
   #[error("The polygon at index {0} references an out-of-bounds vertex.")]
   InvalidVertexIndexInPolygon(usize),
   /// Stores the index of the polygon.
-  #[error(
-    "The polygon at index {0} contains a degenerate edge (an edge with zero length)."
-  )]
+  #[error("The polygon at index {0} contains a degenerate edge (an edge with zero length).")]
   DegenerateEdgeInPolygon(usize),
   /// Stores the indices of the two vertices that make up the edge.
-  #[error(
-    "The edge made from vertices {0} and {1} is used by more than two polygons."
-  )]
+  #[error("The edge made from vertices {0} and {1} is used by more than two polygons.")]
   DoublyConnectedEdge(usize, usize),
   #[error(transparent)]
   HeightMeshError(#[from] ValidateHeightMeshError),
@@ -179,8 +176,8 @@ pub enum ValidateHeightMeshError {
   )]
   InvalidIndexInTriangle { triangle: u32, vertex: usize },
   #[error(
-    "The triangle at index {0} in the height mesh is clockwise instead of counter-clockwise"
-  )]
+        "The triangle at index {0} in the height mesh is clockwise instead of counter-clockwise"
+    )]
   ClockwiseTriangle(usize),
 }
 
@@ -396,14 +393,14 @@ impl<CS: CoordinateSystem> NavigationMesh<CS> {
       }
     }
 
-    Ok(ValidNavigationMesh {
+    let inner = Arc::new(CoreValidNavigationMesh {
       mesh_bounds,
       polygons,
       vertices,
       boundary_edges,
       height_mesh,
-      marker: Default::default(),
-    })
+    });
+    Ok(ValidNavigationMesh::new(inner))
   }
 }
 
@@ -480,7 +477,56 @@ impl<CS: CoordinateSystem> HeightNavigationMesh<CS> {
 
 /// A navigation mesh which has been validated and derived data has been
 /// computed.
+///
+/// Note: This type is a wrapper around an [`Arc`], so cloning it is "cheap".
 pub struct ValidNavigationMesh<CS: CoordinateSystem> {
+  /// The core navigation mesh that represents the same data.
+  inner: Arc<CoreValidNavigationMesh>,
+  marker: PhantomData<CS>,
+}
+
+// Manual Debug impl to avoid Debug bound on CoordinateSystem.
+impl<CS: CoordinateSystem> Clone for ValidNavigationMesh<CS> {
+  fn clone(&self) -> Self {
+    Self { inner: self.inner.clone(), marker: self.marker }
+  }
+}
+
+// Manual Debug impl to avoid Debug bound on CoordinateSystem.
+impl<CS: CoordinateSystem> std::fmt::Debug for ValidNavigationMesh<CS> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ValidNavigationMesh")
+      .field("inner", &self.inner)
+      .field("marker", &self.marker)
+      .finish()
+  }
+}
+
+impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
+  /// Creates a new instance wrapping `inner`.
+  ///
+  /// No validation is done to check that the inner actually corresponds to the
+  /// coordinate system.
+  pub(crate) fn new(inner: Arc<CoreValidNavigationMesh>) -> Self {
+    Self { inner, marker: PhantomData }
+  }
+
+  /// Gets the "core" representation of this navigation mesh.
+  ///
+  /// The "core" representation contains no generics and is expressed in the
+  /// standard coordinate system. Only
+  pub fn to_core(&self) -> Arc<CoreValidNavigationMesh> {
+    self.inner.clone()
+  }
+}
+
+/// A navigation mesh which has been validated and derived data has been
+/// computed.
+///
+/// This is a "core" type meaning it has no generics. This type expresses
+/// everything in the standard coordinate system.
+#[derive(Clone, Debug)]
+pub struct CoreValidNavigationMesh {
   /// The bounds of the mesh data itself. This is a tight bounding box around
   /// the vertices of the navigation mesh.
   pub(crate) mesh_bounds: BoundingBox,
@@ -496,8 +542,6 @@ pub struct ValidNavigationMesh<CS: CoordinateSystem> {
   /// The height mesh used to "refine" point positions. See
   /// [`HeightNavigationMesh`] for more details.
   pub(crate) height_mesh: Option<ValidHeightNavigationMesh>,
-  /// Marker for the CoordinateSystem.
-  pub(crate) marker: PhantomData<CS>,
 }
 
 /// A version of [`HeightNavigationMesh`] after it has been validated and
@@ -518,34 +562,6 @@ pub(crate) struct ValidHeightNavigationMesh {
   /// The indices that make up the triangle are relative to
   /// [`HeightPolygon::base_vertex_index`].
   pub(crate) triangles: Vec<[u8; 3]>,
-}
-
-// Manual Debug impl to avoid Debug bound on CoordinateSystem.
-impl<CS: CoordinateSystem> Clone for ValidNavigationMesh<CS> {
-  fn clone(&self) -> Self {
-    Self {
-      mesh_bounds: self.mesh_bounds,
-      vertices: self.vertices.clone(),
-      polygons: self.polygons.clone(),
-      boundary_edges: self.boundary_edges.clone(),
-      height_mesh: self.height_mesh.clone(),
-      marker: self.marker,
-    }
-  }
-}
-
-// Manual Debug impl to avoid Debug bound on CoordinateSystem.
-impl<CS: CoordinateSystem> std::fmt::Debug for ValidNavigationMesh<CS> {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("ValidNavigationMesh")
-      .field("mesh_bounds", &self.mesh_bounds)
-      .field("vertices", &self.vertices)
-      .field("polygons", &self.polygons)
-      .field("boundary_edges", &self.boundary_edges)
-      .field("height_mesh", &self.height_mesh)
-      .field("marker", &self.marker)
-      .finish()
-  }
 }
 
 /// A valid polygon. This means the polygon is convex and indexes the `vertices`
@@ -591,7 +607,7 @@ pub(crate) struct MeshEdgeRef {
   pub(crate) edge_index: usize,
 }
 
-impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
+impl CoreValidNavigationMesh {
   /// Returns the bounds of the navigation mesh.
   pub(crate) fn get_bounds(&self) -> BoundingBox {
     self.mesh_bounds
@@ -808,9 +824,7 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
       }
     }
 
-    panic!(
-      "It should be impossible to reach here since we assume the node contains the point"
-    )
+    panic!("It should be impossible to reach here since we assume the node contains the point")
   }
 
   /// Samples the `edge` on this nav mesh clipping to a max vertical distance.
@@ -923,8 +937,8 @@ fn clip_edge_to_triangles(
 }
 
 /// Computes a [`BoundingBoxHierarchy`] for the nodes in `nav_mesh`.
-pub(crate) fn nav_mesh_node_bbh<CS: CoordinateSystem>(
-  nav_mesh: &ValidNavigationMesh<CS>,
+pub(crate) fn nav_mesh_node_bbh(
+  nav_mesh: &CoreValidNavigationMesh,
   expand_by: Vec3,
 ) -> BoundingBoxHierarchy<usize> {
   let mut polygon_bounds = nav_mesh

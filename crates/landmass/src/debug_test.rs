@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use glam::Vec3;
 use googletest::{expect_that, matchers::*};
 
@@ -78,7 +76,7 @@ fn draws_island_meshes_and_agents() {
   const TRANSLATION: Vec3 = Vec3::ONE;
   archipelago.add_island(Island::new(
     Transform { translation: TRANSLATION, rotation: 0.0 },
-    Arc::new(nav_mesh),
+    nav_mesh,
   ));
 
   let agent_id = archipelago.add_agent(Agent::create(
@@ -394,21 +392,19 @@ fn draws_island_meshes_and_agents() {
 
 #[googletest::test]
 fn draws_boundary_links() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(1.0, 1.0, 1.0),
-        Vec3::new(2.0, 1.0, 1.0),
-        Vec3::new(2.0, 2.0, 1.0),
-        Vec3::new(1.0, 2.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("The mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(1.0, 1.0, 1.0),
+      Vec3::new(2.0, 1.0, 1.0),
+      Vec3::new(2.0, 2.0, 1.0),
+      Vec3::new(1.0, 2.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("The mesh is valid.");
 
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
@@ -468,21 +464,19 @@ fn draws_boundary_links() {
 
 #[googletest::test]
 fn draws_animation_links() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(1.0, 0.0, 0.0),
-        Vec3::new(1.0, 1.0, 0.0),
-        Vec3::new(0.0, 1.0, 0.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("The mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("The mesh is valid.");
 
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
@@ -548,50 +542,48 @@ fn draws_animation_links() {
 
 #[googletest::test]
 fn draws_height_mesh() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 2.0, 0.0),
+      Vec3::new(0.0, 2.0, 0.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
+    polygon_type_indices: vec![0; 2],
+    height_mesh: Some(HeightNavigationMesh {
       vertices: vec![
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(1.0, 0.0, 0.0),
-        Vec3::new(1.0, 1.0, 0.0),
-        Vec3::new(0.0, 1.0, 0.0),
-        Vec3::new(1.0, 2.0, 0.0),
-        Vec3::new(0.0, 2.0, 0.0),
+        Vec3::new(0.0, 0.0, -2.0),
+        Vec3::new(1.0, 0.0, -2.0),
+        Vec3::new(1.0, 1.0, -2.0),
+        Vec3::new(0.0, 1.0, -2.0),
+        Vec3::new(0.0, 0.5, -2.0),
+        Vec3::new(0.0, 1.0, 3.0),
+        Vec3::new(1.0, 1.0, 3.0),
+        Vec3::new(1.0, 2.0, 3.0),
+        Vec3::new(0.0, 2.0, 3.0),
       ],
-      polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
-      polygon_type_indices: vec![0; 2],
-      height_mesh: Some(HeightNavigationMesh {
-        vertices: vec![
-          Vec3::new(0.0, 0.0, -2.0),
-          Vec3::new(1.0, 0.0, -2.0),
-          Vec3::new(1.0, 1.0, -2.0),
-          Vec3::new(0.0, 1.0, -2.0),
-          Vec3::new(0.0, 0.5, -2.0),
-          Vec3::new(0.0, 1.0, 3.0),
-          Vec3::new(1.0, 1.0, 3.0),
-          Vec3::new(1.0, 2.0, 3.0),
-          Vec3::new(0.0, 2.0, 3.0),
-        ],
-        triangles: vec![[0, 1, 2], [2, 3, 4], [2, 4, 0], [0, 1, 2], [2, 3, 0]],
-        polygons: vec![
-          HeightPolygon {
-            base_vertex_index: 0,
-            vertex_count: 5,
-            base_triangle_index: 0,
-            triangle_count: 3,
-          },
-          HeightPolygon {
-            base_vertex_index: 5,
-            vertex_count: 4,
-            base_triangle_index: 3,
-            triangle_count: 2,
-          },
-        ],
-      }),
-    }
-    .validate()
-    .expect("The mesh is valid."),
-  );
+      triangles: vec![[0, 1, 2], [2, 3, 4], [2, 4, 0], [0, 1, 2], [2, 3, 0]],
+      polygons: vec![
+        HeightPolygon {
+          base_vertex_index: 0,
+          vertex_count: 5,
+          base_triangle_index: 0,
+          triangle_count: 3,
+        },
+        HeightPolygon {
+          base_vertex_index: 5,
+          vertex_count: 4,
+          base_triangle_index: 3,
+          triangle_count: 2,
+        },
+      ],
+    }),
+  }
+  .validate()
+  .expect("The mesh is valid.");
 
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
@@ -706,21 +698,19 @@ fn draws_height_mesh() {
 
 #[test]
 fn fails_to_draw_dirty_archipelago() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(1.0, 1.0, 1.0),
-        Vec3::new(2.0, 1.0, 1.0),
-        Vec3::new(2.0, 2.0, 1.0),
-        Vec3::new(1.0, 2.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("The mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(1.0, 1.0, 1.0),
+      Vec3::new(2.0, 1.0, 1.0),
+      Vec3::new(2.0, 2.0, 1.0),
+      Vec3::new(1.0, 2.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("The mesh is valid.");
 
   let mut fake_drawer = FakeDrawer::new();
 
@@ -763,21 +753,19 @@ fn draws_avoidance_data_when_requested() {
     },
   };
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(1.0, 1.0, 1.0),
-        Vec3::new(11.0, 1.0, 1.0),
-        Vec3::new(11.0, 11.0, 1.0),
-        Vec3::new(1.0, 11.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("The mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(1.0, 1.0, 1.0),
+      Vec3::new(11.0, 1.0, 1.0),
+      Vec3::new(11.0, 11.0, 1.0),
+      Vec3::new(1.0, 11.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("The mesh is valid.");
 
   let mut archipelago = Archipelago::<XYZ>::new(ArchipelagoOptions {
     neighbourhood: 100.0,

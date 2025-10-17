@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use glam::Vec2;
 use googletest::{expect_that, matchers::*};
@@ -18,21 +18,19 @@ fn error_on_dirty_nav_mesh() {
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("nav mesh is valid"),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("nav mesh is valid");
 
   archipelago.add_island(Island::new(Transform::default(), nav_mesh));
   assert_eq!(
@@ -51,21 +49,19 @@ fn error_on_out_of_range() {
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("nav mesh is valid"),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("nav mesh is valid");
 
   archipelago.add_island(Island::new(Transform::default(), nav_mesh));
   archipelago.update(1.0);
@@ -86,21 +82,19 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("nav mesh is valid"),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("nav mesh is valid");
 
   let offset = Vec2::new(10.0, 10.0);
   let island_id = archipelago.add_island(Island::new(
@@ -147,32 +141,30 @@ fn samples_type_indices() {
   archipelago.set_type_index_cost(2, 2.0).unwrap();
   archipelago.set_type_index_cost(3, 3.0).unwrap();
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-        Vec2::new(2.0, 0.0),
-        Vec2::new(2.0, 1.0),
-        Vec2::new(3.0, 0.0),
-        Vec2::new(3.0, 1.0),
-        Vec2::new(4.0, 0.0),
-        Vec2::new(4.0, 1.0),
-      ],
-      polygons: vec![
-        vec![0, 1, 2, 3],
-        vec![2, 1, 4, 5],
-        vec![5, 4, 6, 7],
-        vec![7, 6, 8, 9],
-      ],
-      polygon_type_indices: vec![0, 1, 2, 3],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("nav mesh is valid"),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+      Vec2::new(2.0, 0.0),
+      Vec2::new(2.0, 1.0),
+      Vec2::new(3.0, 0.0),
+      Vec2::new(3.0, 1.0),
+      Vec2::new(4.0, 0.0),
+      Vec2::new(4.0, 1.0),
+    ],
+    polygons: vec![
+      vec![0, 1, 2, 3],
+      vec![2, 1, 4, 5],
+      vec![5, 4, 6, 7],
+      vec![7, 6, 8, 9],
+    ],
+    polygon_type_indices: vec![0, 1, 2, 3],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("nav mesh is valid");
 
   let offset = Vec2::new(10.0, 10.0);
   archipelago.add_island(Island::new(
@@ -224,21 +216,19 @@ fn no_path() {
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("nav mesh is valid"),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("nav mesh is valid");
 
   let offset = Vec2::new(10.0, 10.0);
   archipelago.add_island(Island::new(
@@ -274,21 +264,19 @@ fn finds_path() {
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("nav mesh is valid"),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("nav mesh is valid");
 
   let offset = Vec2::new(10.0, 10.0);
   archipelago.add_island(Island::new(
@@ -332,51 +320,49 @@ fn finds_path_with_override_type_index_costs() {
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-        //
-        Vec2::new(2.0, 0.0),
-        Vec2::new(2.0, 1.0),
-        //
-        Vec2::new(3.0, 0.0),
-        Vec2::new(3.0, 1.0),
-        //
-        Vec2::new(2.0, 11.0),
-        Vec2::new(3.0, 11.0),
-        //
-        Vec2::new(2.0, 12.0),
-        Vec2::new(3.0, 12.0),
-        //
-        Vec2::new(1.0, 12.0),
-        Vec2::new(1.0, 11.0),
-        //
-        Vec2::new(0.0, 12.0),
-        Vec2::new(0.0, 11.0),
-      ],
-      polygons: vec![
-        vec![0, 1, 2, 3],
-        vec![2, 1, 4, 5],
-        vec![5, 4, 6, 7],
-        //
-        vec![5, 7, 9, 8],
-        vec![8, 9, 11, 10],
-        //
-        vec![8, 10, 12, 13],
-        vec![13, 12, 14, 15],
-        //
-        vec![3, 2, 13, 15],
-      ],
-      polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 1],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("nav mesh is valid"),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+      //
+      Vec2::new(2.0, 0.0),
+      Vec2::new(2.0, 1.0),
+      //
+      Vec2::new(3.0, 0.0),
+      Vec2::new(3.0, 1.0),
+      //
+      Vec2::new(2.0, 11.0),
+      Vec2::new(3.0, 11.0),
+      //
+      Vec2::new(2.0, 12.0),
+      Vec2::new(3.0, 12.0),
+      //
+      Vec2::new(1.0, 12.0),
+      Vec2::new(1.0, 11.0),
+      //
+      Vec2::new(0.0, 12.0),
+      Vec2::new(0.0, 11.0),
+    ],
+    polygons: vec![
+      vec![0, 1, 2, 3],
+      vec![2, 1, 4, 5],
+      vec![5, 4, 6, 7],
+      //
+      vec![5, 7, 9, 8],
+      vec![8, 9, 11, 10],
+      //
+      vec![8, 10, 12, 13],
+      vec![13, 12, 14, 15],
+      //
+      vec![3, 2, 13, 15],
+    ],
+    polygon_type_indices: vec![0, 0, 0, 0, 0, 0, 0, 1],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("nav mesh is valid");
 
   archipelago.add_island(Island::new(Transform::default(), nav_mesh));
 
@@ -420,21 +406,19 @@ fn find_path_returns_error_on_invalid_node_cost() {
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("nav mesh is valid"),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("nav mesh is valid");
 
   archipelago.add_island(Island::new(Transform::default(), nav_mesh));
 
@@ -474,21 +458,19 @@ fn start_and_end_in_same_node() {
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("nav mesh is valid"),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("nav mesh is valid");
 
   archipelago.add_island(Island::new(Transform::default(), nav_mesh));
 
@@ -527,27 +509,25 @@ fn one_animation_link_path() {
   // +-+
   // |S|
   // +-+
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        // Step 1
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-        // Step 2
-        Vec2::new(0.0, 2.0),
-        Vec2::new(1.0, 2.0),
-        Vec2::new(1.0, 3.0),
-        Vec2::new(0.0, 3.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
-      polygon_type_indices: vec![0; 2],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("nav mesh is valid"),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      // Step 1
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+      // Step 2
+      Vec2::new(0.0, 2.0),
+      Vec2::new(1.0, 2.0),
+      Vec2::new(1.0, 3.0),
+      Vec2::new(0.0, 3.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
+    polygon_type_indices: vec![0; 2],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("nav mesh is valid");
 
   archipelago.add_island(Island::new(Transform::default(), nav_mesh));
   let link_id = archipelago.add_animation_link(AnimationLink {

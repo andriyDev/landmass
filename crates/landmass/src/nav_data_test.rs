@@ -47,16 +47,15 @@ fn samples_points() {
   }
   .validate()
   .expect("is valid");
-  let nav_mesh = Arc::new(nav_mesh);
 
   let mut nav_data = NavigationData::<XYZ>::new();
   let island_id_1 = nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
   let island_id_2 = nav_data.add_island(Island::new(
     Transform { translation: Vec3::new(5.0, 0.0, 0.1), rotation: PI * 0.5 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
 
   // Just above island 1 node.
@@ -177,67 +176,63 @@ fn clone_sort_round_links(
 
 #[googletest::test]
 fn link_edges_between_islands_links_touching_islands() {
-  let nav_mesh_1 = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(1.0, 0.0, 1.0),
-        Vec3::new(1.0, 1.0, 1.0),
-        Vec3::new(-1.0, 1.0, 1.0),
-        Vec3::new(-1.0, 0.0, 1.0),
-        Vec3::new(-1.0, -1.0, 1.0),
-        Vec3::new(1.0, -1.0, 1.0),
-        //
-        Vec3::new(2.0, 0.0, 1.0),
-        Vec3::new(2.0, 2.0, 1.0),
-        Vec3::new(-2.0, 2.0, 1.0),
-        Vec3::new(-2.0, 0.0, 1.0),
-        Vec3::new(-2.0, -2.0, 1.0),
-        Vec3::new(2.0, -2.0, 1.0),
-      ],
-      polygons: vec![
-        vec![0, 6, 7, 1],
-        vec![1, 7, 8, 2],
-        vec![2, 8, 9, 3],
-        vec![10, 4, 3, 9],
-        vec![10, 11, 5, 4],
-        vec![6, 0, 5, 11],
-      ],
-      polygon_type_indices: vec![0, 1, 1, 1, 0, 0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("is valid."),
-  );
+  let nav_mesh_1 = NavigationMesh {
+    vertices: vec![
+      Vec3::new(1.0, 0.0, 1.0),
+      Vec3::new(1.0, 1.0, 1.0),
+      Vec3::new(-1.0, 1.0, 1.0),
+      Vec3::new(-1.0, 0.0, 1.0),
+      Vec3::new(-1.0, -1.0, 1.0),
+      Vec3::new(1.0, -1.0, 1.0),
+      //
+      Vec3::new(2.0, 0.0, 1.0),
+      Vec3::new(2.0, 2.0, 1.0),
+      Vec3::new(-2.0, 2.0, 1.0),
+      Vec3::new(-2.0, 0.0, 1.0),
+      Vec3::new(-2.0, -2.0, 1.0),
+      Vec3::new(2.0, -2.0, 1.0),
+    ],
+    polygons: vec![
+      vec![0, 6, 7, 1],
+      vec![1, 7, 8, 2],
+      vec![2, 8, 9, 3],
+      vec![10, 4, 3, 9],
+      vec![10, 11, 5, 4],
+      vec![6, 0, 5, 11],
+    ],
+    polygon_type_indices: vec![0, 1, 1, 1, 0, 0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("is valid.");
 
-  let nav_mesh_2 = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(-1.0, -0.5, 1.0),
-        Vec3::new(-0.5, -0.5, 1.0),
-        Vec3::new(0.5, -0.5, 1.0),
-        Vec3::new(1.0, -0.5, 1.0),
-        Vec3::new(-1.0, 0.5, 1.0),
-        Vec3::new(-0.5, 0.5, 1.0),
-        Vec3::new(0.5, 0.5, 1.0),
-        Vec3::new(1.0, 0.5, 1.0),
-        Vec3::new(-0.5, 1.0, 1.0),
-        Vec3::new(0.5, 1.0, 1.0),
-        Vec3::new(-0.5, -1.0, 1.0),
-        Vec3::new(0.5, -1.0, 1.0),
-      ],
-      polygons: vec![
-        vec![5, 4, 0, 1],
-        vec![1, 2, 6, 5],
-        vec![3, 7, 6, 2],
-        vec![5, 6, 9, 8],
-        vec![10, 11, 2, 1],
-      ],
-      polygon_type_indices: vec![0, 0, 0, 0, 2],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("is valid."),
-  );
+  let nav_mesh_2 = NavigationMesh {
+    vertices: vec![
+      Vec3::new(-1.0, -0.5, 1.0),
+      Vec3::new(-0.5, -0.5, 1.0),
+      Vec3::new(0.5, -0.5, 1.0),
+      Vec3::new(1.0, -0.5, 1.0),
+      Vec3::new(-1.0, 0.5, 1.0),
+      Vec3::new(-0.5, 0.5, 1.0),
+      Vec3::new(0.5, 0.5, 1.0),
+      Vec3::new(1.0, 0.5, 1.0),
+      Vec3::new(-0.5, 1.0, 1.0),
+      Vec3::new(0.5, 1.0, 1.0),
+      Vec3::new(-0.5, -1.0, 1.0),
+      Vec3::new(0.5, -1.0, 1.0),
+    ],
+    polygons: vec![
+      vec![5, 4, 0, 1],
+      vec![1, 2, 6, 5],
+      vec![3, 7, 6, 2],
+      vec![5, 6, 9, 8],
+      vec![10, 11, 2, 1],
+    ],
+    polygon_type_indices: vec![0, 0, 0, 0, 2],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("is valid.");
 
   // Create unused slotmaps just to get `IslandId`s and `NodeType`s.
   let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
@@ -247,8 +242,8 @@ fn link_edges_between_islands_links_touching_islands() {
   let transform =
     Transform { translation: Vec3::new(1.0, 2.0, 3.0), rotation: PI * -0.25 };
 
-  let island_1 = Island::new(transform.clone(), Arc::clone(&nav_mesh_1));
-  let island_2 = Island::new(transform.clone(), Arc::clone(&nav_mesh_2));
+  let island_1 = Island::new(transform.clone(), nav_mesh_1.clone());
+  let island_2 = Island::new(transform.clone(), nav_mesh_2.clone());
 
   let island_1_edge_bbh = island_edges_bbh(&island_1);
   let island_2_edge_bbh = island_edges_bbh(&island_2);
@@ -505,45 +500,43 @@ fn link_edges_between_islands_links_touching_islands() {
 
 #[test]
 fn update_links_islands_and_unlinks_on_delete() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(1.0, 0.0, 1.0),
-        Vec3::new(2.0, 0.0, 1.0),
-        Vec3::new(2.0, 2.0, 1.0),
-        Vec3::new(0.0, 2.0, 1.0),
-        Vec3::new(0.0, 1.0, 1.0),
-        Vec3::new(1.0, 1.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 5], vec![4, 5, 2, 3]],
-      polygon_type_indices: vec![0, 0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(1.0, 0.0, 1.0),
+      Vec3::new(2.0, 0.0, 1.0),
+      Vec3::new(2.0, 2.0, 1.0),
+      Vec3::new(0.0, 2.0, 1.0),
+      Vec3::new(0.0, 1.0, 1.0),
+      Vec3::new(1.0, 1.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 5], vec![4, 5, 2, 3]],
+    polygon_type_indices: vec![0, 0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
   let island_1_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
   let island_2_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: PI * 0.5 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
   let island_3_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: PI },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
   let island_4_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::new(3.0, 0.0, 0.0), rotation: PI },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
   let island_5_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::new(2.0, 3.0, 0.0), rotation: PI * -0.5 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
 
   nav_data.update(
@@ -804,37 +797,35 @@ fn clone_sort_round_modified_nodes(
 
 #[test]
 fn modifies_node_boundaries_for_linked_islands() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(1.0, 1.0, 1.0),
-        Vec3::new(2.0, 1.0, 1.0),
-        Vec3::new(2.0, 2.0, 1.0),
-        Vec3::new(1.0, 2.0, 1.0),
-        Vec3::new(2.0, 3.0, 1.0),
-        Vec3::new(1.0, 3.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
-      polygon_type_indices: vec![0, 0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(1.0, 1.0, 1.0),
+      Vec3::new(2.0, 1.0, 1.0),
+      Vec3::new(2.0, 2.0, 1.0),
+      Vec3::new(1.0, 2.0, 1.0),
+      Vec3::new(2.0, 3.0, 1.0),
+      Vec3::new(1.0, 3.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
+    polygon_type_indices: vec![0, 0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
   let island_1_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
   let island_2_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
   let island_3_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::new(2.0, 3.5, 0.0), rotation: PI * -0.5 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
 
   nav_data.update(
@@ -876,33 +867,31 @@ fn modifies_node_boundaries_for_linked_islands() {
 
 #[test]
 fn stale_modified_nodes_are_removed() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(1.0, 1.0, 1.0),
-        Vec3::new(2.0, 1.0, 1.0),
-        Vec3::new(2.0, 2.0, 1.0),
-        Vec3::new(1.0, 2.0, 1.0),
-        Vec3::new(2.0, 3.0, 1.0),
-        Vec3::new(1.0, 3.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
-      polygon_type_indices: vec![0, 0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(1.0, 1.0, 1.0),
+      Vec3::new(2.0, 1.0, 1.0),
+      Vec3::new(2.0, 2.0, 1.0),
+      Vec3::new(1.0, 2.0, 1.0),
+      Vec3::new(2.0, 3.0, 1.0),
+      Vec3::new(1.0, 3.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5]],
+    polygon_type_indices: vec![0, 0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
   nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
   let island_2_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
 
   nav_data.update(
@@ -924,35 +913,33 @@ fn stale_modified_nodes_are_removed() {
 
 #[googletest::test]
 fn modified_node_is_removed_for_no_boundary_links() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("is valid.");
 
   let mut nav_data = NavigationData::<XY>::new();
 
   let island_1_id = nav_data.add_island(Island::new(
     Transform { translation: Vec2::ZERO, rotation: 0.0 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
   let island_2_id = nav_data.add_island(Island::new(
     Transform { translation: Vec2::new(1.0, 0.0), rotation: 0.0 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
   nav_data.add_island(Island::new(
     Transform { translation: Vec2::new(-2.0, 0.0), rotation: 0.0 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
 
   nav_data.add_animation_link(AnimationLink {
@@ -988,32 +975,28 @@ fn modified_node_is_removed_for_no_boundary_links() {
 
 #[test]
 fn empty_navigation_mesh_is_safe() {
-  let full_nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(1.0, 0.0, 0.0),
-        Vec3::new(1.0, 1.0, 0.0),
-        Vec3::new(0.0, 1.0, 0.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let full_nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
-  let empty_nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![],
-      polygons: vec![],
-      polygon_type_indices: vec![],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("An empty nav mesh is valid."),
-  );
+  let empty_nav_mesh = NavigationMesh {
+    vertices: vec![],
+    polygons: vec![],
+    polygon_type_indices: vec![],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("An empty nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
   nav_data.add_island(Island::new(Transform::default(), full_nav_mesh));
@@ -1044,21 +1027,19 @@ fn error_on_set_zero_or_negative_type_index_cost() {
 fn changed_island_rebuilds_region_connectivity() {
   let mut nav_data = NavigationData::<XY>::new();
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let island_1 =
     nav_data.add_island(Island::new(Transform::default(), nav_mesh.clone()));
@@ -1111,21 +1092,19 @@ fn changed_island_rebuilds_region_connectivity() {
 fn changed_animation_link_rebuilds_region_connectivity() {
   let mut nav_data = NavigationData::<XY>::new();
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let island_1 =
     nav_data.add_island(Island::new(Transform::default(), nav_mesh.clone()));
@@ -1178,21 +1157,19 @@ fn changed_animation_link_rebuilds_region_connectivity() {
 fn permitted_animation_link_blocks_region_connectivity() {
   let mut nav_data = NavigationData::<XY>::new();
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 1.0),
-        Vec2::new(0.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 1.0),
+      Vec2::new(0.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let island_1 =
     nav_data.add_island(Island::new(Transform::default(), nav_mesh.clone()));
@@ -1261,21 +1238,19 @@ fn get_off_mesh_links_for_node<CS: CoordinateSystem>(
 
 #[googletest::test]
 fn generates_animation_links() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 13.0),
-        Vec3::new(1.0, 0.0, 13.0),
-        Vec3::new(1.0, 1.0, 13.0),
-        Vec3::new(0.0, 1.0, 13.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 13.0),
+      Vec3::new(1.0, 0.0, 13.0),
+      Vec3::new(1.0, 1.0, 13.0),
+      Vec3::new(0.0, 1.0, 13.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
@@ -1429,21 +1404,19 @@ fn generates_animation_links() {
 
 #[googletest::test]
 fn removing_animation_link_removes_off_mesh_links() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 7.0),
-        Vec3::new(1.0, 0.0, 7.0),
-        Vec3::new(1.0, 2.0, 7.0),
-        Vec3::new(0.0, 2.0, 7.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 7.0),
+      Vec3::new(1.0, 0.0, 7.0),
+      Vec3::new(1.0, 2.0, 7.0),
+      Vec3::new(0.0, 2.0, 7.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
@@ -1605,21 +1578,19 @@ fn removing_animation_link_removes_off_mesh_links() {
 
 #[googletest::test]
 fn existing_animation_link_is_linked_for_new_island() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 7.0),
-        Vec3::new(1.0, 0.0, 7.0),
-        Vec3::new(1.0, 2.0, 7.0),
-        Vec3::new(0.0, 2.0, 7.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 7.0),
+      Vec3::new(1.0, 0.0, 7.0),
+      Vec3::new(1.0, 2.0, 7.0),
+      Vec3::new(0.0, 2.0, 7.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
@@ -1770,21 +1741,19 @@ fn existing_animation_link_is_linked_for_new_island() {
 
 #[googletest::test]
 fn added_island_mixes_new_and_old_portals() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 7.0),
-        Vec3::new(1.0, 0.0, 7.0),
-        Vec3::new(1.0, 1.0, 7.0),
-        Vec3::new(0.0, 1.0, 7.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 7.0),
+      Vec3::new(1.0, 0.0, 7.0),
+      Vec3::new(1.0, 1.0, 7.0),
+      Vec3::new(0.0, 1.0, 7.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
@@ -2003,21 +1972,19 @@ fn added_island_mixes_new_and_old_portals() {
 
 #[googletest::test]
 fn same_island_animation_link() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(1.0, 0.0),
-        Vec2::new(1.0, 2.0),
-        Vec2::new(0.0, 2.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(1.0, 0.0),
+      Vec2::new(1.0, 2.0),
+      Vec2::new(0.0, 2.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XY>::new();
 
@@ -2077,26 +2044,24 @@ fn same_island_animation_link() {
 
 #[googletest::test]
 fn point_animation_links_are_connected() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 7.0),
-        Vec3::new(1.0, 0.0, 7.0),
-        Vec3::new(1.0, 1.0, 7.0),
-        Vec3::new(0.0, 1.0, 7.0),
-        //
-        Vec3::new(0.0, 3.0, 7.0),
-        Vec3::new(1.0, 3.0, 7.0),
-        Vec3::new(1.0, 4.0, 7.0),
-        Vec3::new(0.0, 4.0, 7.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
-      polygon_type_indices: vec![0; 2],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 7.0),
+      Vec3::new(1.0, 0.0, 7.0),
+      Vec3::new(1.0, 1.0, 7.0),
+      Vec3::new(0.0, 1.0, 7.0),
+      //
+      Vec3::new(0.0, 3.0, 7.0),
+      Vec3::new(1.0, 3.0, 7.0),
+      Vec3::new(1.0, 4.0, 7.0),
+      Vec3::new(0.0, 4.0, 7.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
+    polygon_type_indices: vec![0; 2],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
@@ -2204,26 +2169,24 @@ fn point_animation_links_are_connected() {
 
 #[googletest::test]
 fn point_animation_links_are_connected_when_not_new() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 7.0),
-        Vec3::new(1.0, 0.0, 7.0),
-        Vec3::new(1.0, 1.0, 7.0),
-        Vec3::new(0.0, 1.0, 7.0),
-        //
-        Vec3::new(0.0, 3.0, 7.0),
-        Vec3::new(1.0, 3.0, 7.0),
-        Vec3::new(1.0, 4.0, 7.0),
-        Vec3::new(0.0, 4.0, 7.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
-      polygon_type_indices: vec![0; 2],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 7.0),
+      Vec3::new(1.0, 0.0, 7.0),
+      Vec3::new(1.0, 1.0, 7.0),
+      Vec3::new(0.0, 1.0, 7.0),
+      //
+      Vec3::new(0.0, 3.0, 7.0),
+      Vec3::new(1.0, 3.0, 7.0),
+      Vec3::new(1.0, 4.0, 7.0),
+      Vec3::new(0.0, 4.0, 7.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
+    polygon_type_indices: vec![0; 2],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
@@ -2337,21 +2300,19 @@ fn point_animation_links_are_connected_when_not_new() {
 
 #[googletest::test]
 fn changing_island_does_not_cause_duplicate_off_mesh_links() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 7.0),
-        Vec3::new(1.0, 0.0, 7.0),
-        Vec3::new(1.0, 1.0, 7.0),
-        Vec3::new(0.0, 1.0, 7.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 7.0),
+      Vec3::new(1.0, 0.0, 7.0),
+      Vec3::new(1.0, 1.0, 7.0),
+      Vec3::new(0.0, 1.0, 7.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
@@ -2545,21 +2506,19 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links() {
 
 #[googletest::test]
 fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 7.0),
-        Vec3::new(1.0, 0.0, 7.0),
-        Vec3::new(1.0, 1.0, 7.0),
-        Vec3::new(0.0, 1.0, 7.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 7.0),
+      Vec3::new(1.0, 0.0, 7.0),
+      Vec3::new(1.0, 1.0, 7.0),
+      Vec3::new(0.0, 1.0, 7.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
@@ -2766,25 +2725,23 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
 
 #[googletest::test]
 fn generates_animation_links_at_correct_height() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 5.0),
-        Vec3::new(1.0, 0.0, 5.0),
-        Vec3::new(1.0, 1.0, 5.0),
-        Vec3::new(0.0, 1.0, 5.0),
-        Vec3::new(0.0, 0.0, 10.0),
-        Vec3::new(1.0, 0.0, 10.0),
-        Vec3::new(1.0, 1.0, 10.0),
-        Vec3::new(0.0, 1.0, 10.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
-      polygon_type_indices: vec![0; 2],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 5.0),
+      Vec3::new(1.0, 0.0, 5.0),
+      Vec3::new(1.0, 1.0, 5.0),
+      Vec3::new(0.0, 1.0, 5.0),
+      Vec3::new(0.0, 0.0, 10.0),
+      Vec3::new(1.0, 0.0, 10.0),
+      Vec3::new(1.0, 1.0, 10.0),
+      Vec3::new(0.0, 1.0, 10.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
+    polygon_type_indices: vec![0; 2],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
@@ -2865,53 +2822,51 @@ fn generates_animation_links_at_correct_height() {
 
 #[googletest::test]
 fn generates_animation_links_using_height_mesh() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      // Both polygons are very far away.
+      Vec3::new(0.0, 0.0, -100.0),
+      Vec3::new(1.0, 0.0, -100.0),
+      Vec3::new(1.0, 1.0, -100.0),
+      Vec3::new(0.0, 1.0, -100.0),
+      Vec3::new(0.0, 0.0, 100.0),
+      Vec3::new(1.0, 0.0, 100.0),
+      Vec3::new(1.0, 1.0, 100.0),
+      Vec3::new(0.0, 1.0, 100.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
+    polygon_type_indices: vec![0; 2],
+    height_mesh: Some(HeightNavigationMesh {
       vertices: vec![
-        // Both polygons are very far away.
-        Vec3::new(0.0, 0.0, -100.0),
-        Vec3::new(1.0, 0.0, -100.0),
-        Vec3::new(1.0, 1.0, -100.0),
-        Vec3::new(0.0, 1.0, -100.0),
-        Vec3::new(0.0, 0.0, 100.0),
-        Vec3::new(1.0, 0.0, 100.0),
-        Vec3::new(1.0, 1.0, 100.0),
-        Vec3::new(0.0, 1.0, 100.0),
+        // The height polygons have more reasonable heights.
+        Vec3::new(0.0, 0.0, 5.0),
+        Vec3::new(1.0, 0.0, 5.0),
+        Vec3::new(1.0, 1.0, 5.0),
+        Vec3::new(0.0, 1.0, 5.0),
+        Vec3::new(0.0, 0.0, 10.0),
+        Vec3::new(1.0, 0.0, 10.0),
+        Vec3::new(1.0, 1.0, 10.0),
+        Vec3::new(0.0, 1.0, 10.0),
       ],
-      polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
-      polygon_type_indices: vec![0; 2],
-      height_mesh: Some(HeightNavigationMesh {
-        vertices: vec![
-          // The height polygons have more reasonable heights.
-          Vec3::new(0.0, 0.0, 5.0),
-          Vec3::new(1.0, 0.0, 5.0),
-          Vec3::new(1.0, 1.0, 5.0),
-          Vec3::new(0.0, 1.0, 5.0),
-          Vec3::new(0.0, 0.0, 10.0),
-          Vec3::new(1.0, 0.0, 10.0),
-          Vec3::new(1.0, 1.0, 10.0),
-          Vec3::new(0.0, 1.0, 10.0),
-        ],
-        triangles: vec![[0, 1, 2], [2, 3, 0], [0, 1, 2], [2, 3, 0]],
-        polygons: vec![
-          HeightPolygon {
-            base_vertex_index: 0,
-            vertex_count: 4,
-            base_triangle_index: 0,
-            triangle_count: 2,
-          },
-          HeightPolygon {
-            base_vertex_index: 4,
-            vertex_count: 4,
-            base_triangle_index: 2,
-            triangle_count: 2,
-          },
-        ],
-      }),
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+      triangles: vec![[0, 1, 2], [2, 3, 0], [0, 1, 2], [2, 3, 0]],
+      polygons: vec![
+        HeightPolygon {
+          base_vertex_index: 0,
+          vertex_count: 4,
+          base_triangle_index: 0,
+          triangle_count: 2,
+        },
+        HeightPolygon {
+          base_vertex_index: 4,
+          vertex_count: 4,
+          base_triangle_index: 2,
+          triangle_count: 2,
+        },
+      ],
+    }),
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
@@ -2992,25 +2947,23 @@ fn generates_animation_links_using_height_mesh() {
 
 #[googletest::test]
 fn animation_link_along_angled_surface() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(1.0, 0.0, 0.0),
-        Vec3::new(1.0, 1.0, 0.0),
-        Vec3::new(0.0, 1.0, 0.0),
-        Vec3::new(1.0, 2.0, 1.0),
-        Vec3::new(0.0, 2.0, 1.0),
-        Vec3::new(1.0, 3.0, 1.0),
-        Vec3::new(0.0, 3.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5], vec![5, 4, 6, 7]],
-      polygon_type_indices: vec![0; 3],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(1.0, 0.0, 0.0),
+      Vec3::new(1.0, 1.0, 0.0),
+      Vec3::new(0.0, 1.0, 0.0),
+      Vec3::new(1.0, 2.0, 1.0),
+      Vec3::new(0.0, 2.0, 1.0),
+      Vec3::new(1.0, 3.0, 1.0),
+      Vec3::new(0.0, 3.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3], vec![3, 2, 4, 5], vec![5, 4, 6, 7]],
+    polygon_type_indices: vec![0; 3],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
@@ -3187,21 +3140,19 @@ fn animation_link_along_angled_surface() {
 
 #[googletest::test]
 fn generates_bidirectional_animation_links() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 13.0),
-        Vec3::new(1.0, 0.0, 13.0),
-        Vec3::new(1.0, 1.0, 13.0),
-        Vec3::new(0.0, 1.0, 13.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 13.0),
+      Vec3::new(1.0, 0.0, 13.0),
+      Vec3::new(1.0, 1.0, 13.0),
+      Vec3::new(0.0, 1.0, 13.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 
@@ -3411,26 +3362,24 @@ fn generates_bidirectional_animation_links() {
 
 #[googletest::test]
 fn bidirectional_links_collapse_either_end() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(0.0, 0.0, 7.0),
-        Vec3::new(1.0, 0.0, 7.0),
-        Vec3::new(1.0, 1.0, 7.0),
-        Vec3::new(0.0, 1.0, 7.0),
-        //
-        Vec3::new(0.0, 3.0, 7.0),
-        Vec3::new(1.0, 3.0, 7.0),
-        Vec3::new(1.0, 4.0, 7.0),
-        Vec3::new(0.0, 4.0, 7.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
-      polygon_type_indices: vec![0; 2],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("A square nav mesh is valid."),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 7.0),
+      Vec3::new(1.0, 0.0, 7.0),
+      Vec3::new(1.0, 1.0, 7.0),
+      Vec3::new(0.0, 1.0, 7.0),
+      //
+      Vec3::new(0.0, 3.0, 7.0),
+      Vec3::new(1.0, 3.0, 7.0),
+      Vec3::new(1.0, 4.0, 7.0),
+      Vec3::new(0.0, 4.0, 7.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]],
+    polygon_type_indices: vec![0; 2],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("A square nav mesh is valid.");
 
   let mut nav_data = NavigationData::<XYZ>::new();
 

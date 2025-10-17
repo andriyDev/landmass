@@ -1,4 +1,4 @@
-use std::{collections::HashSet, f32::consts::PI, sync::Arc};
+use std::{collections::HashSet, f32::consts::PI};
 
 use glam::{Vec2, Vec3};
 use googletest::{expect_that, matchers::*};
@@ -93,7 +93,7 @@ fn finds_next_point_for_organic_map() {
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id =
-    archipelago.add_island(Island::new(transform.clone(), Arc::new(nav_mesh)));
+    archipelago.add_island(Island::new(transform.clone(), nav_mesh));
 
   let path = Path {
     island_segments: vec![IslandSegment {
@@ -194,7 +194,7 @@ fn finds_next_point_in_zig_zag() {
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id =
-    archipelago.add_island(Island::new(transform.clone(), Arc::new(nav_mesh)));
+    archipelago.add_island(Island::new(transform.clone(), nav_mesh));
 
   let path = Path {
     island_segments: vec![IslandSegment {
@@ -280,7 +280,7 @@ fn starts_at_end_index_goes_to_end_point() {
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::new(nav_mesh),
+    nav_mesh,
   ));
 
   let path = Path {
@@ -360,7 +360,7 @@ fn straight_path_includes_animation_link() {
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec2::ZERO, rotation: 0.0 },
-    Arc::new(nav_mesh),
+    nav_mesh,
   ));
 
   let animation_link_id = archipelago.add_animation_link(AnimationLink {
@@ -486,7 +486,7 @@ fn multiple_animation_links_in_a_row() {
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec2::ZERO, rotation: 0.0 },
-    Arc::new(nav_mesh),
+    nav_mesh,
   ));
 
   let link_id_1 = archipelago.add_animation_link(AnimationLink {
@@ -649,7 +649,7 @@ fn obscured_animation_link_is_made_visible_by_straight_path() {
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec2::ZERO, rotation: 0.0 },
-    Arc::new(nav_mesh),
+    nav_mesh,
   ));
 
   let link_id = archipelago.add_animation_link(AnimationLink {
@@ -763,7 +763,7 @@ fn end_point_after_animation_link_is_reported() {
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec2::ZERO, rotation: 0.0 },
-    Arc::new(nav_mesh),
+    nav_mesh,
   ));
 
   let animation_link_1 = archipelago.add_animation_link(AnimationLink {

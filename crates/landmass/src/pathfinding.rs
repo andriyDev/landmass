@@ -236,10 +236,11 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
       PathNode::End => return 0.0,
       PathNode::NodeEdge { node, start_edge: edge } => {
         let island = self.nav_data.get_island(node.island_id).unwrap();
-        let edge = island.get_nav_mesh().get_edge_points(MeshEdgeRef {
-          polygon_index: node.polygon_index,
-          edge_index: *edge,
-        });
+        let edge =
+          island.get_nav_mesh().to_core().get_edge_points(MeshEdgeRef {
+            polygon_index: node.polygon_index,
+            edge_index: *edge,
+          });
         island.transform.apply(edge.0.midpoint(edge.1))
       }
       PathNode::OffMeshLink(link) => {

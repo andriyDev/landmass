@@ -2,13 +2,13 @@ use glam::{Vec2, Vec3};
 use googletest::{expect_that, matchers::*};
 
 use crate::{
-  CoordinateSystem, PointSampleDistance3d, XY,
   coords::{CorePointSampleDistance, XYZ},
   nav_mesh::{
-    Connectivity, HeightNavigationMesh, HeightPolygon, MeshEdgeRef,
-    SampledEdge, ValidPolygon, ValidateHeightMeshError, nav_mesh_node_bbh,
+    nav_mesh_node_bbh, Connectivity, HeightNavigationMesh, HeightPolygon,
+    MeshEdgeRef, SampledEdge, ValidPolygon, ValidateHeightMeshError,
   },
   util::BoundingBox,
+  CoordinateSystem, PointSampleDistance3d, XY,
 };
 
 use super::{NavigationMesh, ValidationError};
@@ -30,7 +30,7 @@ fn validation_computes_bounds() {
   };
 
   let valid_mesh =
-    source_mesh.clone().validate().expect("Validation succeeds.");
+    source_mesh.clone().validate().expect("Validation succeeds.").to_core();
   assert_eq!(
     valid_mesh.mesh_bounds,
     BoundingBox::new_box(Vec3::new(0.0, 0.0, -0.25), Vec3::new(2.0, 4.0, 1.0))
@@ -50,7 +50,8 @@ fn correctly_computes_bounds_for_small_number_of_points() {
     height_mesh: None,
   }
   .validate()
-  .expect("Validation succeeds");
+  .expect("Validation succeeds")
+  .to_core();
 
   assert_eq!(
     valid_mesh.mesh_bounds,
@@ -100,7 +101,7 @@ fn polygons_derived_and_vertices_copied() {
   ];
 
   let valid_mesh =
-    source_mesh.clone().validate().expect("Validation succeeds.");
+    source_mesh.clone().validate().expect("Validation succeeds.").to_core();
   assert_eq!(valid_mesh.vertices, source_mesh.vertices);
   assert_eq!(valid_mesh.polygons, expected_polygons);
 }
@@ -331,11 +332,12 @@ fn derives_connectivity_and_boundary_edges() {
     height_mesh: None,
   };
 
-  let mut valid_mesh =
-    source_mesh.clone().validate().expect("Validation succeeds.");
+  let valid_mesh =
+    source_mesh.clone().validate().expect("Validation succeeds.").to_core();
 
   // Sort boundary edges to ensure the order is consistent when comparing.
-  valid_mesh.boundary_edges.sort_by_key(|boundary_edge| {
+  let mut boundary_edges = valid_mesh.boundary_edges.clone();
+  boundary_edges.sort_by_key(|boundary_edge| {
     boundary_edge.polygon_index * 100 + boundary_edge.edge_index
   });
 
@@ -369,7 +371,7 @@ fn derives_connectivity_and_boundary_edges() {
     expected_connectivity
   );
   assert_eq!(
-    valid_mesh.boundary_edges,
+    boundary_edges,
     [
       MeshEdgeRef { polygon_index: 0, edge_index: 0 },
       MeshEdgeRef { polygon_index: 0, edge_index: 2 },
@@ -415,7 +417,8 @@ fn finds_regions() {
     height_mesh: None,
   }
   .validate()
-  .expect("Mesh is valid.");
+  .expect("Mesh is valid.")
+  .to_core();
 
   assert_eq!(
     mesh.polygons.iter().map(|polygon| polygon.region).collect::<Vec<_>>(),
@@ -453,7 +456,8 @@ fn sample_point_returns_none_for_far_point() {
     height_mesh: None,
   }
   .validate()
-  .expect("Mesh is valid.");
+  .expect("Mesh is valid.")
+  .to_core();
 
   assert_eq!(
     mesh.sample_point(
@@ -538,7 +542,8 @@ fn sample_point_in_nodes() {
     height_mesh: None,
   }
   .validate()
-  .expect("Mesh is valid.");
+  .expect("Mesh is valid.")
+  .to_core();
 
   // Flat nodes
 
@@ -641,7 +646,8 @@ fn sample_point_near_node() {
     height_mesh: None,
   }
   .validate()
-  .expect("Mesh is valid.");
+  .expect("Mesh is valid.")
+  .to_core();
 
   // Flat nodes
 
@@ -734,7 +740,8 @@ fn sample_ignores_closer_horizontal() {
     height_mesh: None,
   }
   .validate()
-  .expect("mesh is valid");
+  .expect("mesh is valid")
+  .to_core();
 
   // The first polygon is physically closer, but it is not within the horizontal
   // distance, so it should be filtered out. The second polygon is much further
@@ -771,7 +778,8 @@ fn sample_favoring_vertical() {
     height_mesh: None,
   }
   .validate()
-  .expect("mesh is valid");
+  .expect("mesh is valid")
+  .to_core();
 
   // Both polygons are in range, but the one below our query point is preferred,
   // since our vertical preference is 2.0.
@@ -803,7 +811,8 @@ fn sample_filters_vertical_points_differently() {
     height_mesh: None,
   }
   .validate()
-  .expect("mesh is valid.");
+  .expect("mesh is valid.")
+  .to_core();
 
   let point_sample_distance = CorePointSampleDistance {
     horizontal_distance: 100.0,
@@ -1139,7 +1148,8 @@ fn sample_point_uses_height_mesh_if_available() {
     )),
   }
   .validate()
-  .expect("mesh is valid.");
+  .expect("mesh is valid.")
+  .to_core();
 
   let point_sample_distance = CorePointSampleDistance {
     horizontal_distance: 100.0,
@@ -1175,7 +1185,8 @@ fn samples_edge_on_square() {
     height_mesh: None,
   }
   .validate()
-  .expect("mesh is valid");
+  .expect("mesh is valid")
+  .to_core();
 
   let node_bbh = nav_mesh_node_bbh(&mesh, Vec3::new(0.0, 0.0, 1.0));
 
@@ -1237,7 +1248,8 @@ fn samples_edge_for_multiple_nodes() {
     height_mesh: None,
   }
   .validate()
-  .expect("mesh is valid");
+  .expect("mesh is valid")
+  .to_core();
 
   let node_bbh = nav_mesh_node_bbh(&mesh, Vec3::new(0.0, 0.0, 1.0));
 
@@ -1273,7 +1285,8 @@ fn samples_edge_for_multiple_floors() {
     height_mesh: None,
   }
   .validate()
-  .expect("mesh is valid");
+  .expect("mesh is valid")
+  .to_core();
 
   let node_bbh = nav_mesh_node_bbh(&mesh, Vec3::new(0.0, 0.0, 1.0));
 
@@ -1314,7 +1327,8 @@ fn samples_edge_along_stairs() {
     height_mesh: None,
   }
   .validate()
-  .expect("mesh is valid");
+  .expect("mesh is valid")
+  .to_core();
 
   let node_bbh = nav_mesh_node_bbh(&mesh, Vec3::new(0.0, 0.0, 1.0));
 

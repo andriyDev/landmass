@@ -72,9 +72,7 @@ let nav_mesh = NavigationMesh {
   height_mesh: None,
 };
 
-let valid_nav_mesh = Arc::new(
-  nav_mesh.validate().expect("Validation succeeds")
-);
+let valid_nav_mesh = nav_mesh.validate().expect("Validation succeeds");
 
 let island_id = archipelago
   .add_island(Island::new(

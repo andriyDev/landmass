@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
@@ -89,7 +89,7 @@ fn computes_obstacle_for_box() {
 
   let island_id = nav_data.add_island(Island::new(
     Transform { translation: island_offset, rotation: 0.0 },
-    Arc::new(nav_mesh),
+    nav_mesh,
   ));
 
   assert_obstacles_match!(
@@ -145,7 +145,7 @@ fn dead_end_makes_open_obstacle() {
   let mut nav_data = NavigationData::<XYZ>::new();
   let island_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::new(nav_mesh),
+    nav_mesh,
   ));
 
   assert_obstacles_match!(
@@ -288,7 +288,7 @@ fn split_borders() {
   let mut nav_data = NavigationData::<XYZ>::new();
   let island_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::new(nav_mesh),
+    nav_mesh,
   ));
 
   assert_obstacles_match!(
@@ -328,26 +328,24 @@ fn split_borders() {
 
 #[test]
 fn creates_obstacles_across_boundary_link() {
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec3::new(1.0, 1.0, 1.0),
-        Vec3::new(2.0, 1.0, 1.0),
-        Vec3::new(2.0, 2.0, 1.0),
-        Vec3::new(1.0, 2.0, 1.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("Validation succeeds"),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(1.0, 1.0, 1.0),
+      Vec3::new(2.0, 1.0, 1.0),
+      Vec3::new(2.0, 2.0, 1.0),
+      Vec3::new(1.0, 2.0, 1.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("Validation succeeds");
 
   let mut nav_data = NavigationData::<XYZ>::new();
   nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::clone(&nav_mesh),
+    nav_mesh.clone(),
   ));
   let island_id_2 = nav_data.add_island(Island::new(
     Transform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
@@ -405,7 +403,7 @@ fn applies_no_avoidance_for_far_agents() {
   let mut nav_data = NavigationData::<XYZ>::new();
   let island_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::new(nav_mesh),
+    nav_mesh,
   ));
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
@@ -506,7 +504,7 @@ fn applies_avoidance_for_two_agents() {
   let mut nav_data = NavigationData::<XYZ>::new();
   let island_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::new(nav_mesh),
+    nav_mesh,
   ));
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
@@ -601,7 +599,7 @@ fn agent_avoids_character() {
   let mut nav_data = NavigationData::<XYZ>::new();
   let island_id = nav_data.add_island(Island::new(
     Transform { translation: Vec3::ZERO, rotation: 0.0 },
-    Arc::new(nav_mesh),
+    nav_mesh,
   ));
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
@@ -683,7 +681,7 @@ fn agent_speeds_up_to_avoid_character() {
   let mut nav_data = NavigationData::<XY>::new();
   let island_id = nav_data.add_island(Island::new(
     Transform { translation: Vec2::ZERO, rotation: 0.0 },
-    Arc::new(nav_mesh),
+    nav_mesh,
   ));
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
@@ -767,21 +765,19 @@ fn reached_target_agent_has_different_avoidance() {
   let mut archipelago =
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(-10.0, -10.0),
-        Vec2::new(10.0, -10.0),
-        Vec2::new(10.0, 10.0),
-        Vec2::new(-10.0, 10.0),
-      ],
-      polygons: vec![vec![0, 1, 2, 3]],
-      polygon_type_indices: vec![0],
-      height_mesh: None,
-    }
-    .validate()
-    .unwrap(),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(-10.0, -10.0),
+      Vec2::new(10.0, -10.0),
+      Vec2::new(10.0, 10.0),
+      Vec2::new(-10.0, 10.0),
+    ],
+    polygons: vec![vec![0, 1, 2, 3]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .unwrap();
 
   archipelago.add_island(Island::new(Transform::default(), nav_mesh));
 
@@ -875,7 +871,6 @@ fn switching_nav_mesh_to_fewer_vertices_does_not_result_in_panic() {
   }
   .validate()
   .unwrap();
-  let redundant_mesh = Arc::new(redundant_mesh);
 
   let simplified_mesh = NavigationMesh {
     vertices: vec![
@@ -890,10 +885,9 @@ fn switching_nav_mesh_to_fewer_vertices_does_not_result_in_panic() {
   }
   .validate()
   .unwrap();
-  let simplified_mesh = Arc::new(simplified_mesh);
 
   let island_1 = archipelago
-    .add_island(Island::new(Transform::default(), Arc::clone(&redundant_mesh)));
+    .add_island(Island::new(Transform::default(), redundant_mesh.clone()));
   archipelago.add_island(Island::new(
     // This island is shifted over but is slightly misaligned to generate new
     // vertices.

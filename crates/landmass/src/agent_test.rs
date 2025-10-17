@@ -1,4 +1,4 @@
-use std::{collections::HashSet, f32::consts::PI, sync::Arc};
+use std::{collections::HashSet, f32::consts::PI};
 
 use glam::{Vec2, Vec3};
 use googletest::{expect_that, expect_true, matchers::*};
@@ -82,7 +82,7 @@ fn has_reached_target_at_end_node() {
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id =
-    archipelago.add_island(Island::new(transform.clone(), Arc::new(nav_mesh)));
+    archipelago.add_island(Island::new(transform.clone(), nav_mesh));
   let mut agent = Agent::create(
     /* position= */ transform.apply(Vec3::new(1.0, 0.0, 1.0)),
     /* velocity= */ Vec3::ZERO,
@@ -176,7 +176,7 @@ fn long_detour_reaches_target_in_different_ways() {
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id =
-    archipelago.add_island(Island::new(transform.clone(), Arc::new(nav_mesh)));
+    archipelago.add_island(Island::new(transform.clone(), nav_mesh));
 
   let mut agent = Agent::create(
     /* position= */ Vec3::ZERO,
@@ -390,35 +390,33 @@ fn using_animation_link_does_not_reach_target() {
   // +----+-+
   // |XXXX|X|
   // +----+-+
-  let nav_mesh = Arc::new(
-    NavigationMesh {
-      vertices: vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(2.0, 0.0),
-        Vec2::new(3.0, 0.0),
-        Vec2::new(0.0, 1.0),
-        Vec2::new(2.0, 1.0),
-        Vec2::new(3.0, 1.0),
-        Vec2::new(0.0, 2.0),
-        Vec2::new(2.0, 2.0),
-        Vec2::new(3.0, 2.0),
-        Vec2::new(0.0, 3.0),
-        Vec2::new(2.0, 3.0),
-        Vec2::new(3.0, 3.0),
-      ],
-      polygons: vec![
-        vec![0, 1, 4, 3],
-        vec![1, 2, 5, 4],
-        vec![4, 5, 8, 7],
-        vec![7, 8, 11, 10],
-        vec![6, 7, 10, 9],
-      ],
-      polygon_type_indices: vec![0; 5],
-      height_mesh: None,
-    }
-    .validate()
-    .expect("nav mesh is valid"),
-  );
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec2::new(0.0, 0.0),
+      Vec2::new(2.0, 0.0),
+      Vec2::new(3.0, 0.0),
+      Vec2::new(0.0, 1.0),
+      Vec2::new(2.0, 1.0),
+      Vec2::new(3.0, 1.0),
+      Vec2::new(0.0, 2.0),
+      Vec2::new(2.0, 2.0),
+      Vec2::new(3.0, 2.0),
+      Vec2::new(0.0, 3.0),
+      Vec2::new(2.0, 3.0),
+      Vec2::new(3.0, 3.0),
+    ],
+    polygons: vec![
+      vec![0, 1, 4, 3],
+      vec![1, 2, 5, 4],
+      vec![4, 5, 8, 7],
+      vec![7, 8, 11, 10],
+      vec![6, 7, 10, 9],
+    ],
+    polygon_type_indices: vec![0; 5],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("nav mesh is valid");
 
   let island_id = archipelago.add_island(Island::new(
     Transform { translation: Vec2::new(10.0, 10.0), ..Default::default() },
@@ -555,8 +553,8 @@ fn uses_sampled_point_for_reaching_target() {
   .expect("nav mesh is valid");
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
-  let island_id = archipelago
-    .add_island(Island::new(Transform::default(), Arc::new(nav_mesh)));
+  let island_id =
+    archipelago.add_island(Island::new(Transform::default(), nav_mesh));
   let mut agent = Agent::create(
     /* position= */ Vec3::new(1.0, 1.0, 1.0),
     /* velocity= */ Vec3::ZERO,
