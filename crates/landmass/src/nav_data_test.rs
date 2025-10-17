@@ -21,6 +21,7 @@ use crate::{
   link::{AnimationLink, NodePortal},
   nav_data::{KindedOffMeshLink, NodeRef, OffMeshLink},
   nav_mesh::NavigationMesh,
+  util::CoreTransform,
 };
 
 use super::{
@@ -176,7 +177,7 @@ fn clone_sort_round_links(
 
 #[googletest::test]
 fn link_edges_between_islands_links_touching_islands() {
-  let nav_mesh_1 = NavigationMesh {
+  let nav_mesh_1 = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 0.0, 1.0),
       Vec3::new(1.0, 1.0, 1.0),
@@ -206,7 +207,7 @@ fn link_edges_between_islands_links_touching_islands() {
   .validate()
   .expect("is valid.");
 
-  let nav_mesh_2 = NavigationMesh {
+  let nav_mesh_2 = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(-1.0, -0.5, 1.0),
       Vec3::new(-0.5, -0.5, 1.0),
@@ -245,6 +246,8 @@ fn link_edges_between_islands_links_touching_islands() {
   let island_1 = Island::new(transform.clone(), nav_mesh_1.clone());
   let island_2 = Island::new(transform.clone(), nav_mesh_2.clone());
 
+  let transform = transform.to_core();
+
   let island_1_edge_bbh = island_edges_bbh(&island_1);
   let island_2_edge_bbh = island_edges_bbh(&island_2);
 
@@ -263,7 +266,7 @@ fn link_edges_between_islands_links_touching_islands() {
   );
 
   fn transform_and_round_portal(
-    transform: &Transform<XYZ>,
+    transform: &CoreTransform,
     a: Vec3,
     b: Vec3,
   ) -> (Vec3, Vec3) {

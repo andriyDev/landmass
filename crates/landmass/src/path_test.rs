@@ -94,6 +94,7 @@ fn finds_next_point_for_organic_map() {
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id =
     archipelago.add_island(Island::new(transform.clone(), nav_mesh));
+  let transform = transform.to_core();
 
   let path = Path {
     island_segments: vec![IslandSegment {
@@ -195,6 +196,7 @@ fn finds_next_point_in_zig_zag() {
     Archipelago::<XY>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id =
     archipelago.add_island(Island::new(transform.clone(), nav_mesh));
+  let transform = transform.to_core();
 
   let path = Path {
     island_segments: vec![IslandSegment {

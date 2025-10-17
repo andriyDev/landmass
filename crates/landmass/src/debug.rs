@@ -134,17 +134,17 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
           let triangle = (
             CS::from_landmass(
               &island
-                .get_transform()
+                .transform
                 .apply(height_mesh.vertices[height_polygon.vertex(a)]),
             ),
             CS::from_landmass(
               &island
-                .get_transform()
+                .transform
                 .apply(height_mesh.vertices[height_polygon.vertex(b)]),
             ),
             CS::from_landmass(
               &island
-                .get_transform()
+                .transform
                 .apply(height_mesh.vertices[height_polygon.vertex(c)]),
             ),
           );

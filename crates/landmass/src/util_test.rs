@@ -2,10 +2,7 @@ use std::f32::consts::PI;
 
 use glam::Vec3;
 
-use crate::{
-  Transform, XYZ,
-  util::{BoundingBox, RaySegment},
-};
+use crate::util::{BoundingBox, CoreTransform, RaySegment};
 
 use super::BoundingBoxHierarchy;
 
@@ -239,7 +236,7 @@ fn bounding_box_detects_ray_segment_intersection() {
 #[test]
 fn transform_empty_does_nothing() {
   assert_eq!(
-    BoundingBox::Empty.transform(&Transform::<XYZ> {
+    BoundingBox::Empty.transform(&CoreTransform {
       translation: Vec3::new(1.0, 2.0, 3.0),
       rotation: 0.75
     }),
@@ -252,7 +249,7 @@ fn transforms_bounds() {
   let root_2 = 2.0f32.sqrt();
   let (actual_min, actual_max) =
     BoundingBox::new_box(Vec3::new(1.0, 3.0, 2.0), Vec3::new(6.0, 4.0, 5.0))
-      .transform(&Transform::<XYZ> {
+      .transform(&CoreTransform {
         translation: Vec3::new(-4.0, 1.0, -3.0),
         rotation: PI * -0.75,
       })

@@ -263,10 +263,7 @@ impl BoundingBox {
 
   /// Creates a conservative bounding box around `self` after transforming it by
   /// `transform`.
-  pub(crate) fn transform<CS: CoordinateSystem>(
-    &self,
-    transform: &Transform<CS>,
-  ) -> Self {
+  pub(crate) fn transform(&self, transform: &CoreTransform) -> Self {
     let (min, max) = match self {
       BoundingBox::Empty => return BoundingBox::Empty,
       BoundingBox::Box { min, max } => (min, max),
@@ -308,6 +305,30 @@ impl BoundingBox {
         points[0].z + (max.z - min.z),
       ),
     }
+  }
+}
+
+/// A transform that can be applied to Vec3's.
+///
+/// This is a "core" type meaning it has no generics. This type expresses
+/// everything in the standard coordinate system.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CoreTransform {
+  /// The translation to apply.
+  pub translation: Vec3,
+  /// The rotation to apply around the "up" direction (+Z).
+  pub rotation: f32,
+}
+
+impl CoreTransform {
+  /// Applies the transformation.
+  pub(crate) fn apply(&self, point: Vec3) -> Vec3 {
+    Quat::from_rotation_z(self.rotation) * point + self.translation
+  }
+
+  /// Inverses the transformation.
+  pub(crate) fn apply_inverse(&self, point: Vec3) -> Vec3 {
+    Quat::from_rotation_z(-self.rotation) * (point - self.translation)
   }
 }
 
@@ -354,16 +375,20 @@ impl<CS: CoordinateSystem<Coordinate: PartialEq>> PartialEq for Transform<CS> {
 }
 
 impl<CS: CoordinateSystem> Transform<CS> {
-  /// Applies the transformation.
-  pub(crate) fn apply(&self, point: Vec3) -> Vec3 {
-    Quat::from_rotation_z(self.rotation) * point
-      + CS::to_landmass(&self.translation)
+  /// Converts this transform into its "core" representation.
+  pub fn to_core(&self) -> CoreTransform {
+    CoreTransform {
+      translation: CS::to_landmass(&self.translation),
+      rotation: self.rotation,
+    }
   }
 
-  /// Inverses the transformation.
-  pub(crate) fn apply_inverse(&self, point: Vec3) -> Vec3 {
-    Quat::from_rotation_z(-self.rotation)
-      * (point - CS::to_landmass(&self.translation))
+  /// Converts the core representation to this coordinate system.
+  pub(crate) fn from_core(core: &CoreTransform) -> Self {
+    Self {
+      translation: CS::from_landmass(&core.translation),
+      rotation: core.rotation,
+    }
   }
 }
 
