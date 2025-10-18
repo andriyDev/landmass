@@ -37,7 +37,7 @@ pub use coords::{
   PointSampleDistance3d, XY, XYZ,
 };
 pub use island::IslandId;
-pub use link::{AnimationLink, AnimationLinkId};
+pub use link::{AnimationLink, AnimationLinkId, CoreAnimationLink};
 pub use nav_data::{
   CoreIslandMut, IslandMut, IslandRef, SetTypeIndexCostError,
 };
@@ -200,7 +200,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   pub fn get_animation_link(
     &self,
     link_id: AnimationLinkId,
-  ) -> Option<&AnimationLink<CS>> {
+  ) -> Option<AnimationLink<CS>> {
     self.nav_data.get_animation_link(link_id)
   }
 

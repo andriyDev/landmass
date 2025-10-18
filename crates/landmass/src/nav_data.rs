@@ -13,11 +13,12 @@ use slotmap::{HopSlotMap, SlotMap, new_key_type};
 use thiserror::Error;
 
 use crate::{
-  CoordinateSystem, PermittedAnimationLinks, Transform, ValidNavigationMesh,
+  CoordinateSystem, CoreAnimationLink, PermittedAnimationLinks, Transform,
+  ValidNavigationMesh,
   coords::CorePointSampleDistance,
   geometry::edge_intersection,
   island::{CoreIsland, IslandId},
-  link::{AnimationLink, AnimationLinkId, AnimationLinkState, NodePortal},
+  link::{AnimationLink, AnimationLinkId, CoreAnimationLinkState, NodePortal},
   nav_mesh::{CoreValidNavigationMesh, MeshEdgeRef, nav_mesh_node_bbh},
   util::{BoundingBox, BoundingBoxHierarchy, CoreTransform, RaySegment},
 };
@@ -28,7 +29,7 @@ pub(crate) struct NavigationData<CS: CoordinateSystem> {
   /// The islands in the [`crate::Archipelago`].
   islands: HopSlotMap<IslandId, CoreIsland>,
   /// The animation links in the [`crate::AnimationLink`].
-  animation_links: HopSlotMap<AnimationLinkId, AnimationLinkState<CS>>,
+  animation_links: HopSlotMap<AnimationLinkId, CoreAnimationLinkState>,
   /// The "default" cost of each type index. Missing type indices default to a
   /// cost of 1.0.
   type_index_to_cost: HashMap<usize, f32>,
@@ -59,6 +60,7 @@ pub(crate) struct NavigationData<CS: CoordinateSystem> {
   new_animation_links: HashSet<AnimationLinkId>,
   /// The set of animation links deleted since the last update.
   deleted_animation_links: HashSet<AnimationLinkId>,
+  marker: PhantomData<CS>,
 }
 
 /// A reference to a node in the navigation data.
@@ -159,6 +161,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       deleted_islands: HashSet::new(),
       new_animation_links: HashSet::new(),
       deleted_animation_links: HashSet::new(),
+      marker: PhantomData,
     }
   }
 
@@ -243,7 +246,8 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     link: AnimationLink<CS>,
   ) -> AnimationLinkId {
     self.dirty = true;
-    let link_id = self.animation_links.insert(AnimationLinkState::new(link));
+    let link_id =
+      self.animation_links.insert(CoreAnimationLinkState::new(link.to_core()));
     self.new_animation_links.insert(link_id);
     link_id
   }
@@ -258,8 +262,12 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   pub(crate) fn get_animation_link(
     &self,
     link_id: AnimationLinkId,
-  ) -> Option<&AnimationLink<CS>> {
-    self.animation_links.get(link_id).map(|state| &state.main_link)
+  ) -> Option<AnimationLink<CS>> {
+    self
+      .animation_links
+      .get(link_id)
+      .map(|state| &state.main_link)
+      .map(AnimationLink::from_core)
   }
 
   pub fn get_animation_link_ids(
@@ -533,13 +541,13 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     }
 
     #[expect(clippy::too_many_arguments)]
-    fn create_link<CS: CoordinateSystem>(
+    fn create_link(
       start_portal: &NodePortal,
       end_portal: &NodePortal,
       start_edge: (Vec3, Vec3),
       end_edge: (Vec3, Vec3),
       animation_link_id: AnimationLinkId,
-      link: &AnimationLink<CS>,
+      link: &CoreAnimationLink,
       islands: &HopSlotMap<IslandId, CoreIsland>,
       off_mesh_links: &mut SlotMap<OffMeshLinkId, OffMeshLink>,
       node_to_off_mesh_link_ids: &mut HashMap<NodeRef, HashSet<OffMeshLinkId>>,
@@ -604,12 +612,8 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       let state = self.animation_links.get_mut(animation_link_id).unwrap();
       let link = &state.main_link;
 
-      let mut start_edge = (
-        CS::to_landmass(&link.start_edge.0),
-        CS::to_landmass(&link.start_edge.1),
-      );
-      let mut end_edge =
-        (CS::to_landmass(&link.end_edge.0), CS::to_landmass(&link.end_edge.1));
+      let mut start_edge = link.start_edge;
+      let mut end_edge = link.end_edge;
       if start_edge.0 == start_edge.1 {
         // In case the user has a point start edge but a full end edge, turn the
         // end edge into a single point at the midpoint. This is kinda an error,
@@ -687,14 +691,8 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         }
         let link = &state.main_link;
 
-        let mut start_edge = (
-          CS::to_landmass(&link.start_edge.0),
-          CS::to_landmass(&link.start_edge.1),
-        );
-        let mut end_edge = (
-          CS::to_landmass(&link.end_edge.0),
-          CS::to_landmass(&link.end_edge.1),
-        );
+        let mut start_edge = link.start_edge;
+        let mut end_edge = link.end_edge;
         if start_edge.0 == start_edge.1 {
           // In case the user has a point start edge but a full end edge, turn
           // the end edge into a single point at the midpoint. This is kinda an
