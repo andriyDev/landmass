@@ -3459,74 +3459,104 @@ fn bidirectional_links_collapse_either_end() {
     /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
   );
 
+  let expected_node_0_portal = NodePortal {
+    node: NodeRef { island_id: island, polygon_index: 0 },
+    interval: (0.0, 1.0),
+  };
+  let expected_node_1_portal = NodePortal {
+    node: NodeRef { island_id: island, polygon_index: 1 },
+    interval: (0.0, 1.0),
+  };
   let link_1 = &nav_data.animation_links[link_id_1];
   expect_that!(
     link_1.start_portals,
-    unordered_elements_are!(&NodePortal {
-      node: NodeRef { island_id: island, polygon_index: 0 },
-      interval: (0.0, 1.0),
-    })
+    unordered_elements_are!(&expected_node_0_portal)
   );
   expect_that!(
     link_1.end_portals,
-    unordered_elements_are!(&NodePortal {
-      node: NodeRef { island_id: island, polygon_index: 1 },
-      interval: (0.0, 1.0),
-    })
+    unordered_elements_are!(&expected_node_1_portal)
   );
   let link_2 = &nav_data.animation_links[link_id_2];
   expect_that!(
     link_2.start_portals,
-    unordered_elements_are!(&NodePortal {
-      node: NodeRef { island_id: island, polygon_index: 1 },
-      interval: (0.0, 1.0),
-    })
+    unordered_elements_are!(&expected_node_1_portal)
   );
   expect_that!(
     link_2.end_portals,
-    unordered_elements_are!(&NodePortal {
-      node: NodeRef { island_id: island, polygon_index: 0 },
-      interval: (0.0, 1.0),
-    })
+    unordered_elements_are!(&expected_node_0_portal)
   );
 
-  expect_eq!(nav_data.node_to_off_mesh_link_ids.len(), 2);
-  expect_eq!(nav_data.off_mesh_links.len(), 4);
+  expect_that!(nav_data.node_to_off_mesh_link_ids, len(eq(2)));
+  expect_that!(nav_data.off_mesh_links, len(eq(4)));
 
+  let expected_node_0_links = [
+    OffMeshLink {
+      destination_node: NodeRef { island_id: island, polygon_index: 1 },
+      destination_type_index: 0,
+      portal: (Vec3::new(0.25, 0.5, 7.0), Vec3::new(0.25, 0.5, 7.0)),
+      kinded: KindedOffMeshLink::AnimationLink {
+        destination_portal: (
+          Vec3::new(0.25, 3.5, 7.0),
+          Vec3::new(0.25, 3.5, 7.0),
+        ),
+        cost: 1.0,
+        kind: 0,
+        animation_link: link_id_1,
+      },
+    },
+    OffMeshLink {
+      destination_node: NodeRef { island_id: island, polygon_index: 1 },
+      destination_type_index: 0,
+      portal: (Vec3::new(0.75, 0.5, 7.0), Vec3::new(0.75, 0.5, 7.0)),
+      kinded: KindedOffMeshLink::AnimationLink {
+        destination_portal: (
+          Vec3::new(0.75, 3.5, 7.0),
+          Vec3::new(0.75, 3.5, 7.0),
+        ),
+        cost: 1.0,
+        kind: 1,
+        animation_link: link_id_2,
+      },
+    },
+  ];
+  let expected_node_1_links = [
+    OffMeshLink {
+      destination_node: NodeRef { island_id: island, polygon_index: 0 },
+      destination_type_index: 0,
+      portal: (Vec3::new(0.25, 3.5, 7.0), Vec3::new(0.25, 3.5, 7.0)),
+      kinded: KindedOffMeshLink::AnimationLink {
+        destination_portal: (
+          Vec3::new(0.25, 0.5, 7.0),
+          Vec3::new(0.25, 0.5, 7.0),
+        ),
+        cost: 1.0,
+        kind: 0,
+        animation_link: link_id_1,
+      },
+    },
+    OffMeshLink {
+      destination_node: NodeRef { island_id: island, polygon_index: 0 },
+      destination_type_index: 0,
+      portal: (Vec3::new(0.75, 3.5, 7.0), Vec3::new(0.75, 3.5, 7.0)),
+      kinded: KindedOffMeshLink::AnimationLink {
+        destination_portal: (
+          Vec3::new(0.75, 0.5, 7.0),
+          Vec3::new(0.75, 0.5, 7.0),
+        ),
+        cost: 1.0,
+        kind: 1,
+        animation_link: link_id_2,
+      },
+    },
+  ];
   expect_that!(
     get_off_mesh_links_for_node(
       &nav_data,
       NodeRef { island_id: island, polygon_index: 0 },
     ),
     some(unordered_elements_are!(
-      &&OffMeshLink {
-        destination_node: NodeRef { island_id: island, polygon_index: 1 },
-        destination_type_index: 0,
-        portal: (Vec3::new(0.25, 0.5, 7.0), Vec3::new(0.25, 0.5, 7.0)),
-        kinded: KindedOffMeshLink::AnimationLink {
-          destination_portal: (
-            Vec3::new(0.25, 3.5, 7.0),
-            Vec3::new(0.25, 3.5, 7.0)
-          ),
-          cost: 1.0,
-          kind: 0,
-          animation_link: link_id_1,
-        },
-      },
-      &&OffMeshLink {
-        destination_node: NodeRef { island_id: island, polygon_index: 1 },
-        destination_type_index: 0,
-        portal: (Vec3::new(0.75, 0.5, 7.0), Vec3::new(0.75, 0.5, 7.0)),
-        kinded: KindedOffMeshLink::AnimationLink {
-          destination_portal: (
-            Vec3::new(0.75, 3.5, 7.0),
-            Vec3::new(0.75, 3.5, 7.0)
-          ),
-          cost: 1.0,
-          kind: 1,
-          animation_link: link_id_2,
-        },
-      }
+      &&expected_node_0_links[0],
+      &&expected_node_0_links[1]
     ))
   );
   expect_that!(
@@ -3535,34 +3565,80 @@ fn bidirectional_links_collapse_either_end() {
       NodeRef { island_id: island, polygon_index: 1 },
     ),
     some(unordered_elements_are!(
-      &&OffMeshLink {
-        destination_node: NodeRef { island_id: island, polygon_index: 0 },
-        destination_type_index: 0,
-        portal: (Vec3::new(0.25, 3.5, 7.0), Vec3::new(0.25, 3.5, 7.0)),
-        kinded: KindedOffMeshLink::AnimationLink {
-          destination_portal: (
-            Vec3::new(0.25, 0.5, 7.0),
-            Vec3::new(0.25, 0.5, 7.0)
-          ),
-          cost: 1.0,
-          kind: 0,
-          animation_link: link_id_1,
-        },
-      },
-      &&OffMeshLink {
-        destination_node: NodeRef { island_id: island, polygon_index: 0 },
-        destination_type_index: 0,
-        portal: (Vec3::new(0.75, 3.5, 7.0), Vec3::new(0.75, 3.5, 7.0)),
-        kinded: KindedOffMeshLink::AnimationLink {
-          destination_portal: (
-            Vec3::new(0.75, 0.5, 7.0),
-            Vec3::new(0.75, 0.5, 7.0)
-          ),
-          cost: 1.0,
-          kind: 1,
-          animation_link: link_id_2,
-        },
-      }
+      &&expected_node_1_links[0],
+      &&expected_node_1_links[1]
+    ))
+  );
+
+  // Move the island somewhere else and ensure all the links are gone.
+
+  nav_data.get_island_mut(island).unwrap().set_transform(Transform {
+    translation: Vec3::new(100.0, 100.0, 100.0),
+    rotation: 0.0,
+  });
+
+  nav_data.update(
+    /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
+  );
+
+  let link_1 = &nav_data.animation_links[link_id_1];
+  expect_that!(link_1.start_portals, is_empty());
+  expect_that!(link_1.end_portals, is_empty());
+  let link_2 = &nav_data.animation_links[link_id_2];
+  expect_that!(link_2.start_portals, is_empty());
+  expect_that!(link_2.end_portals, is_empty());
+
+  expect_that!(nav_data.node_to_off_mesh_link_ids, is_empty());
+  expect_that!(nav_data.off_mesh_links, is_empty());
+
+  // Move the island back and ensure all the links are the same as before.
+
+  nav_data.get_island_mut(island).unwrap().set_transform(Transform::default());
+
+  nav_data.update(
+    /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
+  );
+
+  let link_1 = &nav_data.animation_links[link_id_1];
+  expect_that!(
+    link_1.start_portals,
+    unordered_elements_are!(&expected_node_0_portal)
+  );
+  expect_that!(
+    link_1.end_portals,
+    unordered_elements_are!(&expected_node_1_portal)
+  );
+  let link_2 = &nav_data.animation_links[link_id_2];
+  expect_that!(
+    link_2.start_portals,
+    unordered_elements_are!(&expected_node_1_portal)
+  );
+  expect_that!(
+    link_2.end_portals,
+    unordered_elements_are!(&expected_node_0_portal)
+  );
+
+  expect_that!(nav_data.node_to_off_mesh_link_ids, len(eq(2)));
+  expect_that!(nav_data.off_mesh_links, len(eq(4)));
+
+  expect_that!(
+    get_off_mesh_links_for_node(
+      &nav_data,
+      NodeRef { island_id: island, polygon_index: 0 },
+    ),
+    some(unordered_elements_are!(
+      &&expected_node_0_links[0],
+      &&expected_node_0_links[1]
+    ))
+  );
+  expect_that!(
+    get_off_mesh_links_for_node(
+      &nav_data,
+      NodeRef { island_id: island, polygon_index: 1 },
+    ),
+    some(unordered_elements_are!(
+      &&expected_node_1_links[0],
+      &&expected_node_1_links[1]
     ))
   );
 }

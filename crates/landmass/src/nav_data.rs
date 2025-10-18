@@ -682,7 +682,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         }
         let link = &state.main_link;
 
-        let start_edge = (
+        let mut start_edge = (
           CS::to_landmass(&link.start_edge.0),
           CS::to_landmass(&link.start_edge.1),
         );
@@ -697,6 +697,12 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
           // that.
           let midpoint = end_edge.0.midpoint(end_edge.1);
           end_edge = (midpoint, midpoint);
+        } else if link.bidirectional && end_edge.0 == end_edge.1 {
+          // Similarly, if the edge is bidirectional, we need to treat the end
+          // edge as if it were a start edge. So also collapse the start edge if
+          // the end edge is a point.
+          let start_midpoint = start_edge.0.midpoint(start_edge.1);
+          start_edge = (start_midpoint, start_midpoint);
         }
 
         fn intersects(portal: (Vec3, Vec3), bounds: &BoundingBox) -> bool {
