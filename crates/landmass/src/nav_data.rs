@@ -18,14 +18,14 @@ use crate::{
   coords::CorePointSampleDistance,
   geometry::edge_intersection,
   island::{CoreIsland, IslandId},
-  link::{AnimationLink, AnimationLinkId, CoreAnimationLinkState, NodePortal},
+  link::{AnimationLinkId, CoreAnimationLinkState, NodePortal},
   nav_mesh::{CoreValidNavigationMesh, MeshEdgeRef, nav_mesh_node_bbh},
   util::{BoundingBox, BoundingBoxHierarchy, CoreTransform, RaySegment},
 };
 
 /// The navigation data of a whole [`crate::Archipelago`]. This only includes
 /// "static" features.
-pub(crate) struct NavigationData<CS: CoordinateSystem> {
+pub(crate) struct NavigationData {
   /// The islands in the [`crate::Archipelago`].
   islands: HopSlotMap<IslandId, CoreIsland>,
   /// The animation links in the [`crate::AnimationLink`].
@@ -60,7 +60,6 @@ pub(crate) struct NavigationData<CS: CoordinateSystem> {
   new_animation_links: HashSet<AnimationLinkId>,
   /// The set of animation links deleted since the last update.
   deleted_animation_links: HashSet<AnimationLinkId>,
-  marker: PhantomData<CS>,
 }
 
 /// A reference to a node in the navigation data.
@@ -142,7 +141,7 @@ struct PossibleRegionLink {
   destination_region: usize,
 }
 
-impl<CS: CoordinateSystem> NavigationData<CS> {
+impl NavigationData {
   /// Creates new navigation data.
   pub(crate) fn new() -> Self {
     Self {
@@ -161,7 +160,6 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       deleted_islands: HashSet::new(),
       new_animation_links: HashSet::new(),
       deleted_animation_links: HashSet::new(),
-      marker: PhantomData,
     }
   }
 
@@ -198,30 +196,28 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   /// Adds a new island to the navigation data.
   pub(crate) fn add_island(
     &mut self,
-    transform: Transform<CS>,
-    nav_mesh: ValidNavigationMesh<CS>,
+    transform: CoreTransform,
+    nav_mesh: Arc<CoreValidNavigationMesh>,
   ) -> IslandId {
     // A new island means a new nav mesh - so mark it dirty.
     self.dirty = true;
-    self
-      .islands
-      .insert(CoreIsland::new(transform.to_core(), nav_mesh.to_core()))
+    self.islands.insert(CoreIsland::new(transform, nav_mesh))
   }
 
   /// Gets a borrow to the island with `id`.
-  pub(crate) fn get_island(&self, id: IslandId) -> Option<IslandRef<'_, CS>> {
-    self.islands.get(id).map(|island| IslandRef { island, marker: PhantomData })
+  pub(crate) fn get_island(&self, id: IslandId) -> Option<&CoreIsland> {
+    self.islands.get(id)
   }
 
   /// Gets a mutable borrow to the island with `id`.
   pub(crate) fn get_island_mut(
     &mut self,
     id: IslandId,
-  ) -> Option<IslandMut<'_, CS>> {
-    self.islands.get_mut(id).map(|island| IslandMut {
-      island: CoreIslandMut { island, dirty_flag: &mut self.dirty },
-      marker: PhantomData,
-    })
+  ) -> Option<CoreIslandMut<'_>> {
+    self
+      .islands
+      .get_mut(id)
+      .map(|island| CoreIslandMut { island, dirty_flag: &mut self.dirty })
   }
 
   pub(crate) fn get_island_ids(
@@ -243,11 +239,11 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
   pub(crate) fn add_animation_link(
     &mut self,
-    link: AnimationLink<CS>,
+    link: CoreAnimationLink,
   ) -> AnimationLinkId {
     self.dirty = true;
     let link_id =
-      self.animation_links.insert(CoreAnimationLinkState::new(link.to_core()));
+      self.animation_links.insert(CoreAnimationLinkState::new(link));
     self.new_animation_links.insert(link_id);
     link_id
   }
@@ -262,12 +258,8 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   pub(crate) fn get_animation_link(
     &self,
     link_id: AnimationLinkId,
-  ) -> Option<AnimationLink<CS>> {
-    self
-      .animation_links
-      .get(link_id)
-      .map(|state| &state.main_link)
-      .map(AnimationLink::from_core)
+  ) -> Option<&CoreAnimationLink> {
+    self.animation_links.get(link_id).map(|state| &state.main_link)
   }
 
   pub fn get_animation_link_ids(
@@ -1231,7 +1223,7 @@ impl CoreIslandMut<'_> {
 pub struct IslandRef<'nav_data, CS: CoordinateSystem> {
   /// The borrow to the core representation.
   pub(crate) island: &'nav_data CoreIsland,
-  marker: PhantomData<CS>,
+  pub(crate) marker: PhantomData<CS>,
 }
 
 impl<CS: CoordinateSystem> IslandRef<'_, CS> {
@@ -1249,8 +1241,8 @@ impl<CS: CoordinateSystem> IslandRef<'_, CS> {
 /// A mutable borrow to an island.
 pub struct IslandMut<'nav_data, CS: CoordinateSystem> {
   /// The mutable borrow to the core representation.
-  island: CoreIslandMut<'nav_data>,
-  marker: PhantomData<CS>,
+  pub(crate) island: CoreIslandMut<'nav_data>,
+  pub(crate) marker: PhantomData<CS>,
 }
 
 impl<CS: CoordinateSystem> IslandMut<'_, CS> {

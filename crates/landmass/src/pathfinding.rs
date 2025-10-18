@@ -6,7 +6,7 @@ use std::{
 use glam::Vec3;
 
 use crate::{
-  CoordinateSystem, NavigationData,
+  NavigationData,
   agent::PermittedAnimationLinks,
   astar::{self, AStarProblem, PathStats},
   nav_data::{KindedOffMeshLink, NodeRef, OffMeshLinkId},
@@ -16,9 +16,9 @@ use crate::{
 };
 
 /// A concrete A* problem specifically for [`crate::Archipelago`]s.
-struct ArchipelagoPathProblem<'a, CS: CoordinateSystem> {
+struct ArchipelagoPathProblem<'a> {
   /// The navigation data to search.
-  nav_data: &'a NavigationData<CS>,
+  nav_data: &'a NavigationData,
   /// The node the agent is starting from.
   start_node: NodeRef,
   /// The center of the start_node. This is just a cached point for easy
@@ -68,7 +68,7 @@ enum PathNode {
   OffMeshLink(OffMeshLinkId),
 }
 
-impl<CS: CoordinateSystem> ArchipelagoPathProblem<'_, CS> {
+impl ArchipelagoPathProblem<'_> {
   /// Determines the cost of `type_index`.
   fn type_index_to_cost(&self, type_index: usize) -> f32 {
     self.override_type_index_to_cost.get(&type_index).copied().unwrap_or_else(
@@ -77,7 +77,7 @@ impl<CS: CoordinateSystem> ArchipelagoPathProblem<'_, CS> {
   }
 }
 
-impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
+impl AStarProblem for ArchipelagoPathProblem<'_> {
   type ActionType = PathStep;
 
   type StateType = PathNode;
@@ -93,12 +93,12 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
     let (node_ref, island, polygon, point, ignore_step) = match state {
       PathNode::Start => {
         let island =
-          self.nav_data.get_island(self.start_node.island_id).unwrap().island;
+          self.nav_data.get_island(self.start_node.island_id).unwrap();
         let polygon = &island.nav_mesh.polygons[self.start_node.polygon_index];
         (self.start_node, island, polygon, self.start_point, None)
       }
       PathNode::NodeEdge { node, start_edge: edge } => {
-        let island = self.nav_data.get_island(node.island_id).unwrap().island;
+        let island = self.nav_data.get_island(node.island_id).unwrap();
         let polygon = &island.nav_mesh.polygons[node.polygon_index];
 
         let (i, j) = polygon.get_edge_indices(*edge);
@@ -115,11 +115,8 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
       }
       PathNode::OffMeshLink(link) => {
         let link = self.nav_data.off_mesh_links.get(*link).unwrap();
-        let island = self
-          .nav_data
-          .get_island(link.destination_node.island_id)
-          .unwrap()
-          .island;
+        let island =
+          self.nav_data.get_island(link.destination_node.island_id).unwrap();
         let polygon =
           &island.nav_mesh.polygons[link.destination_node.polygon_index];
 
@@ -238,7 +235,7 @@ impl<CS: CoordinateSystem> AStarProblem for ArchipelagoPathProblem<'_, CS> {
       PathNode::Start => self.start_point,
       PathNode::End => return 0.0,
       PathNode::NodeEdge { node, start_edge: edge } => {
-        let island = self.nav_data.get_island(node.island_id).unwrap().island;
+        let island = self.nav_data.get_island(node.island_id).unwrap();
         let edge = island.nav_mesh.get_edge_points(MeshEdgeRef {
           polygon_index: node.polygon_index,
           edge_index: *edge,
@@ -277,8 +274,8 @@ pub(crate) struct PathResult {
 /// are overriden with `override_type_index_to_cost`. Returns an `Err` if no
 /// path was found. `start_point` and `end_point` are assumed to be in the
 /// corresponding nodes, and in world space.
-pub(crate) fn find_path<CS: CoordinateSystem>(
-  nav_data: &NavigationData<CS>,
+pub(crate) fn find_path(
+  nav_data: &NavigationData,
   start_node: NodeRef,
   start_point: Vec3,
   end_node: NodeRef,
@@ -350,7 +347,7 @@ pub(crate) fn find_path<CS: CoordinateSystem>(
       }
       PathStep::NodeConnection(edge_index) => {
         let nav_mesh =
-          &nav_data.get_island(last_segment.island_id).unwrap().island.nav_mesh;
+          &nav_data.get_island(last_segment.island_id).unwrap().nav_mesh;
         let connectivity = nav_mesh.polygons[previous_node].connectivity
           [edge_index]
           .as_ref()

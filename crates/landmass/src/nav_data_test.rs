@@ -13,12 +13,12 @@ use googletest::{
 use slotmap::{HopSlotMap, SlotMap};
 
 use crate::{
-  Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius,
-  HeightNavigationMesh, HeightPolygon, IslandId, PermittedAnimationLinks,
-  PointSampleDistance3d, SetTypeIndexCostError, Transform,
+  Archipelago, ArchipelagoOptions, FromAgentRadius, HeightNavigationMesh,
+  HeightPolygon, IslandId, PermittedAnimationLinks, PointSampleDistance3d,
+  SetTypeIndexCostError,
   coords::{CorePointSampleDistance, XY, XYZ},
   island::CoreIsland,
-  link::{AnimationLink, NodePortal},
+  link::{CoreAnimationLink, NodePortal},
   nav_data::{KindedOffMeshLink, NodeRef, OffMeshLink},
   nav_mesh::NavigationMesh,
   util::CoreTransform,
@@ -31,7 +31,7 @@ use super::{
 
 #[test]
 fn samples_points() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 1.0, 1.0),
       Vec3::new(2.0, 1.0, 1.0),
@@ -47,15 +47,16 @@ fn samples_points() {
     height_mesh: None,
   }
   .validate()
-  .expect("is valid");
+  .expect("is valid")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
   let island_id_1 = nav_data.add_island(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    CoreTransform { translation: Vec3::ZERO, rotation: 0.0 },
     nav_mesh.clone(),
   );
   let island_id_2 = nav_data.add_island(
-    Transform { translation: Vec3::new(5.0, 0.0, 0.1), rotation: PI * 0.5 },
+    CoreTransform { translation: Vec3::new(5.0, 0.0, 0.1), rotation: PI * 0.5 },
     nav_mesh.clone(),
   );
 
@@ -503,7 +504,7 @@ fn link_edges_between_islands_links_touching_islands() {
 
 #[test]
 fn update_links_islands_and_unlinks_on_delete() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 0.0, 1.0),
       Vec3::new(2.0, 0.0, 1.0),
@@ -517,28 +518,32 @@ fn update_links_islands_and_unlinks_on_delete() {
     height_mesh: None,
   }
   .validate()
-  .expect("is valid.");
+  .expect("is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
   let island_1_id = nav_data.add_island(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    CoreTransform { translation: Vec3::ZERO, rotation: 0.0 },
     nav_mesh.clone(),
   );
   let island_2_id = nav_data.add_island(
-    Transform { translation: Vec3::ZERO, rotation: PI * 0.5 },
+    CoreTransform { translation: Vec3::ZERO, rotation: PI * 0.5 },
     nav_mesh.clone(),
   );
   let island_3_id = nav_data.add_island(
-    Transform { translation: Vec3::ZERO, rotation: PI },
+    CoreTransform { translation: Vec3::ZERO, rotation: PI },
     nav_mesh.clone(),
   );
   let island_4_id = nav_data.add_island(
-    Transform { translation: Vec3::new(3.0, 0.0, 0.0), rotation: PI },
+    CoreTransform { translation: Vec3::new(3.0, 0.0, 0.0), rotation: PI },
     nav_mesh.clone(),
   );
   let island_5_id = nav_data.add_island(
-    Transform { translation: Vec3::new(2.0, 3.0, 0.0), rotation: PI * -0.5 },
+    CoreTransform {
+      translation: Vec3::new(2.0, 3.0, 0.0),
+      rotation: PI * -0.5,
+    },
     nav_mesh.clone(),
   );
 
@@ -662,7 +667,10 @@ fn update_links_islands_and_unlinks_on_delete() {
   nav_data
     .get_island_mut(island_5_id)
     .expect("island_5 still exists")
-    .set_transform(Transform { translation: Vec3::ZERO, rotation: PI * 0.5 });
+    .set_transform(CoreTransform {
+      translation: Vec3::ZERO,
+      rotation: PI * 0.5,
+    });
 
   nav_data.update(
     /* edge_link_distance= */ 0.01,
@@ -799,7 +807,7 @@ fn clone_sort_round_modified_nodes(
 
 #[test]
 fn modifies_node_boundaries_for_linked_islands() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 1.0, 1.0),
       Vec3::new(2.0, 1.0, 1.0),
@@ -813,20 +821,24 @@ fn modifies_node_boundaries_for_linked_islands() {
     height_mesh: None,
   }
   .validate()
-  .expect("is valid.");
+  .expect("is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
   let island_1_id = nav_data.add_island(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    CoreTransform { translation: Vec3::ZERO, rotation: 0.0 },
     nav_mesh.clone(),
   );
   let island_2_id = nav_data.add_island(
-    Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
   let island_3_id = nav_data.add_island(
-    Transform { translation: Vec3::new(2.0, 3.5, 0.0), rotation: PI * -0.5 },
+    CoreTransform {
+      translation: Vec3::new(2.0, 3.5, 0.0),
+      rotation: PI * -0.5,
+    },
     nav_mesh.clone(),
   );
 
@@ -869,7 +881,7 @@ fn modifies_node_boundaries_for_linked_islands() {
 
 #[test]
 fn stale_modified_nodes_are_removed() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(1.0, 1.0, 1.0),
       Vec3::new(2.0, 1.0, 1.0),
@@ -883,16 +895,17 @@ fn stale_modified_nodes_are_removed() {
     height_mesh: None,
   }
   .validate()
-  .expect("is valid.");
+  .expect("is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
   nav_data.add_island(
-    Transform { translation: Vec3::ZERO, rotation: 0.0 },
+    CoreTransform { translation: Vec3::ZERO, rotation: 0.0 },
     nav_mesh.clone(),
   );
   let island_2_id = nav_data.add_island(
-    Transform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(1.0, -1.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
 
@@ -915,7 +928,7 @@ fn stale_modified_nodes_are_removed() {
 
 #[googletest::test]
 fn modified_node_is_removed_for_no_boundary_links() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XY> {
     vertices: vec![
       Vec2::new(0.0, 0.0),
       Vec2::new(1.0, 0.0),
@@ -927,26 +940,27 @@ fn modified_node_is_removed_for_no_boundary_links() {
     height_mesh: None,
   }
   .validate()
-  .expect("is valid.");
+  .expect("is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XY>::new();
+  let mut nav_data = NavigationData::new();
 
   let island_1_id = nav_data.add_island(
-    Transform { translation: Vec2::ZERO, rotation: 0.0 },
+    CoreTransform { translation: Vec3::ZERO, rotation: 0.0 },
     nav_mesh.clone(),
   );
   let island_2_id = nav_data.add_island(
-    Transform { translation: Vec2::new(1.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(1.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
   nav_data.add_island(
-    Transform { translation: Vec2::new(-2.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(-2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
 
-  nav_data.add_animation_link(AnimationLink {
-    start_edge: (Vec2::new(0.1, 0.1), Vec2::new(0.1, 0.9)),
-    end_edge: (Vec2::new(-1.1, 0.1), Vec2::new(-1.1, 0.9)),
+  nav_data.add_animation_link(CoreAnimationLink {
+    start_edge: (Vec3::new(0.1, 0.1, 0.0), Vec3::new(0.1, 0.9, 0.0)),
+    end_edge: (Vec3::new(-1.1, 0.1, 0.0), Vec3::new(-1.1, 0.9, 0.0)),
     cost: 1.0,
     kind: 0,
     bidirectional: false,
@@ -977,7 +991,7 @@ fn modified_node_is_removed_for_no_boundary_links() {
 
 #[test]
 fn empty_navigation_mesh_is_safe() {
-  let full_nav_mesh = NavigationMesh {
+  let full_nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
@@ -989,20 +1003,22 @@ fn empty_navigation_mesh_is_safe() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let empty_nav_mesh = NavigationMesh {
+  let empty_nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![],
     polygons: vec![],
     polygon_type_indices: vec![],
     height_mesh: None,
   }
   .validate()
-  .expect("An empty nav mesh is valid.");
+  .expect("An empty nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
-  nav_data.add_island(Transform::default(), full_nav_mesh);
-  nav_data.add_island(Transform::default(), empty_nav_mesh);
+  let mut nav_data = NavigationData::new();
+  nav_data.add_island(CoreTransform::default(), full_nav_mesh);
+  nav_data.add_island(CoreTransform::default(), empty_nav_mesh);
 
   // Nothing should panic here.
   nav_data.update(
@@ -1027,9 +1043,9 @@ fn error_on_set_zero_or_negative_type_index_cost() {
 
 #[googletest::test]
 fn changed_island_rebuilds_region_connectivity() {
-  let mut nav_data = NavigationData::<XY>::new();
+  let mut nav_data = NavigationData::new();
 
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XY> {
     vertices: vec![
       Vec2::new(0.0, 0.0),
       Vec2::new(1.0, 0.0),
@@ -1041,11 +1057,13 @@ fn changed_island_rebuilds_region_connectivity() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let island_1 = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island_1 =
+    nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
   let island_2 = nav_data.add_island(
-    Transform { translation: Vec2::new(0.0, 2.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(0.0, 2.0, 0.0), rotation: 0.0 },
     nav_mesh,
   );
   nav_data.update(
@@ -1059,8 +1077,8 @@ fn changed_island_rebuilds_region_connectivity() {
   ));
 
   // Making the islands touch should result in the regions being connected.
-  nav_data.get_island_mut(island_2).unwrap().set_transform(Transform {
-    translation: Vec2::new(0.0, 1.0),
+  nav_data.get_island_mut(island_2).unwrap().set_transform(CoreTransform {
+    translation: Vec3::new(0.0, 1.0, 0.0),
     rotation: 0.0,
   });
   nav_data.update(
@@ -1074,8 +1092,8 @@ fn changed_island_rebuilds_region_connectivity() {
   ));
 
   // Making the islands no longer touch again should remove the connectivity.
-  nav_data.get_island_mut(island_2).unwrap().set_transform(Transform {
-    translation: Vec2::new(0.0, 2.0),
+  nav_data.get_island_mut(island_2).unwrap().set_transform(CoreTransform {
+    translation: Vec3::new(0.0, 2.0, 0.0),
     rotation: 0.0,
   });
   nav_data.update(
@@ -1091,9 +1109,9 @@ fn changed_island_rebuilds_region_connectivity() {
 
 #[googletest::test]
 fn changed_animation_link_rebuilds_region_connectivity() {
-  let mut nav_data = NavigationData::<XY>::new();
+  let mut nav_data = NavigationData::new();
 
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XY> {
     vertices: vec![
       Vec2::new(0.0, 0.0),
       Vec2::new(1.0, 0.0),
@@ -1105,11 +1123,13 @@ fn changed_animation_link_rebuilds_region_connectivity() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let island_1 = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island_1 =
+    nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
   let island_2 = nav_data.add_island(
-    Transform { translation: Vec2::new(0.0, 2.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(0.0, 2.0, 0.0), rotation: 0.0 },
     nav_mesh,
   );
   nav_data.update(
@@ -1123,9 +1143,9 @@ fn changed_animation_link_rebuilds_region_connectivity() {
   ));
 
   // Creating a new link should result in the regions being connected.
-  let link_id = nav_data.add_animation_link(AnimationLink {
-    start_edge: (Vec2::new(0.1, 0.9), Vec2::new(0.9, 0.9)),
-    end_edge: (Vec2::new(0.1, 2.1), Vec2::new(0.9, 2.1)),
+  let link_id = nav_data.add_animation_link(CoreAnimationLink {
+    start_edge: (Vec3::new(0.1, 0.9, 0.0), Vec3::new(0.9, 0.9, 0.0)),
+    end_edge: (Vec3::new(0.1, 2.1, 0.0), Vec3::new(0.9, 2.1, 0.0)),
     cost: 1.0,
     kind: 0,
     bidirectional: false,
@@ -1155,9 +1175,9 @@ fn changed_animation_link_rebuilds_region_connectivity() {
 
 #[googletest::test]
 fn permitted_animation_link_blocks_region_connectivity() {
-  let mut nav_data = NavigationData::<XY>::new();
+  let mut nav_data = NavigationData::new();
 
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XY> {
     vertices: vec![
       Vec2::new(0.0, 0.0),
       Vec2::new(1.0, 0.0),
@@ -1169,24 +1189,26 @@ fn permitted_animation_link_blocks_region_connectivity() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let island_1 = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island_1 =
+    nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
   let island_2 = nav_data.add_island(
-    Transform { translation: Vec2::new(0.0, 2.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(0.0, 2.0, 0.0), rotation: 0.0 },
     nav_mesh,
   );
   // We have 2 animation links with different kinds.
-  nav_data.add_animation_link(AnimationLink {
-    start_edge: (Vec2::new(0.0, 0.9), Vec2::new(1.0, 0.9)),
-    end_edge: (Vec2::new(0.0, 2.1), Vec2::new(1.0, 2.1)),
+  nav_data.add_animation_link(CoreAnimationLink {
+    start_edge: (Vec3::new(0.0, 0.9, 0.0), Vec3::new(1.0, 0.9, 0.0)),
+    end_edge: (Vec3::new(0.0, 2.1, 0.0), Vec3::new(1.0, 2.1, 0.0)),
     kind: 0,
     cost: 1.0,
     bidirectional: false,
   });
-  nav_data.add_animation_link(AnimationLink {
-    start_edge: (Vec2::new(0.0, 0.9), Vec2::new(1.0, 0.9)),
-    end_edge: (Vec2::new(0.0, 2.1), Vec2::new(1.0, 2.1)),
+  nav_data.add_animation_link(CoreAnimationLink {
+    start_edge: (Vec3::new(0.0, 0.9, 0.0), Vec3::new(1.0, 0.9, 0.0)),
+    end_edge: (Vec3::new(0.0, 2.1, 0.0), Vec3::new(1.0, 2.1, 0.0)),
     kind: 1,
     cost: 1.0,
     bidirectional: false,
@@ -1220,8 +1242,8 @@ fn permitted_animation_link_blocks_region_connectivity() {
   ));
 }
 
-fn get_off_mesh_links_for_node<CS: CoordinateSystem>(
-  nav_data: &NavigationData<CS>,
+fn get_off_mesh_links_for_node(
+  nav_data: &NavigationData,
   node_ref: NodeRef,
 ) -> Option<Vec<OffMeshLink>> {
   Some(
@@ -1237,7 +1259,7 @@ fn get_off_mesh_links_for_node<CS: CoordinateSystem>(
 
 #[googletest::test]
 fn generates_animation_links() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 13.0),
       Vec3::new(1.0, 0.0, 13.0),
@@ -1249,39 +1271,41 @@ fn generates_animation_links() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
-  let island_1 = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island_1 =
+    nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
   let island_2 = nav_data.add_island(
-    Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
   let island_3 = nav_data.add_island(
-    Transform { translation: Vec3::new(-2.0, 0.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(-2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
   let island_4 = nav_data.add_island(
-    Transform { translation: Vec3::new(0.0, 4.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(0.0, 4.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
 
-  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+  let link_id_1 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.1, 0.9, 13.0), Vec3::new(0.9, 0.9, 13.0)),
     end_edge: (Vec3::new(0.1, 4.1, 13.0), Vec3::new(0.9, 4.1, 13.0)),
     cost: 1.0,
     kind: 0,
     bidirectional: false,
   });
-  let link_id_2 = nav_data.add_animation_link(AnimationLink {
+  let link_id_2 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.9, 0.1, 13.0), Vec3::new(0.9, 0.9, 13.0)),
     end_edge: (Vec3::new(2.1, 0.1, 13.0), Vec3::new(2.1, 0.9, 13.0)),
     cost: 1.0,
     kind: 1,
     bidirectional: false,
   });
-  let link_id_3 = nav_data.add_animation_link(AnimationLink {
+  let link_id_3 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(-1.1, 0.1, 13.0), Vec3::new(-1.1, 0.9, 13.0)),
     end_edge: (Vec3::new(0.1, 0.1, 13.0), Vec3::new(0.1, 0.9, 13.0)),
     cost: 1.0,
@@ -1402,7 +1426,7 @@ fn generates_animation_links() {
 
 #[googletest::test]
 fn removing_animation_link_removes_off_mesh_links() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 7.0),
       Vec3::new(1.0, 0.0, 7.0),
@@ -1414,13 +1438,15 @@ fn removing_animation_link_removes_off_mesh_links() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
-  let island_1 = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island_1 =
+    nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
   let island_2 = nav_data.add_island(
-    Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
 
@@ -1429,14 +1455,14 @@ fn removing_animation_link_removes_off_mesh_links() {
     /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
   );
 
-  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+  let link_id_1 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.9, 0.1, 7.0), Vec3::new(0.9, 0.9, 7.0)),
     end_edge: (Vec3::new(2.1, 0.1, 7.0), Vec3::new(2.1, 0.9, 7.0)),
     cost: 1.0,
     kind: 0,
     bidirectional: false,
   });
-  let link_id_2 = nav_data.add_animation_link(AnimationLink {
+  let link_id_2 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(2.1, 1.1, 7.0), Vec3::new(2.1, 1.9, 7.0)),
     end_edge: (Vec3::new(0.9, 1.1, 7.0), Vec3::new(0.9, 1.9, 7.0)),
     cost: 1.0,
@@ -1545,7 +1571,7 @@ fn removing_animation_link_removes_off_mesh_links() {
     some(len(eq(1)))
   );
 
-  nav_data.add_animation_link(AnimationLink {
+  nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.9, 0.1, 7.0), Vec3::new(0.9, 0.9, 7.0)),
     end_edge: (Vec3::new(2.1, 0.1, 7.0), Vec3::new(2.1, 0.9, 7.0)),
     cost: 1.0,
@@ -1575,7 +1601,7 @@ fn removing_animation_link_removes_off_mesh_links() {
 
 #[googletest::test]
 fn existing_animation_link_is_linked_for_new_island() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 7.0),
       Vec3::new(1.0, 0.0, 7.0),
@@ -1587,18 +1613,19 @@ fn existing_animation_link_is_linked_for_new_island() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
-  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+  let link_id_1 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.9, 0.1, 7.0), Vec3::new(0.9, 0.9, 7.0)),
     end_edge: (Vec3::new(2.1, 0.1, 7.0), Vec3::new(2.1, 0.9, 7.0)),
     cost: 1.0,
     kind: 0,
     bidirectional: false,
   });
-  let link_id_2 = nav_data.add_animation_link(AnimationLink {
+  let link_id_2 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(2.1, 1.1, 7.0), Vec3::new(2.1, 1.9, 7.0)),
     end_edge: (Vec3::new(0.9, 1.1, 7.0), Vec3::new(0.9, 1.9, 7.0)),
     cost: 1.0,
@@ -1622,7 +1649,8 @@ fn existing_animation_link_is_linked_for_new_island() {
   expect_that!(nav_data.node_to_off_mesh_link_ids, is_empty());
   expect_that!(nav_data.off_mesh_links, is_empty());
 
-  let island_1 = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island_1 =
+    nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
   nav_data.update(
     /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
   );
@@ -1652,7 +1680,7 @@ fn existing_animation_link_is_linked_for_new_island() {
 
   // Adding the second island should now complete the links.
   let island_2 = nav_data.add_island(
-    Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
   nav_data.update(
@@ -1737,7 +1765,7 @@ fn existing_animation_link_is_linked_for_new_island() {
 
 #[googletest::test]
 fn added_island_mixes_new_and_old_portals() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 7.0),
       Vec3::new(1.0, 0.0, 7.0),
@@ -1749,24 +1777,26 @@ fn added_island_mixes_new_and_old_portals() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
-  let island_00 = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island_00 =
+    nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
   let island_11 = nav_data.add_island(
-    Transform { translation: Vec3::new(2.0, 2.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(2.0, 2.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
 
-  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+  let link_id_1 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.5, 0.5, 7.0), Vec3::new(2.5, 0.5, 7.0)),
     end_edge: (Vec3::new(0.5, 2.5, 7.0), Vec3::new(2.5, 2.5, 7.0)),
     cost: 1.0,
     kind: 0,
     bidirectional: false,
   });
-  let link_id_2 = nav_data.add_animation_link(AnimationLink {
+  let link_id_2 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.5, 2.5, 7.0), Vec3::new(2.5, 2.5, 7.0)),
     end_edge: (Vec3::new(0.5, 0.5, 7.0), Vec3::new(2.5, 0.5, 7.0)),
     cost: 1.0,
@@ -1813,11 +1843,11 @@ fn added_island_mixes_new_and_old_portals() {
 
   // Add in the remaining corners.
   let island_01 = nav_data.add_island(
-    Transform { translation: Vec3::new(0.0, 2.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(0.0, 2.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
   let island_10 = nav_data.add_island(
-    Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
 
@@ -1967,7 +1997,7 @@ fn added_island_mixes_new_and_old_portals() {
 
 #[googletest::test]
 fn same_island_animation_link() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XY> {
     vertices: vec![
       Vec2::new(0.0, 0.0),
       Vec2::new(1.0, 0.0),
@@ -1979,15 +2009,16 @@ fn same_island_animation_link() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XY>::new();
+  let mut nav_data = NavigationData::new();
 
-  let island = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island = nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
 
-  let link_id = nav_data.add_animation_link(AnimationLink {
-    start_edge: (Vec2::new(0.1, 0.5), Vec2::new(0.9, 0.5)),
-    end_edge: (Vec2::new(0.1, 1.5), Vec2::new(0.9, 1.5)),
+  let link_id = nav_data.add_animation_link(CoreAnimationLink {
+    start_edge: (Vec3::new(0.1, 0.5, 0.0), Vec3::new(0.9, 0.5, 0.0)),
+    end_edge: (Vec3::new(0.1, 1.5, 0.0), Vec3::new(0.9, 1.5, 0.0)),
     cost: 1.0,
     kind: 0,
     bidirectional: false,
@@ -2038,7 +2069,7 @@ fn same_island_animation_link() {
 
 #[googletest::test]
 fn point_animation_links_are_connected() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 7.0),
       Vec3::new(1.0, 0.0, 7.0),
@@ -2055,15 +2086,16 @@ fn point_animation_links_are_connected() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
-  let island = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island = nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
 
   // This link has a whole start edge, but the end edge is actually a point. All
   // links here should go to that one point.
-  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+  let link_id_1 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
     end_edge: (Vec3::new(0.5, 3.5, 7.0), Vec3::new(0.5, 3.5, 7.0)),
     cost: 1.0,
@@ -2072,7 +2104,7 @@ fn point_animation_links_are_connected() {
   });
   // This link has a whole end edge, but the start edge is actually a point. As
   // a result, the end edge should actually be treated as a point.
-  let link_id_2 = nav_data.add_animation_link(AnimationLink {
+  let link_id_2 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.5, 3.5, 7.0), Vec3::new(0.5, 3.5, 7.0)),
     end_edge: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
     cost: 1.0,
@@ -2162,7 +2194,7 @@ fn point_animation_links_are_connected() {
 
 #[googletest::test]
 fn point_animation_links_are_connected_when_not_new() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 7.0),
       Vec3::new(1.0, 0.0, 7.0),
@@ -2179,13 +2211,14 @@ fn point_animation_links_are_connected_when_not_new() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
   // This link has a whole start edge, but the end edge is actually a point. All
   // links here should go to that one point.
-  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+  let link_id_1 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
     end_edge: (Vec3::new(0.5, 3.5, 7.0), Vec3::new(0.5, 3.5, 7.0)),
     cost: 1.0,
@@ -2194,7 +2227,7 @@ fn point_animation_links_are_connected_when_not_new() {
   });
   // This link has a whole end edge, but the start edge is actually a point. As
   // a result, the end edge should actually be treated as a point.
-  let link_id_2 = nav_data.add_animation_link(AnimationLink {
+  let link_id_2 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.5, 3.5, 7.0), Vec3::new(0.5, 3.5, 7.0)),
     end_edge: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
     cost: 1.0,
@@ -2208,7 +2241,7 @@ fn point_animation_links_are_connected_when_not_new() {
     /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
   );
 
-  let island = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island = nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
 
   nav_data.update(
     /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
@@ -2292,7 +2325,7 @@ fn point_animation_links_are_connected_when_not_new() {
 
 #[googletest::test]
 fn changing_island_does_not_cause_duplicate_off_mesh_links() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 7.0),
       Vec3::new(1.0, 0.0, 7.0),
@@ -2304,25 +2337,27 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
-  let island_00 = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island_00 =
+    nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
   let island_10 = nav_data.add_island(
-    Transform { translation: Vec3::new(3.5, 0.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(3.5, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
   let island_11 = nav_data.add_island(
-    Transform { translation: Vec3::new(3.0, 3.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(3.0, 3.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
   let island_01 = nav_data.add_island(
-    Transform { translation: Vec3::new(-0.5, 3.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(-0.5, 3.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
 
-  let link_id = nav_data.add_animation_link(AnimationLink {
+  let link_id = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(4.0, 0.5, 7.0)),
     end_edge: (Vec3::new(0.0, 3.5, 7.0), Vec3::new(4.0, 3.5, 7.0)),
     cost: 1.0,
@@ -2408,11 +2443,11 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links() {
   );
 
   // Now we change two islands to see that the links are updated.
-  nav_data.get_island_mut(island_01).unwrap().set_transform(Transform {
+  nav_data.get_island_mut(island_01).unwrap().set_transform(CoreTransform {
     translation: Vec3::new(0.0, 3.0, 0.0),
     rotation: 0.0,
   });
-  nav_data.get_island_mut(island_10).unwrap().set_transform(Transform {
+  nav_data.get_island_mut(island_10).unwrap().set_transform(CoreTransform {
     translation: Vec3::new(3.0, 0.0, 0.0),
     rotation: 0.0,
   });
@@ -2497,7 +2532,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links() {
 
 #[googletest::test]
 fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 7.0),
       Vec3::new(1.0, 0.0, 7.0),
@@ -2509,24 +2544,26 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
-  let island_1 = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island_1 =
+    nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
   let island_2 = nav_data.add_island(
-    Transform { translation: Vec3::new(0.0, 2.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(0.0, 2.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
 
-  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+  let link_id_1 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.25, 0.5, 7.0), Vec3::new(0.25, 0.5, 7.0)),
     end_edge: (Vec3::new(0.0, 2.5, 7.0), Vec3::new(0.5, 2.5, 7.0)),
     cost: 1.0,
     kind: 0,
     bidirectional: false,
   });
-  let link_id_2 = nav_data.add_animation_link(AnimationLink {
+  let link_id_2 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.5, 2.5, 7.0), Vec3::new(1.0, 2.5, 7.0)),
     end_edge: (Vec3::new(0.75, 0.5, 7.0), Vec3::new(0.75, 0.5, 7.0)),
     cost: 1.0,
@@ -2619,7 +2656,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
     nav_data.node_to_off_mesh_link_ids.clone();
 
   // Now we change one of the islands to see that the links are updated.
-  nav_data.get_island_mut(island_2).unwrap().set_transform(Transform {
+  nav_data.get_island_mut(island_2).unwrap().set_transform(CoreTransform {
     translation: Vec3::new(0.1, 2.0, 0.0),
     rotation: 0.0,
   });
@@ -2715,7 +2752,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
 
 #[googletest::test]
 fn generates_animation_links_at_correct_height() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 5.0),
       Vec3::new(1.0, 0.0, 5.0),
@@ -2731,19 +2768,21 @@ fn generates_animation_links_at_correct_height() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
-  let island_1 = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island_1 =
+    nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
   let island_2 = nav_data.add_island(
-    Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
 
   // This link has both edges just inside the vertical limit of the animation
   // links.
-  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+  let link_id_1 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.9, 0.1, 4.1), Vec3::new(0.9, 0.9, 4.1)),
     end_edge: (Vec3::new(2.1, 0.1, 10.9), Vec3::new(2.1, 0.9, 10.9)),
     cost: 1.0,
@@ -2752,7 +2791,7 @@ fn generates_animation_links_at_correct_height() {
   });
   // This link has both edges just outside the vertical limit of the
   // animation links.
-  let link_id_2 = nav_data.add_animation_link(AnimationLink {
+  let link_id_2 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.9, 0.1, 3.9), Vec3::new(0.9, 0.9, 3.9)),
     end_edge: (Vec3::new(2.1, 0.1, 11.1), Vec3::new(2.1, 0.9, 11.1)),
     cost: 1.0,
@@ -2811,7 +2850,7 @@ fn generates_animation_links_at_correct_height() {
 
 #[googletest::test]
 fn generates_animation_links_using_height_mesh() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       // Both polygons are very far away.
       Vec3::new(0.0, 0.0, -100.0),
@@ -2855,19 +2894,21 @@ fn generates_animation_links_using_height_mesh() {
     }),
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
-  let island_1 = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island_1 =
+    nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
   let island_2 = nav_data.add_island(
-    Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
 
   // This link has both edges just inside the vertical limit of the animation
   // links.
-  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+  let link_id_1 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.9, 0.1, 4.1), Vec3::new(0.9, 0.9, 4.1)),
     end_edge: (Vec3::new(2.1, 0.1, 10.9), Vec3::new(2.1, 0.9, 10.9)),
     cost: 1.0,
@@ -2876,7 +2917,7 @@ fn generates_animation_links_using_height_mesh() {
   });
   // This link has both edges just outside the vertical limit of the
   // animation links.
-  let link_id_2 = nav_data.add_animation_link(AnimationLink {
+  let link_id_2 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.9, 0.1, 3.9), Vec3::new(0.9, 0.9, 3.9)),
     end_edge: (Vec3::new(2.1, 0.1, 11.1), Vec3::new(2.1, 0.9, 11.1)),
     cost: 1.0,
@@ -2935,7 +2976,7 @@ fn generates_animation_links_using_height_mesh() {
 
 #[googletest::test]
 fn animation_link_along_angled_surface() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 0.0),
       Vec3::new(1.0, 0.0, 0.0),
@@ -2951,17 +2992,19 @@ fn animation_link_along_angled_surface() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
-  let island_1 = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island_1 =
+    nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
   let island_2 = nav_data.add_island(
-    Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
 
-  let link_id = nav_data.add_animation_link(AnimationLink {
+  let link_id = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.5, 0.5, 0.5), Vec3::new(0.5, 2.5, 0.5)),
     end_edge: (Vec3::new(2.5, 0.5, 0.5), Vec3::new(2.5, 2.5, 0.5)),
     kind: 0,
@@ -3013,7 +3056,7 @@ fn animation_link_along_angled_surface() {
   nav_data.remove_animation_link(link_id);
 
   // Readd the same link, but now we will use a larger vertical distance.
-  let link_id = nav_data.add_animation_link(AnimationLink {
+  let link_id = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.5, 0.5, 0.5), Vec3::new(0.5, 2.5, 0.5)),
     end_edge: (Vec3::new(2.5, 0.5, 0.5), Vec3::new(2.5, 2.5, 0.5)),
     kind: 0,
@@ -3127,7 +3170,7 @@ fn animation_link_along_angled_surface() {
 
 #[googletest::test]
 fn generates_bidirectional_animation_links() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 13.0),
       Vec3::new(1.0, 0.0, 13.0),
@@ -3139,39 +3182,41 @@ fn generates_bidirectional_animation_links() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
-  let island_1 = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island_1 =
+    nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
   let island_2 = nav_data.add_island(
-    Transform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
   let island_3 = nav_data.add_island(
-    Transform { translation: Vec3::new(-2.0, 0.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(-2.0, 0.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
   let island_4 = nav_data.add_island(
-    Transform { translation: Vec3::new(0.0, 4.0, 0.0), rotation: 0.0 },
+    CoreTransform { translation: Vec3::new(0.0, 4.0, 0.0), rotation: 0.0 },
     nav_mesh.clone(),
   );
 
-  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+  let link_id_1 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.1, 0.9, 13.0), Vec3::new(0.9, 0.9, 13.0)),
     end_edge: (Vec3::new(0.1, 4.1, 13.0), Vec3::new(0.9, 4.1, 13.0)),
     cost: 1.0,
     kind: 0,
     bidirectional: true,
   });
-  let link_id_2 = nav_data.add_animation_link(AnimationLink {
+  let link_id_2 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.9, 0.1, 13.0), Vec3::new(0.9, 0.9, 13.0)),
     end_edge: (Vec3::new(2.1, 0.1, 13.0), Vec3::new(2.1, 0.9, 13.0)),
     cost: 1.0,
     kind: 1,
     bidirectional: true,
   });
-  let link_id_3 = nav_data.add_animation_link(AnimationLink {
+  let link_id_3 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(-1.1, 0.1, 13.0), Vec3::new(-1.1, 0.9, 13.0)),
     end_edge: (Vec3::new(0.1, 0.1, 13.0), Vec3::new(0.1, 0.9, 13.0)),
     cost: 1.0,
@@ -3348,7 +3393,7 @@ fn generates_bidirectional_animation_links() {
 
 #[googletest::test]
 fn bidirectional_links_collapse_either_end() {
-  let nav_mesh = NavigationMesh {
+  let nav_mesh = NavigationMesh::<XYZ> {
     vertices: vec![
       Vec3::new(0.0, 0.0, 7.0),
       Vec3::new(1.0, 0.0, 7.0),
@@ -3365,15 +3410,16 @@ fn bidirectional_links_collapse_either_end() {
     height_mesh: None,
   }
   .validate()
-  .expect("A square nav mesh is valid.");
+  .expect("A square nav mesh is valid.")
+  .to_core();
 
-  let mut nav_data = NavigationData::<XYZ>::new();
+  let mut nav_data = NavigationData::new();
 
-  let island = nav_data.add_island(Transform::default(), nav_mesh.clone());
+  let island = nav_data.add_island(CoreTransform::default(), nav_mesh.clone());
 
   // This link has a whole start edge, but the end edge is actually a point.
   // This should collapse the start edge to a point.
-  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+  let link_id_1 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(0.5, 0.5, 7.0)),
     end_edge: (Vec3::new(0.25, 3.5, 7.0), Vec3::new(0.25, 3.5, 7.0)),
     cost: 1.0,
@@ -3382,7 +3428,7 @@ fn bidirectional_links_collapse_either_end() {
   });
   // This link has a whole end edge, but the start edge is actually a point.
   // This should collapse the end edge to a point.
-  let link_id_2 = nav_data.add_animation_link(AnimationLink {
+  let link_id_2 = nav_data.add_animation_link(CoreAnimationLink {
     start_edge: (Vec3::new(0.75, 3.5, 7.0), Vec3::new(0.75, 3.5, 7.0)),
     end_edge: (Vec3::new(0.5, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
     cost: 1.0,
@@ -3507,7 +3553,7 @@ fn bidirectional_links_collapse_either_end() {
 
   // Move the island somewhere else and ensure all the links are gone.
 
-  nav_data.get_island_mut(island).unwrap().set_transform(Transform {
+  nav_data.get_island_mut(island).unwrap().set_transform(CoreTransform {
     translation: Vec3::new(100.0, 100.0, 100.0),
     rotation: 0.0,
   });
@@ -3528,7 +3574,10 @@ fn bidirectional_links_collapse_either_end() {
 
   // Move the island back and ensure all the links are the same as before.
 
-  nav_data.get_island_mut(island).unwrap().set_transform(Transform::default());
+  nav_data
+    .get_island_mut(island)
+    .unwrap()
+    .set_transform(CoreTransform::default());
 
   nav_data.update(
     /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,

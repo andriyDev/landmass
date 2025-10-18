@@ -3,7 +3,7 @@ use std::{cmp::Ordering, collections::HashSet};
 use glam::{Vec3, Vec3Swizzles};
 
 use crate::{
-  CoordinateSystem, IslandId, NavigationData,
+  IslandId, NavigationData,
   geometry::project_point_to_line_segment,
   link::AnimationLinkId,
   nav_data::{KindedOffMeshLink, NodeRef, OffMeshLinkId},
@@ -78,10 +78,10 @@ enum Portal {
 
 impl IslandSegment {
   /// Determines the endpoints of the portal at `portal_index` in `nav_data`.
-  fn get_portal_endpoints<CS: CoordinateSystem>(
+  fn get_portal_endpoints(
     &self,
     portal_index: usize,
-    nav_data: &NavigationData<CS>,
+    nav_data: &NavigationData,
   ) -> Portal {
     let polygon_index = self.corridor[portal_index];
     let edge = self.portal_edge_index[portal_index];
@@ -89,29 +89,19 @@ impl IslandSegment {
     let island_data = nav_data
       .get_island(self.island_id)
       .expect("only called if path is still valid");
-    let (left_vertex, right_vertex) = island_data.island.nav_mesh.polygons
-      [polygon_index]
-      .get_edge_indices(edge);
+    let (left_vertex, right_vertex) =
+      island_data.nav_mesh.polygons[polygon_index].get_edge_indices(edge);
 
     Portal::Walkable(
-      island_data
-        .island
-        .transform
-        .apply(island_data.island.nav_mesh.vertices[left_vertex]),
-      island_data
-        .island
-        .transform
-        .apply(island_data.island.nav_mesh.vertices[right_vertex]),
+      island_data.transform.apply(island_data.nav_mesh.vertices[left_vertex]),
+      island_data.transform.apply(island_data.nav_mesh.vertices[right_vertex]),
     )
   }
 }
 
 impl OffMeshLinkSegment {
   /// Gets the endpoints of the portal for this off mesh link in `nav_data`.
-  fn get_portal_endpoints<CS: CoordinateSystem>(
-    &self,
-    nav_data: &NavigationData<CS>,
-  ) -> Portal {
+  fn get_portal_endpoints(&self, nav_data: &NavigationData) -> Portal {
     let off_mesh_link = nav_data
       .off_mesh_links
       .get(self.off_mesh_link)
@@ -208,10 +198,10 @@ pub(crate) enum StraightPathStep {
 impl Path {
   /// Determines the endpoints of the portal at `segment_index` at
   /// `portal_index` in `nav_data`.
-  fn get_portal_endpoints<CS: CoordinateSystem>(
+  fn get_portal_endpoints(
     &self,
     path_index: PathIndex,
-    nav_data: &NavigationData<CS>,
+    nav_data: &NavigationData,
   ) -> Portal {
     if path_index.portal_index
       == self.island_segments[path_index.segment_index].portal_edge_index.len()
@@ -231,9 +221,9 @@ impl Path {
   /// next point is, and that next point. Note this can be called repeatedly by
   /// passing in the returned tuple as the `start_index` and `start_point` to
   /// generate the full straight path.
-  pub(crate) fn find_next_point_in_straight_path<CS: CoordinateSystem>(
+  pub(crate) fn find_next_point_in_straight_path(
     &self,
-    nav_data: &NavigationData<CS>,
+    nav_data: &NavigationData,
     start_index: PathIndex,
     start_point: Vec3,
     mut end_index: PathIndex,

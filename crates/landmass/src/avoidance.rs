@@ -19,7 +19,7 @@ pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
   agent_id_to_agent_node: &HashMap<AgentId, (Vec3, NodeRef)>,
   characters: &HopSlotMap<CharacterId, Character<CS>>,
   character_id_to_nav_mesh_point: &HashMap<CharacterId, Vec3>,
-  nav_data: &NavigationData<CS>,
+  nav_data: &NavigationData,
   agent_options: &ArchipelagoOptions<CS>,
   mut delta_time: f32,
 ) {
@@ -187,9 +187,9 @@ fn to_dodgy_vec2(v: glam::Vec2) -> dodgy_2d::Vec2 {
 /// These obstacles are from the perspective of `agent_node` (to avoid problems
 /// with obstacles above/below the agent). `distance_limit` is the distance from
 /// the agent to include obstacles.
-fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
+fn nav_mesh_borders_to_dodgy_obstacles(
   agent_node: (Vec3, NodeRef),
-  nav_data: &NavigationData<CS>,
+  nav_data: &NavigationData,
   distance_limit: f32,
 ) -> Vec<dodgy_2d::Obstacle> {
   let distance_limit = distance_limit * distance_limit;
@@ -246,7 +246,7 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
       continue;
     }
 
-    let island = nav_data.get_island(node.island_id).unwrap().island;
+    let island = nav_data.get_island(node.island_id).unwrap();
 
     let polygon = &island.nav_mesh.polygons[node.polygon_index];
     let off_mesh_links = nav_data.node_to_off_mesh_link_ids.get(&node);
@@ -443,7 +443,7 @@ fn nav_mesh_borders_to_dodgy_obstacles<CS: CoordinateSystem>(
     |(island_id, index)| match island_id {
       None => new_vertices[index],
       Some(island_id) => {
-        let island_data = nav_data.get_island(island_id).unwrap().island;
+        let island_data = nav_data.get_island(island_id).unwrap();
         vertex_index_to_dodgy_vec(island_data, index, glam::Vec2::ZERO)
       }
     };

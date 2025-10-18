@@ -19,7 +19,7 @@ use agent::{RepathResult, does_agent_need_repath};
 use glam::Vec3Swizzles;
 use path::PathIndex;
 use slotmap::HopSlotMap;
-use std::collections::HashMap;
+use std::{collections::HashMap, marker::PhantomData};
 
 use nav_data::NavigationData;
 
@@ -55,7 +55,7 @@ use crate::{
 
 pub struct Archipelago<CS: CoordinateSystem> {
   pub archipelago_options: ArchipelagoOptions<CS>,
-  nav_data: NavigationData<CS>,
+  nav_data: NavigationData,
   agents: HopSlotMap<AgentId, Agent<CS>>,
   characters: HopSlotMap<CharacterId, Character<CS>>,
   pathing_results: Vec<PathingResult>,
@@ -164,7 +164,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     transform: Transform<CS>,
     nav_mesh: ValidNavigationMesh<CS>,
   ) -> IslandId {
-    self.nav_data.add_island(transform, nav_mesh)
+    self.nav_data.add_island(transform.to_core(), nav_mesh.to_core())
   }
 
   pub fn remove_island(&mut self, island_id: IslandId) {
@@ -172,14 +172,20 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   }
 
   pub fn get_island(&self, island_id: IslandId) -> Option<IslandRef<'_, CS>> {
-    self.nav_data.get_island(island_id)
+    self
+      .nav_data
+      .get_island(island_id)
+      .map(|island| IslandRef { island, marker: PhantomData })
   }
 
   pub fn get_island_mut(
     &mut self,
     island_id: IslandId,
   ) -> Option<IslandMut<'_, CS>> {
-    self.nav_data.get_island_mut(island_id)
+    self
+      .nav_data
+      .get_island_mut(island_id)
+      .map(|island| IslandMut { island, marker: PhantomData })
   }
 
   pub fn get_island_ids(&self) -> impl ExactSizeIterator<Item = IslandId> + '_ {
@@ -190,7 +196,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     &mut self,
     link: AnimationLink<CS>,
   ) -> AnimationLinkId {
-    self.nav_data.add_animation_link(link)
+    self.nav_data.add_animation_link(link.to_core())
   }
 
   pub fn remove_animation_link(&mut self, link_id: AnimationLinkId) {
@@ -201,7 +207,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     &self,
     link_id: AnimationLinkId,
   ) -> Option<AnimationLink<CS>> {
-    self.nav_data.get_animation_link(link_id)
+    self.nav_data.get_animation_link(link_id).map(AnimationLink::from_core)
   }
 
   pub fn get_animation_link_ids(
@@ -486,18 +492,16 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
             end_node,
           } => {
             // TODO: Consider moving this into find_next_point_in_straight_path.
-            fn sample_point<CS: CoordinateSystem>(
-              nav_data: &NavigationData<CS>,
+            fn sample_point(
+              nav_data: &NavigationData,
               point: Vec3,
               node: NodeRef,
             ) -> Vec3 {
               let island = nav_data.get_island(node.island_id).unwrap();
-              let point = island.island.transform.apply_inverse(point);
-              let point = island
-                .island
-                .nav_mesh
-                .sample_point_on_node(point, node.polygon_index);
-              island.island.transform.apply(point)
+              let point = island.transform.apply_inverse(point);
+              let point =
+                island.nav_mesh.sample_point_on_node(point, node.polygon_index);
+              island.transform.apply(point)
             }
             // Refine the start and end points of the animation link to be
             // actually on the nav mesh.

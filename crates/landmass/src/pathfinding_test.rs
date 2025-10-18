@@ -22,16 +22,16 @@ use super::find_path;
 
 // Same as `find_path`, but derives the start and end points from the center of
 // the specified nodes.
-fn find_path_between_nodes<CS: CoordinateSystem>(
-  nav_data: &NavigationData<CS>,
+fn find_path_between_nodes(
+  nav_data: &NavigationData,
   start_node: NodeRef,
   end_node: NodeRef,
   override_type_index_to_cost: &HashMap<usize, f32>,
 ) -> (Vec3, Vec3, PathResult) {
-  let start_island = nav_data.get_island(start_node.island_id).unwrap().island;
+  let start_island = nav_data.get_island(start_node.island_id).unwrap();
   let start_point =
     start_island.nav_mesh.polygons[start_node.polygon_index].center;
-  let end_island = nav_data.get_island(end_node.island_id).unwrap().island;
+  let end_island = nav_data.get_island(end_node.island_id).unwrap();
   let end_point = end_island.nav_mesh.polygons[end_node.polygon_index].center;
 
   (

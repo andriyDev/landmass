@@ -299,8 +299,7 @@ fn draw_path<CS: CoordinateSystem>(
     let island = archipelago
       .nav_data
       .get_island(island_segment.island_id)
-      .expect("Island in corridor should be valid")
-      .island;
+      .expect("Island in corridor should be valid");
     for (&polygon_index, &edge_index) in island_segment
       .corridor
       .iter()

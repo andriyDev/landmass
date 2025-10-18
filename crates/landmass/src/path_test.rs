@@ -16,9 +16,9 @@ use crate::{
 
 use super::{Path, PathIndex};
 
-fn collect_straight_path<CS: CoordinateSystem>(
+fn collect_straight_path(
   path: &Path,
-  nav_data: &NavigationData<CS>,
+  nav_data: &NavigationData,
   start: (PathIndex, Vec3),
   end: (PathIndex, Vec3),
   iteration_limit: u32,
