@@ -1247,13 +1247,14 @@ fn permitted_animation_link_blocks_region_connectivity() {
 fn get_off_mesh_links_for_node<CS: CoordinateSystem>(
   nav_data: &NavigationData<CS>,
   node_ref: NodeRef,
-) -> Option<Vec<&OffMeshLink>> {
+) -> Option<Vec<OffMeshLink>> {
   Some(
     nav_data
       .node_to_off_mesh_link_ids
       .get(&node_ref)?
       .iter()
       .map(|&link_id| nav_data.off_mesh_links.get(link_id).unwrap())
+      .cloned()
       .collect::<Vec<_>>(),
   )
 }
@@ -1373,7 +1374,7 @@ fn generates_animation_links() {
   expect_that!(
     island_1_off_mesh_links,
     some(unordered_elements_are!(
-      &&OffMeshLink {
+      &OffMeshLink {
         destination_node: NodeRef { island_id: island_4, polygon_index: 0 },
         destination_type_index: 0,
         portal: (Vec3::new(0.1, 0.9, 13.0), Vec3::new(0.9, 0.9, 13.0)),
@@ -1387,7 +1388,7 @@ fn generates_animation_links() {
           animation_link: link_id_1,
         },
       },
-      &&OffMeshLink {
+      &OffMeshLink {
         destination_node: NodeRef { island_id: island_2, polygon_index: 0 },
         destination_type_index: 0,
         portal: (Vec3::new(0.9, 0.1, 13.0), Vec3::new(0.9, 0.9, 13.0)),
@@ -1409,7 +1410,7 @@ fn generates_animation_links() {
   );
   expect_that!(
     island_3_off_mesh_links,
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_1, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(-1.1, 0.1, 13.0), Vec3::new(-1.1, 0.9, 13.0)),
@@ -1515,7 +1516,7 @@ fn removing_animation_link_removes_off_mesh_links() {
   );
   expect_that!(
     island_1_off_mesh_links,
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_2, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.9, 0.1, 7.0), Vec3::new(0.9, 0.9, 7.0)),
@@ -1536,7 +1537,7 @@ fn removing_animation_link_removes_off_mesh_links() {
   );
   expect_that!(
     island_2_off_mesh_links,
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_1, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(2.1, 1.1, 7.0), Vec3::new(2.1, 1.9, 7.0)),
@@ -1729,7 +1730,7 @@ fn existing_animation_link_is_linked_for_new_island() {
   );
   expect_that!(
     island_1_off_mesh_links,
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_2, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.9, 0.1, 7.0), Vec3::new(0.9, 0.9, 7.0)),
@@ -1750,7 +1751,7 @@ fn existing_animation_link_is_linked_for_new_island() {
   );
   expect_that!(
     island_2_off_mesh_links,
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_1, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(2.1, 1.1, 7.0), Vec3::new(2.1, 1.9, 7.0)),
@@ -1923,7 +1924,7 @@ fn added_island_mixes_new_and_old_portals() {
       &nav_data,
       NodeRef { island_id: island_00, polygon_index: 0 },
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_01, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.5, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
@@ -1943,7 +1944,7 @@ fn added_island_mixes_new_and_old_portals() {
       &nav_data,
       NodeRef { island_id: island_10, polygon_index: 0 },
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_11, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(2.0, 0.5, 7.0), Vec3::new(2.5, 0.5, 7.0)),
@@ -1963,7 +1964,7 @@ fn added_island_mixes_new_and_old_portals() {
       &nav_data,
       NodeRef { island_id: island_01, polygon_index: 0 },
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_00, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.5, 2.5, 7.0), Vec3::new(1.0, 2.5, 7.0)),
@@ -1983,7 +1984,7 @@ fn added_island_mixes_new_and_old_portals() {
       &nav_data,
       NodeRef { island_id: island_11, polygon_index: 0 },
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_10, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(2.0, 2.5, 7.0), Vec3::new(2.5, 2.5, 7.0)),
@@ -2057,7 +2058,7 @@ fn same_island_animation_link() {
       &nav_data,
       NodeRef { island_id: island, polygon_index: 0 },
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.1, 0.5, 0.0), Vec3::new(0.9, 0.5, 0.0)),
@@ -2164,7 +2165,7 @@ fn point_animation_links_are_connected() {
       &nav_data,
       NodeRef { island_id: island, polygon_index: 0 },
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island, polygon_index: 1 },
       destination_type_index: 0,
       portal: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
@@ -2184,7 +2185,7 @@ fn point_animation_links_are_connected() {
       &nav_data,
       NodeRef { island_id: island, polygon_index: 1 },
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.5, 3.5, 7.0), Vec3::new(0.5, 3.5, 7.0)),
@@ -2297,7 +2298,7 @@ fn point_animation_links_are_connected_when_not_new() {
       &nav_data,
       NodeRef { island_id: island, polygon_index: 0 },
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island, polygon_index: 1 },
       destination_type_index: 0,
       portal: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
@@ -2317,7 +2318,7 @@ fn point_animation_links_are_connected_when_not_new() {
       &nav_data,
       NodeRef { island_id: island, polygon_index: 1 },
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.5, 3.5, 7.0), Vec3::new(0.5, 3.5, 7.0)),
@@ -2418,7 +2419,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links() {
       &nav_data,
       NodeRef { island_id: island_00, polygon_index: 0 }
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_01, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(0.5, 0.5, 7.0)),
@@ -2438,7 +2439,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links() {
       &nav_data,
       NodeRef { island_id: island_10, polygon_index: 0 }
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_11, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(3.5, 0.5, 7.0), Vec3::new(4.0, 0.5, 7.0)),
@@ -2505,7 +2506,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links() {
       &nav_data,
       NodeRef { island_id: island_00, polygon_index: 0 }
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_01, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.0, 0.5, 7.0), Vec3::new(1.0, 0.5, 7.0)),
@@ -2525,7 +2526,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links() {
       &nav_data,
       NodeRef { island_id: island_10, polygon_index: 0 }
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_11, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(3.0, 0.5, 7.0), Vec3::new(4.0, 0.5, 7.0)),
@@ -2629,7 +2630,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
       &nav_data,
       NodeRef { island_id: island_1, polygon_index: 0 }
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_2, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.25, 0.5, 7.0), Vec3::new(0.25, 0.5, 7.0)),
@@ -2649,7 +2650,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
       &nav_data,
       NodeRef { island_id: island_2, polygon_index: 0 }
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_1, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.5, 2.5, 7.0), Vec3::new(1.0, 2.5, 7.0)),
@@ -2726,7 +2727,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
       &nav_data,
       NodeRef { island_id: island_1, polygon_index: 0 }
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_2, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.25, 0.5, 7.0), Vec3::new(0.25, 0.5, 7.0)),
@@ -2746,7 +2747,7 @@ fn changing_island_does_not_cause_duplicate_off_mesh_links_for_point_links() {
       &nav_data,
       NodeRef { island_id: island_2, polygon_index: 0 }
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_1, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.5, 2.5, 7.0), Vec3::new(1.0, 2.5, 7.0)),
@@ -2845,7 +2846,7 @@ fn generates_animation_links_at_correct_height() {
       &nav_data,
       NodeRef { island_id: island_1, polygon_index: 0 }
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_2, polygon_index: 1 },
       destination_type_index: 0,
       portal: (Vec3::new(0.9, 0.1, 4.1), Vec3::new(0.9, 0.9, 4.1)),
@@ -2972,7 +2973,7 @@ fn generates_animation_links_using_height_mesh() {
       &nav_data,
       NodeRef { island_id: island_1, polygon_index: 0 }
     ),
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_2, polygon_index: 1 },
       destination_type_index: 0,
       portal: (Vec3::new(0.9, 0.1, 4.1), Vec3::new(0.9, 0.9, 4.1)),
@@ -3053,7 +3054,7 @@ fn animation_link_along_angled_surface() {
   );
   expect_that!(
     island_1_node_1_off_mesh_links,
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_2, polygon_index: 1 },
       destination_type_index: 0,
       portal: (Vec3::new(0.5, 1.1, 0.5), Vec3::new(0.5, 1.9, 0.5)),
@@ -3125,7 +3126,7 @@ fn animation_link_along_angled_surface() {
   );
   expect_that!(
     island_1_node_0_off_mesh_links,
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_2, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.5, 0.5, 0.5), Vec3::new(0.5, 1.0, 0.5)),
@@ -3146,7 +3147,7 @@ fn animation_link_along_angled_surface() {
   );
   expect_that!(
     island_1_node_1_off_mesh_links,
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_2, polygon_index: 1 },
       destination_type_index: 0,
       portal: (Vec3::new(0.5, 1.0, 0.5), Vec3::new(0.5, 2.0, 0.5)),
@@ -3167,7 +3168,7 @@ fn animation_link_along_angled_surface() {
   );
   expect_that!(
     island_1_node_2_off_mesh_links,
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_2, polygon_index: 2 },
       destination_type_index: 0,
       portal: (Vec3::new(0.5, 2.0, 0.5), Vec3::new(0.5, 2.5, 0.5)),
@@ -3299,7 +3300,7 @@ fn generates_bidirectional_animation_links() {
   expect_that!(
     island_1_off_mesh_links,
     some(unordered_elements_are!(
-      &&OffMeshLink {
+      &OffMeshLink {
         destination_node: NodeRef { island_id: island_4, polygon_index: 0 },
         destination_type_index: 0,
         portal: (Vec3::new(0.1, 0.9, 13.0), Vec3::new(0.9, 0.9, 13.0)),
@@ -3313,7 +3314,7 @@ fn generates_bidirectional_animation_links() {
           animation_link: link_id_1,
         },
       },
-      &&OffMeshLink {
+      &OffMeshLink {
         destination_node: NodeRef { island_id: island_2, polygon_index: 0 },
         destination_type_index: 0,
         portal: (Vec3::new(0.9, 0.1, 13.0), Vec3::new(0.9, 0.9, 13.0)),
@@ -3327,7 +3328,7 @@ fn generates_bidirectional_animation_links() {
           animation_link: link_id_2,
         },
       },
-      &&OffMeshLink {
+      &OffMeshLink {
         destination_node: NodeRef { island_id: island_3, polygon_index: 0 },
         destination_type_index: 0,
         portal: (Vec3::new(0.1, 0.1, 13.0), Vec3::new(0.1, 0.9, 13.0)),
@@ -3349,7 +3350,7 @@ fn generates_bidirectional_animation_links() {
   );
   expect_that!(
     island_2_off_mesh_links,
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_1, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(2.1, 0.1, 13.0), Vec3::new(2.1, 0.9, 13.0)),
@@ -3370,7 +3371,7 @@ fn generates_bidirectional_animation_links() {
   );
   expect_that!(
     island_3_off_mesh_links,
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_1, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(-1.1, 0.1, 13.0), Vec3::new(-1.1, 0.9, 13.0)),
@@ -3391,7 +3392,7 @@ fn generates_bidirectional_animation_links() {
   );
   expect_that!(
     island_4_off_mesh_links,
-    some(unordered_elements_are!(&&OffMeshLink {
+    some(unordered_elements_are!(&OffMeshLink {
       destination_node: NodeRef { island_id: island_1, polygon_index: 0 },
       destination_type_index: 0,
       portal: (Vec3::new(0.1, 4.1, 13.0), Vec3::new(0.9, 4.1, 13.0)),
@@ -3555,8 +3556,8 @@ fn bidirectional_links_collapse_either_end() {
       NodeRef { island_id: island, polygon_index: 0 },
     ),
     some(unordered_elements_are!(
-      &&expected_node_0_links[0],
-      &&expected_node_0_links[1]
+      &expected_node_0_links[0],
+      &expected_node_0_links[1]
     ))
   );
   expect_that!(
@@ -3565,8 +3566,8 @@ fn bidirectional_links_collapse_either_end() {
       NodeRef { island_id: island, polygon_index: 1 },
     ),
     some(unordered_elements_are!(
-      &&expected_node_1_links[0],
-      &&expected_node_1_links[1]
+      &expected_node_1_links[0],
+      &expected_node_1_links[1]
     ))
   );
 
@@ -3627,8 +3628,8 @@ fn bidirectional_links_collapse_either_end() {
       NodeRef { island_id: island, polygon_index: 0 },
     ),
     some(unordered_elements_are!(
-      &&expected_node_0_links[0],
-      &&expected_node_0_links[1]
+      &expected_node_0_links[0],
+      &expected_node_0_links[1]
     ))
   );
   expect_that!(
@@ -3637,8 +3638,8 @@ fn bidirectional_links_collapse_either_end() {
       NodeRef { island_id: island, polygon_index: 1 },
     ),
     some(unordered_elements_are!(
-      &&expected_node_1_links[0],
-      &&expected_node_1_links[1]
+      &expected_node_1_links[0],
+      &expected_node_1_links[1]
     ))
   );
 }
