@@ -2,7 +2,7 @@ use glam::Vec3;
 use googletest::{expect_that, matchers::*};
 
 use crate::{
-  Agent, AnimationLink, Archipelago, ArchipelagoOptions, FromAgentRadius,
+  AnimationLink, Archipelago, ArchipelagoOptions, FromAgentRadius,
   HeightNavigationMesh, HeightPolygon, NavigationMesh, Transform,
   coords::XYZ,
   debug::{DebugDrawError, DebugDrawer, LineType, PointType, TriangleType},
@@ -79,15 +79,17 @@ fn draws_island_meshes_and_agents() {
     nav_mesh,
   );
 
-  let agent_id = archipelago.add_agent(Agent::create(
+  let agent_id = archipelago.add_agent(
     /* position= */ Vec3::new(3.9, 1.5, 0.0) + TRANSLATION,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 1.0,
     /* desired_speed= */ 1.0,
     /* max_speed= */ 1.0,
-  ));
-  archipelago.get_agent_mut(agent_id).unwrap().current_target =
-    Some(Vec3::new(1.5, 4.5, 0.0) + TRANSLATION);
+  );
+  archipelago
+    .get_agent_mut(agent_id)
+    .unwrap()
+    .set_current_target(Some(Vec3::new(1.5, 4.5, 0.0) + TRANSLATION));
 
   // Update so everything is in sync.
   archipelago.update(1.0);
@@ -414,17 +416,17 @@ fn draws_boundary_links() {
     nav_mesh.clone(),
   );
 
-  let agent_id = archipelago.add_agent({
-    let mut agent = Agent::create(
-      /* position= */ Vec3::new(1.5, 1.25, 1.0),
-      /* velocity= */ Vec3::ZERO,
-      /* radius= */ 0.5,
-      /* desired_speed= */ 1.0,
-      /* max_speed= */ 2.0,
-    );
-    agent.current_target = Some(Vec3::new(2.5, 1.25, 1.0));
-    agent
-  });
+  let agent_id = archipelago.add_agent(
+    /* position= */ Vec3::new(1.5, 1.25, 1.0),
+    /* velocity= */ Vec3::ZERO,
+    /* radius= */ 0.5,
+    /* desired_speed= */ 1.0,
+    /* max_speed= */ 2.0,
+  );
+  archipelago
+    .get_agent_mut(agent_id)
+    .unwrap()
+    .set_current_target(Some(Vec3::new(2.5, 1.25, 1.0)));
 
   // Update so everything is in sync.
   archipelago.update(1.0);
@@ -492,12 +494,12 @@ fn draws_animation_links() {
     cost: 1.0,
     bidirectional: false,
   });
-  let agent_id = archipelago.add_agent({
-    let mut agent =
-      Agent::create(Vec3::new(0.5, 0.25, 0.0), Vec3::ZERO, 0.5, 1.0, 2.0);
-    agent.current_target = Some(Vec3::new(2.5, 0.25, 0.0));
-    agent
-  });
+  let agent_id =
+    archipelago.add_agent(Vec3::new(0.5, 0.25, 0.0), Vec3::ZERO, 0.5, 1.0, 2.0);
+  archipelago
+    .get_agent_mut(agent_id)
+    .unwrap()
+    .set_current_target(Some(Vec3::new(2.5, 0.25, 0.0)));
 
   // Update so everything is in sync.
   archipelago.update(1.0);
@@ -775,28 +777,26 @@ fn draws_avoidance_data_when_requested() {
   });
   archipelago.add_island(Transform::default(), nav_mesh.clone());
 
-  let agent_1 = archipelago.add_agent({
-    let mut agent = Agent::create(
-      Vec3::new(6.0, 2.0, 1.0),
-      // Use a velocity that allows both agents to agree on their "passing
-      // side".
-      Vec3::new(1.0, 1.0, 0.0),
-      0.5,
-      1.0,
-      1.0,
-    );
-    agent.current_target = Some(Vec3::new(6.0, 10.0, 1.0));
-    // This agent we want to see the avoidance data for.
-    agent.keep_avoidance_data = true;
-    agent
-  });
+  let agent_1 = archipelago.add_agent(
+    Vec3::new(6.0, 2.0, 1.0),
+    // Use a velocity that allows both agents to agree on their "passing
+    // side".
+    Vec3::new(1.0, 1.0, 0.0),
+    0.5,
+    1.0,
+    1.0,
+  );
+  let mut agent_1_mut = archipelago.get_agent_mut(agent_1).unwrap();
+  agent_1_mut.set_current_target(Some(Vec3::new(6.0, 10.0, 1.0)));
+  // This agent we want to see the avoidance data for.
+  agent_1_mut.set_keep_avoidance_data(true);
 
-  archipelago.add_agent({
-    let mut agent =
-      Agent::create(Vec3::new(6.0, 10.0, 1.0), Vec3::ZERO, 0.5, 1.0, 1.0);
-    agent.current_target = Some(Vec3::new(6.0, 2.0, 1.0));
-    agent
-  });
+  let agent_2 =
+    archipelago.add_agent(Vec3::new(6.0, 10.0, 1.0), Vec3::ZERO, 0.5, 1.0, 1.0);
+  archipelago
+    .get_agent_mut(agent_2)
+    .unwrap()
+    .set_current_target(Some(Vec3::new(6.0, 2.0, 1.0)));
 
   // We now have avoidance data for agent_1.
   archipelago.update(/* delta_time= */ 1.0);

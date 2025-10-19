@@ -4,7 +4,7 @@ use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
 
 use crate::{
-  Agent, AgentId, Archipelago, ArchipelagoOptions, CharacterId,
+  AgentId, Archipelago, ArchipelagoOptions, CharacterId, CoreAgent,
   FromAgentRadius, NavigationData, NavigationMesh, Transform,
   avoidance::apply_avoidance_to_agents,
   character::CoreCharacter,
@@ -415,7 +415,7 @@ fn applies_no_avoidance_for_far_agents() {
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent_1 = agents.insert({
-    let mut agent = Agent::<XYZ>::create(
+    let mut agent = CoreAgent::new(
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
@@ -426,7 +426,7 @@ fn applies_no_avoidance_for_far_agents() {
     agent
   });
   let agent_2 = agents.insert({
-    let mut agent = Agent::create(
+    let mut agent = CoreAgent::new(
       /* position= */ Vec3::new(11.0, 1.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
@@ -437,7 +437,7 @@ fn applies_no_avoidance_for_far_agents() {
     agent
   });
   let agent_3 = agents.insert({
-    let mut agent = Agent::create(
+    let mut agent = CoreAgent::new(
       /* position= */ Vec3::new(5.0, 4.0, 0.0),
       /* velocity= */ Vec3::ZERO,
       /* radius= */ 0.01,
@@ -471,7 +471,7 @@ fn applies_no_avoidance_for_far_agents() {
     /* characters= */ &HopSlotMap::with_key(),
     /* character_id_to_nav_mesh_point= */ &HashMap::new(),
     &nav_data,
-    &ArchipelagoOptions {
+    &ArchipelagoOptions::<XYZ> {
       neighbourhood: 5.0,
       ..ArchipelagoOptions::from_agent_radius(0.5)
     },
@@ -479,15 +479,15 @@ fn applies_no_avoidance_for_far_agents() {
   );
 
   assert_eq!(
-    *agents.get(agent_1).unwrap().get_desired_velocity(),
+    agents.get(agent_1).unwrap().get_desired_velocity(),
     Vec3::new(1.0, 0.0, 0.0)
   );
   assert_eq!(
-    *agents.get(agent_2).unwrap().get_desired_velocity(),
+    agents.get(agent_2).unwrap().get_desired_velocity(),
     Vec3::new(-1.0, 0.0, 0.0)
   );
   assert_eq!(
-    *agents.get(agent_3).unwrap().get_desired_velocity(),
+    agents.get(agent_3).unwrap().get_desired_velocity(),
     Vec3::new(0.0, 1.0, 0.0)
   );
 }
@@ -515,9 +515,9 @@ fn applies_avoidance_for_two_agents() {
     nav_mesh,
   );
 
-  let mut agents = HopSlotMap::<AgentId, Agent<XYZ>>::with_key();
+  let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent_1 = agents.insert({
-    let mut agent = Agent::create(
+    let mut agent = CoreAgent::new(
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
       /* radius= */ 1.0,
@@ -528,7 +528,7 @@ fn applies_avoidance_for_two_agents() {
     agent
   });
   let agent_2 = agents.insert({
-    let mut agent = Agent::create(
+    let mut agent = CoreAgent::new(
       /* position= */ Vec3::new(11.0, 1.01, 0.0),
       /* velocity= */ Vec3::new(-1.0, 0.0, 0.0),
       /* radius= */ 1.0,
@@ -561,7 +561,7 @@ fn applies_avoidance_for_two_agents() {
     /* characters= */ &HopSlotMap::with_key(),
     /* character_id_to_nav_mesh_point= */ &HashMap::new(),
     &nav_data,
-    &ArchipelagoOptions {
+    &ArchipelagoOptions::<XYZ> {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
       ..ArchipelagoOptions::from_agent_radius(0.5)
@@ -575,13 +575,13 @@ fn applies_avoidance_for_two_agents() {
   // over run of 1/5 or 0.2, which is our expected Z velocity. We derive the X
   // velocity by just making the length of the vector 1 (the agent's max speed).
   let agent_1_desired_velocity =
-    *agents.get(agent_1).unwrap().get_desired_velocity();
+    agents.get(agent_1).unwrap().get_desired_velocity();
   assert!(
     agent_1_desired_velocity.abs_diff_eq(Vec3::new(0.98, -0.2, 0.0), 0.05),
     "left={agent_1_desired_velocity}, right=Vec3(0.98, -0.2, 0.0)"
   );
   let agent_2_desired_velocity =
-    *agents.get(agent_2).unwrap().get_desired_velocity();
+    agents.get(agent_2).unwrap().get_desired_velocity();
   assert!(
     agent_2_desired_velocity.abs_diff_eq(Vec3::new(-0.98, 0.2, 0.0), 0.05),
     "left={agent_2_desired_velocity}, right=Vec3(-0.98, 0.2, 0.0)"
@@ -611,9 +611,9 @@ fn agent_avoids_character() {
     nav_mesh,
   );
 
-  let mut agents = HopSlotMap::<AgentId, Agent<XYZ>>::with_key();
+  let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent = agents.insert({
-    let mut agent = Agent::create(
+    let mut agent = CoreAgent::new(
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
       /* velocity= */ Vec3::new(1.0, 0.0, 0.0),
       /* radius= */ 1.0,
@@ -648,7 +648,7 @@ fn agent_avoids_character() {
     &characters,
     &character_id_to_nav_mesh_point,
     &nav_data,
-    &ArchipelagoOptions {
+    &ArchipelagoOptions::<XYZ> {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
       ..ArchipelagoOptions::from_agent_radius(0.5)
@@ -696,14 +696,14 @@ fn agent_speeds_up_to_avoid_character() {
 
   let mut agents = HopSlotMap::<AgentId, _>::with_key();
   let agent = agents.insert({
-    let mut agent = Agent::<XY>::create(
-      /* position= */ Vec2::new(5.0, 0.0),
-      /* velocity= */ Vec2::new(-1.0, 0.0),
+    let mut agent = CoreAgent::new(
+      /* position= */ Vec3::new(5.0, 0.0, 0.0),
+      /* velocity= */ Vec3::new(-1.0, 0.0, 0.0),
       /* radius= */ 0.5,
       /* desired_speed= */ 1.0,
       /* max_speed= */ 2.0,
     );
-    agent.current_desired_move = Vec2::new(1.0, 0.0);
+    agent.current_desired_move = Vec3::new(1.0, 0.0, 0.0);
     agent
   });
 
@@ -711,7 +711,7 @@ fn agent_speeds_up_to_avoid_character() {
   agent_id_to_agent_node.insert(
     agent,
     (
-      agents.get(agent).unwrap().position.extend(0.0),
+      agents.get(agent).unwrap().position,
       NodeRef { island_id, polygon_index: 0 },
     ),
   );
@@ -722,7 +722,7 @@ fn agent_speeds_up_to_avoid_character() {
     &HopSlotMap::with_key(),
     &HashMap::new(),
     &nav_data,
-    &ArchipelagoOptions {
+    &ArchipelagoOptions::<XYZ> {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
       ..ArchipelagoOptions::from_agent_radius(0.5)
@@ -731,8 +731,8 @@ fn agent_speeds_up_to_avoid_character() {
   );
   // The agent sticks to its desired velocity.
   assert_eq!(
-    *agents.get(agent).unwrap().get_desired_velocity(),
-    Vec2::new(1.0, 0.0)
+    agents.get(agent).unwrap().get_desired_velocity(),
+    Vec3::new(1.0, 0.0, 0.0)
   );
 
   let mut characters = HopSlotMap::<CharacterId, _>::with_key();
@@ -752,7 +752,7 @@ fn agent_speeds_up_to_avoid_character() {
     &characters,
     &character_id_to_nav_mesh_point,
     &nav_data,
-    &ArchipelagoOptions {
+    &ArchipelagoOptions::<XYZ> {
       neighbourhood: 15.0,
       avoidance_time_horizon: 15.0,
       ..ArchipelagoOptions::from_agent_radius(0.5)
@@ -761,7 +761,7 @@ fn agent_speeds_up_to_avoid_character() {
   );
 
   let agent_desired_velocity =
-    *agents.get(agent).unwrap().get_desired_velocity();
+    agents.get(agent).unwrap().get_desired_velocity();
   // Check the agent has sped up to avoid the character.
   assert!(
     agent_desired_velocity.length() > 1.1,
@@ -791,29 +791,29 @@ fn reached_target_agent_has_different_avoidance() {
 
   archipelago.add_island(Transform::default(), nav_mesh);
 
-  let agent_1 = archipelago.add_agent({
-    let mut agent = Agent::create(
-      /* position= */ Vec2::new(0.0, 0.0),
-      /* velocity= */ Vec2::ZERO,
-      /* radius= */ 0.5,
-      /* desired_speed= */ 1.0,
-      /* max_speed= */ 1.0,
-    );
-    agent.current_target = Some(Vec2::new(0.0, 0.0));
-    agent
-  });
+  let agent_1 = archipelago.add_agent(
+    /* position= */ Vec2::ZERO,
+    /* velocity= */ Vec2::ZERO,
+    /* radius= */ 0.5,
+    /* desired_speed= */ 1.0,
+    /* max_speed= */ 1.0,
+  );
+  archipelago
+    .get_agent_mut(agent_1)
+    .unwrap()
+    .set_current_target(Some(Vec2::ZERO));
 
-  let agent_2 = archipelago.add_agent({
-    let mut agent = Agent::create(
-      /* position= */ Vec2::new(0.0, -3.0),
-      /* velocity= */ Vec2::new(0.0, 1.0),
-      /* radius= */ 0.5,
-      /* desired_speed= */ 1.0,
-      /* max_speed= */ 1.0,
-    );
-    agent.current_target = Some(Vec2::new(0.0, 3.0));
-    agent
-  });
+  let agent_2 = archipelago.add_agent(
+    /* position= */ Vec2::new(0.0, -3.0),
+    /* velocity= */ Vec2::new(0.0, 1.0),
+    /* radius= */ 0.5,
+    /* desired_speed= */ 1.0,
+    /* max_speed= */ 1.0,
+  );
+  archipelago
+    .get_agent_mut(agent_2)
+    .unwrap()
+    .set_current_target(Some(Vec2::new(0.0, 3.0)));
 
   archipelago.archipelago_options.avoidance_time_horizon = 100.0;
   archipelago.archipelago_options.obstacle_avoidance_time_horizon = 0.1;
@@ -829,14 +829,14 @@ fn reached_target_agent_has_different_avoidance() {
   for _ in 0..35 {
     archipelago.update(0.1);
     // Update the velocities to match the desired velocities.
-    let agent_1 = archipelago.get_agent_mut(agent_1).unwrap();
-    agent_1.velocity = *agent_1.get_desired_velocity();
-    agent_1.position += agent_1.velocity * 0.1;
-    dbg!(agent_1.position);
-    let agent_2 = archipelago.get_agent_mut(agent_2).unwrap();
-    agent_2.velocity = *agent_2.get_desired_velocity();
-    agent_2.position += agent_2.velocity * 0.1;
-    dbg!(agent_2.position);
+    let mut agent_1 = archipelago.get_agent_mut(agent_1).unwrap();
+    agent_1.set_velocity(agent_1.get_desired_velocity());
+    agent_1.set_position(agent_1.position() + agent_1.velocity() * 0.1);
+    dbg!(agent_1.position());
+    let mut agent_2 = archipelago.get_agent_mut(agent_2).unwrap();
+    agent_2.set_velocity(agent_2.get_desired_velocity());
+    agent_2.set_position(agent_2.position() + agent_2.velocity() * 0.1);
+    dbg!(agent_2.position());
   }
 
   let agent_1 = archipelago.get_agent(agent_1).unwrap();
@@ -844,16 +844,16 @@ fn reached_target_agent_has_different_avoidance() {
 
   // Since agent_1 takes 1/4 responsibility, it moves away by 0.25.
   assert!(
-    (agent_1.position.x - 0.25) < 0.01,
+    (agent_1.position().x - 0.25) < 0.01,
     "left={}, right={}",
-    agent_1.position.x,
+    agent_1.position().x,
     0.25
   );
   // Since agent_2 takes 3/4 responsibility, it moves away by 0.75.
   assert!(
-    (agent_2.position.x - 0.75) < 0.01,
+    (agent_2.position().x - 0.75) < 0.01,
     "left={}, right={}",
-    agent_2.position.x,
+    agent_2.position().x,
     0.75
   );
 }
@@ -905,21 +905,19 @@ fn switching_nav_mesh_to_fewer_vertices_does_not_result_in_panic() {
     redundant_mesh,
   );
 
-  let agent = archipelago.add_agent({
-    let mut agent =
-      Agent::create(Vec2::new(0.5, 1.25), Vec2::ZERO, 0.5, 1.0, 1.0);
-
-    agent.current_target = Some(Vec2::new(1.5, 1.25));
-
-    agent
-  });
+  let agent =
+    archipelago.add_agent(Vec2::new(0.5, 1.25), Vec2::ZERO, 0.5, 1.0, 1.0);
+  archipelago
+    .get_agent_mut(agent)
+    .unwrap()
+    .set_current_target(Some(Vec2::new(1.5, 1.25)));
 
   archipelago.update(0.01);
 
   // This doesn't really matter for the test, but ensures that pathing +
   // avoidance is running.
   assert_eq!(
-    *archipelago.get_agent(agent).unwrap().get_desired_velocity(),
+    archipelago.get_agent(agent).unwrap().get_desired_velocity(),
     Vec2::new(1.0, 0.0)
   );
 

@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 use crate::{
-  Agent, AgentId, Archipelago, CoordinateSystem,
+  AgentId, Archipelago, CoordinateSystem, CoreAgent,
   coords::CorePointSampleDistance,
   island::CoreIsland,
   link::AnimationLinkId,
@@ -260,15 +260,14 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
       continue;
     }
 
+    let agent_position = CS::from_landmass(&agent.position);
     debug_drawer
-      .add_point(PointType::AgentPosition(agent_id), agent.position.clone());
+      .add_point(PointType::AgentPosition(agent_id), agent_position.clone());
     if let Some(target) = &agent.current_target {
-      debug_drawer.add_line(
-        LineType::Target(agent_id),
-        [agent.position.clone(), target.clone()],
-      );
+      let target = CS::from_landmass(&target);
       debug_drawer
-        .add_point(PointType::TargetPosition(agent_id), target.clone());
+        .add_line(LineType::Target(agent_id), [agent_position, target.clone()]);
+      debug_drawer.add_point(PointType::TargetPosition(agent_id), target);
     }
     if let Some(path) = agent.current_path.as_ref() {
       draw_path(path, agent_id, agent, archipelago, debug_drawer);
@@ -283,7 +282,7 @@ pub fn draw_archipelago_debug<CS: CoordinateSystem>(
 fn draw_path<CS: CoordinateSystem>(
   path: &Path,
   agent_id: AgentId,
-  agent: &Agent<CS>,
+  agent: &CoreAgent,
   archipelago: &Archipelago<CS>,
   debug_drawer: &mut impl DebugDrawer<CS>,
 ) {
@@ -360,7 +359,7 @@ fn draw_path<CS: CoordinateSystem>(
   let (agent_sample_point, agent_node_ref) = archipelago
     .nav_data
     .sample_point(
-      CS::to_landmass(&agent.position),
+      agent.position,
       &CorePointSampleDistance::new(
         &archipelago.archipelago_options.point_sample_distance,
       ),
@@ -369,7 +368,7 @@ fn draw_path<CS: CoordinateSystem>(
   let (target_sample_point, target_node_ref) = archipelago
     .nav_data
     .sample_point(
-      CS::to_landmass(&target),
+      target,
       &CorePointSampleDistance::new(
         &archipelago.archipelago_options.point_sample_distance,
       ),
@@ -407,7 +406,7 @@ fn draw_path<CS: CoordinateSystem>(
   };
   debug_drawer.add_line(
     LineType::Waypoint(agent_id),
-    [agent.position.clone(), CS::from_landmass(&waypoint)],
+    [CS::from_landmass(&agent.position), CS::from_landmass(&waypoint)],
   );
   debug_drawer
     .add_point(PointType::Waypoint(agent_id), CS::from_landmass(&waypoint));

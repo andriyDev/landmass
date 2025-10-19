@@ -9,7 +9,7 @@ use googletest::{
 };
 
 use crate::{
-  Agent, AgentId, AgentState, AnimationLink, Archipelago, ArchipelagoOptions,
+  AgentId, AgentState, AnimationLink, Archipelago, ArchipelagoOptions,
   CharacterId, CoordinateSystem, FromAgentRadius, IslandId, NavigationMesh,
   PathStep, PointSampleDistance3d, ReachedAnimationLink, Transform,
   ValidNavigationMesh,
@@ -24,29 +24,29 @@ fn add_and_remove_agents() {
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let agent_1 = archipelago.add_agent(Agent::create(
+  let agent_1 = archipelago.add_agent(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 1.0,
     /* desired_speed= */ 0.0,
     /* max_speed= */ 0.0,
-  ));
+  );
 
-  let agent_2 = archipelago.add_agent(Agent::create(
+  let agent_2 = archipelago.add_agent(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 2.0,
     /* desired_speed= */ 0.0,
     /* max_speed= */ 0.0,
-  ));
+  );
 
-  let agent_3 = archipelago.add_agent(Agent::create(
+  let agent_3 = archipelago.add_agent(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 3.0,
     /* desired_speed= */ 0.0,
     /* max_speed= */ 0.0,
-  ));
+  );
 
   fn sorted(mut v: Vec<AgentId>) -> Vec<AgentId> {
     v.sort();
@@ -59,9 +59,9 @@ fn add_and_remove_agents() {
   );
   assert_eq!(
     [
-      archipelago.get_agent(agent_1).unwrap().radius,
-      archipelago.get_agent(agent_2).unwrap().radius,
-      archipelago.get_agent(agent_3).unwrap().radius,
+      archipelago.get_agent(agent_1).unwrap().radius(),
+      archipelago.get_agent(agent_2).unwrap().radius(),
+      archipelago.get_agent(agent_3).unwrap().radius(),
     ],
     [1.0, 2.0, 3.0],
   );
@@ -74,8 +74,8 @@ fn add_and_remove_agents() {
   );
   assert_eq!(
     [
-      archipelago.get_agent(agent_1).unwrap().radius,
-      archipelago.get_agent(agent_3).unwrap().radius,
+      archipelago.get_agent(agent_1).unwrap().radius(),
+      archipelago.get_agent(agent_3).unwrap().radius(),
     ],
     [1.0, 3.0],
   );
@@ -86,7 +86,7 @@ fn add_and_remove_agents() {
     sorted(archipelago.get_agent_ids().collect::<Vec<_>>()),
     sorted(vec![agent_1]),
   );
-  assert_eq!([archipelago.get_agent(agent_1).unwrap().radius], [1.0]);
+  assert_eq!([archipelago.get_agent(agent_1).unwrap().radius()], [1.0]);
 
   archipelago.remove_agent(agent_1);
 
@@ -207,45 +207,51 @@ fn computes_and_follows_path() {
   archipelago.archipelago_options.neighbourhood = 0.0;
   archipelago.archipelago_options.obstacle_avoidance_time_horizon = 0.01;
 
-  let agent_1 = archipelago.add_agent(Agent::create(
+  let agent_1 = archipelago.add_agent(
     /* position= */ Vec3::new(1.5, 1.5, 1.09),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.5,
     /* desired_speed= */ 2.0,
     /* max_speed= */ 2.0,
-  ));
-  let agent_2 = archipelago.add_agent(Agent::create(
+  );
+  let agent_2 = archipelago.add_agent(
     /* position= */ Vec3::new(3.5, 3.5, 0.95),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.5,
     /* desired_speed= */ 2.0,
     /* max_speed= */ 2.0,
-  ));
-  let agent_off_mesh = archipelago.add_agent(Agent::create(
+  );
+  let agent_off_mesh = archipelago.add_agent(
     /* position= */ Vec3::new(1.5, 2.5, 1.0),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.5,
     /* desired_speed= */ 2.0,
     /* max_speed= */ 2.0,
-  ));
-  let agent_too_high_above_mesh = archipelago.add_agent(Agent::create(
+  );
+  let agent_too_high_above_mesh = archipelago.add_agent(
     /* position= */ Vec3::new(1.5, 1.5, 1.11),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.5,
     /* desired_speed= */ 2.0,
     /* max_speed= */ 2.0,
-  ));
+  );
 
-  archipelago.get_agent_mut(agent_1).unwrap().current_target =
-    Some(Vec3::new(3.5, 3.5, 0.95));
-  archipelago.get_agent_mut(agent_off_mesh).unwrap().current_target =
-    Some(Vec3::new(3.5, 3.5, 0.95));
+  archipelago
+    .get_agent_mut(agent_1)
+    .unwrap()
+    .set_current_target(Some(Vec3::new(3.5, 3.5, 0.95)));
+  archipelago
+    .get_agent_mut(agent_off_mesh)
+    .unwrap()
+    .set_current_target(Some(Vec3::new(3.5, 3.5, 0.95)));
   archipelago
     .get_agent_mut(agent_too_high_above_mesh)
     .unwrap()
-    .current_target = Some(Vec3::new(3.5, 3.5, 0.95));
-  archipelago.get_agent_mut(agent_2).unwrap().current_target =
-    Some(Vec3::new(1.5, 1.5, 1.09));
+    .set_current_target(Some(Vec3::new(3.5, 3.5, 0.95)));
+  archipelago
+    .get_agent_mut(agent_2)
+    .unwrap()
+    .set_current_target(Some(Vec3::new(1.5, 1.5, 1.09)));
 
   // Nothing has happened yet.
   assert_eq!(archipelago.get_agent(agent_1).unwrap().state(), AgentState::Idle);
@@ -260,19 +266,19 @@ fn computes_and_follows_path() {
   );
 
   assert_eq!(
-    *archipelago.get_agent(agent_1).unwrap().get_desired_velocity(),
+    archipelago.get_agent(agent_1).unwrap().get_desired_velocity(),
     Vec3::ZERO
   );
   assert_eq!(
-    *archipelago.get_agent(agent_2).unwrap().get_desired_velocity(),
+    archipelago.get_agent(agent_2).unwrap().get_desired_velocity(),
     Vec3::ZERO
   );
   assert_eq!(
-    *archipelago.get_agent(agent_off_mesh).unwrap().get_desired_velocity(),
+    archipelago.get_agent(agent_off_mesh).unwrap().get_desired_velocity(),
     Vec3::ZERO
   );
   assert_eq!(
-    *archipelago
+    archipelago
       .get_agent(agent_too_high_above_mesh)
       .unwrap()
       .get_desired_velocity(),
@@ -314,11 +320,11 @@ fn computes_and_follows_path() {
     AgentState::AgentNotOnNavMesh
   );
   assert_eq!(
-    *archipelago.get_agent(agent_off_mesh).unwrap().get_desired_velocity(),
+    archipelago.get_agent(agent_off_mesh).unwrap().get_desired_velocity(),
     Vec3::ZERO
   );
   assert_eq!(
-    *archipelago
+    archipelago
       .get_agent(agent_too_high_above_mesh)
       .unwrap()
       .get_desired_velocity(),
@@ -334,8 +340,10 @@ fn computes_and_follows_path() {
   assert!(path_result_2.explored_nodes > 0);
 
   // Move agent_1 forward.
-  archipelago.get_agent_mut(agent_1).unwrap().position =
-    Vec3::new(2.5, 1.5, 1.0);
+  archipelago
+    .get_agent_mut(agent_1)
+    .unwrap()
+    .set_position(Vec3::new(2.5, 1.5, 1.0));
   archipelago.update(/* delta_time= */ 0.01);
 
   assert!(
@@ -354,11 +362,11 @@ fn computes_and_follows_path() {
       .abs_diff_eq(Vec3::new(-0.5, -1.5, 0.0).normalize() * 2.0, 1e-2)
   );
   assert_eq!(
-    *archipelago.get_agent(agent_off_mesh).unwrap().get_desired_velocity(),
+    archipelago.get_agent(agent_off_mesh).unwrap().get_desired_velocity(),
     Vec3::ZERO
   );
   assert_eq!(
-    *archipelago
+    archipelago
       .get_agent(agent_too_high_above_mesh)
       .unwrap()
       .get_desired_velocity(),
@@ -382,10 +390,14 @@ fn computes_and_follows_path() {
   );
 
   // Move agent_1 close enough to destination and agent_2 forward.
-  archipelago.get_agent_mut(agent_1).unwrap().position =
-    Vec3::new(3.4, 3.4, 1.0);
-  archipelago.get_agent_mut(agent_2).unwrap().position =
-    Vec3::new(3.5, 2.5, 1.0);
+  archipelago
+    .get_agent_mut(agent_1)
+    .unwrap()
+    .set_position(Vec3::new(3.4, 3.4, 1.0));
+  archipelago
+    .get_agent_mut(agent_2)
+    .unwrap()
+    .set_position(Vec3::new(3.5, 2.5, 1.0));
   archipelago.update(/* delta_time= */ 0.01);
 
   assert_eq!(
@@ -397,7 +409,7 @@ fn computes_and_follows_path() {
     AgentState::Moving
   );
   assert_eq!(
-    *archipelago.get_agent(agent_1).unwrap().get_desired_velocity(),
+    archipelago.get_agent(agent_1).unwrap().get_desired_velocity(),
     Vec3::ZERO
   );
   assert!(
@@ -409,11 +421,11 @@ fn computes_and_follows_path() {
   );
   // These agents don't change.
   assert_eq!(
-    *archipelago.get_agent(agent_off_mesh).unwrap().get_desired_velocity(),
+    archipelago.get_agent(agent_off_mesh).unwrap().get_desired_velocity(),
     Vec3::ZERO
   );
   assert_eq!(
-    *archipelago
+    archipelago
       .get_agent(agent_too_high_above_mesh)
       .unwrap()
       .get_desired_velocity(),
@@ -453,22 +465,22 @@ fn agent_speeds_up_to_avoid_character() {
 
   archipelago.add_island(Transform::default(), nav_mesh);
 
-  let agent_id = archipelago.add_agent({
-    let mut agent = Agent::create(
-      /* position= */ Vec2::new(5.0, 0.0),
-      /* velocity= */ Vec2::new(-1.0, 0.0),
-      /* radius= */ 0.5,
-      /* desired_speed= */ 1.0,
-      /* max_speed= */ 2.0,
-    );
-    agent.current_target = Some(Vec2::new(-5.0, 0.0));
-    agent
-  });
+  let agent_id = archipelago.add_agent(
+    /* position= */ Vec2::new(5.0, 0.0),
+    /* velocity= */ Vec2::new(-1.0, 0.0),
+    /* radius= */ 0.5,
+    /* desired_speed= */ 1.0,
+    /* max_speed= */ 2.0,
+  );
+  archipelago
+    .get_agent_mut(agent_id)
+    .unwrap()
+    .set_current_target(Some(Vec2::new(-5.0, 0.0)));
 
   archipelago.update(0.01);
   // The agent will move at its desired speed normally.
   assert_eq!(
-    *archipelago.get_agent(agent_id).unwrap().get_desired_velocity(),
+    archipelago.get_agent(agent_id).unwrap().get_desired_velocity(),
     Vec2::new(-1.0, 0.0)
   );
 
@@ -481,7 +493,7 @@ fn agent_speeds_up_to_avoid_character() {
   archipelago.update(0.01);
 
   let agent_desired_velocity =
-    *archipelago.get_agent(agent_id).unwrap().get_desired_velocity();
+    archipelago.get_agent(agent_id).unwrap().get_desired_velocity();
   // The agent speeds up to avoid the character.
   assert!(
     agent_desired_velocity.length() > 1.1,
@@ -716,25 +728,23 @@ fn agent_overrides_node_costs() {
 
   archipelago.add_island(Transform::default(), nav_mesh);
 
-  let agent_id = archipelago.add_agent({
-    let mut agent = Agent::create(
-      /* position= */ Vec2::new(0.5, 0.5),
-      /* velocity= */ Vec2::ZERO,
-      /* radius= */ 0.5,
-      /* desired_speed= */ 1.0,
-      /* max_speed= */ 1.0,
-    );
-    assert!(agent.override_type_index_cost(1, 10.0));
-    agent.current_target = Some(Vec2::new(0.5, 11.5));
-    agent
-  });
+  let agent_id = archipelago.add_agent(
+    /* position= */ Vec2::new(0.5, 0.5),
+    /* velocity= */ Vec2::ZERO,
+    /* radius= */ 0.5,
+    /* desired_speed= */ 1.0,
+    /* max_speed= */ 1.0,
+  );
+  let mut agent = archipelago.get_agent_mut(agent_id).unwrap();
+  assert!(agent.override_type_index_cost(1, 10.0));
+  agent.set_current_target(Some(Vec2::new(0.5, 11.5)));
 
   archipelago.update(1.0);
 
   // The agent **could** go directly up, but due to its overridden node cost, it
   // is better to take the detour to the right.
   assert_eq!(
-    *archipelago.get_agent(agent_id).unwrap().get_desired_velocity(),
+    archipelago.get_agent(agent_id).unwrap().get_desired_velocity(),
     Vec2::new(1.5, 0.5).normalize(),
   );
 }
@@ -791,18 +801,16 @@ fn paused_agent_does_not_repath() {
   .expect("nav mesh is valid");
 
   let island_id = archipelago.add_island(Transform::default(), nav_mesh);
-  let agent = archipelago.add_agent({
-    let mut agent =
-      Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 1.0);
-    agent.current_target = Some(Vec2::new(0.5, 1.5));
-    agent
-  });
+  let agent =
+    archipelago.add_agent(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 1.0);
+  let mut agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  agent_mut.set_current_target(Some(Vec2::new(0.5, 1.5)));
 
   archipelago.update(1.0);
 
-  let agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  let mut agent_mut = archipelago.get_agent_mut(agent).unwrap();
   expect_that!(
-    agent_mut.current_path,
+    agent_mut.agent.current_path,
     some(path_start_and_end(
       NodeRef { island_id, polygon_index: 0 },
       NodeRef { island_id, polygon_index: 1 }
@@ -810,16 +818,16 @@ fn paused_agent_does_not_repath() {
   );
 
   // Now pause the agent and move it around. Even move its target around!
-  agent_mut.paused = true;
-  agent_mut.position = Vec2::new(0.5, 1.5);
-  agent_mut.current_target = Some(Vec2::new(0.5, 2.5));
+  agent_mut.set_paused(true);
+  agent_mut.set_position(Vec2::new(0.5, 1.5));
+  agent_mut.set_current_target(Some(Vec2::new(0.5, 2.5)));
 
   archipelago.update(1.0);
 
   // The path has not changed.
-  let agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  let mut agent_mut = archipelago.get_agent_mut(agent).unwrap();
   expect_that!(
-    agent_mut.current_path,
+    agent_mut.agent.current_path,
     some(path_start_and_end(
       NodeRef { island_id, polygon_index: 0 },
       NodeRef { island_id, polygon_index: 1 }
@@ -828,15 +836,15 @@ fn paused_agent_does_not_repath() {
   expect_eq!(agent_mut.state(), AgentState::Paused);
 
   // Move the agent and its target completely off the nav mesh.
-  agent_mut.position = Vec2::new(3.5, 1.5);
-  agent_mut.current_target = Some(Vec2::new(3.5, 2.5));
+  agent_mut.set_position(Vec2::new(3.5, 1.5));
+  agent_mut.set_current_target(Some(Vec2::new(3.5, 2.5)));
 
   archipelago.update(1.0);
 
   // The path has not changed.
-  let agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  let mut agent_mut = archipelago.get_agent_mut(agent).unwrap();
   expect_that!(
-    agent_mut.current_path,
+    agent_mut.agent.current_path,
     some(path_start_and_end(
       NodeRef { island_id, polygon_index: 0 },
       NodeRef { island_id, polygon_index: 1 }
@@ -844,16 +852,16 @@ fn paused_agent_does_not_repath() {
   );
 
   // Move the agent and target back onto the path and unpause the agent.
-  agent_mut.position = Vec2::new(0.5, 0.5);
-  agent_mut.current_target = Some(Vec2::new(0.5, 1.5));
-  agent_mut.paused = false;
+  agent_mut.set_position(Vec2::new(0.5, 0.5));
+  agent_mut.set_current_target(Some(Vec2::new(0.5, 1.5)));
+  agent_mut.set_paused(false);
 
   archipelago.update(1.0);
 
   // The path has not changed.
-  let agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  let mut agent_mut = archipelago.get_agent_mut(agent).unwrap();
   expect_that!(
-    agent_mut.current_path,
+    agent_mut.agent.current_path,
     some(path_start_and_end(
       NodeRef { island_id, polygon_index: 0 },
       NodeRef { island_id, polygon_index: 1 }
@@ -862,16 +870,16 @@ fn paused_agent_does_not_repath() {
   expect_eq!(agent_mut.state(), AgentState::Moving);
 
   // Pause the agent and move it to somewhere off the path.
-  agent_mut.position = Vec2::new(0.5, 1.5);
-  agent_mut.current_target = Some(Vec2::new(0.5, 2.5));
-  agent_mut.paused = true;
+  agent_mut.set_position(Vec2::new(0.5, 1.5));
+  agent_mut.set_current_target(Some(Vec2::new(0.5, 2.5)));
+  agent_mut.set_paused(true);
 
   archipelago.update(1.0);
 
   // The path has not changed.
-  let agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  let mut agent_mut = archipelago.get_agent_mut(agent).unwrap();
   expect_that!(
-    agent_mut.current_path,
+    agent_mut.agent.current_path,
     some(path_start_and_end(
       NodeRef { island_id, polygon_index: 0 },
       NodeRef { island_id, polygon_index: 1 }
@@ -880,14 +888,14 @@ fn paused_agent_does_not_repath() {
   expect_eq!(agent_mut.state(), AgentState::Paused);
 
   // Unpause the agent.
-  agent_mut.paused = false;
+  agent_mut.set_paused(false);
 
   archipelago.update(1.0);
 
   // The path has finally changed!
   let agent_mut = archipelago.get_agent_mut(agent).unwrap();
   expect_that!(
-    agent_mut.current_path,
+    agent_mut.agent.current_path,
     some(path_start_and_end(
       NodeRef { island_id, polygon_index: 1 },
       NodeRef { island_id, polygon_index: 2 }
@@ -912,18 +920,18 @@ fn paused_agent_path_is_removed_when_invalid() {
     nav_mesh,
   );
 
-  let agent = archipelago.add_agent({
-    let mut agent =
-      Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 1.0);
-    agent.current_target = Some(Vec2::new(0.5, 1.5));
-    agent
-  });
+  let agent =
+    archipelago.add_agent(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 1.0);
+  archipelago
+    .get_agent_mut(agent)
+    .unwrap()
+    .set_current_target(Some(Vec2::new(0.5, 1.5)));
 
   archipelago.update(1.0);
 
-  let agent_mut = archipelago.get_agent_mut(agent).unwrap();
+  let mut agent_mut = archipelago.get_agent_mut(agent).unwrap();
   expect_that!(
-    agent_mut.current_path,
+    agent_mut.agent.current_path,
     some(path_start_and_end(
       NodeRef { island_id: island_1, polygon_index: 0 },
       NodeRef { island_id: island_2, polygon_index: 0 }
@@ -932,15 +940,15 @@ fn paused_agent_path_is_removed_when_invalid() {
   expect_eq!(agent_mut.state(), AgentState::Moving);
 
   // Move the agent to somewhere else to show we don't update the path.
-  agent_mut.paused = true;
-  agent_mut.position = Vec2::new(1.5, 0.5);
+  agent_mut.set_paused(true);
+  agent_mut.set_position(Vec2::new(1.5, 0.5));
 
   archipelago.update(1.0);
 
   // The path didn't change.
   let agent_ref = archipelago.get_agent_mut(agent).unwrap();
   expect_that!(
-    agent_ref.current_path,
+    agent_ref.agent.current_path,
     some(path_start_and_end(
       NodeRef { island_id: island_1, polygon_index: 0 },
       NodeRef { island_id: island_2, polygon_index: 0 }
@@ -954,7 +962,7 @@ fn paused_agent_path_is_removed_when_invalid() {
   archipelago.update(1.0);
 
   let agent_ref = archipelago.get_agent(agent).unwrap();
-  expect_that!(agent_ref.current_path, none());
+  expect_that!(agent_ref.agent.current_path, none());
   expect_eq!(agent_ref.state(), AgentState::Paused);
 }
 
@@ -1035,46 +1043,46 @@ fn agent_can_use_animation_link() {
     bidirectional: false,
   });
 
-  let agent_id = archipelago.add_agent({
-    let mut agent = Agent::create(
-      /* position= */ Vec2::new(0.25, 0.75),
-      /* velocity= */ Vec2::ZERO,
-      /* radius= */ 0.5,
-      /* desired_speed= */ 1.0,
-      /* max_speed= */ 2.0,
-    );
-    agent.current_target = Some(Vec2::new(2.75, 4.25));
-    agent
-  });
+  let agent_id = archipelago.add_agent(
+    /* position= */ Vec2::new(0.25, 0.75),
+    /* velocity= */ Vec2::ZERO,
+    /* radius= */ 0.5,
+    /* desired_speed= */ 1.0,
+    /* max_speed= */ 2.0,
+  );
+  archipelago
+    .get_agent_mut(agent_id)
+    .unwrap()
+    .set_current_target(Some(Vec2::new(2.75, 4.25)));
 
   archipelago.update(1.0);
 
-  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  let mut agent = archipelago.get_agent_mut(agent_id).unwrap();
   expect_eq!(agent.state(), AgentState::Moving);
   expect_eq!(
-    *agent.get_desired_velocity(),
+    agent.get_desired_velocity(),
     (Vec2::new(1.0, 1.0) - Vec2::new(0.25, 0.75)).normalize()
   );
   expect_false!(agent.is_using_animation_link());
   expect_that!(agent.reached_animation_link(), none());
 
   // Move the agent forward.
-  agent.position = Vec2::new(1.25, 0.75);
+  agent.set_position(Vec2::new(1.25, 0.75));
   archipelago.update(1.0);
 
-  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  let mut agent = archipelago.get_agent_mut(agent_id).unwrap();
   expect_eq!(agent.state(), AgentState::Moving);
-  expect_eq!(*agent.get_desired_velocity(), Vec2::new(0.0, 1.0));
+  expect_eq!(agent.get_desired_velocity(), Vec2::new(0.0, 1.0));
   expect_false!(agent.is_using_animation_link());
   expect_that!(agent.reached_animation_link(), none());
 
   // Move the agent to be touching the animation link.
-  agent.position = Vec2::new(1.25, 1.5);
+  agent.set_position(Vec2::new(1.25, 1.5));
   archipelago.update(1.0);
 
-  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  let mut agent = archipelago.get_agent_mut(agent_id).unwrap();
   expect_eq!(agent.state(), AgentState::ReachedAnimationLink);
-  expect_eq!(*agent.get_desired_velocity(), Vec2::new(0.0, 1.0));
+  expect_eq!(agent.get_desired_velocity(), Vec2::new(0.0, 1.0));
   expect_false!(agent.is_using_animation_link());
   expect_that!(
     agent.reached_animation_link(),
@@ -1088,23 +1096,23 @@ fn agent_can_use_animation_link() {
   expect_that!(agent.start_animation_link(), ok(()));
 
   // Pretend the agent does some random stuff. Nothing should get out of sync.
-  agent.position = Vec2::new(100.0, 200.0);
+  agent.set_position(Vec2::new(100.0, 200.0));
   archipelago.update(1.0);
 
-  let agent = archipelago.get_agent_mut(agent_id).unwrap();
+  let mut agent = archipelago.get_agent_mut(agent_id).unwrap();
   expect_eq!(agent.state(), AgentState::UsingAnimationLink);
   expect_true!(agent.is_using_animation_link());
   expect_that!(agent.reached_animation_link(), none());
 
   expect_that!(agent.end_animation_link(), ok(()));
   // We ended at a different point than expected, but that's ok.
-  agent.position = Vec2::new(1.75, 3.1);
+  agent.set_position(Vec2::new(1.75, 3.1));
   archipelago.update(1.0);
 
   let agent = archipelago.get_agent_mut(agent_id).unwrap();
   expect_eq!(agent.state(), AgentState::Moving);
   expect_eq!(
-    *agent.get_desired_velocity(),
+    agent.get_desired_velocity(),
     (Vec2::new(2.0, 4.0) - Vec2::new(1.75, 3.1)).normalize()
   );
   expect_false!(agent.is_using_animation_link());
@@ -1136,25 +1144,25 @@ fn agent_path_cleared_when_clearing_target() {
   let nav_mesh = simple_two_node_nav_mesh();
 
   archipelago.add_island(Transform::default(), nav_mesh);
-  let agent_id = archipelago.add_agent({
-    let mut agent =
-      Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 2.0);
-    agent.current_target = Some(Vec2::new(0.5, 1.5));
-    agent
-  });
+  let agent_id =
+    archipelago.add_agent(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 2.0);
+  archipelago
+    .get_agent_mut(agent_id)
+    .unwrap()
+    .set_current_target(Some(Vec2::new(0.5, 1.5)));
 
   archipelago.update(1.0);
 
-  let agent = archipelago.get_agent_mut(agent_id).unwrap();
-  expect_true!(agent.current_path.is_some());
+  let mut agent = archipelago.get_agent_mut(agent_id).unwrap();
+  expect_true!(agent.agent.current_path.is_some());
   expect_eq!(agent.state(), AgentState::Moving);
 
-  agent.current_target = None;
+  agent.set_current_target(None);
 
   archipelago.update(1.0);
 
   let agent = archipelago.get_agent_mut(agent_id).unwrap();
-  expect_true!(agent.current_path.is_none());
+  expect_true!(agent.agent.current_path.is_none());
   expect_eq!(agent.state(), AgentState::Idle);
 }
 
@@ -1165,27 +1173,27 @@ fn agent_path_cleared_on_bad_target() {
   let nav_mesh = simple_two_node_nav_mesh();
 
   archipelago.add_island(Transform::default(), nav_mesh);
-  let agent_id = archipelago.add_agent({
-    let mut agent =
-      Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 2.0);
-    agent.current_target = Some(Vec2::new(0.5, 1.5));
-    agent
-  });
+  let agent_id =
+    archipelago.add_agent(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 2.0);
+  archipelago
+    .get_agent_mut(agent_id)
+    .unwrap()
+    .set_current_target(Some(Vec2::new(0.5, 1.5)));
 
   archipelago.update(1.0);
 
-  let agent = archipelago.get_agent_mut(agent_id).unwrap();
-  expect_true!(agent.current_path.is_some());
+  let mut agent = archipelago.get_agent_mut(agent_id).unwrap();
+  expect_true!(agent.agent.current_path.is_some());
   expect_eq!(agent.state(), AgentState::Moving);
 
   // This target is off the nav mesh, so the path should be cleared and the
   // appropriate state set.
-  agent.current_target = Some(Vec2::new(1.5, 1.5));
+  agent.set_current_target(Some(Vec2::new(1.5, 1.5)));
 
   archipelago.update(1.0);
 
-  let agent = archipelago.get_agent_mut(agent_id).unwrap();
-  expect_true!(agent.current_path.is_none());
+  let agent = archipelago.get_agent(agent_id).unwrap();
+  expect_true!(agent.agent.current_path.is_none());
   expect_eq!(agent.state(), AgentState::TargetNotOnNavMesh);
 }
 
@@ -1200,17 +1208,17 @@ fn agent_could_not_find_path() {
     Transform { translation: Vec2::new(2.0, 0.0), rotation: 0.0 },
     nav_mesh,
   );
-  let agent_id = archipelago.add_agent({
-    let mut agent =
-      Agent::create(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 2.0);
-    // This target isn't connected to the agent, so we shouldn't find a path!
-    agent.current_target = Some(Vec2::new(2.5, 0.5));
-    agent
-  });
+  let agent_id =
+    archipelago.add_agent(Vec2::new(0.5, 0.5), Vec2::ZERO, 0.5, 1.0, 2.0);
+  // This target isn't connected to the agent, so we shouldn't find a path!
+  archipelago
+    .get_agent_mut(agent_id)
+    .unwrap()
+    .set_current_target(Some(Vec2::new(2.5, 0.5)));
 
   archipelago.update(1.0);
 
-  let agent = archipelago.get_agent_mut(agent_id).unwrap();
-  expect_true!(agent.current_path.is_none());
+  let agent = archipelago.get_agent(agent_id).unwrap();
+  expect_true!(agent.agent.current_path.is_none());
   expect_eq!(agent.state(), AgentState::NoPath);
 }

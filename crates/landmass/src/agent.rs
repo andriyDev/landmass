@@ -1,5 +1,6 @@
 use std::{
   collections::{HashMap, HashSet},
+  marker::PhantomData,
   sync::Arc,
 };
 
@@ -47,11 +48,11 @@ pub enum AgentState {
 }
 
 /// An agent in an archipelago.
-pub struct Agent<CS: CoordinateSystem> {
+pub struct CoreAgent {
   /// The current position of the agent.
-  pub position: CS::Coordinate,
+  pub position: Vec3,
   /// The current velocity of the agent.
-  pub velocity: CS::Coordinate,
+  pub velocity: Vec3,
   /// The radius of the agent.
   pub radius: f32,
   /// The speed the agent prefers to move at. This should often be set lower
@@ -64,7 +65,7 @@ pub struct Agent<CS: CoordinateSystem> {
   /// Paths will be reused for target points near each other if possible.
   /// However, swapping between two distant targets every update can be
   /// detrimental to be performance.
-  pub current_target: Option<CS::Coordinate>,
+  pub current_target: Option<Vec3>,
   /// The condition to test for reaching the target.
   pub target_reached_condition: TargetReachedCondition,
   /// The distance at which an animation link can be used.
@@ -94,18 +95,29 @@ pub struct Agent<CS: CoordinateSystem> {
   /// path has not been computed yet (i.e., no path).
   pub(crate) current_path: Option<Path>,
   /// The desired velocity of the agent to move towards its goal.
-  pub(crate) current_desired_move: CS::Coordinate,
+  pub(crate) current_desired_move: Vec3,
   /// The state of the agent.
   pub(crate) state: AgentState,
   /// The animation link that the agent has reached. This includes the
   /// animation link, and the off mesh link being used.
-  pub(crate) current_animation_link: Option<ReachedAnimationLink<CS>>,
+  pub(crate) current_animation_link: Option<CoreReachedAnimationLink>,
   /// Whether this agent is currently using an animation link.
   pub(crate) using_animation_link: bool,
   #[cfg(feature = "debug-avoidance")]
   /// The avoidance data from the most recent update iteration. Only populated
   /// if [`Self::keep_avoidance_data`] is true.
   pub(crate) avoidance_data: Option<dodgy_2d::debug::DebugData>,
+}
+
+/// An animation link that an agent has reached (in order to use it).
+#[derive(Debug)]
+pub struct CoreReachedAnimationLink {
+  /// The ID of the animation link.
+  pub link_id: AnimationLinkId,
+  /// The point that the animation link starts at.
+  pub start_point: Vec3,
+  /// The expected point that using the animation link will take the agent to.
+  pub end_point: Vec3,
 }
 
 /// An animation link that an agent has reached (in order to use it).
@@ -127,6 +139,17 @@ impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
       .field("start_point", &self.start_point)
       .field("end_point", &self.end_point)
       .finish()
+  }
+}
+
+impl<CS: CoordinateSystem> ReachedAnimationLink<CS> {
+  /// Converts the core representation into this coordinate system.
+  fn from_core(link: &CoreReachedAnimationLink) -> Self {
+    Self {
+      link_id: link.link_id,
+      start_point: CS::from_landmass(&link.start_point),
+      end_point: CS::from_landmass(&link.end_point),
+    }
   }
 }
 
@@ -186,11 +209,11 @@ impl PermittedAnimationLinks {
   }
 }
 
-impl<CS: CoordinateSystem> Agent<CS> {
+impl CoreAgent {
   /// Creates a new agent.
-  pub fn create(
-    position: CS::Coordinate,
-    velocity: CS::Coordinate,
+  pub(crate) fn new(
+    position: Vec3,
+    velocity: Vec3,
     radius: f32,
     desired_speed: f32,
     max_speed: f32,
@@ -210,7 +233,7 @@ impl<CS: CoordinateSystem> Agent<CS> {
       keep_avoidance_data: false,
       override_type_index_to_cost: HashMap::new(),
       current_path: None,
-      current_desired_move: CS::from_landmass(&Vec3::ZERO),
+      current_desired_move: Vec3::ZERO,
       state: AgentState::Idle,
       current_animation_link: None,
       using_animation_link: false,
@@ -254,8 +277,8 @@ impl<CS: CoordinateSystem> Agent<CS> {
 
   /// Returns the desired velocity. This will only be updated if `update` was
   /// called on the associated [`crate::Archipelago`].
-  pub fn get_desired_velocity(&self) -> &CS::Coordinate {
-    &self.current_desired_move
+  pub fn get_desired_velocity(&self) -> Vec3 {
+    self.current_desired_move
   }
 
   /// Returns the state of the agent. This will only be updated if `update` was
@@ -268,7 +291,7 @@ impl<CS: CoordinateSystem> Agent<CS> {
   ///
   /// Returns None if the previous update the agent did not reach the animation
   /// link. This includes paused agents and agents using the link.
-  pub fn reached_animation_link(&self) -> Option<&ReachedAnimationLink<CS>> {
+  pub fn reached_animation_link(&self) -> Option<&CoreReachedAnimationLink> {
     self.current_animation_link.as_ref()
   }
 
@@ -404,6 +427,337 @@ impl<CS: CoordinateSystem> Agent<CS> {
   }
 }
 
+/// An immutable borrow to an agent.
+#[derive(Clone, Copy)]
+pub struct AgentRef<'a, CS: CoordinateSystem> {
+  /// The borrow to the core representation.
+  pub(crate) agent: &'a CoreAgent,
+  pub(crate) marker: PhantomData<CS>,
+}
+
+impl<'a, CS: CoordinateSystem> AgentRef<'a, CS> {
+  /// Creates a ref from an agent borrow.
+  pub(crate) fn new(agent: &'a CoreAgent) -> Self {
+    Self { agent, marker: PhantomData }
+  }
+
+  /// The position of the agent.
+  pub fn position(&self) -> CS::Coordinate {
+    CS::from_landmass(&self.agent.position)
+  }
+
+  /// The velocity of the agent.
+  pub fn velocity(&self) -> CS::Coordinate {
+    CS::from_landmass(&self.agent.velocity)
+  }
+
+  /// The radius of the agent.
+  pub fn radius(&self) -> f32 {
+    self.agent.radius
+  }
+
+  /// The desired speed of the agent. See [`CoreAgent::desired_speed`] for more.
+  pub fn desired_speed(&self) -> f32 {
+    self.agent.desired_speed
+  }
+
+  /// The maximum speed that the agent can move at.
+  pub fn max_speed(&self) -> f32 {
+    self.agent.desired_speed
+  }
+
+  /// The current target to move towards. See [`CoreAgent::current_target`] for
+  /// more.
+  pub fn current_target(&self) -> Option<CS::Coordinate> {
+    self.agent.current_target.as_ref().map(CS::from_landmass)
+  }
+
+  /// The condition to test for reaching the target.
+  pub fn target_reached_condition(&self) -> TargetReachedCondition {
+    self.agent.target_reached_condition
+  }
+
+  /// The distance at which an animation link can be used. See
+  /// [`CoreAgent::animation_link_reached_distance`] for more.
+  // TODO: FIX THIS DOC LINK.
+  pub fn animation_link_reached_distance(&self) -> Option<f32> {
+    self.agent.animation_link_reached_distance
+  }
+
+  /// The animation links that the agent is allowed to use. See
+  /// [`CoreAgent::permitted_animation_links`].
+  pub fn permitted_animation_links(&self) -> &PermittedAnimationLinks {
+    &self.agent.permitted_animation_links
+  }
+
+  /// Whether this agent is paused. See [`CoreAgent::paused`] for more.
+  pub fn paused(&self) -> bool {
+    self.agent.paused
+  }
+
+  #[cfg(feature = "debug-avoidance")]
+  /// Whether to store avoidance debug data. See
+  /// [`CoreAgent::keep_avoidance_data`] for more.
+  pub fn keep_avoidance_data(&self) -> bool {
+    self.agent.keep_avoidance_data
+  }
+
+  /// Returns the currently overriden type index costs.
+  pub fn get_type_index_cost_overrides(
+    &self,
+  ) -> impl Iterator<Item = (usize, f32)> + '_ {
+    self.agent.get_type_index_cost_overrides()
+  }
+
+  /// Returns the desired velocity. This will only be updated if `update` was
+  /// called on the associated [`crate::Archipelago`].
+  pub fn get_desired_velocity(&self) -> CS::Coordinate {
+    CS::from_landmass(&self.agent.get_desired_velocity())
+  }
+
+  /// Returns the state of the agent. This will only be updated if `update` was
+  /// called on the associated [`crate::Archipelago`].
+  pub fn state(&self) -> AgentState {
+    self.agent.state()
+  }
+
+  /// Returns the animation link that the agent reached last update.
+  ///
+  /// Returns None if the previous update the agent did not reach the animation
+  /// link. This includes paused agents and agents using the link.
+  pub fn reached_animation_link(&self) -> Option<ReachedAnimationLink<CS>> {
+    self.agent.reached_animation_link().map(ReachedAnimationLink::from_core)
+  }
+
+  /// Returns whether the agent is currently using an animation link.
+  /// Essentially this reports whether we have called
+  /// [`AgentMut::start_animation_link`] without ending the link yet.
+  pub fn is_using_animation_link(&self) -> bool {
+    self.agent.is_using_animation_link()
+  }
+}
+
+/// A mutable borrow to an agent.
+pub struct AgentMut<'a, CS> {
+  /// The borrow to the core representation.
+  pub(crate) agent: &'a mut CoreAgent,
+  pub(crate) marker: PhantomData<CS>,
+}
+
+impl<'a, CS: CoordinateSystem> AgentMut<'a, CS> {
+  /// Creates a ref from an agent borrow.
+  pub(crate) fn new(agent: &'a mut CoreAgent) -> Self {
+    Self { agent, marker: PhantomData }
+  }
+
+  /// The position of the agent.
+  pub fn position(&self) -> CS::Coordinate {
+    CS::from_landmass(&self.agent.position)
+  }
+
+  /// Set the position of the agent.
+  pub fn set_position(&mut self, position: CS::Coordinate) {
+    self.agent.position = CS::to_landmass(&position)
+  }
+
+  /// The velocity of the agent.
+  pub fn velocity(&self) -> CS::Coordinate {
+    CS::from_landmass(&self.agent.velocity)
+  }
+
+  /// Set the velocity of the agent.
+  pub fn set_velocity(&mut self, velocity: CS::Coordinate) {
+    self.agent.velocity = CS::to_landmass(&velocity);
+  }
+
+  /// The radius of the agent.
+  pub fn radius(&self) -> f32 {
+    self.agent.radius
+  }
+
+  /// Set the radius of the agent.
+  pub fn set_radius(&mut self, radius: f32) {
+    self.agent.radius = radius;
+  }
+
+  /// The desired speed of the agent. See [`CoreAgent::desired_speed`] for more.
+  pub fn desired_speed(&self) -> f32 {
+    self.agent.desired_speed
+  }
+
+  /// Set the desired speed of the agent. See [`CoreAgent::desired_speed`] for
+  /// more.
+  pub fn set_desired_speed(&mut self, desired_speed: f32) {
+    self.agent.desired_speed = desired_speed;
+  }
+
+  /// The maximum speed that the agent can move at.
+  pub fn max_speed(&self) -> f32 {
+    self.agent.desired_speed
+  }
+
+  /// Set the maximum speed that the agent can move at.
+  pub fn set_max_speed(&mut self, max_speed: f32) {
+    self.agent.max_speed = max_speed;
+  }
+
+  /// The current target to move towards. See [`CoreAgent::current_target`] for
+  /// more.
+  pub fn current_target(&self) -> Option<CS::Coordinate> {
+    self.agent.current_target.as_ref().map(CS::from_landmass)
+  }
+
+  /// Set the current target to move towards. See [`CoreAgent::current_target`]
+  /// for more.
+  pub fn set_current_target(&mut self, target: Option<CS::Coordinate>) {
+    self.agent.current_target = target.as_ref().map(CS::to_landmass)
+  }
+
+  /// The condition to test for reaching the target.
+  pub fn target_reached_condition(&self) -> TargetReachedCondition {
+    self.agent.target_reached_condition
+  }
+
+  /// Set the condition to test for reaching the target.
+  pub fn set_target_reached_condition(
+    &mut self,
+    target_reached_condition: TargetReachedCondition,
+  ) {
+    self.agent.target_reached_condition = target_reached_condition;
+  }
+
+  /// The distance at which an animation link can be used. See
+  /// [`CoreAgent::animation_link_reached_distance`] for more.
+  // TODO: FIX THIS DOC LINK.
+  pub fn animation_link_reached_distance(&self) -> Option<f32> {
+    self.agent.animation_link_reached_distance
+  }
+
+  /// Set the distance at which an animation link can be used. See
+  /// [`CoreAgent::animation_link_reached_distance`] for more.
+  // TODO: FIX THIS DOC LINK.
+  pub fn set_animation_link_reached_distance(
+    &mut self,
+    animation_link_reached_distance: Option<f32>,
+  ) {
+    self.agent.animation_link_reached_distance =
+      animation_link_reached_distance;
+  }
+
+  /// The animation links that the agent is allowed to use. See
+  /// [`CoreAgent::permitted_animation_links`].
+  pub fn permitted_animation_links(&self) -> &PermittedAnimationLinks {
+    &self.agent.permitted_animation_links
+  }
+
+  /// Set the animation links that the agent is allowed to use. See
+  /// [`CoreAgent::permitted_animation_links`].
+  pub fn set_permitted_animation_links(
+    &mut self,
+    permitted_animation_links: PermittedAnimationLinks,
+  ) {
+    self.agent.permitted_animation_links = permitted_animation_links;
+  }
+
+  /// Whether this agent is paused. See [`CoreAgent::paused`] for more.
+  pub fn paused(&self) -> bool {
+    self.agent.paused
+  }
+
+  /// Set whether this agent is paused. See [`CoreAgent::paused`] for more.
+  pub fn set_paused(&mut self, paused: bool) {
+    self.agent.paused = paused;
+  }
+
+  #[cfg(feature = "debug-avoidance")]
+  /// Whether to store avoidance debug data. See
+  /// [`CoreAgent::keep_avoidance_data`] for more.
+  pub fn keep_avoidance_data(&self) -> bool {
+    self.agent.keep_avoidance_data
+  }
+
+  #[cfg(feature = "debug-avoidance")]
+  /// Set whether to store avoidance debug data. See
+  /// [`CoreAgent::keep_avoidance_data`] for more.
+  pub fn set_keep_avoidance_data(&mut self, keep_avoidance_data: bool) {
+    self.agent.keep_avoidance_data = keep_avoidance_data;
+  }
+
+  /// Sets the type index cost for this agent to `cost`. Returns false if the
+  /// cost is <= 0.0. Otherwise returns true.
+  pub fn override_type_index_cost(
+    &mut self,
+    type_index: usize,
+    cost: f32,
+  ) -> bool {
+    self.agent.override_type_index_cost(type_index, cost)
+  }
+
+  /// Removes the override cost for `type_index`. Returns true if `type_index`
+  /// was overridden, false otherwise.
+  pub fn remove_overridden_type_index_cost(
+    &mut self,
+    type_index: usize,
+  ) -> bool {
+    self.agent.remove_overridden_type_index_cost(type_index)
+  }
+
+  /// Returns the currently overriden type index costs.
+  pub fn get_type_index_cost_overrides(
+    &self,
+  ) -> impl Iterator<Item = (usize, f32)> + '_ {
+    self.agent.get_type_index_cost_overrides()
+  }
+
+  /// Returns the desired velocity. This will only be updated if `update` was
+  /// called on the associated [`crate::Archipelago`].
+  pub fn get_desired_velocity(&self) -> CS::Coordinate {
+    CS::from_landmass(&self.agent.get_desired_velocity())
+  }
+
+  /// Returns the state of the agent. This will only be updated if `update` was
+  /// called on the associated [`crate::Archipelago`].
+  pub fn state(&self) -> AgentState {
+    self.agent.state()
+  }
+
+  /// Returns the animation link that the agent reached last update.
+  ///
+  /// Returns None if the previous update the agent did not reach the animation
+  /// link. This includes paused agents and agents using the link.
+  pub fn reached_animation_link(&self) -> Option<ReachedAnimationLink<CS>> {
+    self.agent.reached_animation_link().map(ReachedAnimationLink::from_core)
+  }
+
+  /// Starts taking an animation link.
+  ///
+  /// This effectively pauses the agent. Use [`Self::end_animation_link`] to
+  /// undo this. After starting the animation link, the agent's state will be
+  /// [`AgentState::UsingAnimationLink`] and the
+  /// [`Self::reached_animation_link`] will be cleared, after the next update.
+  pub fn start_animation_link(
+    &mut self,
+  ) -> Result<(), NotReachedAnimationLinkError> {
+    self.agent.start_animation_link()
+  }
+
+  /// Finishes taking an animation link.
+  ///
+  /// This effectively just unpauses the agent.
+  pub fn end_animation_link(
+    &mut self,
+  ) -> Result<(), NotUsingAnimationLinkError> {
+    self.agent.end_animation_link()
+  }
+
+  /// Returns whether the agent is currently using an animation link.
+  /// Essentially this reports whether we have called
+  /// [`Self::start_animation_link`] without ending the link yet.
+  pub fn is_using_animation_link(&self) -> bool {
+    self.agent.is_using_animation_link()
+  }
+}
+
 /// The determination of what to do in regards to an agent's path.
 #[derive(PartialEq, Eq, Debug)]
 pub(crate) enum RepathResult {
@@ -422,8 +776,8 @@ pub(crate) enum RepathResult {
   NeedsRepath,
 }
 
-pub(crate) fn does_agent_need_repath<CS: CoordinateSystem>(
-  agent: &Agent<CS>,
+pub(crate) fn does_agent_need_repath(
+  agent: &CoreAgent,
   agent_node: Option<NodeRef>,
   target_node: Option<NodeRef>,
   invalidated_off_mesh_links: &HashSet<OffMeshLinkId>,

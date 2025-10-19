@@ -80,51 +80,49 @@ let island_id = archipelago
     valid_nav_mesh,
   );
 
-let agent_1 = archipelago.add_agent({
-  let mut agent = Agent::create(
-    /* position= */ Vec3::new(1.0, 1.0, 0.0),
-    /* velocity= */ Vec3::ZERO,
-    /* radius= */ 1.0,
-    /* desired_speed= */ 1.0,
-    /* max_speed= */ 2.0,
-  );
-  agent.current_target = Some(Vec3::new(11.0, 1.1, 0.0));
-  agent.target_reached_condition = TargetReachedCondition::Distance(Some(0.01));
-  agent
-});
-let agent_2 = archipelago.add_agent({
-  let mut agent = Agent::create(
-    /* position= */ Vec3::new(11.0, 1.1, 0.0),
-    /* velocity= */ Vec3::ZERO,
-    /* radius= */ 1.0,
-    /* desired_speed= */ 1.0,
-    /* max_speed= */ 2.0,
-  );
-  agent.current_target = Some(Vec3::new(1.0, 1.0, 0.0));
-  agent.target_reached_condition = TargetReachedCondition::Distance(Some(0.01));
-  agent
-});
+let agent_1 = archipelago.add_agent(
+  /* position= */ Vec3::new(1.0, 1.0, 0.0),
+  /* velocity= */ Vec3::ZERO,
+  /* radius= */ 1.0,
+  /* desired_speed= */ 1.0,
+  /* max_speed= */ 2.0,
+);
+let mut agent_1_mut = archipelago.get_agent_mut(agent_1).unwrap();
+agent_1_mut.set_current_target(Some(Vec3::new(11.0, 1.1, 0.0)));
+agent_1_mut.set_target_reached_condition(
+  TargetReachedCondition::Distance(Some(0.01)));
+let agent_2 = archipelago.add_agent(
+  /* position= */ Vec3::new(11.0, 1.1, 0.0),
+  /* velocity= */ Vec3::ZERO,
+  /* radius= */ 1.0,
+  /* desired_speed= */ 1.0,
+  /* max_speed= */ 2.0,
+);
+let mut agent_2_mut = archipelago.get_agent_mut(agent_2).unwrap();
+agent_2_mut.set_current_target(Some(Vec3::new(1.0, 1.0, 0.0)));
+agent_2_mut.set_target_reached_condition(
+  TargetReachedCondition::Distance(Some(0.01)));
 
 for i in 0..300 {
   let delta_time = 1.0 / 10.0;
   archipelago.update(delta_time);
 
   for agent_id in archipelago.get_agent_ids().collect::<Vec<_>>() {
-    let agent = archipelago.get_agent_mut(agent_id).unwrap();
-    agent.velocity = *agent.get_desired_velocity();
-    agent.position += agent.velocity * delta_time;
+    let mut agent = archipelago.get_agent_mut(agent_id).unwrap();
+    agent.set_velocity(agent.get_desired_velocity());
+    agent.set_position(agent.position() + agent.velocity() * delta_time);
   }
 }
 
 assert!(archipelago
   .get_agent(agent_1)
   .unwrap()
-  .position
+  .position()
   .abs_diff_eq(Vec3::new(11.0, 1.1, 0.0), 0.1));
 assert!(archipelago
   .get_agent(agent_2)
   .unwrap()
-  .position
+  .position()
   .abs_diff_eq(Vec3::new(1.0, 1.0, 0.0), 0.1));
 ```
 

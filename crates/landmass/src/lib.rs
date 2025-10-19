@@ -28,8 +28,9 @@ pub use glam::Vec3;
 pub mod debug;
 
 pub use agent::{
-  Agent, AgentId, AgentState, NotReachedAnimationLinkError,
-  PermittedAnimationLinks, ReachedAnimationLink, TargetReachedCondition,
+  AgentId, AgentMut, AgentRef, AgentState, CoreAgent,
+  NotReachedAnimationLinkError, PermittedAnimationLinks, ReachedAnimationLink,
+  TargetReachedCondition,
 };
 pub use character::CharacterId;
 pub use coords::{
@@ -49,6 +50,7 @@ pub use query::{FindPathError, PathStep, SamplePointError, SampledPoint};
 pub use util::Transform;
 
 use crate::{
+  agent::CoreReachedAnimationLink,
   avoidance::apply_avoidance_to_agents,
   character::{CharacterMut, CharacterRef, CoreCharacter},
   coords::CorePointSampleDistance,
@@ -59,7 +61,7 @@ use crate::{
 pub struct Archipelago<CS: CoordinateSystem> {
   pub archipelago_options: ArchipelagoOptions<CS>,
   nav_data: NavigationData,
-  agents: HopSlotMap<AgentId, Agent<CS>>,
+  agents: HopSlotMap<AgentId, CoreAgent>,
   characters: HopSlotMap<CharacterId, CoreCharacter>,
   pathing_results: Vec<PathingResult>,
 }
@@ -108,8 +110,21 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     }
   }
 
-  pub fn add_agent(&mut self, agent: Agent<CS>) -> AgentId {
-    self.agents.insert(agent)
+  pub fn add_agent(
+    &mut self,
+    position: CS::Coordinate,
+    velocity: CS::Coordinate,
+    radius: f32,
+    desired_speed: f32,
+    max_speed: f32,
+  ) -> AgentId {
+    self.agents.insert(CoreAgent::new(
+      CS::to_landmass(&position),
+      CS::to_landmass(&velocity),
+      radius,
+      desired_speed,
+      max_speed,
+    ))
   }
 
   pub fn remove_agent(&mut self, agent_id: AgentId) {
@@ -119,12 +134,15 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
       .expect("Agent should be present in the archipelago");
   }
 
-  pub fn get_agent(&self, agent_id: AgentId) -> Option<&Agent<CS>> {
-    self.agents.get(agent_id)
+  pub fn get_agent(&self, agent_id: AgentId) -> Option<AgentRef<'_, CS>> {
+    self.agents.get(agent_id).map(AgentRef::new)
   }
 
-  pub fn get_agent_mut(&mut self, agent_id: AgentId) -> Option<&mut Agent<CS>> {
-    self.agents.get_mut(agent_id)
+  pub fn get_agent_mut(
+    &mut self,
+    agent_id: AgentId,
+  ) -> Option<AgentMut<'_, CS>> {
+    self.agents.get_mut(agent_id).map(AgentMut::new)
   }
 
   pub fn get_agent_ids(&self) -> impl ExactSizeIterator<Item = AgentId> + '_ {
@@ -326,7 +344,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
         continue;
       }
       let agent_node_and_point = match self.nav_data.sample_point(
-        CS::to_landmass(&agent.position),
+        agent.position,
         &CorePointSampleDistance::new(
           &self.archipelago_options.point_sample_distance,
         ),
@@ -338,9 +356,9 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
         agent_id_to_agent_node.insert(agent_id, agent_node_and_point).is_none();
       debug_assert!(inserted);
 
-      if let Some(target) = &agent.current_target {
+      if let Some(target) = agent.current_target {
         let target_node_and_point = match self.nav_data.sample_point(
-          CS::to_landmass(target),
+          target,
           &CorePointSampleDistance::new(
             &self.archipelago_options.point_sample_distance,
           ),
@@ -456,7 +474,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     for (agent_id, agent) in self.agents.iter_mut() {
       let path = match &agent.current_path {
         None => {
-          agent.current_desired_move = CS::from_landmass(&Vec3::ZERO);
+          agent.current_desired_move = Vec3::ZERO;
           continue;
         }
         Some(path) => path,
@@ -494,7 +512,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
         next_waypoint,
         (target_node_index_in_corridor, target_point),
       ) {
-        agent.current_desired_move = CS::from_landmass(&Vec3::ZERO);
+        agent.current_desired_move = Vec3::ZERO;
         agent.state = AgentState::ReachedTarget;
       } else {
         let waypoint = match next_waypoint.1 {
@@ -530,9 +548,9 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
             let distance = agent_point.distance(start_point);
             if distance <= agent.animation_link_reached_distance() {
               agent.state = AgentState::ReachedAnimationLink;
-              agent.current_animation_link = Some(ReachedAnimationLink {
-                start_point: CS::from_landmass(&start_point),
-                end_point: CS::from_landmass(&end_point),
+              agent.current_animation_link = Some(CoreReachedAnimationLink {
+                start_point: start_point,
+                end_point: end_point,
                 link_id,
               });
             } else {
@@ -542,13 +560,10 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
           }
         };
 
-        let desired_move = (waypoint - CS::to_landmass(&agent.position))
-          .xy()
-          .normalize_or_zero()
+        let desired_move = (waypoint - agent.position).xy().normalize_or_zero()
           * agent.desired_speed;
 
-        agent.current_desired_move =
-          CS::from_landmass(&desired_move.extend(0.0));
+        agent.current_desired_move = desired_move.extend(0.0);
       }
     }
 

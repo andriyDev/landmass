@@ -6,8 +6,8 @@ use kdtree::{KdTree, distance::squared_euclidean};
 use slotmap::HopSlotMap;
 
 use crate::{
-  Agent, AgentId, AgentState, ArchipelagoOptions, CharacterId,
-  CoordinateSystem, IslandId, NavigationData,
+  AgentId, AgentState, ArchipelagoOptions, CharacterId, CoordinateSystem,
+  CoreAgent, IslandId, NavigationData,
   character::CoreCharacter,
   island::CoreIsland,
   nav_data::{KindedOffMeshLink, ModifiedNode, NodeRef},
@@ -16,7 +16,7 @@ use crate::{
 /// Adjusts the velocity of `agents` to apply local avoidance. `delta_time` must
 /// be positive.
 pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
-  agents: &mut HopSlotMap<AgentId, Agent<CS>>,
+  agents: &mut HopSlotMap<AgentId, CoreAgent>,
   agent_id_to_agent_node: &HashMap<AgentId, (Vec3, NodeRef)>,
   characters: &HopSlotMap<CharacterId, CoreCharacter>,
   character_id_to_nav_mesh_point: &HashMap<CharacterId, Vec3>,
@@ -44,7 +44,7 @@ pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
       agent_id,
       dodgy_2d::Agent {
         position: to_dodgy_vec2(agent_point.xy()),
-        velocity: to_dodgy_vec2(CS::to_landmass(&agent.velocity).xy()),
+        velocity: to_dodgy_vec2(agent.velocity.xy()),
         radius: agent.radius,
         avoidance_responsibility: if agent.state == AgentState::ReachedTarget {
           agent_options.reached_destination_avoidance_responsibility
@@ -140,8 +140,7 @@ pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
       .drain(..)
       .map(std::borrow::Cow::Owned)
       .collect::<Vec<_>>();
-    let preferred_velocity =
-      to_dodgy_vec2(CS::to_landmass(&agent.current_desired_move).xy());
+    let preferred_velocity = to_dodgy_vec2(agent.current_desired_move.xy());
     let avoidance_options = dodgy_2d::AvoidanceOptions {
       // Always use an avoidance margin of zero since we assume the nav mesh
       // is the "valid" region.
@@ -176,7 +175,7 @@ pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
     };
 
     agent.current_desired_move =
-      CS::from_landmass(&glam::Vec3::new(desired_move.x, desired_move.y, 0.0));
+      glam::Vec3::new(desired_move.x, desired_move.y, 0.0);
   }
 }
 

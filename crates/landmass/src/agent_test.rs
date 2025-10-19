@@ -5,10 +5,13 @@ use googletest::{expect_that, expect_true, matchers::*};
 use slotmap::HopSlotMap;
 
 use crate::{
-  Agent, Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius,
-  IslandId, NavigationMesh, NotReachedAnimationLinkError, ReachedAnimationLink,
+  Archipelago, ArchipelagoOptions, CoordinateSystem, CoreAgent,
+  FromAgentRadius, IslandId, NavigationMesh, NotReachedAnimationLinkError,
   TargetReachedCondition, Transform,
-  agent::{NotUsingAnimationLinkError, RepathResult, does_agent_need_repath},
+  agent::{
+    CoreReachedAnimationLink, NotUsingAnimationLinkError, RepathResult,
+    does_agent_need_repath,
+  },
   coords::{XY, XYZ},
   link::{AnimationLink, AnimationLinkId},
   nav_data::{KindedOffMeshLink, NodeRef, OffMeshLinkId},
@@ -19,9 +22,9 @@ use crate::{
 
 #[test]
 fn overrides_type_index_costs() {
-  let mut agent = Agent::<XY>::create(
-    /* position= */ Vec2::ZERO,
-    /* velocity= */ Vec2::ZERO,
+  let mut agent = CoreAgent::new(
+    /* position= */ Vec3::ZERO,
+    /* velocity= */ Vec3::ZERO,
     /* radius */ 1.0,
     /* desired_speed= */ 1.0,
     /* max_speed= */ 1.0,
@@ -52,19 +55,15 @@ fn overrides_type_index_costs() {
 
 #[test]
 fn negative_or_zero_type_index_cost_returns_false() {
-  let mut agent = Agent::<XY>::create(
-    /* position= */ Vec2::ZERO,
-    /* velocity= */ Vec2::ZERO,
+  let mut agent = CoreAgent::new(
+    /* position= */ Vec3::ZERO,
+    /* velocity= */ Vec3::ZERO,
     /* radius */ 1.0,
     /* desired_speed= */ 1.0,
     /* max_speed= */ 1.0,
   );
   assert!(!agent.override_type_index_cost(0, 0.0));
   assert!(!agent.override_type_index_cost(0, -0.5));
-}
-
-fn agent_position<CS: CoordinateSystem>(agent: &Agent<CS>) -> Vec3 {
-  CS::to_landmass(&agent.position)
 }
 
 #[test]
@@ -83,7 +82,7 @@ fn has_reached_target_at_end_node() {
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(transform.clone(), nav_mesh);
   let transform = transform.to_core();
-  let mut agent = Agent::<XYZ>::create(
+  let mut agent = CoreAgent::new(
     /* position= */ transform.apply(Vec3::new(1.0, 0.0, 1.0)),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
@@ -113,7 +112,7 @@ fn has_reached_target_at_end_node() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      agent_position(&agent),
+      agent.position,
       (
         first_path_index,
         StraightPathStep::Waypoint(transform.apply(Vec3::new(2.5, 0.0, 1.0)))
@@ -123,7 +122,7 @@ fn has_reached_target_at_end_node() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      agent_position(&agent),
+      agent.position,
       (
         first_path_index,
         StraightPathStep::Waypoint(transform.apply(Vec3::new(3.5, 0.0, 1.0)))
@@ -133,7 +132,7 @@ fn has_reached_target_at_end_node() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      agent_position(&agent),
+      agent.position,
       (
         first_path_index,
         StraightPathStep::Waypoint(transform.apply(Vec3::new(2.0, 0.0, 2.0)))
@@ -143,7 +142,7 @@ fn has_reached_target_at_end_node() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      agent_position(&agent),
+      agent.position,
       (
         first_path_index,
         StraightPathStep::Waypoint(transform.apply(Vec3::new(2.5, 0.0, 2.5)))
@@ -178,7 +177,7 @@ fn long_detour_reaches_target_in_different_ways() {
   let island_id = archipelago.add_island(transform.clone(), nav_mesh);
   let transform = transform.to_core();
 
-  let mut agent = Agent::<XYZ>::create(
+  let mut agent = CoreAgent::new(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
@@ -207,7 +206,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      agent_position(&agent),
+      agent.position,
       (
         PathIndex::from_corridor_index(0, 1),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
@@ -224,7 +223,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      agent_position(&agent),
+      agent.position,
       (
         PathIndex::from_corridor_index(0, 1),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
@@ -245,7 +244,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      agent_position(&agent),
+      agent.position,
       (
         PathIndex::from_corridor_index(0, 1),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
@@ -262,7 +261,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      agent_position(&agent),
+      agent.position,
       (
         PathIndex::from_corridor_index(0, 1),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
@@ -279,7 +278,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      agent_position(&agent),
+      agent.position,
       (
         PathIndex::from_corridor_index(0, 2),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(2.0, 1.0, 0.0)))
@@ -295,7 +294,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      agent_position(&agent),
+      agent.position,
       (
         PathIndex::from_corridor_index(0, 2),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(2.0, 1.0, 0.0)))
@@ -316,7 +315,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      agent_position(&agent),
+      agent.position,
       (
         PathIndex::from_corridor_index(0, 1),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
@@ -333,7 +332,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      agent_position(&agent),
+      agent.position,
       (
         PathIndex::from_corridor_index(0, 1),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(1.0, 11.0, 0.0)))
@@ -349,7 +348,7 @@ fn long_detour_reaches_target_in_different_ways() {
     assert!(!agent.has_reached_target(
       &path,
       &archipelago.nav_data,
-      agent_position(&agent),
+      agent.position,
       (
         PathIndex::from_corridor_index(0, 2),
         StraightPathStep::Waypoint(transform.apply(Vec3::new(2.0, 1.0, 0.0)))
@@ -437,9 +436,9 @@ fn using_animation_link_does_not_reach_target() {
   let off_mesh_link =
     off_mesh_link_for_animation_link(&archipelago, animation_link_id);
 
-  let mut agent = Agent::<XY>::create(
-    /* position= */ Vec2::new(12.5, 10.5),
-    /* velocity= */ Vec2::ZERO,
+  let mut agent = CoreAgent::new(
+    /* position= */ Vec3::new(12.5, 10.5, 0.0),
+    /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
     /* desired_speed= */ 0.0,
     /* max_speed= */ 0.0,
@@ -469,7 +468,7 @@ fn using_animation_link_does_not_reach_target() {
   assert!(agent.has_reached_target(
     &path,
     &archipelago.nav_data,
-    agent_position(&agent),
+    agent.position,
     (
       PathIndex::from_corridor_index(0, 1),
       StraightPathStep::AnimationLink {
@@ -490,7 +489,7 @@ fn using_animation_link_does_not_reach_target() {
   assert!(!agent.has_reached_target(
     &path,
     &archipelago.nav_data,
-    agent_position(&agent),
+    agent.position,
     (
       PathIndex::from_corridor_index(0, 1),
       StraightPathStep::AnimationLink {
@@ -511,7 +510,7 @@ fn using_animation_link_does_not_reach_target() {
   assert!(!agent.has_reached_target(
     &path,
     &archipelago.nav_data,
-    agent_position(&agent),
+    agent.position,
     (
       PathIndex::from_corridor_index(0, 1),
       StraightPathStep::AnimationLink {
@@ -532,7 +531,7 @@ fn using_animation_link_does_not_reach_target() {
   assert!(!agent.has_reached_target(
     &path,
     &archipelago.nav_data,
-    agent_position(&agent),
+    agent.position,
     (
       PathIndex::from_corridor_index(0, 0),
       StraightPathStep::Waypoint(Vec3::new(12.5, 10.5, 0.0)),
@@ -554,7 +553,7 @@ fn uses_sampled_point_for_reaching_target() {
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
   let island_id = archipelago.add_island(Transform::default(), nav_mesh);
-  let mut agent = Agent::<XYZ>::create(
+  let mut agent = CoreAgent::new(
     /* position= */ Vec3::new(1.0, 1.0, 1.0),
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
@@ -589,7 +588,7 @@ fn uses_sampled_point_for_reaching_target() {
 
 #[test]
 fn nothing_or_clear_path_for_no_target() {
-  let mut agent = Agent::<XYZ>::create(
+  let mut agent = CoreAgent::new(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
@@ -629,7 +628,7 @@ fn nothing_or_clear_path_for_no_target() {
 
 #[test]
 fn clears_path_for_missing_nodes() {
-  let mut agent = Agent::<XYZ>::create(
+  let mut agent = CoreAgent::new(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
@@ -667,7 +666,7 @@ fn clears_path_for_missing_nodes() {
 
 #[test]
 fn repaths_for_invalid_path_or_nodes_off_path() {
-  let mut agent = Agent::<XYZ>::create(
+  let mut agent = CoreAgent::new(
     /* position= */ Vec3::ZERO,
     /* velocity= */ Vec3::ZERO,
     /* radius= */ 0.0,
@@ -771,7 +770,7 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
 
 #[googletest::test]
 fn cannot_start_or_end_using_animation_link_without_reached_animation_link() {
-  let mut agent = Agent::<XY>::create(Vec2::ZERO, Vec2::ZERO, 0.5, 1.0, 2.0);
+  let mut agent = CoreAgent::new(Vec3::ZERO, Vec3::ZERO, 0.5, 1.0, 2.0);
   expect_that!(
     agent.start_animation_link(),
     err(matches_pattern!(NotReachedAnimationLinkError))
@@ -781,9 +780,9 @@ fn cannot_start_or_end_using_animation_link_without_reached_animation_link() {
     err(matches_pattern!(NotUsingAnimationLinkError))
   );
 
-  agent.current_animation_link = Some(ReachedAnimationLink {
-    start_point: Vec2::new(0.0, 0.0),
-    end_point: Vec2::new(1.0, 0.0),
+  agent.current_animation_link = Some(CoreReachedAnimationLink {
+    start_point: Vec3::new(0.0, 0.0, 0.0),
+    end_point: Vec3::new(1.0, 0.0, 0.0),
     link_id: AnimationLinkId::default(),
   });
 
