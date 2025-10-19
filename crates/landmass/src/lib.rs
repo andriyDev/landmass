@@ -31,7 +31,7 @@ pub use agent::{
   Agent, AgentId, AgentState, NotReachedAnimationLinkError,
   PermittedAnimationLinks, ReachedAnimationLink, TargetReachedCondition,
 };
-pub use character::{Character, CharacterId};
+pub use character::CharacterId;
 pub use coords::{
   CoordinateSystem, FromAgentRadius, PointSampleDistance,
   PointSampleDistance3d, XY, XYZ,
@@ -49,15 +49,18 @@ pub use query::{FindPathError, PathStep, SamplePointError, SampledPoint};
 pub use util::Transform;
 
 use crate::{
-  avoidance::apply_avoidance_to_agents, coords::CorePointSampleDistance,
-  nav_data::NodeRef, path::StraightPathStep,
+  avoidance::apply_avoidance_to_agents,
+  character::{CharacterMut, CharacterRef, CoreCharacter},
+  coords::CorePointSampleDistance,
+  nav_data::NodeRef,
+  path::StraightPathStep,
 };
 
 pub struct Archipelago<CS: CoordinateSystem> {
   pub archipelago_options: ArchipelagoOptions<CS>,
   nav_data: NavigationData,
   agents: HopSlotMap<AgentId, Agent<CS>>,
-  characters: HopSlotMap<CharacterId, Character<CS>>,
+  characters: HopSlotMap<CharacterId, CoreCharacter>,
   pathing_results: Vec<PathingResult>,
 }
 
@@ -128,8 +131,17 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     self.agents.keys()
   }
 
-  pub fn add_character(&mut self, character: Character<CS>) -> CharacterId {
-    self.characters.insert(character)
+  pub fn add_character(
+    &mut self,
+    position: &CS::Coordinate,
+    velocity: &CS::Coordinate,
+    radius: f32,
+  ) -> CharacterId {
+    self.characters.insert(CoreCharacter {
+      position: CS::to_landmass(position),
+      velocity: CS::to_landmass(velocity),
+      radius,
+    })
   }
 
   pub fn remove_character(&mut self, character_id: CharacterId) {
@@ -142,15 +154,21 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
   pub fn get_character(
     &self,
     character_id: CharacterId,
-  ) -> Option<&Character<CS>> {
-    self.characters.get(character_id)
+  ) -> Option<CharacterRef<'_, CS>> {
+    self
+      .characters
+      .get(character_id)
+      .map(|character| CharacterRef { character, marker: PhantomData })
   }
 
   pub fn get_character_mut(
     &mut self,
     character_id: CharacterId,
-  ) -> Option<&mut Character<CS>> {
-    self.characters.get_mut(character_id)
+  ) -> Option<CharacterMut<'_, CS>> {
+    self
+      .characters
+      .get_mut(character_id)
+      .map(|character| CharacterMut { character, marker: PhantomData })
   }
 
   pub fn get_character_ids(
@@ -341,7 +359,7 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     let mut character_id_to_nav_mesh_point = HashMap::new();
     for (character_id, character) in self.characters.iter() {
       let character_point = match self.nav_data.sample_point(
-        CS::to_landmass(&character.position),
+        character.position,
         &CorePointSampleDistance::new(
           &self.archipelago_options.point_sample_distance,
         ),

@@ -4,9 +4,10 @@ use glam::{Vec2, Vec3};
 use slotmap::HopSlotMap;
 
 use crate::{
-  Agent, AgentId, Archipelago, ArchipelagoOptions, Character, CharacterId,
+  Agent, AgentId, Archipelago, ArchipelagoOptions, CharacterId,
   FromAgentRadius, NavigationData, NavigationMesh, Transform,
   avoidance::apply_avoidance_to_agents,
+  character::CoreCharacter,
   coords::{XY, XYZ},
   nav_data::NodeRef,
   util::CoreTransform,
@@ -623,7 +624,7 @@ fn agent_avoids_character() {
     agent
   });
   let mut characters = HopSlotMap::<CharacterId, _>::with_key();
-  let character = characters.insert(Character {
+  let character = characters.insert(CoreCharacter {
     position: Vec3::new(11.0, 1.01, 0.0),
     velocity: Vec3::new(-1.0, 0.0, 0.0),
     radius: 1.0,
@@ -735,15 +736,15 @@ fn agent_speeds_up_to_avoid_character() {
   );
 
   let mut characters = HopSlotMap::<CharacterId, _>::with_key();
-  let character = characters.insert(Character::<XY> {
+  let character = characters.insert(CoreCharacter {
     // Just slightly closer to the agent so it prefers to "speed up".
-    position: Vec2::new(0.0, 5.0),
-    velocity: Vec2::new(0.0, -1.0),
+    position: Vec3::new(0.0, 5.0, 0.0),
+    velocity: Vec3::new(0.0, -1.0, 0.0),
     radius: 0.5,
   });
   let mut character_id_to_nav_mesh_point = HashMap::new();
   character_id_to_nav_mesh_point
-    .insert(character, characters.get(character).unwrap().position.extend(0.0));
+    .insert(character, characters.get(character).unwrap().position);
 
   apply_avoidance_to_agents(
     &mut agents,

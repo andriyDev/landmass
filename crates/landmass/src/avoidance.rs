@@ -6,8 +6,9 @@ use kdtree::{KdTree, distance::squared_euclidean};
 use slotmap::HopSlotMap;
 
 use crate::{
-  Agent, AgentId, AgentState, ArchipelagoOptions, Character, CharacterId,
+  Agent, AgentId, AgentState, ArchipelagoOptions, CharacterId,
   CoordinateSystem, IslandId, NavigationData,
+  character::CoreCharacter,
   island::CoreIsland,
   nav_data::{KindedOffMeshLink, ModifiedNode, NodeRef},
 };
@@ -17,7 +18,7 @@ use crate::{
 pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
   agents: &mut HopSlotMap<AgentId, Agent<CS>>,
   agent_id_to_agent_node: &HashMap<AgentId, (Vec3, NodeRef)>,
-  characters: &HopSlotMap<CharacterId, Character<CS>>,
+  characters: &HopSlotMap<CharacterId, CoreCharacter>,
   character_id_to_nav_mesh_point: &HashMap<CharacterId, Vec3>,
   nav_data: &NavigationData,
   agent_options: &ArchipelagoOptions<CS>,
@@ -70,7 +71,7 @@ pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
         [character_point.x, character_point.y, character_point.z],
         dodgy_2d::Agent {
           position: to_dodgy_vec2(character_point.xy()),
-          velocity: to_dodgy_vec2(CS::to_landmass(&character.velocity).xy()),
+          velocity: to_dodgy_vec2(character.velocity.xy()),
           radius: character.radius,
           // Characters are not responsible for any avoidance since landmass has
           // no control over them.

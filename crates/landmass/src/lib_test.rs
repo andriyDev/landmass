@@ -10,9 +10,9 @@ use googletest::{
 
 use crate::{
   Agent, AgentId, AgentState, AnimationLink, Archipelago, ArchipelagoOptions,
-  Character, CharacterId, CoordinateSystem, FromAgentRadius, IslandId,
-  NavigationMesh, PathStep, PointSampleDistance3d, ReachedAnimationLink,
-  Transform, ValidNavigationMesh,
+  CharacterId, CoordinateSystem, FromAgentRadius, IslandId, NavigationMesh,
+  PathStep, PointSampleDistance3d, ReachedAnimationLink, Transform,
+  ValidNavigationMesh,
   agent::PermittedAnimationLinks,
   coords::{XY, XYZ},
   nav_data::NodeRef,
@@ -98,14 +98,23 @@ fn add_and_remove_characters() {
   let mut archipelago =
     Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
 
-  let character_1 =
-    archipelago.add_character(Character { radius: 1.0, ..Default::default() });
+  let character_1 = archipelago.add_character(
+    /* position= */ &Vec3::ZERO,
+    /* velocity= */ &Vec3::ZERO,
+    /* radius= */ 1.0,
+  );
 
-  let character_2 =
-    archipelago.add_character(Character { radius: 2.0, ..Default::default() });
+  let character_2 = archipelago.add_character(
+    /* position= */ &Vec3::ZERO,
+    /* velocity= */ &Vec3::ZERO,
+    /* radius= */ 2.0,
+  );
 
-  let character_3 =
-    archipelago.add_character(Character { radius: 3.0, ..Default::default() });
+  let character_3 = archipelago.add_character(
+    /* position= */ &Vec3::ZERO,
+    /* velocity= */ &Vec3::ZERO,
+    /* radius= */ 3.0,
+  );
 
   fn sorted(mut v: Vec<CharacterId>) -> Vec<CharacterId> {
     v.sort();
@@ -118,9 +127,9 @@ fn add_and_remove_characters() {
   );
   assert_eq!(
     [
-      archipelago.get_character(character_1).unwrap().radius,
-      archipelago.get_character(character_2).unwrap().radius,
-      archipelago.get_character(character_3).unwrap().radius,
+      archipelago.get_character(character_1).unwrap().radius(),
+      archipelago.get_character(character_2).unwrap().radius(),
+      archipelago.get_character(character_3).unwrap().radius(),
     ],
     [1.0, 2.0, 3.0],
   );
@@ -133,8 +142,8 @@ fn add_and_remove_characters() {
   );
   assert_eq!(
     [
-      archipelago.get_character(character_1).unwrap().radius,
-      archipelago.get_character(character_3).unwrap().radius,
+      archipelago.get_character(character_1).unwrap().radius(),
+      archipelago.get_character(character_3).unwrap().radius(),
     ],
     [1.0, 3.0],
   );
@@ -145,7 +154,7 @@ fn add_and_remove_characters() {
     sorted(archipelago.get_character_ids().collect::<Vec<_>>()),
     sorted(vec![character_1]),
   );
-  assert_eq!([archipelago.get_character(character_1).unwrap().radius], [1.0]);
+  assert_eq!([archipelago.get_character(character_1).unwrap().radius()], [1.0]);
 
   archipelago.remove_character(character_1);
 
@@ -463,11 +472,11 @@ fn agent_speeds_up_to_avoid_character() {
     Vec2::new(-1.0, 0.0)
   );
 
-  archipelago.add_character(Character {
-    position: Vec2::new(0.0, 5.0),
-    velocity: Vec2::new(0.0, -1.0),
-    radius: 0.5,
-  });
+  archipelago.add_character(
+    /* position= */ &Vec2::new(0.0, 5.0),
+    /* velocity= */ &Vec2::new(0.0, -1.0),
+    /* radius= */ 0.5,
+  );
 
   archipelago.update(0.01);
 
