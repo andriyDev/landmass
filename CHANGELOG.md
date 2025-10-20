@@ -6,6 +6,13 @@
 
 ### Migration Guide
 
+## `landmass` 0.9.1 - 2025-10-20
+
+### Fixes
+
+- Changing an island will now correctly update bidirectional animation links where the end is a
+  point.
+
 ## `landmass` 0.9.0 / `bevy_landmass` 0.10.0 - 2025-10-01
 
 ### Features
