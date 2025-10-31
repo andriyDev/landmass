@@ -1,10 +1,11 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use bevy_app::App;
+use bevy::MinimalPlugins;
+use bevy_app::{App, Plugin};
 use bevy_asset::{AssetPlugin, Assets};
 use bevy_ecs::entity::Entity;
 use bevy_math::{Quat, Vec2, Vec3};
-use bevy_time::Time;
+use bevy_time::TimeUpdateStrategy;
 use bevy_transform::{TransformPlugin, components::Transform};
 use googletest::{
   expect_eq, expect_false, expect_that, expect_true, matchers::*,
@@ -25,17 +26,7 @@ use crate::{
 
 #[test]
 fn computes_path_for_agent_and_updates_desired_velocity() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      TransformPlugin,
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass3dPlugin::default());
+  let mut app = create_test_app_3d();
 
   let archipelago_id = app
     .world_mut()
@@ -117,16 +108,7 @@ fn computes_path_for_agent_and_updates_desired_velocity() {
 
 #[test]
 fn adds_and_removes_agents() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass3dPlugin::default());
+  let mut app = create_test_app_3d();
 
   let archipelago_id = app
     .world_mut()
@@ -250,16 +232,7 @@ fn adds_and_removes_agents() {
 
 #[test]
 fn adds_and_removes_characters() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass3dPlugin::default());
+  let mut app = create_test_app_3d();
 
   let archipelago_id = app
     .world_mut()
@@ -355,16 +328,7 @@ fn adds_and_removes_characters() {
 
 #[test]
 fn adds_and_removes_islands() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass3dPlugin::default());
+  let mut app = create_test_app_3d();
 
   let archipelago_id = app
     .world_mut()
@@ -490,16 +454,7 @@ fn adds_and_removes_islands() {
 
 #[googletest::test]
 fn adds_and_removes_animation_links() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass2dPlugin::default());
+  let mut app = create_test_app_2d();
 
   let archipelago_entity = app
     .world_mut()
@@ -549,17 +504,7 @@ fn adds_and_removes_animation_links() {
 
 #[test]
 fn changing_agent_fields_changes_landmass_agent() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      TransformPlugin,
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass3dPlugin::default());
+  let mut app = create_test_app_3d();
 
   let archipelago = app
     .world_mut()
@@ -643,17 +588,7 @@ fn changing_agent_fields_changes_landmass_agent() {
 
 #[test]
 fn changing_character_fields_changes_landmass_character() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      TransformPlugin,
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass3dPlugin::default());
+  let mut app = create_test_app_3d();
 
   let archipelago = app
     .world_mut()
@@ -706,17 +641,7 @@ fn changing_character_fields_changes_landmass_character() {
 
 #[test]
 fn type_index_costs_are_used() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      TransformPlugin,
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass2dPlugin::default());
+  let mut app = create_test_app_2d();
 
   let mut archipelago =
     Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5));
@@ -824,17 +749,7 @@ fn type_index_costs_are_used() {
 
 #[test]
 fn overridden_type_index_costs_are_used() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      TransformPlugin,
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass2dPlugin::default());
+  let mut app = create_test_app_2d();
 
   let archipelago =
     Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5));
@@ -946,17 +861,7 @@ fn overridden_type_index_costs_are_used() {
 
 #[test]
 fn sample_point_error_on_out_of_range() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      TransformPlugin,
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass2dPlugin::default());
+  let mut app = create_test_app_2d();
 
   let archipelago_entity = app
     .world_mut()
@@ -1002,17 +907,7 @@ fn sample_point_error_on_out_of_range() {
 
 #[test]
 fn samples_point_on_nav_mesh_or_near_nav_mesh() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      TransformPlugin,
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass2dPlugin::default());
+  let mut app = create_test_app_2d();
 
   let archipelago_entity = app
     .world_mut()
@@ -1088,17 +983,7 @@ fn samples_point_on_nav_mesh_or_near_nav_mesh() {
 
 #[test]
 fn samples_type_indices() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      TransformPlugin,
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass2dPlugin::default());
+  let mut app = create_test_app_2d();
 
   let archipelago =
     Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5));
@@ -1163,17 +1048,7 @@ fn samples_type_indices() {
 
 #[test]
 fn finds_path() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      TransformPlugin,
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass2dPlugin::default());
+  let mut app = create_test_app_2d();
 
   let archipelago_entity = app
     .world_mut()
@@ -1252,17 +1127,7 @@ fn finds_path() {
 
 #[test]
 fn island_matches_rotation_3d() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      TransformPlugin,
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass3dPlugin::default());
+  let mut app = create_test_app_3d();
 
   let archipelago_entity = app
     .world_mut()
@@ -1317,17 +1182,7 @@ fn island_matches_rotation_3d() {
 
 #[test]
 fn island_matches_rotation_2d() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      TransformPlugin,
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass2dPlugin::default());
+  let mut app = create_test_app_2d();
 
   let archipelago_entity = app
     .world_mut()
@@ -1382,16 +1237,7 @@ fn island_matches_rotation_2d() {
 
 #[googletest::test]
 fn agent_is_paused() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass2dPlugin::default());
+  let mut app = create_test_app_2d();
 
   let archipelago_entity = app
     .world_mut()
@@ -1506,16 +1352,7 @@ fn agent_is_paused() {
 
 #[googletest::test]
 fn agent_using_animation_link() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass2dPlugin::default());
+  let mut app = create_test_app_2d();
 
   let archipelago_entity = app
     .world_mut()
@@ -1664,4 +1501,29 @@ fn agent_using_animation_link() {
       .velocity(),
     Vec2::new(0.0, 1.0)
   );
+}
+
+fn create_test_app_3d() -> App {
+  create_test_app(Landmass3dPlugin::default())
+}
+
+fn create_test_app_2d() -> App {
+  create_test_app(Landmass2dPlugin::default())
+}
+
+fn create_test_app<P: Plugin>(landmass_plugin: P) -> App {
+  let mut app = App::new();
+
+  app
+    .add_plugins((MinimalPlugins, TransformPlugin, AssetPlugin::default()))
+    .insert_resource(TimeUpdateStrategy::ManualDuration(Duration::from_micros(
+      // Bevy's default fixed timestep
+      15625,
+    )))
+    .add_plugins(landmass_plugin);
+  app.finish();
+
+  // init time
+  app.update();
+  app
 }
