@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use bevy::{
   MinimalPlugins,
-  time::TimeUpdateStrategy,
+  time::{Fixed, Time, TimeUpdateStrategy},
   transform::{TransformPlugin, components::Transform},
 };
 use bevy_app::App;
@@ -79,10 +79,7 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
       LandmassRerecastPlugin::default(),
     ))
     .insert_resource(TimeUpdateStrategy::ManualDuration(
-      Duration::from_micros(
-        // Bevy's default fixed timestep
-        15625,
-      ),
+      Time::<Fixed>::default().timestep(),
     ));
   app.finish();
   app.update();
@@ -537,10 +534,9 @@ fn create_test_app() -> App {
 
   app
     .add_plugins((MinimalPlugins, AssetPlugin::default()))
-    .insert_resource(TimeUpdateStrategy::ManualDuration(Duration::from_micros(
-      // Bevy's default fixed timestep
-      15625,
-    )))
+    .insert_resource(TimeUpdateStrategy::ManualDuration(
+      Time::<Fixed>::default().timestep(),
+    ))
     .add_plugins((RerecastPlugin::default(), LandmassRerecastPlugin::default()))
     .init_asset::<NavMesh3d>();
   app.finish();

@@ -46,11 +46,10 @@ fn main() {
       Landmass3dPlugin::default(),
       LandmassRerecastPlugin::default(),
     ))
+    // This is just here to ensure that the fixed timestep is run when this code is run as an automated test.
+    // Don't copy it into your own code.
     .insert_resource(TimeUpdateStrategy::ManualDuration(
-      Duration::from_micros(
-        // Bevy's default fixed timestep
-        15625,
-      ),
+      Time::<Fixed>::default().timestep(),
     ))
     .init_asset::<Mesh>()
     .init_asset::<StandardMaterial>()

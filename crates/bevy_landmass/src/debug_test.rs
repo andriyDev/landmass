@@ -4,7 +4,7 @@ use bevy::MinimalPlugins;
 use bevy_app::App;
 use bevy_asset::{AssetPlugin, Assets};
 use bevy_math::Vec3;
-use bevy_time::TimeUpdateStrategy;
+use bevy_time::{Fixed, Time, TimeUpdateStrategy};
 use bevy_transform::{TransformPlugin, components::Transform};
 
 use crate::{
@@ -404,10 +404,9 @@ fn create_test_app() -> App {
 
   app
     .add_plugins((MinimalPlugins, TransformPlugin, AssetPlugin::default()))
-    .insert_resource(TimeUpdateStrategy::ManualDuration(Duration::from_micros(
-      // Bevy's default fixed timestep
-      15625,
-    )))
+    .insert_resource(TimeUpdateStrategy::ManualDuration(
+      Time::<Fixed>::default().timestep(),
+    ))
     .add_plugins(Landmass3dPlugin::default());
   app.finish();
 

@@ -5,7 +5,7 @@ use bevy_app::{App, Plugin};
 use bevy_asset::{AssetPlugin, Assets};
 use bevy_ecs::entity::Entity;
 use bevy_math::{Quat, Vec2, Vec3};
-use bevy_time::TimeUpdateStrategy;
+use bevy_time::{Fixed, Time, TimeUpdateStrategy};
 use bevy_transform::{TransformPlugin, components::Transform};
 use googletest::{
   expect_eq, expect_false, expect_that, expect_true, matchers::*,
@@ -1516,10 +1516,9 @@ fn create_test_app<P: Plugin>(landmass_plugin: P) -> App {
 
   app
     .add_plugins((MinimalPlugins, TransformPlugin, AssetPlugin::default()))
-    .insert_resource(TimeUpdateStrategy::ManualDuration(Duration::from_micros(
-      // Bevy's default fixed timestep
-      15625,
-    )))
+    .insert_resource(TimeUpdateStrategy::ManualDuration(
+      Time::<Fixed>::default().timestep(),
+    ))
     .add_plugins(landmass_plugin);
   app.finish();
 
