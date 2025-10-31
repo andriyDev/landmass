@@ -2,7 +2,7 @@
 
 use std::{marker::PhantomData, sync::Arc};
 
-use bevy_app::{Plugin, RunFixedMainLoop, RunFixedMainLoopSystems};
+use bevy_app::{FixedPreUpdate, Plugin};
 use bevy_asset::{Asset, AssetApp, Handle};
 use bevy_ecs::{
   component::Component,
@@ -96,13 +96,13 @@ pub struct LandmassPlugin<CS: CoordinateSystem> {
 
 impl<CS: CoordinateSystem> Default for LandmassPlugin<CS> {
   fn default() -> Self {
-    Self { schedule: RunFixedMainLoop.intern(), _marker: Default::default() }
+    Self { schedule: FixedPreUpdate.intern(), _marker: Default::default() }
   }
 }
 
 impl<CS: CoordinateSystem> LandmassPlugin<CS> {
   /// Sets the schedule for running the plugin. Defaults to
-  /// [`RunFixedMainLoop`].
+  /// [`FixedPreUpdate`].
   #[must_use]
   pub fn in_schedule(mut self, schedule: impl ScheduleLabel) -> Self {
     self.schedule = schedule.intern();
@@ -124,9 +124,7 @@ impl<CS: CoordinateSystem> Plugin for LandmassPlugin<CS> {
         LandmassSystems::Update,
         LandmassSystems::Output,
       )
-        .chain()
-        // Configure our systems to run before physics engines.
-        .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
+        .chain(),
     );
     app.add_systems(
       self.schedule,
