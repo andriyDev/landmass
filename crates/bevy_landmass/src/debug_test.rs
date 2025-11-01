@@ -1,9 +1,10 @@
-use std::{cmp::Ordering, sync::Arc};
+use std::{cmp::Ordering, sync::Arc, time::Duration};
 
+use bevy::MinimalPlugins;
 use bevy_app::App;
 use bevy_asset::{AssetPlugin, Assets};
 use bevy_math::Vec3;
-use bevy_time::Time;
+use bevy_time::{Fixed, Time, TimeUpdateStrategy};
 use bevy_transform::{TransformPlugin, components::Transform};
 
 use crate::{
@@ -71,17 +72,7 @@ impl FakeDrawer {
 
 #[test]
 fn draws_archipelago_debug() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      TransformPlugin,
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass3dPlugin::default());
+  let mut app = create_test_app();
 
   let archipelago_id = app
     .world_mut()
@@ -228,17 +219,7 @@ fn draws_avoidance_data_when_requested() {
   use bevy::{math::Vec2, prelude::Entity};
   use googletest::{matcher::MatcherResult, prelude::*};
 
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      bevy_app::TaskPoolPlugin::default(),
-      bevy_app::ScheduleRunnerPlugin::default(),
-      TransformPlugin,
-      AssetPlugin::default(),
-    ))
-    .insert_resource(Time::<()>::default())
-    .add_plugins(Landmass3dPlugin::default());
+  let mut app = create_test_app();
 
   let archipelago_id = app
     .world_mut()
@@ -416,4 +397,20 @@ fn draws_avoidance_data_when_requested() {
       }),
     )
   );
+}
+
+fn create_test_app() -> App {
+  let mut app = App::new();
+
+  app
+    .add_plugins((MinimalPlugins, TransformPlugin, AssetPlugin::default()))
+    .insert_resource(TimeUpdateStrategy::ManualDuration(
+      Time::<Fixed>::default().timestep(),
+    ))
+    .add_plugins(Landmass3dPlugin::default());
+  app.finish();
+
+  // init time
+  app.update();
+  app
 }

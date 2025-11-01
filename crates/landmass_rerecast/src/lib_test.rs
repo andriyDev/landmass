@@ -1,5 +1,8 @@
+use std::time::Duration;
+
 use bevy::{
-  time::Time,
+  MinimalPlugins,
+  time::{Fixed, Time, TimeUpdateStrategy},
   transform::{TransformPlugin, components::Transform},
 };
 use bevy_app::App;
@@ -65,23 +68,21 @@ fn square_rerecast_nav_mesh() -> bevy_rerecast::Navmesh {
 
 #[googletest::test]
 fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
-  const DURATION: std::time::Duration = std::time::Duration::from_millis(10);
-
   let mut app = App::new();
   app
     .add_plugins((
+      MinimalPlugins,
       TransformPlugin,
       AssetPlugin::default(),
       Landmass3dPlugin::default(),
       RerecastPlugin::default(),
       LandmassRerecastPlugin::default(),
     ))
-    .insert_resource({
-      // Insert time and make sure its delta is positive.
-      let mut time = Time::new(std::time::Instant::now());
-      time.advance_by(DURATION);
-      time.as_generic()
-    });
+    .insert_resource(TimeUpdateStrategy::ManualDuration(
+      Time::<Fixed>::default().timestep(),
+    ));
+  app.finish();
+  app.update();
 
   let rerecast_handle =
     app.world().resource::<Assets<bevy_rerecast::Navmesh>>().reserve_handle();
@@ -269,15 +270,7 @@ fn landmass_mesh_created_once_rerecast_mesh_is_added_and_updated() {
 
 #[googletest::test]
 fn existing_rerecast_mesh_is_converted() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      AssetPlugin::default(),
-      RerecastPlugin::default(),
-      LandmassRerecastPlugin::default(),
-    ))
-    .init_asset::<NavMesh3d>();
+  let mut app = create_test_app();
 
   let rerecast_mesh = square_rerecast_nav_mesh();
   let rerecast_handle = app
@@ -333,14 +326,7 @@ fn existing_rerecast_mesh_is_converted() {
 
 #[googletest::test]
 fn shared_rerecast_mesh_maps_to_same_handle() {
-  let mut app = App::new();
-  app
-    .add_plugins((
-      AssetPlugin::default(),
-      RerecastPlugin::default(),
-      LandmassRerecastPlugin::default(),
-    ))
-    .init_asset::<NavMesh3d>();
+  let mut app = create_test_app();
 
   let rerecast_handle = app
     .world_mut()
@@ -385,15 +371,7 @@ fn shared_rerecast_mesh_maps_to_same_handle() {
 
 #[googletest::test]
 fn added_then_removed_mesh_does_not_convert() {
-  let mut app = App::new();
-
-  app
-    .add_plugins((
-      AssetPlugin::default(),
-      RerecastPlugin::default(),
-      LandmassRerecastPlugin::default(),
-    ))
-    .init_asset::<NavMesh3d>();
+  let mut app = create_test_app();
 
   let rerecast_mesh = square_rerecast_nav_mesh();
   let rerecast_handle = app
@@ -454,14 +432,7 @@ fn converted_mesh_retained_until_original_mesh_dropped() {
   // and create a new handle - which would never be populated since the rerecast
   // mesh was consumed.
 
-  let mut app = App::new();
-  app
-    .add_plugins((
-      AssetPlugin::default(),
-      RerecastPlugin::default(),
-      LandmassRerecastPlugin::default(),
-    ))
-    .init_asset::<NavMesh3d>();
+  let mut app = create_test_app();
 
   let rerecast_handle = app
     .world_mut()
@@ -515,14 +486,7 @@ fn converted_mesh_retained_until_original_mesh_dropped() {
 fn handles_have_same_lifetime_even_without_mesh() {
   // Same as `converted_mesh_retained_until_original_mesh_dropped`, except no
   // real mesh is involved - it's all handles.
-  let mut app = App::new();
-  app
-    .add_plugins((
-      AssetPlugin::default(),
-      RerecastPlugin::default(),
-      LandmassRerecastPlugin::default(),
-    ))
-    .init_asset::<NavMesh3d>();
+  let mut app = create_test_app();
 
   let rerecast_handle = app
     .world_mut()
@@ -563,4 +527,21 @@ fn handles_have_same_lifetime_even_without_mesh() {
     .0
     .id();
   expect_eq!(new_landmass_id, landmass_id);
+}
+
+fn create_test_app() -> App {
+  let mut app = App::new();
+
+  app
+    .add_plugins((MinimalPlugins, AssetPlugin::default()))
+    .insert_resource(TimeUpdateStrategy::ManualDuration(
+      Time::<Fixed>::default().timestep(),
+    ))
+    .add_plugins((RerecastPlugin::default(), LandmassRerecastPlugin::default()))
+    .init_asset::<NavMesh3d>();
+  app.finish();
+
+  // init time
+  app.update();
+  app
 }

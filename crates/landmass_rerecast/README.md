@@ -25,11 +25,15 @@ navigation mesh in a `landmass` island! To use it:
 ## Example
 
 ```rust
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    time::TimeUpdateStrategy,
+};
 use bevy_landmass::{Agent, PointSampleDistance3d, prelude::*};
 use bevy_rerecast::{Mesh3dBackendPlugin, prelude::*};
 use landmass_rerecast::LandmassRerecastPlugin;
 use landmass_rerecast::{Island3dBundle, NavMeshHandle3d};
+use std::time::Duration;
 
 fn main() {
   App::new()
@@ -41,6 +45,11 @@ fn main() {
       Mesh3dBackendPlugin::default(),
       Landmass3dPlugin::default(),
       LandmassRerecastPlugin::default(),
+    ))
+    // This is just here to ensure that the fixed timestep is run when this code is run as an automated test.
+    // Don't copy it into your own code.
+    .insert_resource(TimeUpdateStrategy::ManualDuration(
+      Time::<Fixed>::default().timestep(),
     ))
     .init_asset::<Mesh>()
     .init_asset::<StandardMaterial>()
@@ -118,7 +127,7 @@ struct CheckCounter(usize);
 fn check_for_path_and_exit(
   agent: Single<(&AgentState, &AgentDesiredVelocity3d)>,
   mut check_counter: ResMut<CheckCounter>,
-  mut exit: EventWriter<AppExit>,
+  mut exit: MessageWriter<AppExit>,
 ) {
   let (state, desired_velocity) = *agent;
 

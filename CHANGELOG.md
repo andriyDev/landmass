@@ -6,6 +6,21 @@
 
 ### Migration Guide
 
+- bevy_landmass: The default system schedule is now `FixedPreUpdate`. For most users, this is a more sensible default and will work just as well as before.
+  If you need to continue running landmass in a variable timestep, you can restore the previous behavior by first setting the schedule to `RunFixedMainLoop`, e.g. for 3D:
+  ```rust
+  Landmass3dPlugin::default().in_schedule(RunFixedMainLoop)
+  ```
+  and then ordering the `LandmasSystems` in `RunFixedMainLoopSystems::BeforeFixedMainLoop`:
+  ```rust
+  app.configure_sets(RunFixedMainLoop, LandmasSystems::SyncExistence.in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop))
+  ```
+- landmass_rerecast: The default system schedule is now `FixedPreUpdate`. See the migration guide for `bevy_landmass` for more information.
+  If you want to continue running landmass_rerecast in a variable timestep, you need to follow the advice found in that section and additionally set the schedule of the `LandmassRerecastPlugin`:
+  ```rust
+  LandmassRerecastPlugin::default().in_schedule(RunFixedMainLoop)
+  ```
+
 ## `landmass` 0.9.1 - 2025-10-20
 
 ### Fixes

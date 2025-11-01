@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use bevy_app::{Plugin, RunFixedMainLoop, RunFixedMainLoopSystems};
+use bevy_app::{FixedPreUpdate, Plugin};
 use bevy_asset::{AssetEvent, AssetHandleProvider, AssetId, Assets, Handle};
 use bevy_ecs::{
   bundle::Bundle,
@@ -30,13 +30,13 @@ pub struct LandmassRerecastPlugin {
 
 impl Default for LandmassRerecastPlugin {
   fn default() -> Self {
-    Self { schedule: RunFixedMainLoop.intern() }
+    Self { schedule: FixedPreUpdate.intern() }
   }
 }
 
 impl LandmassRerecastPlugin {
   /// Sets the schedule for running the plugin. Defaults to
-  /// [`RunFixedMainLoop`].
+  /// [`FixedPreUpdate`].
   #[must_use]
   pub fn in_schedule(mut self, schedule: impl ScheduleLabel) -> Self {
     self.schedule = schedule.intern();
@@ -51,9 +51,7 @@ impl Plugin for LandmassRerecastPlugin {
       .add_message::<NewRerecastConversion>()
       .configure_sets(
         self.schedule,
-        LandmassRerecastSystems
-          .before(LandmassSystems::SyncExistence)
-          .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
+        LandmassRerecastSystems.before(LandmassSystems::SyncExistence),
       )
       .add_systems(
         self.schedule,
