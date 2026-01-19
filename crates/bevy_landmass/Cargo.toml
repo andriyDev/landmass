@@ -21,7 +21,7 @@ type_complexity = "allow"
 [dependencies]
 landmass = { path = "../landmass", version = "0.9.0", default-features = false }
 
-bevy_app = { version = "0.17", default-features = false }
+bevy_app = { version = "0.18", default-features = false }
 bevy_asset = { version = "0.17", default-features = false }
 bevy_color = { version = "0.17", default-features = false }
 bevy_ecs = { version = "0.17", default-features = false }
