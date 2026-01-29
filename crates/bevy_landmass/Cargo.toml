@@ -1,6 +1,6 @@
 [package]
 name = "bevy_landmass"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2024"
 
 description = "A plugin for Bevy to handle navigation of AI characters."
@@ -21,21 +21,21 @@ type_complexity = "allow"
 [dependencies]
 landmass = { path = "../landmass", version = "0.9.0", default-features = false }
 
-bevy_app = { version = "0.17", default-features = false }
-bevy_asset = { version = "0.17", default-features = false }
-bevy_color = { version = "0.17", default-features = false }
-bevy_ecs = { version = "0.17", default-features = false }
-bevy_gizmos = { version = "0.17", default-features = false }
-bevy_log = { version = "0.17", default-features = false }
-bevy_math = { version = "0.17", default-features = false }
-bevy_mesh = { version = "0.17", optional = true, default-features = false }
-bevy_platform = { version = "0.17", default-features = false }
-bevy_reflect = { version = "0.17", default-features = false }
-bevy_time = { version = "0.17", default-features = false }
-bevy_transform = { version = "0.17", default-features = false }
+bevy_app = { version = "0.18", default-features = false }
+bevy_asset = { version = "0.18", default-features = false }
+bevy_color = { version = "0.18", default-features = false }
+bevy_ecs = { version = "0.18", default-features = false }
+bevy_gizmos = { version = "0.18", default-features = false }
+bevy_log = { version = "0.18", default-features = false }
+bevy_math = { version = "0.18", default-features = false }
+bevy_mesh = { version = "0.18", optional = true, default-features = false }
+bevy_platform = { version = "0.18", default-features = false }
+bevy_reflect = { version = "0.18", default-features = false }
+bevy_time = { version = "0.18", default-features = false }
+bevy_transform = { version = "0.18", default-features = false }
 
 [dev-dependencies]
-bevy = "0.17"
+bevy = "0.18"
 googletest = "0.14.2"
 
 [features]

@@ -482,7 +482,7 @@ impl<CS: CoordinateSystem> DebugDrawer<CS> for GizmoDrawer<'_, '_, '_, CS> {
       };
       let line =
         [CS::to_world_position(&line[0]), CS::to_world_position(&line[1])];
-      self.cuboid(
+      self.cube(
         Transform::default()
           .looking_to(line[1] - line[0], bevy_math::Vec3::new(0.0, 1.0, 0.0))
           .with_translation((line[0] + line[1]) * 0.5)
