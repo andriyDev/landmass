@@ -3,7 +3,7 @@ use std::collections::{BinaryHeap, HashMap, HashSet};
 use dodgy_2d::VisibilitySet;
 use glam::{Vec3, Vec3Swizzles};
 use kdtree::{KdTree, distance::squared_euclidean};
-use slotmap::HopSlotMap;
+use slotmap::DenseSlotMap;
 
 use crate::{
   Agent, AgentId, AgentState, ArchipelagoOptions, Character, CharacterId,
@@ -14,9 +14,9 @@ use crate::{
 /// Adjusts the velocity of `agents` to apply local avoidance. `delta_time` must
 /// be positive.
 pub(crate) fn apply_avoidance_to_agents<CS: CoordinateSystem>(
-  agents: &mut HopSlotMap<AgentId, Agent<CS>>,
+  agents: &mut DenseSlotMap<AgentId, Agent<CS>>,
   agent_id_to_agent_node: &HashMap<AgentId, (Vec3, NodeRef)>,
-  characters: &HopSlotMap<CharacterId, Character<CS>>,
+  characters: &DenseSlotMap<CharacterId, Character<CS>>,
   character_id_to_nav_mesh_point: &HashMap<CharacterId, Vec3>,
   nav_data: &NavigationData<CS>,
   agent_options: &ArchipelagoOptions<CS>,

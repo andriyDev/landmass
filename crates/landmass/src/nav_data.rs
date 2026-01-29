@@ -9,7 +9,7 @@ use disjoint::DisjointSet;
 use geo::{BooleanOps, Coord, LineString, LinesIter, MultiPolygon, Polygon};
 use glam::{Vec2, Vec3, Vec3Swizzles};
 use kdtree::{KdTree, distance::squared_euclidean};
-use slotmap::{HopSlotMap, SlotMap, new_key_type};
+use slotmap::{DenseSlotMap, SlotMap, new_key_type};
 use thiserror::Error;
 
 use crate::{
@@ -26,9 +26,9 @@ use crate::{
 /// "static" features.
 pub(crate) struct NavigationData<CS: CoordinateSystem> {
   /// The islands in the [`crate::Archipelago`].
-  islands: HopSlotMap<IslandId, Island<CS>>,
+  islands: DenseSlotMap<IslandId, Island<CS>>,
   /// The animation links in the [`crate::AnimationLink`].
-  animation_links: HopSlotMap<AnimationLinkId, AnimationLinkState<CS>>,
+  animation_links: DenseSlotMap<AnimationLinkId, AnimationLinkState<CS>>,
   /// The "default" cost of each type index. Missing type indices default to a
   /// cost of 1.0.
   type_index_to_cost: HashMap<usize, f32>,
@@ -144,8 +144,8 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
   /// Creates new navigation data.
   pub(crate) fn new() -> Self {
     Self {
-      islands: HopSlotMap::with_key(),
-      animation_links: HopSlotMap::with_key(),
+      islands: DenseSlotMap::with_key(),
+      animation_links: DenseSlotMap::with_key(),
       type_index_to_cost: HashMap::new(),
       // The navigation data is empty, so there's nothing to update (so not
       // dirty).
@@ -535,7 +535,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       end_edge: (Vec3, Vec3),
       animation_link_id: AnimationLinkId,
       link: &AnimationLink<CS>,
-      islands: &HopSlotMap<IslandId, Island<CS>>,
+      islands: &DenseSlotMap<IslandId, Island<CS>>,
       off_mesh_links: &mut SlotMap<OffMeshLinkId, OffMeshLink>,
       node_to_off_mesh_link_ids: &mut HashMap<NodeRef, HashSet<OffMeshLinkId>>,
     ) {
@@ -1334,7 +1334,7 @@ fn link_edges_between_islands<CS: CoordinateSystem>(
 fn world_portal_to_node_portals<CS: CoordinateSystem>(
   portal: (Vec3, Vec3),
   island_bbh: &BoundingBoxHierarchy<IslandId>,
-  islands: &HopSlotMap<IslandId, Island<CS>>,
+  islands: &DenseSlotMap<IslandId, Island<CS>>,
   island_to_node_bbh: &mut HashMap<IslandId, BoundingBoxHierarchy<usize>>,
   max_vertical_distance: f32,
 ) -> Vec<NodePortal> {
@@ -1390,7 +1390,7 @@ fn world_portal_to_node_portals<CS: CoordinateSystem>(
 fn sample_animation_link_point<CS: CoordinateSystem>(
   point: Vec3,
   island_bbh: &BoundingBoxHierarchy<IslandId>,
-  islands: &HopSlotMap<IslandId, Island<CS>>,
+  islands: &DenseSlotMap<IslandId, Island<CS>>,
   max_vertical_distance: f32,
 ) -> Option<NodeRef> {
   let query_box = BoundingBox::new_box(

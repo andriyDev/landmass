@@ -18,7 +18,7 @@ mod util;
 use agent::{RepathResult, does_agent_need_repath};
 use glam::Vec3Swizzles;
 use path::PathIndex;
-use slotmap::HopSlotMap;
+use slotmap::DenseSlotMap;
 use std::collections::HashMap;
 
 use nav_data::NavigationData;
@@ -54,8 +54,8 @@ use crate::{
 pub struct Archipelago<CS: CoordinateSystem> {
   pub archipelago_options: ArchipelagoOptions<CS>,
   nav_data: NavigationData<CS>,
-  agents: HopSlotMap<AgentId, Agent<CS>>,
-  characters: HopSlotMap<CharacterId, Character<CS>>,
+  agents: DenseSlotMap<AgentId, Agent<CS>>,
+  characters: DenseSlotMap<CharacterId, Character<CS>>,
   pathing_results: Vec<PathingResult>,
 }
 
@@ -97,8 +97,8 @@ impl<CS: CoordinateSystem> Archipelago<CS> {
     Self {
       archipelago_options,
       nav_data: NavigationData::new(),
-      agents: HopSlotMap::with_key(),
-      characters: HopSlotMap::with_key(),
+      agents: DenseSlotMap::with_key(),
+      characters: DenseSlotMap::with_key(),
       pathing_results: Vec::new(),
     }
   }
