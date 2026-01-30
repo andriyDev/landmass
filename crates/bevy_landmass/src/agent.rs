@@ -103,8 +103,9 @@ impl AgentTypeIndexCostOverrides {
 ///   }
 /// }
 /// ```
-#[derive(Component)]
+#[derive(Component, Default)]
 pub enum AgentTarget<CS: CoordinateSystem> {
+  #[default]
   None,
   Point(CS::Coordinate),
   Entity(Entity),
@@ -112,12 +113,6 @@ pub enum AgentTarget<CS: CoordinateSystem> {
 
 pub type AgentTarget2d = AgentTarget<TwoD>;
 pub type AgentTarget3d = AgentTarget<ThreeD>;
-
-impl<CS: CoordinateSystem> Default for AgentTarget<CS> {
-  fn default() -> Self {
-    Self::None
-  }
-}
 
 impl<CS: CoordinateSystem<Coordinate: std::fmt::Debug>> std::fmt::Debug
   for AgentTarget<CS>

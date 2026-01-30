@@ -10,7 +10,7 @@ use googletest::{
   expect_eq, expect_false, expect_that, expect_true, matchers::*,
   prelude::container_eq,
 };
-use slotmap::{HopSlotMap, SlotMap};
+use slotmap::{DenseSlotMap, SlotMap};
 
 use crate::{
   Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius,
@@ -240,7 +240,7 @@ fn link_edges_between_islands_links_touching_islands() {
   );
 
   // Create unused slotmaps just to get `IslandId`s and `NodeType`s.
-  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let mut slotmap = DenseSlotMap::<IslandId, _>::with_key();
   let island_1_id = slotmap.insert(0);
   let island_2_id = slotmap.insert(0);
 

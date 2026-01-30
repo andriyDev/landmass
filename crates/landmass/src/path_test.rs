@@ -2,7 +2,7 @@ use std::{collections::HashSet, f32::consts::PI, sync::Arc};
 
 use glam::{Vec2, Vec3};
 use googletest::{expect_that, matchers::*};
-use slotmap::HopSlotMap;
+use slotmap::DenseSlotMap;
 
 use crate::{
   Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius, Island,
@@ -842,11 +842,11 @@ fn end_point_after_animation_link_is_reported() {
 #[test]
 fn path_not_valid_for_invalidated_islands_or_off_mesh_links() {
   // Create unused slotmaps just to get `IslandId`s and `OffMeshLinkId`s.
-  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let mut slotmap = DenseSlotMap::<IslandId, _>::with_key();
   let island_id_1 = slotmap.insert(0);
   let island_id_2 = slotmap.insert(0);
   let island_id_3 = slotmap.insert(0);
-  let mut slotmap = HopSlotMap::<OffMeshLinkId, _>::with_key();
+  let mut slotmap = DenseSlotMap::<OffMeshLinkId, _>::with_key();
   let boundary_link_id_1 = slotmap.insert(0);
   let boundary_link_id_2 = slotmap.insert(0);
 
@@ -919,12 +919,12 @@ fn path_not_valid_for_invalidated_islands_or_off_mesh_links() {
 #[test]
 fn indices_in_path_are_found() {
   // Create unused slotmaps just to get `IslandId`s and `BoundaryLinkId`s.
-  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let mut slotmap = DenseSlotMap::<IslandId, _>::with_key();
   let island_id_1 = slotmap.insert(0);
   let island_id_2 = slotmap.insert(0);
   let island_id_3 = slotmap.insert(0);
   let island_id_4 = slotmap.insert(0);
-  let mut slotmap = HopSlotMap::<OffMeshLinkId, _>::with_key();
+  let mut slotmap = DenseSlotMap::<OffMeshLinkId, _>::with_key();
   let boundary_link_id_1 = slotmap.insert(0);
   let boundary_link_id_2 = slotmap.insert(0);
 
@@ -999,12 +999,12 @@ fn indices_in_path_are_found() {
 #[test]
 fn indices_in_path_are_found_rev() {
   // Create unused slotmaps just to get `IslandId`s and `BoundaryLinkId`s.
-  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let mut slotmap = DenseSlotMap::<IslandId, _>::with_key();
   let island_id_1 = slotmap.insert(0);
   let island_id_2 = slotmap.insert(0);
   let island_id_3 = slotmap.insert(0);
   let island_id_4 = slotmap.insert(0);
-  let mut slotmap = HopSlotMap::<OffMeshLinkId, _>::with_key();
+  let mut slotmap = DenseSlotMap::<OffMeshLinkId, _>::with_key();
   let boundary_link_id_1 = slotmap.insert(0);
   let boundary_link_id_2 = slotmap.insert(0);
 

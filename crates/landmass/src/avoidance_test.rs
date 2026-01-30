@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use glam::{Vec2, Vec3};
-use slotmap::HopSlotMap;
+use slotmap::DenseSlotMap;
 
 use crate::{
   Agent, AgentId, Archipelago, ArchipelagoOptions, Character, CharacterId,
@@ -408,7 +408,7 @@ fn applies_no_avoidance_for_far_agents() {
     Arc::new(nav_mesh),
   ));
 
-  let mut agents = HopSlotMap::<AgentId, _>::with_key();
+  let mut agents = DenseSlotMap::<AgentId, _>::with_key();
   let agent_1 = agents.insert({
     let mut agent = Agent::create(
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
@@ -463,7 +463,7 @@ fn applies_no_avoidance_for_far_agents() {
   apply_avoidance_to_agents(
     &mut agents,
     &agent_id_to_agent_node,
-    /* characters= */ &HopSlotMap::with_key(),
+    /* characters= */ &DenseSlotMap::with_key(),
     /* character_id_to_nav_mesh_point= */ &HashMap::new(),
     &nav_data,
     &ArchipelagoOptions {
@@ -509,7 +509,7 @@ fn applies_avoidance_for_two_agents() {
     Arc::new(nav_mesh),
   ));
 
-  let mut agents = HopSlotMap::<AgentId, _>::with_key();
+  let mut agents = DenseSlotMap::<AgentId, _>::with_key();
   let agent_1 = agents.insert({
     let mut agent = Agent::create(
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
@@ -552,7 +552,7 @@ fn applies_avoidance_for_two_agents() {
   apply_avoidance_to_agents(
     &mut agents,
     &agent_id_to_agent_node,
-    /* characters= */ &HopSlotMap::with_key(),
+    /* characters= */ &DenseSlotMap::with_key(),
     /* character_id_to_nav_mesh_point= */ &HashMap::new(),
     &nav_data,
     &ArchipelagoOptions {
@@ -604,7 +604,7 @@ fn agent_avoids_character() {
     Arc::new(nav_mesh),
   ));
 
-  let mut agents = HopSlotMap::<AgentId, _>::with_key();
+  let mut agents = DenseSlotMap::<AgentId, _>::with_key();
   let agent = agents.insert({
     let mut agent = Agent::create(
       /* position= */ Vec3::new(1.0, 1.0, 0.0),
@@ -616,7 +616,7 @@ fn agent_avoids_character() {
     agent.current_desired_move = Vec3::new(1.0, 0.0, 0.0);
     agent
   });
-  let mut characters = HopSlotMap::<CharacterId, _>::with_key();
+  let mut characters = DenseSlotMap::<CharacterId, _>::with_key();
   let character = characters.insert(Character {
     position: Vec3::new(11.0, 1.01, 0.0),
     velocity: Vec3::new(-1.0, 0.0, 0.0),
@@ -686,7 +686,7 @@ fn agent_speeds_up_to_avoid_character() {
     Arc::new(nav_mesh),
   ));
 
-  let mut agents = HopSlotMap::<AgentId, _>::with_key();
+  let mut agents = DenseSlotMap::<AgentId, _>::with_key();
   let agent = agents.insert({
     let mut agent = Agent::<XY>::create(
       /* position= */ Vec2::new(5.0, 0.0),
@@ -711,7 +711,7 @@ fn agent_speeds_up_to_avoid_character() {
   apply_avoidance_to_agents(
     &mut agents,
     &agent_id_to_agent_node,
-    &HopSlotMap::with_key(),
+    &DenseSlotMap::with_key(),
     &HashMap::new(),
     &nav_data,
     &ArchipelagoOptions {
@@ -727,7 +727,7 @@ fn agent_speeds_up_to_avoid_character() {
     Vec2::new(1.0, 0.0)
   );
 
-  let mut characters = HopSlotMap::<CharacterId, _>::with_key();
+  let mut characters = DenseSlotMap::<CharacterId, _>::with_key();
   let character = characters.insert(Character::<XY> {
     // Just slightly closer to the agent so it prefers to "speed up".
     position: Vec2::new(0.0, 5.0),

@@ -2,7 +2,7 @@ use std::{collections::HashSet, f32::consts::PI, sync::Arc};
 
 use glam::{Vec2, Vec3};
 use googletest::{expect_that, expect_true, matchers::*};
-use slotmap::HopSlotMap;
+use slotmap::SlotMap;
 
 use crate::{
   Agent, Archipelago, ArchipelagoOptions, CoordinateSystem, FromAgentRadius,
@@ -642,7 +642,7 @@ fn clears_path_for_missing_nodes() {
   agent.current_target = Some(Vec3::ZERO);
 
   // Create an unused slotmap just to get `IslandId`s.
-  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let mut slotmap = SlotMap::<IslandId, _>::with_key();
   let island_id = slotmap.insert(0);
 
   assert_eq!(
@@ -680,7 +680,7 @@ fn repaths_for_invalid_path_or_nodes_off_path() {
   agent.current_target = Some(Vec3::ZERO);
 
   // Create an unused slotmap just to get `IslandId`s.
-  let mut slotmap = HopSlotMap::<IslandId, _>::with_key();
+  let mut slotmap = SlotMap::<IslandId, _>::with_key();
   let island_id = slotmap.insert(0);
   let missing_island_id = slotmap.insert(0);
 
