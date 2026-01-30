@@ -6,6 +6,11 @@
 
 ### Migration Guide
 
+## `bevy_landmass` [0.11.0] / `landmass_rerecast` [0.2.0] - 2026-01-29
+
+### Migration Guide
+
+- bevy_landmass and landmass_rerecast: Updated to Bevy 0.18!
 - bevy_landmass: The default system schedule is now `FixedPreUpdate`. For most users, this is a more sensible default and will work just as well as before.
   If you need to continue running landmass in a variable timestep, you can restore the previous behavior by first setting the schedule to `RunFixedMainLoop`, e.g. for 3D:
   ```rust
