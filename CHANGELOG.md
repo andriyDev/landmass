@@ -6,6 +6,12 @@
 
 ### Migration Guide
 
+## `bevy_landmass` [0.11.1] - 2026-02-21
+
+### Fixes
+
+- `bevy_mesh_to_landmass_nav_mesh` now correctly orients faces.
+
 ## `bevy_landmass` [0.11.0] / `landmass_rerecast` [0.2.0] - 2026-01-29
 
 ### Migration Guide
