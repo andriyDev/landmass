@@ -45,10 +45,12 @@ pub fn bevy_mesh_to_landmass_nav_mesh<CS: CoordinateSystem>(
       assert!(indices.len() % 3 == 0);
       let mut polygons = Vec::with_capacity(indices.len() / 3);
       for i in (0..indices.len()).step_by(3) {
+        let (b, c) =
+          if CS::FLIP_POLYGONS { (i + 2, i + 1) } else { (i + 1, i + 2) };
         polygons.push(vec![
           indices[i] as usize,
-          indices[i + 1] as usize,
-          indices[i + 2] as usize,
+          indices[b] as usize,
+          indices[c] as usize,
         ]);
       }
       polygons
@@ -57,10 +59,12 @@ pub fn bevy_mesh_to_landmass_nav_mesh<CS: CoordinateSystem>(
       assert!(indices.len() % 3 == 0);
       let mut polygons = Vec::with_capacity(indices.len() / 3);
       for i in (0..indices.len()).step_by(3) {
+        let (b, c) =
+          if CS::FLIP_POLYGONS { (i + 2, i + 1) } else { (i + 1, i + 2) };
         polygons.push(vec![
           indices[i] as usize,
-          indices[i + 1] as usize,
-          indices[i + 2] as usize,
+          indices[b] as usize,
+          indices[c] as usize,
         ]);
       }
       polygons
