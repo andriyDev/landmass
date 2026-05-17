@@ -818,8 +818,8 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
             );
           }
         }
-        state.start_portals.extend(new_start_portals.into_iter());
-        state.end_portals.extend(new_end_portals.into_iter());
+        state.start_portals.extend(new_start_portals);
+        state.end_portals.extend(new_end_portals);
       }
     }
   }
