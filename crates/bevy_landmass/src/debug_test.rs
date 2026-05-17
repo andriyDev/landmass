@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, sync::Arc, time::Duration};
+use std::{cmp::Ordering, sync::Arc};
 
 use bevy::MinimalPlugins;
 use bevy_app::App;

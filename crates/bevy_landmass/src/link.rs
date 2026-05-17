@@ -3,7 +3,7 @@ use bevy_ecs::{
   component::Component,
   entity::Entity,
   event::EntityEvent,
-  lifecycle::{Remove, Replace},
+  lifecycle::{Discard, Remove},
   observer::On,
   query::{Changed, With},
   system::Query,
@@ -86,7 +86,7 @@ pub(crate) fn on_remove_animation_link<CS: CoordinateSystem>(
 pub(crate) fn on_replace_archipelago_ref_from_animation_link<
   CS: CoordinateSystem,
 >(
-  trigger: On<Replace, ArchipelagoRef<CS>>,
+  trigger: On<Discard, ArchipelagoRef<CS>>,
   archipelago_ref: Query<&ArchipelagoRef<CS>, With<AnimationLink<CS>>>,
   archipelago: Query<&mut Archipelago<CS>>,
 ) {
