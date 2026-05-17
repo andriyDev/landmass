@@ -6,6 +6,12 @@
 
 ### Migration Guide
 
+## `bevy_landmass` [0.12.0] / `landmass_rerecast` [0.3.0] - 2026-06-19
+
+### Features
+
+- Updated to Bevy 0.19.
+
 ## `bevy_landmass` [0.11.1] - 2026-02-21
 
 ### Fixes
