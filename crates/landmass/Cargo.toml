@@ -23,7 +23,8 @@ slotmap = "1.0.7"
 thiserror = "2.0"
 
 [dev-dependencies]
-googletest = "0.14.2"
+# Pin to 0.14.2 due to regression: https://github.com/google/googletest-rust/issues/823.
+googletest = "=0.14.2"
 
 [features]
 # Allows you to access avoidance data for an agent when debugging.

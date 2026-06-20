@@ -36,7 +36,8 @@ bevy_transform = { version = "0.19.0", default-features = false }
 
 [dev-dependencies]
 bevy = "0.19.0"
-googletest = "0.14.2"
+# Pin to 0.14.2 due to regression: https://github.com/google/googletest-rust/issues/823.
+googletest = "=0.14.2"
 
 [features]
 default = ["mesh-utils"]
