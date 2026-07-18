@@ -578,7 +578,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
             .get(start_portal.node.island_id)
             .unwrap()
             .nav_mesh
-            .polygons[end_portal.node.polygon_index]
+            .polygons[start_portal.node.polygon_index]
             .type_index,
           kinded: KindedOffMeshLink::AnimationLink {
             destination_portal: start_edge,
