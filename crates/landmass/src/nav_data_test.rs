@@ -3643,3 +3643,106 @@ fn bidirectional_links_collapse_either_end() {
     ))
   );
 }
+
+#[googletest::test]
+fn bidirectional_links_use_correct_indices() {
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(2.0, 0.0),
+        Vec2::new(2.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3], vec![2, 1, 4, 5]],
+      polygon_type_indices: vec![0, 1],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("A square nav mesh is valid."),
+  );
+
+  let mut nav_data = NavigationData::<XY>::new();
+
+  let island_1 =
+    nav_data.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+  let island_2 = nav_data.add_island(Island::new(
+    Transform { translation: Vec2::new(-3.0, 0.0), ..Default::default() },
+    nav_mesh.clone(),
+  ));
+
+  // This link goes from (island_1, node_0) to (island_2, node_1)
+  let link_id = nav_data.add_animation_link(AnimationLink {
+    start_edge: (Vec2::new(0.1, 0.1), Vec2::new(0.1, 0.9)),
+    end_edge: (Vec2::new(-1.1, 0.1), Vec2::new(-1.1, 0.9)),
+    cost: 1.0,
+    kind: 0,
+    bidirectional: true,
+  });
+
+  nav_data.update(
+    /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
+  );
+
+  let link = &nav_data.animation_links[link_id];
+  expect_that!(
+    link.start_portals,
+    unordered_elements_are!(&NodePortal {
+      node: NodeRef { island_id: island_1, polygon_index: 0 },
+      interval: (0.0, 1.0),
+    })
+  );
+  expect_that!(
+    link.end_portals,
+    unordered_elements_are!(&NodePortal {
+      node: NodeRef { island_id: island_2, polygon_index: 1 },
+      interval: (0.0, 1.0),
+    })
+  );
+
+  expect_eq!(nav_data.node_to_off_mesh_link_ids.len(), 2);
+  let island_1_off_mesh_links = get_off_mesh_links_for_node(
+    &nav_data,
+    NodeRef { island_id: island_1, polygon_index: 0 },
+  );
+  expect_that!(
+    island_1_off_mesh_links,
+    some(unordered_elements_are!(&OffMeshLink {
+      destination_node: NodeRef { island_id: island_2, polygon_index: 1 },
+      destination_type_index: 1,
+      portal: (Vec3::new(0.1, 0.1, 0.0), Vec3::new(0.1, 0.9, 0.0)),
+      kinded: KindedOffMeshLink::AnimationLink {
+        destination_portal: (
+          Vec3::new(-1.1, 0.1, 0.0),
+          Vec3::new(-1.1, 0.9, 0.0)
+        ),
+        cost: 1.0,
+        kind: 0,
+        animation_link: link_id,
+      },
+    },))
+  );
+  let island_2_off_mesh_links = get_off_mesh_links_for_node(
+    &nav_data,
+    NodeRef { island_id: island_2, polygon_index: 1 },
+  );
+  expect_that!(
+    island_2_off_mesh_links,
+    some(unordered_elements_are!(&OffMeshLink {
+      destination_node: NodeRef { island_id: island_1, polygon_index: 0 },
+      destination_type_index: 0,
+      portal: (Vec3::new(-1.1, 0.1, 0.0), Vec3::new(-1.1, 0.9, 0.0)),
+      kinded: KindedOffMeshLink::AnimationLink {
+        destination_portal: (
+          Vec3::new(0.1, 0.1, 0.0),
+          Vec3::new(0.1, 0.9, 0.0)
+        ),
+        cost: 1.0,
+        kind: 0,
+        animation_link: link_id,
+      },
+    }))
+  );
+}
