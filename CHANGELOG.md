@@ -6,6 +6,12 @@
 
 ### Migration Guide
 
+## `landmass` 0.9.2 - 2026-07-17
+
+### Fixes
+
+- Fixed a crash where bidirectional animation links would use the wrong node index.
+
 ## `bevy_landmass` [0.12.0] / `landmass_rerecast` [0.3.0] - 2026-06-19
 
 ### Features
