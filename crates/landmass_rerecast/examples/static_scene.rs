@@ -1,7 +1,7 @@
 use bevy::{
   color::palettes::{css, tailwind},
   prelude::*,
-  scene::SceneInstanceReady,
+  world_serialization::WorldInstanceReady,
 };
 use bevy_landmass::{Agent3d, PointSampleDistance3d};
 use bevy_landmass::{debug::Landmass3dDebugPlugin, prelude::*};
@@ -76,10 +76,10 @@ fn setup(
   });
 
   commands
-    .spawn(SceneRoot(asset_server.load("dungeon.glb#Scene0")))
+    .spawn(WorldAssetRoot(asset_server.load("dungeon.glb#Scene0")))
     // Generate the navmesh once the scene loads.
     .observe(
-      move |_: On<SceneInstanceReady>, mut generator: NavmeshGenerator| {
+      move |_: On<WorldInstanceReady>, mut generator: NavmeshGenerator| {
         generator.regenerate(
           &handle,
           NavmeshSettings { agent_radius: 0.5, ..Default::default() },
