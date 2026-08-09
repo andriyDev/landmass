@@ -2,6 +2,6 @@
 members = [
     "crates/landmass",
     "crates/bevy_landmass",
-    # "crates/landmass_rerecast",
+    "crates/landmass_rerecast",
 ]
 resolver = "2"
