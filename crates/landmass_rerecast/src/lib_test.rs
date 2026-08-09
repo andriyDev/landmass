@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use bevy::{
   MinimalPlugins,
   time::{Fixed, Time, TimeUpdateStrategy},
