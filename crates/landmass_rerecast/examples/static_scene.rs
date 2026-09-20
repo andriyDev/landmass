@@ -189,7 +189,7 @@ fn snap_to_ground(
 struct Target;
 
 fn on_click(
-  mut trigger: On<Pointer<Press>>,
+  mut trigger: On<PointerPress>,
   mut commands: Commands,
   spawner: Res<AgentSpawner>,
   target: Single<Entity, With<Target>>,

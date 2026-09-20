@@ -74,7 +74,7 @@ impl<CS: CoordinateSystem> AnimationLink<CS> {
 /// Handles removing an [`AnimationLink`] component by trying to remove it from
 /// the corresponding archipelago.
 pub(crate) fn on_remove_animation_link<CS: CoordinateSystem>(
-  event: On<Remove, AnimationLink<CS>>,
+  event: On<Remove<AnimationLink<CS>>>,
   archipelago_ref: Query<&ArchipelagoRef<CS>, With<AnimationLink<CS>>>,
   archipelago: Query<&mut Archipelago<CS>>,
 ) {
@@ -86,7 +86,7 @@ pub(crate) fn on_remove_animation_link<CS: CoordinateSystem>(
 pub(crate) fn on_replace_archipelago_ref_from_animation_link<
   CS: CoordinateSystem,
 >(
-  trigger: On<Discard, ArchipelagoRef<CS>>,
+  trigger: On<Discard<ArchipelagoRef<CS>>>,
   archipelago_ref: Query<&ArchipelagoRef<CS>, With<AnimationLink<CS>>>,
   archipelago: Query<&mut Archipelago<CS>>,
 ) {
