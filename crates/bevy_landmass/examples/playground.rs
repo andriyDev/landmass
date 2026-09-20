@@ -353,7 +353,7 @@ struct AgentJumping {
 }
 
 fn on_remove_agent_jumping(
-  event: On<Remove, AgentJumping>,
+  event: On<Remove<AgentJumping>>,
   mut commands: Commands,
 ) {
   commands.entity(event.event_target()).remove::<UsingAnimationLink>();
@@ -397,7 +397,7 @@ struct Target;
 
 /// Handles clicks by spawning agents with LMB and moving the target with RMB.
 fn handle_clicks(
-  mut event: On<Pointer<Press>>,
+  mut event: On<PointerPress>,
   agent_spawner: Res<AgentSpawner>,
   mut target: Single<&mut Transform, With<Target>>,
   mut commands: Commands,
