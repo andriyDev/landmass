@@ -3,8 +3,8 @@ use std::{marker::PhantomData, ops::Deref};
 use bevy_ecs::query::Has;
 use bevy_ecs::system::Commands;
 use bevy_ecs::{
-  bundle::Bundle, change_detection::DetectChanges, component::Component,
-  entity::Entity, query::With, system::Query, world::Ref,
+  bundle::Bundle, component::Component, entity::Entity, query::With,
+  system::Query,
 };
 use bevy_log::warn_once;
 use bevy_platform::collections::HashMap;
@@ -301,7 +301,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
       Option<&TargetReachedCondition>,
       Option<&AnimationLinkReachedDistance>,
       Option<&PermittedAnimationLinks>,
-      Option<Ref<AgentTypeIndexCostOverrides>>,
+      Option<&AgentTypeIndexCostOverrides>,
       Has<PauseAgent>,
       Has<UsingAnimationLink>,
       HasKeepAvoidanceData,
@@ -368,16 +368,14 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
         }
       }
       Some(type_index_cost_overrides) => {
-        if !type_index_cost_overrides.is_changed() {
-          continue;
-        }
-
-        for (type_index, _) in
-          landmass_agent.get_type_index_cost_overrides().collect::<Vec<_>>()
+        for type_index in landmass_agent
+          .get_type_index_cost_overrides()
+          .map(|(type_index, _)| type_index)
+          .filter(|type_index| {
+            !type_index_cost_overrides.0.contains_key(type_index)
+          })
+          .collect::<Vec<_>>()
         {
-          if type_index_cost_overrides.0.contains_key(&type_index) {
-            continue;
-          }
           landmass_agent.remove_overridden_type_index_cost(type_index);
         }
 

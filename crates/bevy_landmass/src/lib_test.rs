@@ -1503,6 +1503,314 @@ fn agent_using_animation_link() {
   );
 }
 
+#[googletest::test]
+fn agent_with_unchanged_cost_overrides_is_paused() {
+  let mut app = create_test_app_2d();
+
+  let archipelago_entity = app
+    .world_mut()
+    .spawn(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)))
+    .id();
+
+  let agent = app
+    .world_mut()
+    .spawn((
+      Agent2dBundle {
+        agent: Default::default(),
+        settings: AgentSettings {
+          radius: 0.5,
+          desired_speed: 1.0,
+          max_speed: 2.0,
+        },
+        archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+      },
+      Transform::from_xyz(0.5, 0.5, 0.0),
+      {
+        let mut overrides = AgentTypeIndexCostOverrides::default();
+        overrides.set_type_index_cost(1, 10.0);
+        overrides
+      },
+    ))
+    .id();
+
+  app.update();
+
+  app.world_mut().entity_mut(agent).insert((
+    PauseAgent,
+    #[cfg(feature = "debug-avoidance")]
+    crate::KeepAvoidanceData,
+  ));
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_true!(agent_ref.paused);
+  #[cfg(feature = "debug-avoidance")]
+  expect_true!(agent_ref.keep_avoidance_data);
+
+  app.world_mut().entity_mut(agent).remove::<PauseAgent>();
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_false!(agent_ref.paused);
+  expect_eq!(
+    agent_ref.get_type_index_cost_overrides().collect::<Vec<_>>(),
+    vec![(1, 10.0)]
+  );
+}
+
+#[googletest::test]
+fn agent_with_unchanged_cost_overrides_uses_animation_link() {
+  let mut app = create_test_app_2d();
+
+  let archipelago_entity = app
+    .world_mut()
+    .spawn(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)))
+    .id();
+
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+      height_mesh: None,
+    }
+    .validate()
+    .unwrap(),
+  );
+
+  let nav_mesh = app
+    .world_mut()
+    .resource_mut::<Assets<NavMesh2d>>()
+    .add(NavMesh2d { nav_mesh });
+
+  app.world_mut().spawn(Island2dBundle {
+    archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+    island: Island,
+    nav_mesh: NavMeshHandle(nav_mesh.clone()),
+  });
+  app.world_mut().spawn((
+    Island2dBundle {
+      archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+      island: Island,
+      nav_mesh: NavMeshHandle(nav_mesh),
+    },
+    Transform::from_xyz(0.0, 2.0, 0.0),
+  ));
+  app.world_mut().spawn(AnimationLink2dBundle {
+    link: AnimationLink2d {
+      start_edge: (Vec2::new(0.0, 0.9), Vec2::new(1.0, 0.9)),
+      end_edge: (Vec2::new(0.0, 2.1), Vec2::new(1.0, 2.1)),
+      kind: 0,
+      cost: 1.0,
+      bidirectional: false,
+    },
+    archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+  });
+
+  let agent = app
+    .world_mut()
+    .spawn((
+      Agent2dBundle {
+        agent: Default::default(),
+        settings: AgentSettings {
+          radius: 0.5,
+          desired_speed: 1.0,
+          max_speed: 2.0,
+        },
+        archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+      },
+      Transform::from_xyz(0.5, 0.5, 0.0),
+      AgentTarget2d::Point(Vec2::new(0.5, 2.9)),
+      {
+        let mut overrides = AgentTypeIndexCostOverrides::default();
+        overrides.set_type_index_cost(1, 10.0);
+        overrides
+      },
+    ))
+    .id();
+
+  app.update();
+
+  app.world_mut().entity_mut(agent).insert(Transform::from_xyz(0.5, 0.9, 0.0));
+  app.update();
+
+  expect_true!(app.world().entity(agent).contains::<ReachedAnimationLink2d>());
+
+  app.world_mut().entity_mut(agent).insert(UsingAnimationLink);
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_true!(agent_ref.is_using_animation_link());
+
+  app
+    .world_mut()
+    .entity_mut(agent)
+    .remove::<UsingAnimationLink>()
+    .insert(Transform::from_xyz(0.5, 2.1, 0.0));
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_false!(agent_ref.is_using_animation_link());
+}
+
+#[googletest::test]
+fn agent_keeps_cost_overrides_when_changing_archipelago() {
+  let mut app = create_test_app_2d();
+
+  let archipelago_1 = app
+    .world_mut()
+    .spawn(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)))
+    .id();
+  let archipelago_2 = app
+    .world_mut()
+    .spawn(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)))
+    .id();
+
+  let agent = app
+    .world_mut()
+    .spawn((
+      Agent2dBundle {
+        agent: Default::default(),
+        settings: AgentSettings {
+          radius: 0.5,
+          desired_speed: 1.0,
+          max_speed: 2.0,
+        },
+        archipelago_ref: ArchipelagoRef2d::new(archipelago_1),
+      },
+      Transform::from_xyz(0.5, 0.5, 0.0),
+      {
+        let mut overrides = AgentTypeIndexCostOverrides::default();
+        overrides.set_type_index_cost(1, 10.0);
+        overrides
+      },
+    ))
+    .id();
+
+  app.update();
+
+  app
+    .world_mut()
+    .entity_mut(agent)
+    .insert(ArchipelagoRef2d::new(archipelago_2));
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_2).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_eq!(
+    agent_ref.get_type_index_cost_overrides().collect::<Vec<_>>(),
+    vec![(1, 10.0)]
+  );
+}
+
+#[googletest::test]
+fn agent_gets_cost_overrides_when_archipelago_is_added_later() {
+  let mut app = create_test_app_2d();
+
+  let archipelago_entity = app.world_mut().spawn_empty().id();
+
+  let agent = app
+    .world_mut()
+    .spawn((
+      Agent2dBundle {
+        agent: Default::default(),
+        settings: AgentSettings {
+          radius: 0.5,
+          desired_speed: 1.0,
+          max_speed: 2.0,
+        },
+        archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+      },
+      Transform::from_xyz(0.5, 0.5, 0.0),
+      {
+        let mut overrides = AgentTypeIndexCostOverrides::default();
+        overrides.set_type_index_cost(1, 10.0);
+        overrides
+      },
+    ))
+    .id();
+
+  app.update();
+
+  app
+    .world_mut()
+    .entity_mut(archipelago_entity)
+    .insert(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)));
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  expect_eq!(
+    agent_ref.get_type_index_cost_overrides().collect::<Vec<_>>(),
+    vec![(1, 10.0)]
+  );
+}
+
+#[googletest::test]
+fn stale_type_index_cost_overrides_are_removed() {
+  let mut app = create_test_app_2d();
+
+  let archipelago_entity = app
+    .world_mut()
+    .spawn(Archipelago2d::new(ArchipelagoOptions::from_agent_radius(0.5)))
+    .id();
+
+  let agent = app
+    .world_mut()
+    .spawn((
+      Agent2dBundle {
+        agent: Default::default(),
+        settings: AgentSettings {
+          radius: 0.5,
+          desired_speed: 1.0,
+          max_speed: 2.0,
+        },
+        archipelago_ref: ArchipelagoRef2d::new(archipelago_entity),
+      },
+      Transform::from_xyz(0.5, 0.5, 0.0),
+      {
+        let mut overrides = AgentTypeIndexCostOverrides::default();
+        overrides.set_type_index_cost(1, 10.0);
+        overrides.set_type_index_cost(2, 20.0);
+        overrides
+      },
+    ))
+    .id();
+
+  app.update();
+
+  app.world_mut().entity_mut(agent).insert({
+    let mut overrides = AgentTypeIndexCostOverrides::default();
+    overrides.set_type_index_cost(1, 5.0);
+    overrides.set_type_index_cost(3, 30.0);
+    overrides
+  });
+  app.update();
+
+  let archipelago =
+    app.world().entity(archipelago_entity).get::<Archipelago2d>().unwrap();
+  let agent_ref = archipelago.get_agent(agent).unwrap();
+  let mut overrides =
+    agent_ref.get_type_index_cost_overrides().collect::<Vec<_>>();
+  overrides.sort_by_key(|&(type_index, _)| type_index);
+  expect_eq!(overrides, vec![(1, 5.0), (3, 30.0)]);
+}
+
 fn create_test_app_3d() -> App {
   create_test_app(Landmass3dPlugin::default())
 }

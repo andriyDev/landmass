@@ -4,6 +4,11 @@
 
 ### Features
 
+### Fixes
+
+- bevy_landmass: Agents with `AgentTypeIndexCostOverrides` no longer ignore `PauseAgent`, `UsingAnimationLink`, and `KeepAvoidanceData`.
+- bevy_landmass: `AgentTypeIndexCostOverrides` are no longer ignored when an agent switches archipelagos, or when its archipelago is added later or replaced.
+
 ### Migration Guide
 
 ## `landmass_rerecast` 0.3.0 - 2026-08-09
