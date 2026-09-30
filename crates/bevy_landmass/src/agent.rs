@@ -336,6 +336,8 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
       continue;
     };
 
+    let archipelago_changed = archipelago.is_changed();
+
     let landmass_agent = archipelago
       .get_agent_mut(agent_entity)
       .expect("this agent is in the archipelago");
@@ -368,7 +370,7 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
         }
       }
       Some(type_index_cost_overrides) => 'has_overrides: {
-        if !type_index_cost_overrides.is_changed() {
+        if !type_index_cost_overrides.is_changed() && !archipelago_changed {
           // Bail out early so we don't need to clone
           // get_type_index_cost_overrides if nothing is changed.
           break 'has_overrides;
