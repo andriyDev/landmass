@@ -10,7 +10,11 @@
 
 ### Features
 
-- Updated to Bevy 0.19.
+## `bevy_landmass` 0.12.1 - 2026-09-29
+
+### Fixes
+
+- Fixed an issue where some agent components would not be synced correctly if AgentTypeIndexCostOverrides was unchanged.
 
 ## `landmass` 0.9.2 - 2026-07-17
 
