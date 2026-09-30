@@ -367,9 +367,11 @@ pub(crate) fn sync_agent_input_state<CS: CoordinateSystem>(
           landmass_agent.remove_overridden_type_index_cost(type_index);
         }
       }
-      Some(type_index_cost_overrides) => {
+      Some(type_index_cost_overrides) => 'has_overrides: {
         if !type_index_cost_overrides.is_changed() {
-          continue;
+          // Bail out early so we don't need to clone
+          // get_type_index_cost_overrides if nothing is changed.
+          break 'has_overrides;
         }
 
         for (type_index, _) in
