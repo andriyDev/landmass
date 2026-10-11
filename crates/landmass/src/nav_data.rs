@@ -626,10 +626,6 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         max_vertical_distance,
       );
 
-      if start_portals.is_empty() {
-        continue;
-      }
-
       let end_portals = world_portal_to_node_portals(
         end_edge,
         island_bbh,
@@ -637,10 +633,6 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         &mut island_to_node_bbh,
         max_vertical_distance,
       );
-
-      if end_portals.is_empty() {
-        continue;
-      }
 
       state.start_portals = start_portals;
       state.end_portals = end_portals;
