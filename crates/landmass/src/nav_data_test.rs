@@ -3746,3 +3746,93 @@ fn bidirectional_links_use_correct_indices() {
     }))
   );
 }
+
+#[googletest::test]
+fn finds_possible_link_across_boundary_link() {
+  let nav_mesh = Arc::new(
+    NavigationMesh {
+      vertices: vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 1.0),
+      ],
+      polygons: vec![vec![0, 1, 2, 3]],
+      polygon_type_indices: vec![0],
+      height_mesh: None,
+    }
+    .validate()
+    .expect("A square nav mesh is valid."),
+  );
+
+  let mut nav_data = NavigationData::<XY>::new();
+
+  let connected_island_1 =
+    nav_data.add_island(Island::new(Transform::default(), nav_mesh.clone()));
+  let connected_island_2 = nav_data.add_island(Island::new(
+    Transform { translation: Vec2::new(1.0, 0.0), rotation: 0.0 },
+    nav_mesh.clone(),
+  ));
+
+  let disjoint_island = nav_data.add_island(Island::new(
+    Transform { translation: Vec2::new(0.5, 2.0), rotation: 0.0 },
+    nav_mesh.clone(),
+  ));
+
+  let link_id_1 = nav_data.add_animation_link(AnimationLink {
+    start_edge: (Vec2::new(0.1, 0.9), Vec2::new(0.9, 0.9)),
+    end_edge: (Vec2::new(0.6, 2.1), Vec2::new(1.4, 2.1)),
+    kind: 0,
+    cost: 1.0,
+    bidirectional: true,
+  });
+
+  nav_data.update(
+    /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
+  );
+
+  // The animation link connected `connected_island_2` to `disjoint_island`
+  // through the link **and** the boundary link with `connected_island_1`.
+  expect_true!(nav_data.are_nodes_connected(
+    NodeRef { island_id: connected_island_2, polygon_index: 0 },
+    NodeRef { island_id: disjoint_island, polygon_index: 0 },
+    PermittedAnimationLinks::All,
+  ));
+  // Similarly, going from the `disjoint_island` to `connected_island_2` should
+  // *also* be connected.
+  expect_true!(nav_data.are_nodes_connected(
+    NodeRef { island_id: disjoint_island, polygon_index: 0 },
+    NodeRef { island_id: connected_island_2, polygon_index: 0 },
+    PermittedAnimationLinks::All,
+  ));
+
+  // Now remove the old animation link and replace it with one from
+  // `connected_island_2` to `disjoint_island`.
+  nav_data.remove_animation_link(link_id_1);
+  nav_data.add_animation_link(AnimationLink {
+    start_edge: (Vec2::new(1.1, 0.9), Vec2::new(1.9, 0.9)),
+    end_edge: (Vec2::new(0.6, 2.1), Vec2::new(1.4, 2.1)),
+    kind: 0,
+    cost: 1.0,
+    bidirectional: true,
+  });
+
+  nav_data.update(
+    /* edge_link_distance= */ 1e-5, /* animation_link_distance */ 1.0,
+  );
+
+  // The animation link connected `connected_island_1` to `disjoint_island`
+  // through the link **and** the boundary link with `connected_island_2`.
+  expect_true!(nav_data.are_nodes_connected(
+    NodeRef { island_id: connected_island_1, polygon_index: 0 },
+    NodeRef { island_id: disjoint_island, polygon_index: 0 },
+    PermittedAnimationLinks::All,
+  ));
+  // Similarly, going from the `disjoint_island` to `connected_island_1` should
+  // *also* be connected.
+  expect_true!(nav_data.are_nodes_connected(
+    NodeRef { island_id: disjoint_island, polygon_index: 0 },
+    NodeRef { island_id: connected_island_1, polygon_index: 0 },
+    PermittedAnimationLinks::All,
+  ));
+}
