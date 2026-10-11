@@ -42,10 +42,10 @@ pub(crate) struct NavigationData<CS: CoordinateSystem> {
   /// Connectedness of regions based on their "region number" in
   /// [`Self::region_id_to_number`].
   region_connections: Mutex<DisjointSet>,
-  /// Maps a region number (the key of [`Self::region_connections`]) to the set
-  /// of links that **could** connect the regions if agents are allowed to use
-  /// them.
-  region_number_to_possible_links: HashMap<usize, Vec<PossibleRegionLink>>,
+  /// Maps a (root) region number (the key of [`Self::region_connections`]) to
+  /// the set of links that **could** connect the regions if agents are allowed
+  /// to use them.
+  root_region_number_to_possible_links: HashMap<usize, Vec<PossibleRegionLink>>,
   /// The links that go off the mesh, connecting two node refs.
   pub(crate) off_mesh_links: SlotMap<OffMeshLinkId, OffMeshLink>,
   /// The links that can be taken from a particular node ref.
@@ -136,7 +136,7 @@ pub(crate) struct ModifiedNode {
 struct PossibleRegionLink {
   /// The kind of the animation link connecting the regions.
   link_kind: usize,
-  /// The region that will be connected by using this link.
+  /// The (root) region that will be connected by using this link.
   destination_region: usize,
 }
 
@@ -152,7 +152,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       dirty: false,
       region_id_to_number: HashMap::new(),
       region_connections: Mutex::new(DisjointSet::new()),
-      region_number_to_possible_links: HashMap::default(),
+      root_region_number_to_possible_links: HashMap::default(),
       off_mesh_links: SlotMap::with_key(),
       node_to_off_mesh_link_ids: HashMap::new(),
       modified_nodes: HashMap::new(),
@@ -1048,6 +1048,12 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
     };
 
     let region_connections = self.region_connections.lock().unwrap();
+    // We're kind of cheating here. Rather than calling
+    // `DisjointSet::is_joined`, we're calling `root_of`, since we need the
+    // roots anyway later. This avoids a traversal inside `is_joined` later.
+    let region_number_1 = region_connections.root_of(region_number_1);
+    let region_number_2 = region_connections.root_of(region_number_2);
+
     // If the regions are already connected, we're done!
     if region_connections.is_joined(region_number_1, region_number_2) {
       return true;
@@ -1065,7 +1071,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
       }
 
       let Some(possible_links) =
-        self.region_number_to_possible_links.get(&region_number)
+        self.root_region_number_to_possible_links.get(&region_number)
       else {
         continue;
       };
@@ -1088,7 +1094,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
   fn update_regions(&mut self) {
     self.region_id_to_number.clear();
-    self.region_number_to_possible_links.clear();
+    self.root_region_number_to_possible_links.clear();
     let mut region_connections = self.region_connections.lock().unwrap();
     region_connections.clear();
 
@@ -1148,8 +1154,10 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
         continue;
       }
 
+      let start_region = region_connections.root_of(start_region);
+      let end_region = region_connections.root_of(end_region);
       self
-        .region_number_to_possible_links
+        .root_region_number_to_possible_links
         .entry(start_region)
         .or_default()
         .push(PossibleRegionLink { link_kind, destination_region: end_region });
