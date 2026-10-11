@@ -6,9 +6,18 @@
 
 ### Migration Guide
 
+## `landmass` [unreleased] - yyyy-mm-dd
+
+### Fixes
+
+- Fixed stale animation links after regions are recomputed.
+- Fixed `NoPath` being returned when the only path was through animation links connected through boundary links.
+
 ## `landmass_rerecast` 0.3.0 - 2026-08-09
 
 ### Features
+
+- Bumped to Bevy 0.19.
 
 ## `bevy_landmass` 0.12.1 - 2026-09-29
 
