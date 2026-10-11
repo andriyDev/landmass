@@ -1088,6 +1088,7 @@ impl<CS: CoordinateSystem> NavigationData<CS> {
 
   fn update_regions(&mut self) {
     self.region_id_to_number.clear();
+    self.region_number_to_possible_links.clear();
     let mut region_connections = self.region_connections.lock().unwrap();
     region_connections.clear();
 
