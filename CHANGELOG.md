@@ -6,7 +6,7 @@
 
 ### Migration Guide
 
-## `landmass` [unreleased] - yyyy-mm-dd
+## `landmass` 0.9.3 - 2026-10-11
 
 ### Fixes
 
