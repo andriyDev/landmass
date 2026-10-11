@@ -12,6 +12,7 @@
 
 - Fixed stale animation links after regions are recomputed.
 - Fixed `NoPath` being returned when the only path was through animation links connected through boundary links.
+- Fixed new animation links that start unconnected (because the other side is not added yet) **remaining** unconnected after the other side is added.
 
 ## `landmass_rerecast` 0.3.0 - 2026-08-09
 
