@@ -1340,3 +1340,28 @@ fn samples_edge_along_stairs() {
     )
   );
 }
+
+#[googletest::test]
+fn sample_point_on_node_point_just_outside_node() {
+  // A real triangle from a generated nav mesh, and a point an animation link's
+  // portal put on its edge: float error leaves it a hair outside every
+  // triangle of the node.
+  let mesh = NavigationMesh::<XYZ> {
+    vertices: vec![
+      Vec3::new(83.33334, -0.66667175, 0.099999905),
+      Vec3::new(82.8, 0.9333267, 0.099999905),
+      Vec3::new(81.600006, 0.9333267, 0.099999905),
+    ],
+    polygons: vec![vec![0, 1, 2]],
+    polygon_type_indices: vec![0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("mesh is valid.");
+  let on_the_edge = Vec3::new(83.100006, 0.033353403, 0.0);
+
+  let sampled = mesh.sample_point_on_node(on_the_edge, 0);
+
+  expect_that!(sampled.truncate().distance(on_the_edge.truncate()), le(1e-4));
+  expect_that!(sampled.z, near(0.099999905, 1e-4));
+}

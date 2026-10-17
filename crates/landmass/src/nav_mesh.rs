@@ -631,39 +631,6 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
         ),
     );
 
-    fn project_to_triangle(triangle: (Vec3, Vec3, Vec3), point: Vec3) -> Vec3 {
-      let triangle_deltas = (
-        triangle.1 - triangle.0,
-        triangle.2 - triangle.1,
-        triangle.0 - triangle.2,
-      );
-      let triangle_deltas_flat = (
-        triangle_deltas.0.xy(),
-        triangle_deltas.1.xy(),
-        triangle_deltas.2.xy(),
-      );
-
-      if triangle_deltas_flat.0.perp_dot(point.xy() - triangle.0.xy()) < 0.0 {
-        let s = triangle_deltas_flat.0.dot(point.xy() - triangle.0.xy())
-          / triangle_deltas_flat.0.length_squared();
-        return triangle_deltas.0 * s.clamp(0.0, 1.0) + triangle.0;
-      }
-      if triangle_deltas_flat.1.perp_dot(point.xy() - triangle.1.xy()) < 0.0 {
-        let s = triangle_deltas_flat.1.dot(point.xy() - triangle.1.xy())
-          / triangle_deltas_flat.1.length_squared();
-        return triangle_deltas.1 * s.clamp(0.0, 1.0) + triangle.1;
-      }
-      if triangle_deltas_flat.2.perp_dot(point.xy() - triangle.2.xy()) < 0.0 {
-        let s = triangle_deltas_flat.2.dot(point.xy() - triangle.2.xy())
-          / triangle_deltas_flat.2.length_squared();
-        return triangle_deltas.2 * s.clamp(0.0, 1.0) + triangle.2;
-      }
-
-      let normal = -triangle_deltas.0.cross(triangle_deltas.2).normalize();
-      let height = normal.dot(point - triangle.0) / normal.z;
-      Vec3::new(point.x, point.y, point.z - height)
-    }
-
     let mut best_node = None;
 
     for (polygon_index, polygon) in self.polygons.iter().enumerate() {
@@ -675,7 +642,7 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
       // triangles to be handled the same. So factor out the test and turn it
       // into a closure we can call in both cases.
       let mut test_triangle = |triangle: (Vec3, Vec3, Vec3)| {
-        let projected_point = project_to_triangle(triangle, point);
+        let projected_point = closest_point_on_triangle(triangle, point);
 
         let distance_to_triangle_horizontal =
           point.xy().distance(projected_point.xy());
@@ -738,7 +705,8 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
 
   /// Finds the point on the provided node.
   ///
-  /// We assume that we know the point projects to the node.
+  /// We assume that we know the point projects to the node. A point that only
+  /// misses it by float error gets the nearest point of the node.
   pub(crate) fn sample_point_on_node(&self, point: Vec3, node: usize) -> Vec3 {
     fn project_to_triangle(
       triangle: (Vec3, Vec3, Vec3),
@@ -776,6 +744,23 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
       Some(Vec3::new(point.x, point.y, point.z - height))
     }
 
+    // Float error can leave a point on the node's boundary (such as the end of
+    // an animation link's portal, clipped to the node) just outside every
+    // triangle. So keep the nearest point of the node to fall back on.
+    let mut nearest: Option<(Vec3, f32)> = None;
+    let mut test_triangle = |triangle: (Vec3, Vec3, Vec3)| {
+      if let Some(point) = project_to_triangle(triangle, point) {
+        return Some(point);
+      }
+      let closest = closest_point_on_triangle(triangle, point);
+      let distance = closest.xy().distance_squared(point.xy());
+      if nearest.is_none_or(|(_, nearest_distance)| distance < nearest_distance)
+      {
+        nearest = Some((closest, distance));
+      }
+      None
+    };
+
     if let Some(height_mesh) = self.height_mesh.as_ref() {
       let height_polygon = &height_mesh.polygons[node];
       for i in height_polygon.triangle_range() {
@@ -787,7 +772,7 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
           height_mesh.vertices[height_polygon.vertex(*c)],
         );
 
-        if let Some(point) = project_to_triangle(triangle, point) {
+        if let Some(point) = test_triangle(triangle) {
           return point;
         }
       }
@@ -802,15 +787,13 @@ impl<CS: CoordinateSystem> ValidNavigationMesh<CS> {
           self.vertices[triangle.2],
         );
 
-        if let Some(point) = project_to_triangle(triangle, point) {
+        if let Some(point) = test_triangle(triangle) {
           return point;
         }
       }
     }
 
-    panic!(
-      "It should be impossible to reach here since we assume the node contains the point"
-    )
+    nearest.expect("a node has at least one triangle").0
   }
 
   /// Samples the `edge` on this nav mesh clipping to a max vertical distance.
@@ -948,6 +931,38 @@ impl ValidPolygon {
       self.vertices[edge],
     )
   }
+}
+
+/// The point of `triangle` nearest to `point` in the XY plane, at the
+/// triangle's height there.
+fn closest_point_on_triangle(
+  triangle: (Vec3, Vec3, Vec3),
+  point: Vec3,
+) -> Vec3 {
+  let triangle_deltas =
+    (triangle.1 - triangle.0, triangle.2 - triangle.1, triangle.0 - triangle.2);
+  let triangle_deltas_flat =
+    (triangle_deltas.0.xy(), triangle_deltas.1.xy(), triangle_deltas.2.xy());
+
+  if triangle_deltas_flat.0.perp_dot(point.xy() - triangle.0.xy()) < 0.0 {
+    let s = triangle_deltas_flat.0.dot(point.xy() - triangle.0.xy())
+      / triangle_deltas_flat.0.length_squared();
+    return triangle_deltas.0 * s.clamp(0.0, 1.0) + triangle.0;
+  }
+  if triangle_deltas_flat.1.perp_dot(point.xy() - triangle.1.xy()) < 0.0 {
+    let s = triangle_deltas_flat.1.dot(point.xy() - triangle.1.xy())
+      / triangle_deltas_flat.1.length_squared();
+    return triangle_deltas.1 * s.clamp(0.0, 1.0) + triangle.1;
+  }
+  if triangle_deltas_flat.2.perp_dot(point.xy() - triangle.2.xy()) < 0.0 {
+    let s = triangle_deltas_flat.2.dot(point.xy() - triangle.2.xy())
+      / triangle_deltas_flat.2.length_squared();
+    return triangle_deltas.2 * s.clamp(0.0, 1.0) + triangle.2;
+  }
+
+  let normal = -triangle_deltas.0.cross(triangle_deltas.2).normalize();
+  let height = normal.dot(point - triangle.0) / normal.z;
+  Vec3::new(point.x, point.y, point.z - height)
 }
 
 #[cfg(test)]

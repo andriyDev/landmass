@@ -4,6 +4,10 @@
 
 ### Features
 
+### Fixes
+
+- Fixed a panic when an agent reaches an animation link whose start point lies on the edge of its node.
+
 ### Migration Guide
 
 ## `landmass` 0.9.3 - 2026-10-11
