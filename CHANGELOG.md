@@ -4,6 +4,10 @@
 
 ### Features
 
+### Fixes
+
+- Fixed a panic when an agent reaches an animation link whose start point lies on the edge of its node.
+
 ### Migration Guide
 
 ## `bevy_landmass` 0.13.0 / `landmass_rerecast` 0.4.0 - 2026-10-26
