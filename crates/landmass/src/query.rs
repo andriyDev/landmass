@@ -235,9 +235,22 @@ pub(crate) fn find_path<'a, CS: CoordinateSystem>(
   // Keep looping until we reach the end index. If it's the last index, but the
   // previous step was an animation link, run once more to get the waypoint to
   // the end point.
+  // Each step advances the path index (a corner at the current index is
+  // followed by a step that leaves it), so a straight path never needs more
+  // than two steps per portal. The bound turns any future non-advancing step
+  // into "no path" instead of an endless allocation.
+  let portals: usize = path
+    .island_segments
+    .iter()
+    .map(|s| s.portal_edge_index.len() + 1)
+    .sum();
+  let max_steps = 2 * portals + 8;
   while current_index != last_index
     || matches!(path_points.last().unwrap(), PathStep::AnimationLink { .. })
   {
+    if path_points.len() > max_steps {
+      return Err(FindPathError::NoPathFound);
+    }
     let next_step;
     (current_index, next_step) = path.find_next_point_in_straight_path(
       &archipelago.nav_data,
