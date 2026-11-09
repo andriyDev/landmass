@@ -1087,3 +1087,67 @@ fn indices_in_path_are_found_rev() {
     None
   );
 }
+
+#[test]
+fn straight_path_terminates_when_target_is_behind_the_shared_edge() {
+  // Two polygons sharing a short edge: a flat triangle and, beyond the edge,
+  // a raised quad (its far vertices sit higher). The target sits inside the
+  // quad just past one end of the shared edge, so from the start the straight
+  // line to it crosses the shared edge's line beyond the edge itself. The
+  // funnel therefore first returns one end of the edge; the next step starts
+  // with the apex on that end, where the portal constrains nothing. Keeping
+  // the full portal there bounced the apex between the two ends of the edge
+  // forever.
+  let nav_mesh = NavigationMesh {
+    vertices: vec![
+      Vec3::new(0.0, 0.0, 0.0),
+      Vec3::new(0.0, -4.0, 0.0),
+      Vec3::new(3.0, -1.0, 0.0),
+      Vec3::new(4.0, 3.0, 0.3),
+      Vec3::new(-4.0, 3.0, 0.3),
+    ],
+    polygons: vec![vec![0, 1, 2], vec![0, 2, 3, 4]],
+    polygon_type_indices: vec![0, 0],
+    height_mesh: None,
+  }
+  .validate()
+  .expect("Mesh is valid.");
+
+  let mut archipelago =
+    Archipelago::<XYZ>::new(ArchipelagoOptions::from_agent_radius(0.5));
+  let island_id =
+    archipelago.add_island(Island::new(Transform::default(), Arc::new(nav_mesh)));
+
+  let start_point = Vec3::new(0.3, -1.0, 0.0);
+  let end_point = Vec3::new(-1.5, 0.3, 0.3);
+  let path = Path {
+    island_segments: vec![IslandSegment {
+      island_id,
+      corridor: vec![0, 1],
+      portal_edge_index: vec![2],
+    }],
+    off_mesh_link_segments: vec![],
+    start_point,
+    end_point,
+  };
+
+  // The iteration limit is the guard: on the looping code the collected
+  // steps alternate between the two ends of the shared edge and never reach
+  // the end index.
+  let steps = collect_straight_path(
+    &path,
+    &archipelago.nav_data,
+    (PathIndex::from_corridor_index(0, 0), start_point),
+    (PathIndex::from_corridor_index(0, 1), end_point),
+    /* iteration_limit= */ 8,
+  );
+  assert_eq!(
+    steps.last(),
+    Some(&(
+      PathIndex::from_corridor_index(0, 1),
+      StraightPathStep::Waypoint(end_point)
+    )),
+    "straight path should reach the target instead of bouncing between \
+     the ends of the shared edge: {steps:?}"
+  );
+}

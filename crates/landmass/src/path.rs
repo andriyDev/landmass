@@ -251,6 +251,16 @@ impl Path {
       (end_point, end_point)
     } else {
       match self.get_portal_endpoints(start_index, nav_data) {
+        // Every waypoint this returns is an end of the portal at the returned
+        // index, so the next call starts with the apex on that portal. The
+        // portal then constrains nothing (the funnel restarts at the apex, as
+        // in Mononen's funnel), so keep it degenerate instead of widening the
+        // funnel back to both portal ends. With the full portal, a later
+        // point seen across the portal line from both ends bounced between
+        // those two ends forever without advancing.
+        Portal::Walkable(left, right) if apex == left || apex == right => {
+          (apex, apex)
+        }
         Portal::Walkable(left, right) => (left, right),
         Portal::AnimationLink {
           start_portal,
